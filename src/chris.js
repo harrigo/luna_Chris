@@ -26,18 +26,23 @@ function makeChrisTextures(scene) {
 
   mk('blank', 2, 2, () => {});
 
-  mk('c_boot', 18, 10, g => {
-    rr(g, 1, 1, 16, 8, 3, 0x3b4252);
-    g.fillStyle(0xd9d9e0, 1).fillRect(3, 7, 12, 2);
+  mk('c_boot', 24, 13, g => {
+    rr(g, 1, 1, 22, 11, 5, 0x3b4252);
+    g.fillStyle(0xd9d9e0, 1).fillRect(3, 9, 18, 2);
   });
-  mk('c_leg', 10, 14, g => { rr(g, 1, 0, 8, 14, 3, 0xdfe6f0); });
+  mk('c_leg', 16, 14, g => {                                          // chunky suit legs
+    rr(g, 1, 0, 14, 14, 5, 0xdfe6f0);
+    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(3, 9, 13, 9);             // knee crease
+  });
 
   // suit torso with the belly hanging out the bottom
-  mk('c_body', 40, 38, g => {
-    el(g, 20, 29, 30, 18, 0xf3b59a);                                  // belly
-    rr(g, 3, 1, 34, 26, 11, 0xeef2f8);                                // too-small suit
-    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(8, 26, 32, 26);           // stretched hem
-    ci(g, 12, 11, 4, 0x1d4ed8, 2);                                    // mission patch
+  mk('c_body', 44, 42, g => {
+    rr(g, 5, 1, 34, 24, 11, 0xeef2f8);                                // too-small suit
+    ci(g, 14, 11, 4, 0x1d4ed8, 2);                                    // mission patch
+    el(g, 22, 29, 38, 25, 0xf6bfa3);                                  // the belly: hangs out in front of the suit
+    g.fillStyle(0xffd9c4, 1).fillEllipse(17, 24, 12, 6);              // belly highlight
+    g.lineStyle(2, 0xc9806a, 1).beginPath().arc(22, 31, 3, 0.4, Math.PI - 0.4, false).strokePath();   // belly button
+    g.lineStyle(3, 0xb9c3d6, 1).lineBetween(7, 22, 15, 24).lineBetween(37, 22, 29, 24);              // suit straining at the seams
   });
   // the apron: "KISS THE COOK"
   mk('c_apron', 28, 38, g => {
@@ -98,17 +103,17 @@ class ChrisRig {
 
     this.cape = img('c_cape', -6, -42, 1, 0.08);
     this.tanks = img('c_tanks', -16, -36, 0.5, 0.5);
-    this.legB = img('c_leg', -5, -12, 0.5, 0);
-    this.bootB = img('c_boot', -5, 0, 0.5, 1);
+    this.legB = img('c_leg', -6, -12, 0.5, 0);
+    this.bootB = img('c_boot', -6, 0, 0.5, 1);
     this.torso = scene.add.container(0, -12);
     this.body = img('c_body', 0, 3, 0.5, 1);
     this.armB = img('c_arm', -3, -22, 0, 0.5);
-    this.apron = img('c_apron', 4, -31, 0.5, 0);
+    this.apron = img('c_apron', -7, -30, 0.5, 0);
     this.head = img('c_head', 2, -41, 0.5, 0.5);
     this.hat = img('c_hat', 3, -51, 0.5, 1);
-    this.torso.add([this.body, this.armB, this.apron, this.head, this.hat]);
-    this.legF = img('c_leg', 6, -12, 0.5, 0);
-    this.bootF = img('c_boot', 6, 0, 0.5, 1);
+    this.torso.add([this.apron, this.body, this.armB, this.head, this.hat]);     // apron hangs BEHIND him so the belly is on show
+    this.legF = img('c_leg', 7, -12, 0.5, 0);
+    this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
     this.gun = img('c_gun', 6, 1, 0, 0.5);
@@ -156,7 +161,7 @@ class ChrisRig {
     const target = (!grounded || P.thrusting) ? 1 : 0;
     this.c += (target - this.c) * Math.min(1, dt * 10);
     const c = this.c;
-    this.apron.setScale(Math.cos(Math.min(c, 0.5) * Math.PI), 1).setVisible(c < 0.5);
+    this.apron.setScale(1.15 * Math.cos(Math.min(c, 0.5) * Math.PI), 0.95).setVisible(c < 0.5);
     const cp = Math.max(0, Math.min(1, (c - 0.3) / 0.7));
     this.cape.setVisible(cp > 0.02).setScale(cp, 0.6 + 0.4 * cp).setAlpha(cp);
     this.cape.setRotation(0.25 * cp + Math.sin(t * 17) * 0.09 * cp * (1 + fly) - P.vh * 0.00035);
@@ -173,8 +178,8 @@ class ChrisRig {
       boot.setRotation(rot * 0.35);
       leg.setPosition(hipX, -12 - lift * 0.6);
     };
-    place(this.legF, this.bootF, 6, rotF, sw);
-    place(this.legB, this.bootB, -5, rotB, -sw);
+    place(this.legF, this.bootF, 7, rotF, sw);
+    place(this.legB, this.bootB, -6, rotB, -sw);
 
     const idle = (1 - run) * (1 - air);
     this.torso.setPosition(sw * 1.9 * run, -12 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle);
