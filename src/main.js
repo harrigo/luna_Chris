@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.13';
+const BUILD = 'v0.14';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -133,11 +133,11 @@ class Level1 extends Phaser.Scene {
     }
 
     this.augerPhase = 0;
-    this.auger = this.add.image(0, 0, 'auger0').setDepth(7.5).setOrigin(0, 0.5);
+    this.rig = new ChrisRig(this);        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
       hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, power: 0, fuel: 1, jetArmed: false, thrusting: false,
-      spr: this.add.image(0, 0, 'chris').setOrigin(0.41, 1).setDepth(7)
+      spr: this.add.image(0, 0, 'blank').setOrigin(0.5, 1).setDepth(7)
     };
 
     // particle emitters (screen space; positions come from screenPos())
@@ -585,7 +585,7 @@ class Level1 extends Phaser.Scene {
   jetFlames(n) {
     const P = this.pl;
     const s = this.screenPos(P.theta, P.h), z = this.zoom;
-    this.fxJet.emitParticleAt(s.x - P.facing * 17 * z, s.y - 19 * z, n + 1);
+    this.fxJet.emitParticleAt(s.x - P.facing * 14 * z, s.y - 15 * z, n + 1);
   }
 
   updateWaves(dt) {
@@ -932,10 +932,7 @@ class Level1 extends Phaser.Scene {
     // spinning drill-bit on the end of the Mac-Laster, like a mincer's auger: fast while firing, idle-slow otherwise
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
-    const au = this.auger, z = this.zoom, fl = P.facing < 0;
-    au.setTexture('auger' + (Math.floor(this.augerPhase) % 4));
-    au.setOrigin(fl ? 1 : 0, 0.5).setFlipX(fl);
-    au.setPosition(P.spr.x + (fl ? -1 : 1) * 24 * z, P.spr.y - 33 * z).setScale(z).setAlpha(P.spr.alpha).setVisible(P.spr.visible);
+    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom, P.spr.alpha, Math.floor(this.augerPhase) % 4);
 
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : 0);
