@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.16';
+const BUILD = 'v0.17';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -698,8 +698,11 @@ class Level1 extends Phaser.Scene {
         }
 
       } else if (e.type === 'boss') {
-        const target = P.theta + Math.sin(e.t * 0.8) * 0.2;
-        e.theta = wrap(e.theta + angDiff(target, e.theta) * Math.min(1, dt * 2.2));
+        // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
+        const target = P.theta + Math.sin(e.t * 0.5) * 0.3;
+        const maxV = e.hp < e.maxHp * 0.5 ? 0.3 : 0.24;          // radians per second (about 100-125 units/s)
+        const step = Math.max(-maxV, Math.min(maxV, angDiff(target, e.theta) * 0.9));
+        e.theta = wrap(e.theta + step * dt);
         e.h = 175 + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
         const phase2 = e.hp < e.maxHp * 0.5;
 
