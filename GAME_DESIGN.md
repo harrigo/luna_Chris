@@ -29,7 +29,7 @@ Touch controls: left thumb = run left / right, right thumb = JUMP.
 Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manual fire.
 
 ## Levels
-1. **The Gruyere Globe** (built, v0.2): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss
+1. **The Gruyere Globe** (built): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss
    **Crusty Croque Monsieur** (toasted-sandwich drop-ship raining hot ham; fans of toast crumbs in phase 2).
 2. **Gorgonzola Gulch** (planned): toxic blue-cheese swamp. Mould spores change gravity (floaty jumps).
    Enemies: mutated fuzzy bacteria blobs.
@@ -47,7 +47,7 @@ Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manu
 
 ## Rules for AI changes
 - Plain JS + Phaser 3 (CDN). No build step, so a push deploys as-is.
-- Touch controls first. Test at ~390x844 portrait.
+- Touch controls first. Test at ~844x390 landscape (phone).
 - Placeholder art until gameplay is fun.
 - Bump `BUILD` in `src/main.js` on every change so the version on screen confirms the new deploy.
 - Keep the on-screen FPS counter and the error overlay in `index.html`.
