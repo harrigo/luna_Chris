@@ -57,6 +57,31 @@ function makeTextures(scene) {
     g.fillStyle(0x111111, 1).fillCircle(32, 12, 1.6);
   });
 
+  // Bessie, the zero-gravity cow. Faces right. Origin at her hooves.
+  mk('bessie', 64, 46, g => {
+    g.fillStyle(0xf4f0e6, 1).fillRoundedRect(8, 8, 40, 24, 10);             // body
+    g.fillStyle(0x2b2b33, 1).fillCircle(20, 16, 6).fillCircle(34, 22, 5).fillCircle(40, 12, 4);  // patches
+    g.fillStyle(0xf4a6b8, 1).fillRoundedRect(22, 30, 14, 7, 3);             // udder
+    g.fillStyle(0xf4f0e6, 1).fillRoundedRect(12, 30, 6, 14, 2).fillRoundedRect(38, 30, 6, 14, 2);   // legs
+    g.fillStyle(0x2b2b33, 1).fillRect(12, 42, 6, 3).fillRect(38, 42, 6, 3); // hooves
+    g.lineStyle(2, 0x2b2b33, 1).lineBetween(8, 14, 2, 22);                  // tail
+    g.fillStyle(0xf4f0e6, 1).fillRoundedRect(44, 6, 18, 18, 6);             // head
+    g.fillStyle(0xf4a6b8, 1).fillRoundedRect(52, 14, 11, 10, 4);            // snout
+    g.fillStyle(0x111111, 1).fillCircle(50, 12, 1.8);                       // eye
+    g.fillStyle(0xd8c07a, 1).fillTriangle(46, 7, 44, 0, 50, 6).fillTriangle(58, 7, 60, 0, 54, 6);   // horns
+    g.fillStyle(0x7ad7ff, 0.35).fillCircle(52, 14, 16);                     // little space-helmet bubble
+  });
+
+  // Rodent rescue-snatcher ship (small, seen at the start of a level).
+  mk('ratship', 84, 40, g => {
+    g.fillStyle(0x6f7a8c, 1).fillEllipse(42, 28, 82, 20);                   // saucer
+    g.fillStyle(0x8b5a2b, 1).fillRect(10, 26, 10, 4).fillRect(60, 24, 12, 5);  // junk plates
+    g.fillStyle(0x7ad7ff, 0.9).fillEllipse(42, 16, 28, 20);                 // dome
+    g.fillStyle(0x9aa3b2, 1).fillCircle(42, 18, 7);                         // rat pilot
+    g.fillStyle(0xf4a6b8, 1).fillCircle(37, 11, 3).fillCircle(47, 11, 3);
+    g.fillStyle(0xff8c1a, 1).fillCircle(20, 34, 3).fillCircle(42, 36, 3).fillCircle(64, 34, 3);   // lights
+  });
+
   // Gouda-Golem
   mk('golem', 60, 64, g => {
     g.fillStyle(0xffc83d, 1).fillRoundedRect(4, 6, 52, 56, 8);

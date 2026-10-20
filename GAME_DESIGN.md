@@ -22,7 +22,7 @@ Dodge screen-filling waves of cheese-beast projectiles in a high-speed space cha
 
 **Landscape only** (installed PWA is locked to landscape; in a browser a "rotate your phone" prompt shows in portrait).
 Touch controls: left thumb = run left / right, right thumb = JUMP.
-- Hold **FIRE** (left of JUMP) to shoot; shots are auto-aimed at the nearest enemy with target leading. `CFG.autoFire = true` brings back fully automatic firing.
+- Hold **FIRE** (left of JUMP) to shoot; shots fly straight the way Chris faces (aim by jumping / jetpacking to the enemy's height). `CFG.aimAssist` = homing, `CFG.autoFire` = hands-free.
 - Enemies: space-mice, **jetpack mice** (hover at height, drop cheese bombs), Gouda-Golems, boss.
 - **Jetpack**: tap JUMP to hop (hold for a full jump), let go in the air, then HOLD JUMP again to thrust.
   Burns fuel (JET gauge, top-left, about 2s of thrust). Fuel refills while standing on the ground.
@@ -35,6 +35,10 @@ Beats: retired hero flipping flapjacks with Bessie -> the Roquefort Rodents' jun
 tractor-beams Bessie -> Chris sighs, stretches an arm to twist the pepper grinder -> wall flips to reveal the armoury
 (Mac-Laster, Swiss-Shot, Fondue Flamethrower, Gouda Grenade). Art is placeholder, drawn with code in `makeIntroTextures()`.
 Add `?skipintro` to the URL to go straight to Level 1 while testing.
+
+## Bessie in every level
+Each level opens with a rat-ship tractor-beaming Bessie and scuttling off (with the `stinger` tune, `startNap`), and ends with her
+narrow escape from the boss's wreck (`startRescue`, state `rescue`) before the CLEAR screen. Reuse for Level 2 onwards.
 
 ## Levels
 1. **The Gruyere Globe** (built): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss

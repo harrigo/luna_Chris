@@ -250,6 +250,15 @@ const Sound = (() => {
       { drums: true, p: 'k.hks.hkk.hks.hs', vol: 1 }
     ] }),
 
+    // Stinger at the start of every level: the rats snatch Bessie. Rising chromatic dread, a moo-wobble, a stomp.
+    stinger: build({ bpm: 152, loop: false, ch: [
+      { p: 'A3:1 A#3:1 B3:1 C4:1 C#4:1 D4:1 D#4:1 E4:1 F4:1 F#4:1 G4:1 G#4:1 A4:4 E5:3 D#5:1 E5:3 D#5:1 E5:2 B4:2 A4:8',
+        w: 'pulse', duty: 0.25, vol: 0.2, gate: 0.85 },
+      { p: 'A4:1 A#4:1 B4:1 C5:1 C#5:1 D5:1 D#5:1 E5:1 F5:1 F#5:1 G5:1 G#5:1 A5:4 -:20', w: 'pulse', duty: 0.125, vol: 0.07, gate: 0.8 },
+      { p: 'A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 F2:4 E2:4 A2:12', w: 'triangle', vol: 0.36, gate: 0.85 },
+      { drums: true, p: 'k.k.s.k.k.k.s.sk' + 'k.k.s.k.k.k.s.sk' + 'k...', vol: 0.9 }
+    ] }),
+
     // Title screen: heroic fanfare in C major
     title: build({ bpm: 126, ch: [
       { p: J('C5:2 -:1 C5:1 G4:2 C5:2 E5:4 -:2 D5:2', 'E5:2 -:1 E5:1 D5:2 C5:2 G5:6 -:2',
@@ -326,6 +335,7 @@ const Sound = (() => {
         const old = cur;
         cur = null;
         setTimeout(() => { try { old.bus.disconnect(); } catch (e) { /* gone */ } }, 4000);
+        if (old.then) music(old.then);
       }
     }
   }
@@ -341,7 +351,7 @@ const Sound = (() => {
     setTimeout(() => { try { old.bus.disconnect(); } catch (e) { /* gone */ } }, (fade + 0.5) * 1000);
   }
 
-  function music(name) {
+  function music(name, then) {
     if (!ctx) return;
     if (cur && cur.name === name) return;
     stopCur(0.15);
@@ -350,7 +360,7 @@ const Sound = (() => {
     const bus = ctx.createGain();
     bus.gain.value = 1;
     bus.connect(musicBus);
-    cur = { name, tr, bus, step: 0, next: ctx.currentTime + 0.08, dur: 60 / tr.bpm / 4 };
+    cur = { name, tr, bus, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / tr.bpm / 4 };
   }
 
   // ------------------------------------------------------------ browser plumbing

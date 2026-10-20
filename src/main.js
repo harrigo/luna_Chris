@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.6';
+const BUILD = 'v0.7';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -26,6 +26,7 @@ const CFG = {
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
   jetRegen: 0.7,    // fuel per second while standing on the ground
   jetCeiling: 300,  // max height
+  aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
 
@@ -79,6 +80,9 @@ class Level1 extends Phaser.Scene {
     this.waveT = 0;
     this.clearT = 0;
     this.spawnSide = 1;
+    this.actors = [];               // decorative things placed in the world: Bessie, the rat-ship, falling debris
+    this.rescue = null;
+    this.nap = null;
 
     // distant stars
     this.bgStars = [];
@@ -144,7 +148,7 @@ class Level1 extends Phaser.Scene {
     } else {
       this.showOverlay(
         'LEVEL 1',
-        'The Gruyère Globe\n\n◀ ▶ run   JUMP to hop\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Guns fire automatically.\n\nTap to start'
+        'The Gruyère Globe\n\n◀ ▶ run   JUMP to hop   hold FIRE to blast\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Shots fly straight.\n\nTap to start'
       );
     }
   }
@@ -237,8 +241,81 @@ class Level1 extends Phaser.Scene {
   startGame() {
     this.hideOverlay();
     this.state = 'play';
-    Sound.init(); Sound.music('level1');
-    this.nextWave();
+    Sound.init();
+    if (this.autostart) { Sound.music('level1'); this.nextWave(); return; }   // retry: no cutscene, straight back in
+    Sound.music('stinger', 'level1');
+    this.clearT = -1.8;                // first wave starts about 3s in, once the rat-ship has made off with Bessie
+    this.banner('THE RATS ARE TAKING BESSIE!');
+    this.startNap();
+  }
+
+  // Start of the level: a rat-ship tractor-beams Bessie and scuttles off round the planet.
+  startNap() {
+    const P = this.pl;
+    const ship = { spr: this.add.image(0, 0, 'ratship').setDepth(6), theta: wrap(P.theta + 0.5), h: 250, rot: 0 };
+    const cow = { spr: this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6), theta: ship.theta, h: 205, rot: 0 };
+    this.actors.push(ship, cow);
+    this.nap = { ship, cow, t: 0 };
+    Sound.sfx('beam'); Sound.sfx('moo');
+  }
+
+  updateNap(dt) {
+    const n = this.nap;
+    n.t += dt;
+    n.ship.theta = wrap(n.ship.theta - (0.12 + n.t * 0.22) * dt);   // accelerates away
+    n.ship.h += n.t * 26 * dt;
+    n.cow.theta = n.ship.theta;
+    n.cow.h = n.ship.h - 58 - Math.sin(n.t * 5) * 4;
+    n.cow.rot = Math.sin(n.t * 4) * 0.25;
+    if (n.t > 4) {
+      for (const a of [n.ship, n.cow]) { a.spr.destroy(); this.actors.splice(this.actors.indexOf(a), 1); }
+      this.nap = null;
+    }
+  }
+
+  // End of the level: the Croque Monsieur's wreck drops Bessie, she dodges the falling debris by a whisker.
+  startRescue() {
+    const P = this.pl;
+    const T0 = wrap(P.theta + 0.3);
+    const cow = { spr: this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6), theta: T0, h: 330, rot: 0 };
+    const ham = { spr: this.add.image(0, 0, 'ham').setDepth(8), theta: wrap(T0 - 0.02), h: 640, rot: 0 };
+    this.actors.push(cow, ham);
+    this.rescue = { cow, ham, T0, t: 0, landed: false, smashed: false };
+    this.state = 'rescue';
+    this.clearEBullets();
+    Sound.jet(false); Sound.music(null);
+    this.banner('BESSIE!');
+    Sound.sfx('moo');
+  }
+
+  updateRescue(dt) {
+    const r = this.rescue;
+    r.t += dt;
+    const t = r.t, k = Math.min(1, t / 2.4);
+    r.cow.h = 330 * (1 - k * k);                                     // floats down, zero-g style
+    r.cow.theta = wrap(r.T0 + 0.1 * Math.min(1, Math.max(0, (t - 1.0) / 1.4)));   // sidesteps at the last moment
+    r.cow.rot = Math.sin(t * 3.2) * 0.3 * (1 - k);
+    r.ham.h = Math.max(0, 640 - t * t * 250);                        // hot ham from the wreck, falling fast
+    r.ham.rot += dt * 6;
+    if (!r.smashed && r.ham.h <= 0) {
+      r.smashed = true;
+      this.burst(r.ham.theta, 6, 'crumb', 18, 1.3);
+      this.cameras.main.shake(260, 0.012);
+      Sound.sfx('boom');
+      r.ham.spr.destroy(); this.actors.splice(this.actors.indexOf(r.ham), 1);
+    }
+    if (!r.landed && k >= 1) {
+      r.landed = true;
+      this.burst(r.cow.theta, 30, 'spark', 14, 0.9);
+      Sound.music('win');
+      Sound.sfx('moo');
+      this.banner('MOO! ...Bessie is safe!');
+    }
+    if (t > 5.4) {
+      r.cow.spr.destroy(); this.actors.splice(this.actors.indexOf(r.cow), 1);
+      this.rescue = null;
+      this.finishWin();
+    }
   }
 
   nextWave() {
@@ -253,12 +330,12 @@ class Level1 extends Phaser.Scene {
     this.waveText.setText(this.waveIdx < 3 ? 'WAVE ' + (this.waveIdx + 1) + '/3' : 'BOSS');
   }
 
-  win() {
+  win() { this.startRescue(); }
+
+  finishWin() {
     this.state = 'won';
-    Sound.jet(false); Sound.music('win');
     this.endT = this.t;
-    this.clearEBullets();
-    this.showOverlay('LEVEL 1 CLEAR!', 'The Croque Monsieur is toast. Literally.\nBut Bessie is still out there…\n\nLevel 2: Gorgonzola Gulch\ncoming soon\n\nTap to replay');
+    this.showOverlay('LEVEL 1 CLEAR!', 'The Croque Monsieur is toast. Literally.\nBessie is safe... for now.\nA fresh rat-ship is already circling.\n\nLevel 2: Gorgonzola Gulch\ncoming soon\n\nTap to replay');
   }
 
   die() {
@@ -296,6 +373,11 @@ class Level1 extends Phaser.Scene {
       this.updateEnemyBullets(dt);
       this.updatePickups(dt);
     }
+    else if (this.state === 'rescue') {
+      this.updatePlayer(dt, inp);
+      this.updateRescue(dt);
+    }
+    if (this.nap) this.updateNap(dt);
     this.updateParticles(dt);
 
     this.fpsT += dt;
@@ -359,7 +441,7 @@ class Level1 extends Phaser.Scene {
     // guns fire automatically whenever an enemy is on screen (Z/X fires manually on keyboard)
     P.fireCd -= dt;
     if (P.fireCd <= 0) {
-      const tgt = this.pickTarget();
+      const tgt = CFG.aimAssist ? this.pickTarget() : null;
       if ((CFG.autoFire && tgt) || inp.fire) { this.fire(tgt); P.fireCd = CFG.fireInterval; }
     }
   }
@@ -515,7 +597,7 @@ class Level1 extends Phaser.Scene {
       } else if (e.type === 'boss') {
         const target = P.theta + Math.sin(e.t * 0.8) * 0.2;
         e.theta = wrap(e.theta + angDiff(target, e.theta) * Math.min(1, dt * 2.2));
-        e.h = 235 + Math.sin(e.t * 1.3) * 28;
+        e.h = 175 + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
         const phase2 = e.hp < e.maxHp * 0.5;
 
         e.rainCd -= dt;
@@ -707,6 +789,7 @@ class Level1 extends Phaser.Scene {
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
+    for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
 
     // controls
