@@ -28,6 +28,13 @@ Touch controls: left thumb = run left / right, right thumb = JUMP.
   Tuning is in `CFG` (`jet*` values).
 Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manual fire.
 
+## Intro cutscene (`src/intro.js`)
+Tap to play (this first tap also goes fullscreen + landscape) -> ~20s comic-style cutscene -> Level 1. Tap any time to skip.
+Beats: retired hero flipping flapjacks with Bessie -> the Roquefort Rodents' junk UFO crashes through the barn roof and
+tractor-beams Bessie -> Chris sighs, stretches an arm to twist the pepper grinder -> wall flips to reveal the armoury
+(Mac-Laster, Swiss-Shot, Fondue Flamethrower, Gouda Grenade). Art is placeholder, drawn with code in `makeIntroTextures()`.
+Add `?skipintro` to the URL to go straight to Level 1 while testing.
+
 ## Levels
 1. **The Gruyere Globe** (built): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss
    **Crusty Croque Monsieur** (toasted-sandwich drop-ship raining hot ham; fans of toast crumbs in phase 2).
@@ -53,8 +60,15 @@ Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manu
 - Keep the on-screen FPS counter and the error overlay in `index.html`.
 
 ## Backlog
+- [ ] Commission/draw real art in the Earthworm Jim style (see art notes below) and swap in under the same texture keys
 - [ ] Playtest balance on a real phone (player speed, golem fire rate, boss HP 150)
 - [ ] Weapon unlock + switch button (Swiss-Shot first)
 - [ ] Level 2: Gorgonzola Gulch
 - [ ] Sound effects and music
 - [ ] Real art for Chris, Bessie and the cheese beasts
+
+## Art direction
+Target: Earthworm Jim-style hand-drawn cartoon: bold dark outlines, saturated colours, exaggerated squash-and-stretch
+(the stretchy arm gag in the intro), big expressive faces. Keep the silhouettes readable at phone size.
+Priority order for real art: Chris (idle/run/jump/shoot/jetpack), Bessie, Gouda-Golem, space-mouse, Croque Monsieur ship,
+planet surface tiles/props, then cutscene backgrounds.

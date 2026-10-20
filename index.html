@@ -41,7 +41,7 @@
   <script>
     // Load game scripts with a cache-busting timestamp so a phone never runs a stale build.
     (function () {
-      var files = ['src/textures.js', 'src/main.js'], q = '?t=' + Date.now();
+      var files = ['src/textures.js', 'src/intro.js', 'src/main.js'], q = '?t=' + Date.now();
       (function next(i) {
         if (i >= files.length) return;
         var s = document.createElement('script');

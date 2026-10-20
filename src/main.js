@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.3';
+const BUILD = 'v0.4';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -55,10 +55,13 @@ const WAVES = [
 class Level1 extends Phaser.Scene {
   constructor() { super('level1'); }
 
+  init(data) { this.autostart = !!(data && data.autostart); }
+
   // ------------------------------------------------------------------ setup
   create() {
     makeTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020');
+    this.cameras.main.fadeIn(300, 0, 0, 0);
 
     this.t = 0;
     this.state = 'intro';           // intro | play | dead | won
@@ -117,7 +120,7 @@ class Level1 extends Phaser.Scene {
     this.input.on('pointerdown', () => {
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
-      else if ((this.state === 'dead' || this.state === 'won') && this.t - this.endT > 0.8) this.scene.restart();
+      else if ((this.state === 'dead' || this.state === 'won') && this.t - this.endT > 0.8) this.scene.restart({ autostart: true });
     });
     // Fullscreen needs a real tap *release* (user activation), so ask for it on pointerup.
     this.input.on('pointerup', () => { if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); } });
@@ -134,10 +137,14 @@ class Level1 extends Phaser.Scene {
 
     this.layout();
     this.updateHearts();
-    this.showOverlay(
-      'LUNA CHRIS',
-      'Level 1: The Gruyère Globe\n\nThe Roquefort Rodents have cow-napped Bessie!\n\n◀ ▶ run   JUMP to hop\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Guns fire automatically.\n\nTap to start'
-    );
+    if (this.autostart) {
+      this.startGame();                       // retry after dying: straight back in
+    } else {
+      this.showOverlay(
+        'LEVEL 1',
+        'The Gruyère Globe\n\n◀ ▶ run   JUMP to hop\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Guns fire automatically.\n\nTap to start'
+      );
+    }
   }
 
   layout() {
@@ -702,5 +709,5 @@ window.game = new Phaser.Game({
   backgroundColor: '#0b1020',
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [Level1]
+  scene: [IntroScene, Level1]
 });
