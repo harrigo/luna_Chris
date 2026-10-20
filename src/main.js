@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.8';
+const BUILD = 'v0.9';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -30,7 +30,7 @@ const CFG = {
   ammoRegen: 0.5,     // refill per second once you stop shooting
   ammoDelay: 0.35,    // pause after the last shot before it refills
   ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
-  powerTime: 8,       // Parmesan Power-Up: seconds of triple shot + unlimited pasta
+  // Parmesan Power-Up (triple shot + unlimited pasta) lasts until Chris is hit: it soaks up that hit instead of a heart
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
@@ -56,7 +56,7 @@ const fl = t => ({ type: 'flyer', t });      // jetpack mouse: hovers at height 
 const WAVES = [
   { name: 'WAVE 1', spawns: [m(0), m(1), fl(2), m(2.4), m(3.6), fl(4), m(4.8), fl(6.2), m(6.8), m(7.6)] },
   { name: 'WAVE 2', spawns: [g(0), m(0.8), fl(1.6), m(2.4), fl(3), g(4), m(4.6), fl(5.2), m(6), fl(6.8), m(7.4), fl(8.4), m(9)] },
-  { name: 'WAVE 3', spawns: [g(0), fl(0.6), m(1), fl(1.8), g(2.6), m(3), fl(3.4), m(3.8), fl(4.8), g(5.2), m(5.6), fl(6.2), m(6.6), fl(7.4), m(7.8), g(8.6), fl(9), m(9.4), fl(10.2)] },
+  { name: 'WAVE 3', spawns: [g(0), m(1), fl(1.8), g(2.6), m(3), fl(3.6), m(4.2), g(5.4), fl(6), m(6.6), fl(7.6), m(8.2), g(9), fl(9.6), m(10.2)] },
   { name: 'BOSS: CRUSTY CROQUE MONSIEUR', spawns: [{ type: 'boss', t: 1.5 }] }
 ];
 
@@ -242,6 +242,10 @@ class Level1 extends Phaser.Scene {
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
     this.heartsText.setText('♥'.repeat(hp) + '♡'.repeat(CFG.maxHp - hp));
+    if (this.bonusHeart) {                 // the cheeseburger heart sits after the hearts
+      if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.8);
+      this.burgerIcon.setPosition(12 + this.heartsText.width + 20, 20);
+    }
   }
 
   // ------------------------------------------------------------- game flow
@@ -287,7 +291,7 @@ class Level1 extends Phaser.Scene {
     const cow = { spr: this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6), theta: T0, h: 330, rot: 0 };
     const ham = { spr: this.add.image(0, 0, 'ham').setDepth(8), theta: wrap(T0 - 0.02), h: 640, rot: 0 };
     this.actors.push(cow, ham);
-    this.rescue = { cow, ham, T0, t: 0, landed: false, smashed: false };
+    this.rescue = { cow, ham, T0, t: 0, landed: false, smashed: false, burger: null, got: false };
     this.state = 'rescue';
     this.clearEBullets();
     Sound.jet(false); Sound.music(null);
@@ -318,8 +322,30 @@ class Level1 extends Phaser.Scene {
       Sound.sfx('moo');
       this.banner('MOO! ...Bessie is safe!');
     }
-    if (t > 5.4) {
+    if (r.landed && !r.burger && t > 2.8) {           // the end-of-level treat: a cheeseburger falls from the sky
+      r.burger = { spr: this.add.image(0, 0, 'burger').setDepth(8), theta: wrap(this.pl.theta + 0.05), h: 330, rot: 0 };
+      this.actors.push(r.burger);
+      Sound.sfx('whoosh');
+    }
+    if (r.burger && !r.got) {
+      const b = r.burger, P = this.pl;
+      b.rot = Math.sin(t * 6) * 0.2;
+      b.theta = wrap(b.theta + angDiff(P.theta, b.theta) * Math.min(1, dt * 2.5));
+      b.h += (P.h + 34 - b.h) * Math.min(1, dt * 1.8);
+      if (Math.abs(b.h - (P.h + 34)) < 14 && Math.abs(angDiff(b.theta, P.theta)) * R < 18) {
+        r.got = true;
+        this.actors.splice(this.actors.indexOf(b), 1); b.spr.destroy();
+        this.burst(P.theta, P.h + 30, 'spark', 14, 1);
+        this.bonusHeart = true;
+        this.registry.set('bonusHeart', true);             // carried forward for Level 2
+        this.updateHearts();
+        Sound.sfx('power');
+        this.banner('EXTRA HEART! CHEESEBURGER!');
+      }
+    }
+    if (t > 7.4) {
       r.cow.spr.destroy(); this.actors.splice(this.actors.indexOf(r.cow), 1);
+      if (r.burger && !r.got) { r.burger.spr.destroy(); this.actors.splice(this.actors.indexOf(r.burger), 1); }
       this.rescue = null;
       this.finishWin();
     }
@@ -356,6 +382,15 @@ class Level1 extends Phaser.Scene {
   hurt() {
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
+    if (P.power > 0) {                     // the Parmesan Power-Up takes the hit instead of a heart
+      P.power = 0;
+      P.invuln = CFG.invuln;
+      Sound.sfx('clunk');
+      this.burst(P.theta, P.h + 24, 'spark', 10, 1);
+      this.cameras.main.shake(100, 0.005);
+      this.banner('POWER-UP LOST!');
+      return;
+    }
     P.hp--;
     P.invuln = CFG.invuln;
     P.vh = Math.max(P.vh, 300);
@@ -448,9 +483,6 @@ class Level1 extends Phaser.Scene {
     // Mac-Laster: hold FIRE (Z/X on keyboard). Pasta gauge drains per shot and refills when you let off.
     P.fireCd -= dt;
     P.ammoHold = Math.max(0, P.ammoHold - dt);
-    const wasPower = P.power > 0;
-    P.power = Math.max(0, P.power - dt);
-    if (wasPower && P.power <= 0) Sound.sfx('clunk');
     if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = (CFG.autoFire && tgt) || inp.fire;
@@ -536,7 +568,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if (type === 'boss') {
       this.enemies.push({
-        type: 'boss', theta: wrap(P.theta + 0.2), h: 240, vh: 0, hp: 150, maxHp: 150, r: 54, ch: 0,
+        type: 'boss', theta: wrap(P.theta + 0.2), h: 240, vh: 0, hp: 110, maxHp: 110, r: 54, ch: 0,
         spr: this.add.image(0, 0, 'croque').setDepth(6),
         t: 0, flash: 0, rainCd: 1.5, fanCd: 3, vx: 0, dh: 0, dir: 1
       });
@@ -624,16 +656,20 @@ class Level1 extends Phaser.Scene {
         e.h = 175 + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
         const phase2 = e.hp < e.maxHp * 0.5;
 
+        if (phase2 && !e.healed) {          // halfway: a cheese wedge drops in to help
+          e.healed = true;
+          this.pickups.push({ kind: 'heal', theta: wrap(P.theta + 0.12), h: 320, vh: 0, life: 14, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+        }
         e.rainCd -= dt;
         if (e.rainCd <= 0) {          // hot ham rain
-          e.rainCd = phase2 ? 0.33 : 0.55;
+          e.rainCd = phase2 ? 0.5 : 0.8;
           this.addEBullet('ham', P.theta + rnd(-0.22, 0.22), 300, rnd(-40, 40), -300, 13, 2);
         }
         e.fanCd -= dt;
         if (e.fanCd <= 0) {           // fan of toast crumbs
-          e.fanCd = phase2 ? 2.4 : 4.2;
+          e.fanCd = phase2 ? 3.4 : 5.2;
           Sound.sfx('fan');
-          const n = phase2 ? 7 : 5;
+          const n = phase2 ? 5 : 4;
           for (let k = 0; k < n; k++) {
             const a = (k - (n - 1) / 2) * 0.4;
             this.addEBullet('crumb', e.theta, e.h - 30, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
@@ -743,7 +779,7 @@ class Level1 extends Phaser.Scene {
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (p.kind === 'power') {
-          P.power = CFG.powerTime; P.overheat = false; P.ammo = 1;
+          P.power = 1; P.overheat = false; P.ammo = 1;
           Sound.sfx('power');
           this.banner('PARMESAN POWER!');
         } else {
@@ -858,7 +894,7 @@ class Level1 extends Phaser.Scene {
     const my = 56, flash = Math.floor(this.t * 8) % 2;
     hg.fillStyle(0x000000, 0.5).fillRect(gx, my, gw, gh);
     if (P.power > 0) {
-      hg.fillStyle(flash && P.power < 2 ? 0xffffff : 0xffd23f, 1).fillRect(gx, my, gw * (P.power / CFG.powerTime), gh);
+      hg.fillStyle(flash ? 0xfff3a0 : 0xffd23f, 1).fillRect(gx, my, gw, gh);
     } else {
       hg.fillStyle(P.overheat ? (flash ? 0xff3c3c : 0x7a1f1f) : 0xff8c1a, 1).fillRect(gx, my, gw * P.ammo, gh);
       if (P.overheat) hg.lineStyle(1, 0xffffff, 0.9).lineBetween(gx + gw * CFG.ammoRestart, my, gx + gw * CFG.ammoRestart, my + gh);

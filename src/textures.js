@@ -143,6 +143,17 @@ function makeTextures(scene) {
     g.lineStyle(2, 0x7a5a00, 1).strokeRoundedRect(4, 10, 22, 14, 3);
   });
 
+  // Cheeseburger: the end-of-level bonus heart
+  mk('burger', 34, 30, g => {
+    g.fillStyle(0xe0a458, 1).fillRoundedRect(2, 2, 30, 12, 6);               // top bun
+    g.fillStyle(0xfff3c4, 1).fillRect(10, 5, 2, 2).fillRect(18, 4, 2, 2).fillRect(24, 7, 2, 2);   // sesame
+    g.fillStyle(0x59b34a, 1).fillRoundedRect(1, 13, 32, 4, 2);               // lettuce
+    g.fillStyle(0xffd23f, 1).fillTriangle(1, 16, 33, 16, 17, 24);            // melting cheese
+    g.fillStyle(0x7a3b12, 1).fillRoundedRect(3, 16, 28, 6, 3);               // patty
+    g.fillStyle(0xe0a458, 1).fillRoundedRect(2, 22, 30, 7, 4);               // bottom bun
+    g.lineStyle(2, 0x5a3a12, 1).strokeRoundedRect(2, 2, 30, 12, 6).strokeRoundedRect(2, 22, 30, 7, 4);
+  });
+
   mk('crater', 70, 16, g => {
     g.fillStyle(0xc99a2a, 1).fillEllipse(35, 8, 70, 16);
     g.fillStyle(0xb5851c, 1).fillEllipse(35, 9, 56, 11);
