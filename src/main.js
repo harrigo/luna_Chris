@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.9';
+const BUILD = 'v0.10';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -20,7 +20,7 @@ const CFG = {
   fireInterval: 0.085,
   bulletSpeed: 760,
   bulletLife: 0.6,
-  invuln: 1.2,
+  invuln: 1.6,
   jetAccel: 2400,   // jetpack thrust
   jetMaxV: 260,     // max climb speed under thrust
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
@@ -360,6 +360,9 @@ class Level1 extends Phaser.Scene {
     this.clearT = 0;
     this.banner(w.name);
     if (this.waveIdx > 0 && this.waveIdx < 3) Sound.sfx('wave');
+    if (this.waveIdx > 0 && this.pl.hp < CFG.maxHp) {      // a breather: a cheese wedge drops in between waves when you're hurt
+      this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+    }
     this.waveText.setText(this.waveIdx < 3 ? 'WAVE ' + (this.waveIdx + 1) + '/3' : 'BOSS');
   }
 
@@ -505,7 +508,7 @@ class Level1 extends Phaser.Scene {
     for (const e of this.enemies) {
       const ex = angDiff(e.theta, P.theta) * R;
       if (Math.abs(ex) > halfW) continue;
-      const ey = e.h + e.ch - (P.h + 26);
+      const ey = e.h + e.ch - (P.h + 33);
       let d = ex * ex + ey * ey;
       if (e.type === 'boss') d *= 0.25;
       if (d < bd) { bd = d; best = e; }
@@ -518,7 +521,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
     let dx = P.facing, dy = 0;
-    const gh = P.h + 26;
+    const gh = P.h + 33;                  // muzzle height: the gun is at Chris's waist, not his boots
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
@@ -701,7 +704,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'golem' && (!this.gotPower || Math.random() < 0.3)) {     // the first Golem always drops a Power-Up
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: this.add.image(0, 0, 'power').setDepth(6) });
-      } else if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06) || (e.type === 'flyer' && Math.random() < 0.12)) {
+      } else if ((e.type === 'golem' && Math.random() < 0.65) || (e.type === 'mouse' && Math.random() < 0.15) || (e.type === 'flyer' && Math.random() < 0.28)) {
         this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
       e.spr.destroy();
@@ -728,7 +731,7 @@ class Level1 extends Phaser.Scene {
       b.age += dt;
       b.bt = wrap(b.bt + (b.vt / R) * dt);
       b.bh += b.vh * dt;
-      const w = Math.sin(b.age * 42 + b.ph) * 6;      // corkscrew wobble
+      const w = 0;                                    // shots fly dead straight (no corkscrew bobbing)
       b.theta = wrap(b.bt + (b.px * w) / R);
       b.h = b.bh + b.py * w;
 
