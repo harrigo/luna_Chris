@@ -29,6 +29,8 @@ jobs:
           cp -r src _site/
           [ -d assets ] && cp -r assets _site/ || true
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
