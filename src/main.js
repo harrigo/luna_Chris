@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.2.1';
+const BUILD = 'v0.3';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -20,7 +20,12 @@ const CFG = {
   fireInterval: 0.085,
   bulletSpeed: 760,
   bulletLife: 0.6,
-  invuln: 1.2
+  invuln: 1.2,
+  jetAccel: 2400,   // jetpack thrust
+  jetMaxV: 260,     // max climb speed under thrust
+  jetDrain: 0.5,    // fuel per second (full tank = 2s)
+  jetRegen: 0.7,    // fuel per second while standing on the ground
+  jetCeiling: 300   // max height
 };
 
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -72,9 +77,9 @@ class Level1 extends Phaser.Scene {
 
     // distant stars
     this.bgStars = [];
-    for (let i = 0; i < 320; i++) {
+    for (let i = 0; i < 360; i++) {
       const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(rnd(0.25, 0.9)).setScale(rnd(0.6, 1.6));
-      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(R + 30, 1050) });
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1) });   // r = fraction of the way out from the planet
     }
 
     this.planetG = this.add.graphics().setDepth(1);
@@ -82,17 +87,19 @@ class Level1 extends Phaser.Scene {
     // surface decoration: pits on the surface line and cheese holes inside the planet
     this.decor = [];
     for (let i = 0; i < 28; i++) {
-      const spr = this.add.image(0, 0, 'crater').setDepth(2).setScale(rnd(0.6, 1.5), rnd(0.8, 1.3));
+      const spr = this.add.image(0, 0, 'crater').setDepth(2);
+      spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -8 });
     }
     for (let i = 0; i < 60; i++) {
-      const spr = this.add.image(0, 0, 'hole').setDepth(2).setScale(rnd(0.5, 2.2)).setAlpha(rnd(0.5, 1));
+      const spr = this.add.image(0, 0, 'hole').setDepth(2).setAlpha(rnd(0.5, 1));
+      spr.bsx = spr.bsy = rnd(0.5, 2.2);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
     }
 
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0,
+      hp: CFG.maxHp, invuln: 0, fireCd: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'chris').setOrigin(0.41, 1).setDepth(7)
     };
 
@@ -104,43 +111,65 @@ class Level1 extends Phaser.Scene {
       ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X' })
       : null;
 
+    if (this.wantFs === undefined) this.wantFs = false;
+    this.coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+
     this.input.on('pointerdown', () => {
+      if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
       else if ((this.state === 'dead' || this.state === 'won') && this.t - this.endT > 0.8) this.scene.restart();
     });
+    // Fullscreen needs a real tap *release* (user activation), so ask for it on pointerup.
+    this.input.on('pointerup', () => { if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); } });
 
+    const lockLandscape = () => {
+      try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* not supported */ }
+    };
+    this.scale.on('enterfullscreen', lockLandscape);
     this.scale.on('resize', this.layout, this);
-    this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+    this.events.once('shutdown', () => {
+      this.scale.off('resize', this.layout, this);
+      this.scale.off('enterfullscreen', lockLandscape);
+    });
 
     this.layout();
     this.updateHearts();
     this.showOverlay(
       'LUNA CHRIS',
-      'Level 1: The Gruyère Globe\n\nThe Roquefort Rodents have cow-napped Bessie!\n\n◀ ▶ run   JUMP   FIRE (auto-aims)\n\nTap to start'
+      'Level 1: The Gruyère Globe\n\nThe Roquefort Rodents have cow-napped Bessie!\n\n◀ ▶ run   JUMP to hop\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Guns fire automatically.\n\nTap to start'
     );
   }
 
   layout() {
     const W = this.scale.width, H = this.scale.height;
     this.W = W; this.H = H;
+    this.landscape = W > H * 1.1;
+    this.zoom = Math.min(1, H / 470);          // short (landscape) screens zoom the world out so the boss still fits
+    const z = this.zoom, Rz = R * z;
     this.cx = W / 2;
-    this.groundY = H * 0.58;          // where the player stands on screen
-    this.cy = this.groundY + R;       // planet centre
+    this.groundY = H * (this.landscape ? 0.70 : 0.58);   // where the player stands on screen
+    this.cy = this.groundY + Rz;                          // planet centre
+    // how far round the planet (radians) you can see before things drop off-screen
+    const byX = Math.asin(Math.min(1, (W / 2) / Rz));
+    const byY = Math.acos(Math.max(-1, Math.min(1, (this.cy - H) / Rz)));
+    this.visHalf = Math.min(byX, byY);
+    this.visArc = R * this.visHalf;
+    this.maxStarR = Math.hypot(W, this.cy);
 
     this.btn = {
-      left:  { x: 62,      y: H - 88,  r: 44 },
-      right: { x: 166,     y: H - 88,  r: 44 },
-      jump:  { x: W - 62,  y: H - 190, r: 40 },
-      fire:  { x: W - 62,  y: H - 84,  r: 52 }
+      left:  { x: 64,     y: H - 68, r: 44 },
+      right: { x: 172,    y: H - 68, r: 44 },
+      jump:  { x: W - 78, y: H - 78, r: 54 }
     };
     for (const k in this.btn) this.btnLabels[k].setPosition(this.btn[k].x, this.btn[k].y);
 
     this.waveText.setPosition(W / 2, 10);
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
-    this.fpsText.setPosition(12, 36);
+    this.jetText.setPosition(12, 38);
+    this.fpsText.setPosition(12, 58);
     this.ovBg.setSize(W, H);
-    this.ovTitle.setPosition(W / 2, H * 0.28).setWordWrapWidth(W - 40);
-    this.ovBody.setPosition(W / 2, H * 0.46).setWordWrapWidth(W - 40);
+    this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
+    this.ovBody.setFontSize(this.landscape ? '15px' : '16px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
   }
 
   buildHud() {
@@ -148,17 +177,18 @@ class Level1 extends Phaser.Scene {
     this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d')).setDepth(20);
     this.waveText = this.add.text(0, 0, '', f(14, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.fpsText = this.add.text(0, 0, '', f(11, '#6b7390')).setDepth(20);
+    this.jetText = this.add.text(0, 0, 'JET', f(12, '#9fd8ff')).setDepth(20);
     this.bannerText = this.add.text(0, 0, '', f(26, '#ffd23f', { align: 'center' })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
   }
 
   buildControls() {
     this.ctrlG = this.add.graphics().setDepth(20);
-    const labels = { left: '◀', right: '▶', jump: 'JUMP', fire: 'FIRE' };
+    const labels = { left: '◀', right: '▶', jump: 'JUMP\n+JET' };
     this.btnLabels = {};
     for (const k in labels) {
       this.btnLabels[k] = this.add.text(0, 0, labels[k], {
-        fontFamily: 'monospace', fontSize: (k === 'left' || k === 'right') ? '30px' : '16px', color: '#ffffff', fontStyle: 'bold'
+        fontFamily: 'monospace', fontSize: (k === 'left' || k === 'right') ? '30px' : '16px', color: '#ffffff', fontStyle: 'bold', align: 'center'
       }).setOrigin(0.5).setDepth(21).setAlpha(0.85);
     }
   }
@@ -167,6 +197,12 @@ class Level1 extends Phaser.Scene {
     this.ovBg = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.62).setOrigin(0).setDepth(30);
     this.ovTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '34px', fontStyle: 'bold', color: '#ffd23f', align: 'center' }).setOrigin(0.5).setDepth(31);
     this.ovBody = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '16px', color: '#ffffff', align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0).setDepth(31);
+  }
+
+  enterFullscreen() {
+    const standalone = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches);
+    if (standalone) return;     // installed app is already fullscreen
+    try { if (!this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* not supported (e.g. iPhone Safari) */ }
   }
 
   showOverlay(title, body) {
@@ -233,8 +269,9 @@ class Level1 extends Phaser.Scene {
   // ----------------------------------------------------------------- update
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
-    this.t += dt;
     const inp = this.readInput();
+    if (this.coarse && this.H > this.W) { this.render(inp); return; }   // paused while the "rotate your phone" prompt shows
+    this.t += dt;
 
     if (this.state === 'play') {
       this.updatePlayer(dt, inp);
@@ -283,21 +320,37 @@ class Level1 extends Phaser.Scene {
     if (ax !== 0) P.facing = ax;
 
     const grounded = P.h <= 0 && P.vh <= 0;
-    if (inp.jump && grounded) P.vh = CFG.jumpV;
-    if (!inp.jump && P.vh > 180) P.vh = 180;      // release early = shorter hop
+    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; }
+    if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
+    if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
+
+    P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0;
+    if (P.thrusting) {
+      P.vh = Math.min(CFG.jetMaxV, P.vh + CFG.jetAccel * dt);
+      P.fuel = Math.max(0, P.fuel - CFG.jetDrain * dt);
+      this.jetFlames(2);
+    } else if (grounded) {
+      P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
+    }
+
     P.vh -= CFG.gravity * dt;
     P.h += P.vh * dt;
+    if (P.h >= CFG.jetCeiling) { P.h = CFG.jetCeiling; if (P.vh > 0) P.vh = 0; }
     if (P.h <= 0) { P.h = 0; if (P.vh < 0) P.vh = 0; }
 
     P.invuln = Math.max(0, P.invuln - dt);
 
+    // guns fire automatically whenever an enemy is on screen (Z/X fires manually on keyboard)
     P.fireCd -= dt;
-    if (inp.fire && P.fireCd <= 0) { this.fire(); P.fireCd = CFG.fireInterval; }
+    if (P.fireCd <= 0) {
+      const tgt = this.pickTarget();
+      if (tgt || inp.fire) { this.fire(tgt); P.fireCd = CFG.fireInterval; }
+    }
   }
 
   pickTarget() {
     const P = this.pl;
-    const halfW = this.W / 2 + 30;
+    const halfW = this.visArc + 30;
     let best = null, bd = 1e12;
     for (const e of this.enemies) {
       const ex = angDiff(e.theta, P.theta) * R;
@@ -311,9 +364,8 @@ class Level1 extends Phaser.Scene {
   }
 
   // The Mac-Laster 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
-  fire() {
+  fire(tgt) {
     const P = this.pl;
-    const tgt = this.pickTarget();
     let dx = P.facing, dy = 0;
     const gh = P.h + 26;
     if (tgt) {
@@ -333,6 +385,17 @@ class Level1 extends Phaser.Scene {
       px: -dy, py: dx, ph: rnd(0, TAU), age: 0,
       spr: this.add.image(0, 0, 'macaroni').setDepth(8)
     });
+  }
+
+  jetFlames(n) {
+    const P = this.pl;
+    for (let i = 0; i < n; i++) {
+      this.parts.push({
+        theta: wrap(P.theta - P.facing * (16 / R)), h: P.h + 10,
+        vt: -P.facing * 30 + rnd(-30, 30), vh: rnd(-320, -200), life: rnd(0.12, 0.25),
+        spr: this.add.image(0, 0, 'flame').setDepth(6)
+      });
+    }
   }
 
   updateWaves(dt) {
@@ -356,10 +419,10 @@ class Level1 extends Phaser.Scene {
       });
       return;
     }
-    const halfAng = Math.asin(Math.min(1, (this.W / 2 + 40) / R)) + 0.12;   // just off-screen
+    const halfAng = this.visHalf + 0.1;   // just off-screen
     const side = this.spawnSide;
     this.spawnSide = -this.spawnSide;
-    const theta = wrap(P.theta + side * (halfAng + rnd(0, 0.25)));
+    const theta = wrap(P.theta + side * (halfAng + rnd(0, 0.15)));
     if (type === 'mouse') {
       this.enemies.push({
         type: 'mouse', theta, h: 0, vh: 0, hp: 2, r: 14, ch: 10,
@@ -418,7 +481,7 @@ class Level1 extends Phaser.Scene {
         e.rainCd -= dt;
         if (e.rainCd <= 0) {          // hot ham rain
           e.rainCd = phase2 ? 0.33 : 0.55;
-          this.addEBullet('ham', P.theta + rnd(-0.22, 0.22), 320, rnd(-40, 40), -300, 13, 2);
+          this.addEBullet('ham', P.theta + rnd(-0.22, 0.22), 300, rnd(-40, 40), -300, 13, 2);
         }
         e.fanCd -= dt;
         if (e.fanCd <= 0) {           // fan of toast crumbs
@@ -560,29 +623,32 @@ class Level1 extends Phaser.Scene {
   place(o, theta, h, extraRot) {
     const d = angDiff(theta, this.pl.theta);
     if (Math.abs(d) > 1.45) { o.setVisible(false); return; }   // far side of the planet
-    const r = R + h;
+    const z = this.zoom, r = (R + h) * z;
     o.setVisible(true);
     o.setPosition(this.cx + r * Math.sin(d), this.cy - r * Math.cos(d));
     o.setRotation(d + (extraRot || 0));
+    o.setScale((o.bsx || 1) * z, (o.bsy || 1) * z);
   }
 
   render(inp) {
     const P = this.pl;
     const { cx, cy } = this;
 
+    const Rz = R * this.zoom;
     const rot = P.theta * 0.35;
+    const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
-      const a = b.a - rot;
-      b.s.setPosition(cx + b.r * Math.sin(a), cy - b.r * Math.cos(a));
+      const a = b.a - rot, rr = r0 + b.r * span;
+      b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
     }
 
     const pg = this.planetG;
     pg.clear();
-    pg.fillStyle(0xfff1b5, 0.08).fillCircle(cx, cy, R + 30);
-    pg.fillStyle(0xfff1b5, 0.14).fillCircle(cx, cy, R + 14);
-    pg.fillStyle(0xf0cb52, 1).fillCircle(cx, cy, R);
-    pg.fillStyle(0xe6bd45, 1).fillCircle(cx, cy, R - 70);
-    pg.lineStyle(5, 0xffe58a, 1).strokeCircle(cx, cy, R);
+    pg.fillStyle(0xfff1b5, 0.08).fillCircle(cx, cy, Rz + 30);
+    pg.fillStyle(0xfff1b5, 0.14).fillCircle(cx, cy, Rz + 14);
+    pg.fillStyle(0xf0cb52, 1).fillCircle(cx, cy, Rz);
+    pg.fillStyle(0xe6bd45, 1).fillCircle(cx, cy, Rz - 70 * this.zoom);
+    pg.lineStyle(5, 0xffe58a, 1).strokeCircle(cx, cy, Rz);
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
 
@@ -614,11 +680,19 @@ class Level1 extends Phaser.Scene {
     hg.clear();
     const boss = this.enemies.find(e => e.type === 'boss');
     if (boss) {
-      const w = this.W - 40, frac = Math.max(0, boss.hp / boss.maxHp);
-      hg.fillStyle(0x000000, 0.5).fillRect(20, 62, w, 10);
-      hg.fillStyle(0xff8c1a, 1).fillRect(20, 62, w * frac, 10);
-      hg.lineStyle(2, 0xffffff, 0.8).strokeRect(20, 62, w, 10);
+      const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
+      const x0 = (this.W - w) / 2, y0 = this.landscape ? 34 : 62;
+      const frac = Math.max(0, boss.hp / boss.maxHp);
+      hg.fillStyle(0x000000, 0.5).fillRect(x0, y0, w, 10);
+      hg.fillStyle(0xff8c1a, 1).fillRect(x0, y0, w * frac, 10);
+      hg.lineStyle(2, 0xffffff, 0.8).strokeRect(x0, y0, w, 10);
     }
+
+    // jetpack fuel gauge
+    const gx = 44, gy = 40, gw = 110, gh = 10;
+    hg.fillStyle(0x000000, 0.5).fillRect(gx, gy, gw, gh);
+    hg.fillStyle(P.fuel > 0.3 ? 0x39c6ff : 0xff5a3c, 1).fillRect(gx, gy, gw * P.fuel, gh);
+    hg.lineStyle(2, 0xffffff, P.thrusting ? 1 : 0.55).strokeRect(gx, gy, gw, gh);
   }
 }
 
@@ -626,7 +700,7 @@ window.game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#0b1020',
-  scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+  scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
   scene: [Level1]
 });

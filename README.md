@@ -5,7 +5,8 @@ Mobile-first Phaser 3 game. No build step: every push to `main` deploys to GitHu
 ## Deploy
 1. Repo Settings > Pages > Source: **GitHub Actions** (one-time).
 2. Push to `main`. The workflow in `.github/workflows/deploy.yml` publishes the site.
-3. Open `https://harrigo.github.io/Luna_chris/` on your phone, and use Share > Add to Home Screen for fullscreen.
+3. Open `https://harrigo.github.io/Luna_chris/` on your phone. Tap to start and it goes fullscreen + landscape.
+   For the full app experience, install it: Chrome menu > Install app / Add to Home screen (it then launches fullscreen, locked to landscape).
 
 The version number in the top-right corner of the game (`BUILD` in `src/main.js`) tells you whether the phone has the latest deploy.
 

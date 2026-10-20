@@ -7,17 +7,22 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0b1020">
   <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>Lunachris</title>
   <style>
     html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
     #game { width: 100%; height: 100%; }
     #err { position: fixed; left: 0; right: 0; bottom: 0; max-height: 40%; overflow: auto; margin: 0; padding: 8px 10px; background: rgba(160, 0, 0, .92); color: #fff; font: 12px/1.4 monospace; white-space: pre-wrap; display: none; z-index: 10; }
+    #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: #0b1020; color: #ffd23f; align-items: center; justify-content: center; text-align: center; font: bold 22px/1.5 monospace; }
+    @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
     #ver { position: fixed; top: 4px; right: 6px; color: #6b7390; font: 11px monospace; z-index: 5; pointer-events: none; }
   </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="ver"></div>
+  <div id="rotate"><div>&#8635;<br>Rotate your phone<br>to landscape</div></div>
   <pre id="err"></pre>
 
   <script>
@@ -30,6 +35,9 @@
     })();
   </script>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+  </script>
   <script>
     // Load game scripts with a cache-busting timestamp so a phone never runs a stale build.
     (function () {

@@ -25,9 +25,10 @@ jobs:
       - name: Stage site files
         run: |
           mkdir _site
-          cp index.html manifest.webmanifest _site/
+          cp index.html manifest.webmanifest sw.js _site/
           cp -r src _site/
           [ -d assets ] && cp -r assets _site/ || true
+          [ -d icons ] && cp -r icons _site/ || true
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

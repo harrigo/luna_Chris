@@ -20,8 +20,13 @@ grabs the Mac-Laster 3000.
 Run, jump and blast around small 360-degree spherical planets. Gravity always pulls toward the planet centre.
 Dodge screen-filling waves of cheese-beast projectiles in a high-speed space chase.
 
-Touch controls (portrait): left thumb = run left / right, right thumb = JUMP and FIRE.
-FIRE auto-aims at the nearest on-screen enemy. Keyboard for desktop testing: A/D or arrows, Space = jump, Z/X = fire.
+**Landscape only** (installed PWA is locked to landscape; in a browser a "rotate your phone" prompt shows in portrait).
+Touch controls: left thumb = run left / right, right thumb = JUMP.
+- Guns **auto-fire** at the nearest on-screen enemy, auto-aimed with target leading.
+- **Jetpack**: tap JUMP to hop (hold for a full jump), let go in the air, then HOLD JUMP again to thrust.
+  Burns fuel (JET gauge, top-left, about 2s of thrust). Fuel refills while standing on the ground.
+  Tuning is in `CFG` (`jet*` values).
+Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manual fire.
 
 ## Levels
 1. **The Gruyere Globe** (built, v0.2): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss
@@ -33,6 +38,9 @@ FIRE auto-aims at the nearest on-screen enemy. Keyboard for desktop testing: A/D
 - `src/main.js`: the whole level. Everything is in **polar coordinates** (`theta` = angle around planet,
   `h` = height above surface). The "camera" rotates so the player is always at the top of the screen.
   `place()` converts polar to screen. No Phaser Arcade physics.
+- World scale: `zoom = min(1, H/470)` shrinks the world on short (landscape) screens; `place()` applies it.
+- PWA: `manifest.webmanifest` (fullscreen, landscape), `sw.js` (no caching on purpose), `icons/`. Fullscreen + orientation lock
+  are requested on the first tap (Android Chrome). iPhone Safari cannot do either, so use Add to Home Screen there.
 - `src/textures.js`: all placeholder art, drawn with code. Replace by loading images under the same texture keys.
 - Tuning numbers are in `CFG` at the top of `main.js`; waves are in `WAVES`.
 - Planet radius `R` = 420 units. Per-level gravity can be changed via `CFG.gravity` (use for Gorgonzola Gulch).

@@ -15,7 +15,8 @@ function makeTextures(scene) {
 
   // Luna Chris: bulky NASA suit, "Kiss the Cook" apron, Mac-Laster 3000. Faces right.
   mk('chris', 54, 60, g => {
-    g.fillStyle(0xb8c2d3, 1).fillRoundedRect(1, 18, 9, 20, 3);            // backpack
+    g.fillStyle(0xd9503a, 1).fillRoundedRect(0, 15, 5, 22, 2).fillRoundedRect(5, 15, 5, 22, 2); // jetpack tanks
+    g.fillStyle(0x555b6e, 1).fillRect(0.5, 37, 4, 4).fillRect(5.5, 37, 4, 4);                  // jet nozzles
     g.fillStyle(0xdfe6f0, 1).fillRoundedRect(10, 36, 24, 20, 5);           // suit legs
     g.fillStyle(0xd62828, 1).fillRoundedRect(12, 38, 20, 16, 3);           // apron
     g.fillStyle(0xffffff, 1).fillRect(16, 43, 12, 2).fillRect(16, 47, 12, 2); // "KISS THE COOK"
@@ -65,6 +66,7 @@ function makeTextures(scene) {
   });
 
   mk('crumb', 10, 10, g => { g.fillStyle(0xe0a548, 1).fillCircle(5, 5, 5); g.fillStyle(0x8a5a1f, 1).fillCircle(4, 4, 1.6); });
+  mk('flame', 9, 9, g => { g.fillStyle(0xff7a1a, 1).fillCircle(4.5, 4.5, 4.5); g.fillStyle(0xffe27a, 1).fillCircle(4.5, 4.5, 2.2); });
   mk('spark', 6, 6, g => { g.fillStyle(0xffe27a, 1).fillCircle(3, 3, 3); });
 
   // Mac-Laster macaroni shell
