@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.7';
+const BUILD = 'v0.8';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -26,6 +26,11 @@ const CFG = {
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
   jetRegen: 0.7,    // fuel per second while standing on the ground
   jetCeiling: 300,  // max height
+  ammoPerShot: 0.022, // Mac-Laster gauge: full tank is about 45 shots
+  ammoRegen: 0.5,     // refill per second once you stop shooting
+  ammoDelay: 0.35,    // pause after the last shot before it refills
+  ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
+  powerTime: 8,       // Parmesan Power-Up: seconds of triple shot + unlimited pasta
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
@@ -108,7 +113,7 @@ class Level1 extends Phaser.Scene {
 
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0, fuel: 1, jetArmed: false, thrusting: false,
+      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, power: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'chris').setOrigin(0.41, 1).setDepth(7)
     };
 
@@ -180,7 +185,8 @@ class Level1 extends Phaser.Scene {
     this.waveText.setPosition(W / 2, 10);
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
     this.jetText.setPosition(12, 38);
-    this.fpsText.setPosition(12, 58);
+    this.macText.setPosition(12, 54);
+    this.fpsText.setPosition(12, 74);
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
     this.ovBody.setFontSize(this.landscape ? '15px' : '16px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
@@ -192,6 +198,7 @@ class Level1 extends Phaser.Scene {
     this.waveText = this.add.text(0, 0, '', f(14, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.fpsText = this.add.text(0, 0, '', f(11, '#6b7390')).setDepth(20);
     this.jetText = this.add.text(0, 0, 'JET', f(12, '#9fd8ff')).setDepth(20);
+    this.macText = this.add.text(0, 0, 'MAC', f(12, '#ffc36a')).setDepth(20);
     this.bannerText = this.add.text(0, 0, '', f(26, '#ffd23f', { align: 'center' })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
   }
@@ -438,12 +445,25 @@ class Level1 extends Phaser.Scene {
 
     P.invuln = Math.max(0, P.invuln - dt);
 
-    // guns fire automatically whenever an enemy is on screen (Z/X fires manually on keyboard)
+    // Mac-Laster: hold FIRE (Z/X on keyboard). Pasta gauge drains per shot and refills when you let off.
     P.fireCd -= dt;
-    if (P.fireCd <= 0) {
-      const tgt = CFG.aimAssist ? this.pickTarget() : null;
-      if ((CFG.autoFire && tgt) || inp.fire) { this.fire(tgt); P.fireCd = CFG.fireInterval; }
+    P.ammoHold = Math.max(0, P.ammoHold - dt);
+    const wasPower = P.power > 0;
+    P.power = Math.max(0, P.power - dt);
+    if (wasPower && P.power <= 0) Sound.sfx('clunk');
+    if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
+    const tgt = CFG.aimAssist ? this.pickTarget() : null;
+    const want = (CFG.autoFire && tgt) || inp.fire;
+    if (P.fireCd <= 0 && want && !P.overheat) {
+      this.fire(tgt);
+      P.fireCd = CFG.fireInterval;
+      if (P.power <= 0) {
+        P.ammo = Math.max(0, P.ammo - CFG.ammoPerShot);
+        P.ammoHold = CFG.ammoDelay;
+        if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
+      }
     }
+    if (P.ammoHold <= 0) P.ammo = Math.min(1, P.ammo + CFG.ammoRegen * dt);
   }
 
   pickTarget() {
@@ -478,12 +498,16 @@ class Level1 extends Phaser.Scene {
       P.facing = ex >= 0 ? 1 : -1;
     }
     const bt = wrap(P.theta + (Math.sign(dx) || 1) * (26 / R));
-    this.pBullets.push({
-      bt, bh: gh, theta: bt, h: gh,
-      vt: dx * CFG.bulletSpeed, vh: dy * CFG.bulletSpeed,
-      px: -dy, py: dx, ph: rnd(0, TAU), age: 0,
-      spr: this.add.image(0, 0, 'macaroni').setDepth(8)
-    });
+    for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
+      const c = Math.cos(a), s = Math.sin(a);
+      const ux = dx * c - dy * s, uy = dx * s + dy * c;
+      this.pBullets.push({
+        bt, bh: gh, theta: bt, h: gh,
+        vt: ux * CFG.bulletSpeed, vh: uy * CFG.bulletSpeed,
+        px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
+        spr: this.add.image(0, 0, 'macaroni').setDepth(8)
+      });
+    }
   }
 
   jetFlames(n) {
@@ -638,8 +662,11 @@ class Level1 extends Phaser.Scene {
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
       if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
-      if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06) || (e.type === 'flyer' && Math.random() < 0.12)) {
-        this.pickups.push({ theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+      if (e.type === 'golem' && (!this.gotPower || Math.random() < 0.3)) {     // the first Golem always drops a Power-Up
+        this.gotPower = true;
+        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: this.add.image(0, 0, 'power').setDepth(6) });
+      } else if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06) || (e.type === 'flyer' && Math.random() < 0.12)) {
+        this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
       e.spr.destroy();
       this.enemies.splice(i, 1);
@@ -715,8 +742,14 @@ class Level1 extends Phaser.Scene {
       p.life -= dt;
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
-        if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
-        Sound.sfx('pickup');
+        if (p.kind === 'power') {
+          P.power = CFG.powerTime; P.overheat = false; P.ammo = 1;
+          Sound.sfx('power');
+          this.banner('PARMESAN POWER!');
+        } else {
+          if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
+          Sound.sfx('pickup');
+        }
         this.burst(p.theta, p.h + 8, 'spark', 6, 0.6);
         dead = true;
       }
@@ -820,6 +853,18 @@ class Level1 extends Phaser.Scene {
     hg.fillStyle(0x000000, 0.5).fillRect(gx, gy, gw, gh);
     hg.fillStyle(P.fuel > 0.3 ? 0x39c6ff : 0xff5a3c, 1).fillRect(gx, gy, gw * P.fuel, gh);
     hg.lineStyle(2, 0xffffff, P.thrusting ? 1 : 0.55).strokeRect(gx, gy, gw, gh);
+
+    // Mac-Laster pasta gauge (gold with a countdown while the Parmesan Power-Up is active, red while jammed)
+    const my = 56, flash = Math.floor(this.t * 8) % 2;
+    hg.fillStyle(0x000000, 0.5).fillRect(gx, my, gw, gh);
+    if (P.power > 0) {
+      hg.fillStyle(flash && P.power < 2 ? 0xffffff : 0xffd23f, 1).fillRect(gx, my, gw * (P.power / CFG.powerTime), gh);
+    } else {
+      hg.fillStyle(P.overheat ? (flash ? 0xff3c3c : 0x7a1f1f) : 0xff8c1a, 1).fillRect(gx, my, gw * P.ammo, gh);
+      if (P.overheat) hg.lineStyle(1, 0xffffff, 0.9).lineBetween(gx + gw * CFG.ammoRestart, my, gx + gw * CFG.ammoRestart, my + gh);
+    }
+    hg.lineStyle(2, 0xffffff, 0.55).strokeRect(gx, my, gw, gh);
+    P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
   }
 }
 

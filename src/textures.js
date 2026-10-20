@@ -133,6 +133,16 @@ function makeTextures(scene) {
     g.fillStyle(0xe3a21a, 1).fillCircle(15, 12, 2.5).fillCircle(9, 15, 1.5);
   });
 
+  // Parmesan Power-Up: a glowing wedge of parmesan with a sparkle
+  mk('power', 30, 30, g => {
+    g.fillStyle(0xfff3a0, 0.28).fillCircle(15, 15, 15);
+    g.fillStyle(0xf6e27a, 1).fillRoundedRect(4, 10, 22, 14, 3);
+    g.fillStyle(0xe8cb4f, 1).fillRect(4, 18, 22, 6);
+    g.fillStyle(0xc99a2a, 1).fillCircle(10, 16, 1.8).fillCircle(18, 21, 1.8).fillCircle(22, 14, 1.4);
+    g.fillStyle(0xffffff, 1).fillTriangle(15, 0, 17, 7, 13, 7).fillTriangle(15, 14, 17, 7, 13, 7);   // sparkle
+    g.lineStyle(2, 0x7a5a00, 1).strokeRoundedRect(4, 10, 22, 14, 3);
+  });
+
   mk('crater', 70, 16, g => {
     g.fillStyle(0xc99a2a, 1).fillEllipse(35, 8, 70, 16);
     g.fillStyle(0xb5851c, 1).fillEllipse(35, 9, 56, 11);

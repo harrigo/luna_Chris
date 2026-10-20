@@ -36,6 +36,11 @@ tractor-beams Bessie -> Chris sighs, stretches an arm to twist the pepper grinde
 (Mac-Laster, Swiss-Shot, Fondue Flamethrower, Gouda Grenade). Art is placeholder, drawn with code in `makeIntroTextures()`.
 Add `?skipintro` to the URL to go straight to Level 1 while testing.
 
+## Mac-Laster gauge and Power-Ups
+MAC gauge (under JET): each shot costs pasta, it refills ~0.35s after you let off FIRE. Run dry and the gun jams (red) until it recovers to 30%.
+**Parmesan Power-Up** (`power` pickup): dropped by the first Gouda-Golem you kill and ~30% of later ones. 8s of triple-spread shot and unlimited pasta
+(gauge turns gold and counts down). Tuning in `CFG` (`ammo*`, `powerTime`). More power-ups (Swiss-Shot, etc.) can reuse the pickup `kind` field.
+
 ## Bessie in every level
 Each level opens with a rat-ship tractor-beaming Bessie and scuttling off (with the `stinger` tune, `startNap`), and ends with her
 narrow escape from the boss's wreck (`startRescue`, state `rescue`) before the CLEAR screen. Reuse for Level 2 onwards.

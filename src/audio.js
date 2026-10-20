@@ -135,6 +135,7 @@ const Sound = (() => {
     pickup: () => arp([660, 880, 1320], 0.06, { type: 'square', vol: 0.16 }),
     cube:   () => tone({ type: 'pulse', duty: 0.125, f: 520, f2: 300, dur: 0.09, vol: 0.09 }),
     fan:    () => tone({ type: 'sawtooth', f: 200, f2: 760, dur: 0.3, vol: 0.13 }),
+    power:  () => { arp([523, 659, 784, 1047, 1319], 0.055, { type: 'pulse', duty: 0.25, vol: 0.17 }); arp([262, 330, 392], 0.08, { type: 'triangle', vol: 0.2 }); },
     wave:   () => arp([440, 660], 0.08, { type: 'pulse', duty: 0.5, vol: 0.16 }),
     bossIn: () => { tone({ type: 'sawtooth', f: 74, f2: 46, dur: 1.5, vol: 0.4 }); noise({ ft: 'lowpass', f1: 400, f2: 80, dur: 1.5, vol: 0.4 }); },
     boom:   () => {
