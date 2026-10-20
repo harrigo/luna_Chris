@@ -49,6 +49,7 @@ Add `?skipintro` to the URL to go straight to Level 1 while testing.
 - World scale: `zoom = min(1, H/470)` shrinks the world on short (landscape) screens; `place()` applies it.
 - PWA: `manifest.webmanifest` (fullscreen, landscape), `sw.js` (no caching on purpose), `icons/`. Fullscreen + orientation lock
   are requested on the first tap (Android Chrome). iPhone Safari cannot do either, so use Add to Home Screen there.
+- `index.html` loads `src/boot.js` with a cache-buster, and `boot.js` loads the other scripts in order. **Add new script files to the list in `boot.js`**, not index.html (Pages can serve a cached index.html for 10 minutes).
 - `src/textures.js`: all placeholder art, drawn with code. Replace by loading images under the same texture keys.
 - Tuning numbers are in `CFG` at the top of `main.js`; waves are in `WAVES`.
 - Planet radius `R` = 420 units. Per-level gravity can be changed via `CFG.gravity` (use for Gorgonzola Gulch).
