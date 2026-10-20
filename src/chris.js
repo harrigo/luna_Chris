@@ -9,7 +9,7 @@
 // Everything is drawn with code (outlined EWJ-ish look). Swap any texture for real art under the same key later.
 // Local units: feet at (0,0), +x = the way he faces, -y = up. The whole rig is scaled by RIG_SCALE.
 
-const RIG_SCALE = 0.78;
+const RIG_SCALE = 0.95;
 
 function makeChrisTextures(scene) {
   if (scene.textures.exists('c_head')) return;
@@ -30,19 +30,18 @@ function makeChrisTextures(scene) {
     rr(g, 1, 1, 22, 11, 5, 0x3b4252);
     g.fillStyle(0xd9d9e0, 1).fillRect(3, 9, 18, 2);
   });
-  mk('c_leg', 16, 14, g => {                                          // chunky suit legs
-    rr(g, 1, 0, 14, 14, 5, 0xdfe6f0);
-    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(3, 9, 13, 9);             // knee crease
+  mk('c_leg', 16, 18, g => {                                          // chunky suit legs
+    rr(g, 1, 0, 14, 18, 5, 0xdfe6f0);
+    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(3, 11, 13, 11);             // knee crease
   });
 
   // suit torso with the belly hanging out the bottom
   mk('c_body', 44, 42, g => {
-    rr(g, 5, 1, 34, 24, 11, 0xeef2f8);                                // too-small suit
+    el(g, 22, 34, 30, 14, 0xf6bfa3);                                  // just a slight overhang of belly under the shirt
+    g.fillStyle(0xffd9c4, 1).fillEllipse(17, 36, 9, 3);
+    rr(g, 5, 1, 34, 31, 12, 0xeef2f8);                                // the suit, a size too small
     ci(g, 14, 11, 4, 0x1d4ed8, 2);                                    // mission patch
-    el(g, 22, 29, 38, 25, 0xf6bfa3);                                  // the belly: hangs out in front of the suit
-    g.fillStyle(0xffd9c4, 1).fillEllipse(17, 24, 12, 6);              // belly highlight
-    g.lineStyle(2, 0xc9806a, 1).beginPath().arc(22, 31, 3, 0.4, Math.PI - 0.4, false).strokePath();   // belly button
-    g.lineStyle(3, 0xb9c3d6, 1).lineBetween(7, 22, 15, 24).lineBetween(37, 22, 29, 24);              // suit straining at the seams
+    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(9, 29, 35, 29);           // stretched hem
   });
   // the apron: "KISS THE COOK"
   mk('c_apron', 28, 38, g => {
@@ -103,16 +102,16 @@ class ChrisRig {
 
     this.cape = img('c_cape', -6, -42, 1, 0.08);
     this.tanks = img('c_tanks', -16, -36, 0.5, 0.5);
-    this.legB = img('c_leg', -6, -12, 0.5, 0);
+    this.legB = img('c_leg', -6, -16, 0.5, 0);
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
-    this.torso = scene.add.container(0, -12);
+    this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
     this.armB = img('c_arm', -3, -22, 0, 0.5);
     this.apron = img('c_apron', -7, -30, 0.5, 0);
-    this.head = img('c_head', 2, -41, 0.5, 0.5);
-    this.hat = img('c_hat', 3, -51, 0.5, 1);
+    this.head = img('c_head', 2, -44, 0.5, 0.5);
+    this.hat = img('c_hat', 3, -54, 0.5, 1);
     this.torso.add([this.apron, this.body, this.armB, this.head, this.hat]);     // apron hangs BEHIND him so the belly is on show
-    this.legF = img('c_leg', 7, -12, 0.5, 0);
+    this.legF = img('c_leg', 7, -16, 0.5, 0);
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
@@ -170,19 +169,19 @@ class ChrisRig {
     const legAmp = 0.38 * run;
     const rotF = sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22));
     const rotB = -sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22));
-    const L = 12;
+    const L = 16;
     const place = (leg, boot, hipX, rot, liftPhase) => {
       leg.setRotation(rot);
       const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run : 0;
-      boot.setPosition(hipX - Math.sin(rot) * L, -12 + Math.cos(rot) * L - lift + air * -3);
+      boot.setPosition(hipX - Math.sin(rot) * L, -16 + Math.cos(rot) * L - lift + air * -3);
       boot.setRotation(rot * 0.35);
-      leg.setPosition(hipX, -12 - lift * 0.6);
+      leg.setPosition(hipX, -16 - lift * 0.6);
     };
     place(this.legF, this.bootF, 7, rotF, sw);
     place(this.legB, this.bootB, -6, rotB, -sw);
 
     const idle = (1 - run) * (1 - air);
-    this.torso.setPosition(sw * 1.9 * run, -12 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle);
+    this.torso.setPosition(sw * 1.9 * run, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle);
     this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air);
     const stretchY = air ? 1 + Math.max(-0.1, Math.min(0.12, P.vh / 2000)) : 1;
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
@@ -193,16 +192,16 @@ class ChrisRig {
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
-    this.hat.setPosition(3 - sw * 2.2 * run, -51 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
+    this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
     this.hat.setRotation(-sw * 0.16 * run - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
-    this.head.setPosition(2 + sw * 0.6 * run, -41 + vyLag * 0.2);
+    this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2);
 
     // ---- arms
     this.armB.setRotation(-sw * 0.8 * run + 0.35 + Math.sin(t * 2.2) * 0.07 * idle - air * 1.2);
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
-    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3, this.torso.y - 30 + sw * 0.6 * run);
+    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3, this.torso.y - 26 + sw * 0.6 * run);
     this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4);
     this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);

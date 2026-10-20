@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.15';
+const BUILD = 'v0.16';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -543,7 +543,7 @@ class Level1 extends Phaser.Scene {
     for (const e of this.enemies) {
       const ex = angDiff(e.theta, P.theta) * R;
       if (Math.abs(ex) > halfW) continue;
-      const ey = e.h + e.ch - (P.h + 33);
+      const ey = e.h + e.ch - (P.h + 40);
       let d = ex * ex + ey * ey;
       if (e.type === 'boss') d *= 0.25;
       if (d < bd) { bd = d; best = e; }
@@ -556,7 +556,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
     let dx = P.facing, dy = 0;
-    const gh = P.h + 33;                  // muzzle height: the gun is at Chris's waist, not his boots
+    const gh = P.h + 40;                  // muzzle height: the gun is at Chris's chest, not his boots
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
@@ -568,8 +568,8 @@ class Level1 extends Phaser.Scene {
       P.facing = ex >= 0 ? 1 : -1;
     }
     P.firing = 0.12;
-    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 48 * z, sp.y - 33 * z, 1); }                      // keeps the drill-bit spinning for a moment
-    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (46 / R));
+    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 58 * z, sp.y - 40 * z, 1); }                      // keeps the drill-bit spinning for a moment
+    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (56 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -585,7 +585,7 @@ class Level1 extends Phaser.Scene {
   jetFlames(n) {
     const P = this.pl;
     const s = this.screenPos(P.theta, P.h), z = this.zoom;
-    this.fxJet.emitParticleAt(s.x - P.facing * 14 * z, s.y - 15 * z, n + 1);
+    this.fxJet.emitParticleAt(s.x - P.facing * 17 * z, s.y - 19 * z, n + 1);
   }
 
   updateWaves(dt) {
@@ -599,7 +599,19 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // enemies are drawn a bit bigger than their art (ES); hitboxes grow less so they stay fair
   spawnEnemy(type) {
+    const n = this.enemies.length;
+    this.spawnEnemyRaw(type);
+    const e = this.enemies[n];
+    if (!e) return;
+    const k = type === 'boss' ? 1.12 : 1.22;
+    e.spr.bsx = e.spr.bsy = k;
+    e.r *= 1 + (k - 1) * 0.5;
+    e.ch *= k;
+  }
+
+  spawnEnemyRaw(type) {
     const P = this.pl;
     if (type === 'boss') {
       this.enemies.push({
