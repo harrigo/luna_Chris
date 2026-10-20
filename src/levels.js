@@ -20,6 +20,7 @@ const LEVELS = {
   1: {
     id: 1, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
+    radius: 420, sky: [0x0b1020, 0x1b1245], bg: '#0b1020', starTint: 0xffffff, dustAlpha: 1, bgDecor: null,
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1,
@@ -35,6 +36,7 @@ const LEVELS = {
   2: {
     id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Germs and rat-frogs.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
+    radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
     dust: [0x2fbf8f, 0x3ad0c0, 0x6a8cff, 0x9bff6a], decorTint: 0x4fa88f, decorAlpha: 1,
     gravity: 1,
@@ -56,11 +58,12 @@ const LEVELS = {
   3: {
     id: 3, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
     music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'THE FLOOR IS A GRATER! USE THE PLATFORMS!',
+    radius: 300, sky: [0x0e0506, 0x56260c], bg: '#0e0506', starTint: 0xffd9a8, dustAlpha: 1.4, bgDecor: 'gears',
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0xd5dde8 },
     dust: [0xff9a3a, 0xff6a3a, 0x8aa0c0, 0xffd23f], decorTint: 0x8a929c, decorAlpha: 0.55,
     gravity: 1,
     conveyor: 90,            // the surface scrolls backwards at this many units/s
-    platforms: { count: 10, half: 0.155 },
+    platforms: { count: 8, half: 0.2 },
     waves: [
       { name: 'WAVE 1', spawns: [S('slicer', 0), S('drone', 1.4), S('drone', 3), S('slicer', 4.2), S('drone', 5.6), S('drone', 7)] },
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 2.4), S('slicer', 3.6), S('drone', 4.4), S('drone', 6), S('slicer', 7), S('drone', 8)] },
@@ -197,6 +200,19 @@ function makeLevelTextures(scene) {
     g.fillStyle(0x8c98ab, 1).fillCircle(12, 12, 7);
     g.fillStyle(0x3b4252, 1).fillCircle(12, 12, 3);
   });
+  // big background gear for the industrial level
+  mk('gear', 180, 180, g => {
+    g.fillStyle(0xffffff, 1);
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      g.fillTriangle(90 + Math.cos(a - 0.17) * 70, 90 + Math.sin(a - 0.17) * 70, 90 + Math.cos(a + 0.17) * 70, 90 + Math.sin(a + 0.17) * 70, 90 + Math.cos(a + 0.05) * 88, 90 + Math.sin(a + 0.05) * 88);
+      g.fillTriangle(90 + Math.cos(a - 0.17) * 70, 90 + Math.sin(a - 0.17) * 70, 90 + Math.cos(a - 0.05) * 88, 90 + Math.sin(a - 0.05) * 88, 90 + Math.cos(a + 0.05) * 88, 90 + Math.sin(a + 0.05) * 88);
+    }
+    g.fillCircle(90, 90, 74);
+    g.fillStyle(0x000000, 1).fillCircle(90, 90, 44);                       // dark hole
+    g.fillStyle(0xffffff, 1).fillCircle(90, 90, 14);
+    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; g.fillRect(90 + Math.cos(a) * 28 - 5, 90 + Math.sin(a) * 28 - 5, 10, 10); }
+  });
   // spore-cloud puff for the gravity zones
   mk('puff', 64, 64, g => { for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.09).fillCircle(32, 32, 32 - i * 3); });
 }
@@ -211,6 +227,7 @@ class SelectScene extends Phaser.Scene {
     this.cameras.main.fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
     this.wantFs = false;
+    this.going = false;                     // (the scene object is reused, so reset this every visit)
     this.stars = [];
     for (let i = 0; i < 90; i++) this.stars.push({ x: Math.random(), y: Math.random(), s: 1 + Math.floor(Math.random() * 3), tw: Math.random() * 6 });
     this.bg = this.add.graphics().setDepth(0);
@@ -229,7 +246,7 @@ class SelectScene extends Phaser.Scene {
     this.going = true;
     Sound.sfx('wave');
     this.cameras.main.fadeOut(200, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('level1', { level: n, direct: true }));
+    this.time.delayedCall(230, () => this.scene.start('level1', { level: n, direct: true }));     // (timer, not the fade event: that can be skipped)
   }
 
   build() {
@@ -244,7 +261,7 @@ class SelectScene extends Phaser.Scene {
       const g = this.add.graphics();
       g.fillStyle(0x151b33, 1).fillRoundedRect(x, y0, cw, ch, 12);
       g.lineStyle(4, L.planet.rim, 1).strokeRoundedRect(x, y0, cw, ch, 12);
-      const pr = cw * 0.22, pcx = x + cw / 2, pcy = y0 + ch * 0.4;     // little planet
+      const pr = Math.max(cw * 0.16, Math.min(cw * 0.25, cw * 0.2 * Math.pow(L.radius / 420, 0.6))), pcx = x + cw / 2, pcy = y0 + ch * 0.4;     // little planet
       g.fillStyle(L.planet.glow, 0.15).fillCircle(pcx, pcy, pr + 8);
       g.fillStyle(L.planet.fill, 1).fillCircle(pcx, pcy, pr);
       g.fillStyle(L.planet.inner, 1).fillCircle(pcx - pr * 0.25, pcy + pr * 0.2, pr * 0.55);

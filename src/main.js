@@ -5,12 +5,12 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.18';
+const BUILD = 'v0.19';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
 const TAU = Math.PI * 2;
-const R = 420; // planet radius in world units
+let R = 420; // planet radius in world units (set per level from LEVELS[n].radius)
 
 const CFG = {
   gravity: 1500,
@@ -60,6 +60,7 @@ class Level1 extends Phaser.Scene {
     this.direct = !!(data && data.direct);                       // arrived from the level-select screen
     this.levelId = (data && data.level) || 1;
     this.def = LEVELS[this.levelId];
+    R = this.def.radius || 420;
     this.waves = this.def.waves.concat([{ name: 'BOSS: ' + this.def.bossName, spawns: [{ type: 'boss', t: 1.5 }] }]);
   }
 
@@ -67,8 +68,9 @@ class Level1 extends Phaser.Scene {
   create() {
     makeTextures(this);
     makeLevelTextures(this);
-    this.cameras.main.setBackgroundColor('#0b1020');
+    this.cameras.main.setBackgroundColor(this.def.bg);
     this.cameras.main.fadeIn(300, 0, 0, 0);
+    this.skyG = this.add.graphics().setDepth(-1);
 
     this.t = 0;
     this.state = 'intro';           // intro | play | dead | won
@@ -87,6 +89,8 @@ class Level1 extends Phaser.Scene {
     this.actors = [];               // decorative things placed in the world: Bessie, the rat-ship, falling debris
     this.rescue = null;
     this.nap = null;
+    this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
+    this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
@@ -96,7 +100,7 @@ class Level1 extends Phaser.Scene {
     const dust = this.def.dust;
     for (let i = 0; i < 46; i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
-      const s = this.add.image(0, 0, 'blob').setDepth(0).setTint(dust[i % dust.length]).setAlpha(rnd(0.16, 0.32)).setScale(rnd(1.0, 2.4));
+      const s = this.add.image(0, 0, 'blob').setDepth(0).setTint(dust[i % dust.length]).setAlpha(Math.min(0.6, rnd(0.16, 0.32) * this.def.dustAlpha)).setScale(rnd(1.0, 2.4) * (this.levelId === 2 ? 1.5 : 1));
       this.bgStars.push({ s, a: a + 0.8, r: 0.25 + rnd(0, 0.5) + Math.sin(a * 2) * 0.1, k: 0.08, dust: true });
     }
     for (let i = 0; i < 200; i++) {
@@ -110,6 +114,18 @@ class Level1 extends Phaser.Scene {
     for (let i = 0; i < 26; i++) {
       const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(1).setScale(rnd(1.6, 2.6));
       this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.7, tw: rnd(0, 6) });
+    }
+    for (const b of this.bgStars) if (!b.dust && this.def.starTint !== 0xffffff) b.s.setTint(this.def.starTint);
+    if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
+      for (let i = 0; i < 40; i++) {
+        const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 0.95), k: 0.22, tw: rnd(0, 6), ta: 0.6 });
+      }
+    } else if (this.def.bgDecor === 'gears') {          // level 3: huge slow gears in the haze
+      for (let i = 0; i < 9; i++) {
+        const s = this.add.image(0, 0, 'gear').setDepth(0).setTint(i % 2 ? 0x7a3a1c : 0x4a4f5a).setAlpha(rnd(0.16, 0.3)).setScale(rnd(0.7, 2.0));
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.1, 0.95), k: 0.1, rv: rnd(0.08, 0.3) * (i % 2 ? 1 : -1) });
+      }
     }
     this.shoot = null; this.shootCd = rnd(3, 6);
 
@@ -210,6 +226,8 @@ class Level1 extends Phaser.Scene {
     this.visHalf = Math.min(byX, byY);
     this.visArc = R * this.visHalf;
     this.maxStarR = Math.hypot(W, this.cy);
+
+    this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
 
     this.btn = {
       left:  { x: 64,     y: H - 68, r: 44 },
@@ -696,7 +714,7 @@ class Level1 extends Phaser.Scene {
     } else if (type === 'drone') {
       e.h = e.baseH = rnd(100, 210); e.state = 'hover'; e.cd = rnd(1.4, 2.4); e.tx = 0; e.ty = 0;
     } else if (type === 'slicer') {
-      e.shootCd = rnd(1.4, 2.4); e.spinV = 10;
+      e.shootCd = rnd(1.4, 2.4); e.roll = 0; e.flipCd = rnd(3, 6);
     }
     return e;
   }
@@ -707,8 +725,9 @@ class Level1 extends Phaser.Scene {
       const pt = e.theta, ph = e.h;
       e.t += dt;
       const toP = angDiff(P.theta, e.theta);
-      const dirP = toP >= 0 ? 1 : -1;
       const distP = Math.abs(toP) * R;
+      if (e.fdir === undefined || distP > 16) e.fdir = toP >= 0 ? 1 : -1;      // keep facing when right next to Chris: no flip flicker
+      const dirP = e.fdir;
 
       if (e.type === 'mouse') {
         const grounded = e.h <= 0 && e.vh <= 0;
@@ -791,7 +810,7 @@ class Level1 extends Phaser.Scene {
         } else if (e.state === 'tele') {
           e.cd -= dt;
           e.h += Math.sin(e.t * 60) * 0.6;
-          if (e.cd <= 0) { e.state = 'dive'; e.spr.clearTint(); e.cd = 0.9; }
+          if (e.cd <= 0) { e.state = 'dive'; e.spr.clearTint(); e.cd = 0.9; e.flipP = 0; }
         } else if (e.state === 'dive') {
           const dx = angDiff(e.tx, e.theta) * R, dy = e.ty - e.h, len = Math.hypot(dx, dy) || 1;
           e.theta = wrap(e.theta + ((dx / len) * 380 / R) * dt);
@@ -810,6 +829,9 @@ class Level1 extends Phaser.Scene {
         const conv = this.def.conveyor || 0;
         e.theta = wrap(e.theta + ((dirP * 125 - conv) / R) * dt);
         e.dir = dirP;
+        e.roll += ((dirP * 125 - conv) / 25) * dt;                   // rolls like a wheel (rotation follows the ground speed)
+        e.flipCd -= dt;
+        if (e.flipCd <= 0 && e.flipP === undefined) { e.flipP = 0; e.flipCd = rnd(4, 7); }   // the odd coin-flip spin
         e.shootCd -= dt;
         if (e.shootCd <= 0 && distP < 420 && distP > 90) {
           e.shootCd = rnd(2.2, 3.2);
@@ -878,7 +900,13 @@ class Level1 extends Phaser.Scene {
         }
       }
 
+      if (e.flashCd > 0) e.flashCd -= dt;
       if (e.flash > 0) { e.flash -= dt; if (e.flash <= 0) e.spr.clearTint(); }
+      if (e.state === 'tele') e.spr.setTint(0xff6060);               // drone warning colour wins over the hit flash
+      if (e.flipP !== undefined) {                                   // coin-flip spin around the vertical axis
+        e.flipP += dt * TAU / 0.6;
+        if (e.flipP >= TAU) { e.flipP = undefined; e.spr.sqx = 1; } else e.spr.sqx = Math.cos(e.flipP);
+      }
       const idt = Math.max(dt, 1e-4);
       e.vx = angDiff(e.theta, pt) * R / idt;
       e.dh = (e.h - ph) / idt;
@@ -946,8 +974,7 @@ class Level1 extends Phaser.Scene {
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
             e.hp -= 1;
             Sound.sfx('hit');
-            e.flash = 0.06;
-            e.spr.setTint(0xff8a8a);
+            if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }      // limited blink rate, not constant flicker
             dead = true;
             break;
           }
@@ -1080,7 +1107,8 @@ class Level1 extends Phaser.Scene {
     for (const b of this.bgStars) {
       const a = b.a - this.unw * b.k, rr = r0 + b.r * span;
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
-      if (b.tw !== undefined) b.s.setAlpha(0.55 + 0.45 * Math.sin(this.t * 3 + b.tw));     // near stars twinkle
+      if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
+      if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
     }
     // the odd shooting star
     const dtS = this.lastDt || 0.016;
@@ -1131,8 +1159,8 @@ class Level1 extends Phaser.Scene {
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom, P.spr.alpha, Math.floor(this.augerPhase) % 4);
 
     for (const e of this.enemies) {
-      this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : (e.spinV ? e.t * e.spinV * (e.dir || 1) : 0));
-      if (e.type !== 'boss') e.spr.setFlipX(e.dir < 0);
+      this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : (e.roll !== undefined ? e.roll : 0));
+      if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
     }
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);

@@ -108,3 +108,8 @@ Target: Earthworm Jim-style hand-drawn cartoon: bold dark outlines, saturated co
 (the stretchy arm gag in the intro), big expressive faces. Keep the silhouettes readable at phone size.
 Priority order for real art: Chris (idle/run/jump/shoot/jetpack), Bessie, Gouda-Golem, space-mouse, Croque Monsieur ship,
 planet surface tiles/props, then cutscene backgrounds.
+
+## v0.19 changes
+- Level select fixed (scene state reset on each visit; start uses a timer).
+- Slicers roll like wheels with an occasional coin-flip spin; enemies keep facing near Chris (no flip flicker); hit flash is rate-limited.
+- Each level has its own planet radius (L1 420, L2 580, L3 300), sky gradient, star tint, and background decor (spore motes on L2, slow gears on L3).
