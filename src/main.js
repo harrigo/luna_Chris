@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.10';
+const BUILD = 'v0.11';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -111,6 +111,8 @@ class Level1 extends Phaser.Scene {
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
     }
 
+    this.augerPhase = 0;
+    this.auger = this.add.image(0, 0, 'auger0').setDepth(7.5).setOrigin(0, 0.5);
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
       hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, power: 0, fuel: 1, jetArmed: false, thrusting: false,
@@ -406,6 +408,7 @@ class Level1 extends Phaser.Scene {
   // ----------------------------------------------------------------- update
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
+    this.lastDt = dt;
     const inp = this.readInput();
     if (this.coarse && this.H > this.W) { this.render(inp); return; }   // paused while the "rotate your phone" prompt shows
     this.t += dt;
@@ -532,7 +535,8 @@ class Level1 extends Phaser.Scene {
       dx = ex / len; dy = ey / len;
       P.facing = ex >= 0 ? 1 : -1;
     }
-    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (26 / R));
+    P.firing = 0.12;                      // keeps the drill-bit spinning for a moment
+    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (46 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -731,7 +735,7 @@ class Level1 extends Phaser.Scene {
       b.age += dt;
       b.bt = wrap(b.bt + (b.vt / R) * dt);
       b.bh += b.vh * dt;
-      const w = 0;                                    // shots fly dead straight (no corkscrew bobbing)
+      const w = Math.sin(b.age * 38 + b.ph) * 5;      // slow corkscrew: pasta twisting out of the extruder
       b.theta = wrap(b.bt + (b.px * w) / R);
       b.h = b.bh + b.py * w;
 
@@ -853,6 +857,14 @@ class Level1 extends Phaser.Scene {
     this.place(P.spr, P.theta, P.h, 0);
     P.spr.setFlipX(P.facing < 0);
     P.spr.setAlpha(P.invuln > 0 && Math.floor(this.t * 20) % 2 ? 0.35 : 1);
+
+    // spinning drill-bit on the end of the Mac-Laster, like a mincer's auger: fast while firing, idle-slow otherwise
+    P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
+    this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
+    const au = this.auger, z = this.zoom, fl = P.facing < 0;
+    au.setTexture('auger' + (Math.floor(this.augerPhase) % 4));
+    au.setOrigin(fl ? 1 : 0, 0.5).setFlipX(fl);
+    au.setPosition(P.spr.x + (fl ? -1 : 1) * 24 * z, P.spr.y - 33 * z).setScale(z).setAlpha(P.spr.alpha).setVisible(P.spr.visible);
 
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : 0);

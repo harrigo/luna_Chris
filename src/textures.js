@@ -154,6 +154,22 @@ function makeTextures(scene) {
     g.lineStyle(2, 0x5a3a12, 1).strokeRoundedRect(2, 2, 30, 12, 6).strokeRoundedRect(2, 22, 30, 7, 4);
   });
 
+  // Mac-Laster drill-bit / pasta-auger: 4 frames of a spinning spiral screw (frames cycle to look like it's grinding)
+  for (let f = 0; f < 4; f++) {
+    mk('auger' + f, 30, 18, g => {
+      const hh = x => 7.5 * (1 - x / 32) + 1.5;                   // half-height at x: tapers to the tip
+      g.fillStyle(0xb7bfcc, 1).fillTriangle(0, 9 - 8.5, 0, 9 + 8.5, 30, 9);
+      g.lineStyle(3, 0x4a5163, 1);
+      for (let i = -1; i < 5; i++) {
+        const x = i * 7.5 + f * 1.9;
+        if (x < 0 || x > 27) continue;
+        g.lineBetween(x, 9 - hh(x), x + 4, 9 + hh(x + 4));        // slanted thread: shifts each frame
+      }
+      g.lineStyle(2, 0x2d3345, 1).strokeTriangle(0, 0.5, 0, 17.5, 30, 9);
+      g.fillStyle(0xff8c1a, 1).fillRect(0, 2, 3, 14);              // collar
+    });
+  }
+
   mk('crater', 70, 16, g => {
     g.fillStyle(0xc99a2a, 1).fillEllipse(35, 8, 70, 16);
     g.fillStyle(0xb5851c, 1).fillEllipse(35, 9, 56, 11);
