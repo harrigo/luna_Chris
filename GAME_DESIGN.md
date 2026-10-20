@@ -22,14 +22,15 @@ Dodge screen-filling waves of cheese-beast projectiles in a high-speed space cha
 
 **Landscape only** (installed PWA is locked to landscape; in a browser a "rotate your phone" prompt shows in portrait).
 Touch controls: left thumb = run left / right, right thumb = JUMP.
-- Guns **auto-fire** at the nearest on-screen enemy, auto-aimed with target leading.
+- Hold **FIRE** (left of JUMP) to shoot; shots are auto-aimed at the nearest enemy with target leading. `CFG.autoFire = true` brings back fully automatic firing.
+- Enemies: space-mice, **jetpack mice** (hover at height, drop cheese bombs), Gouda-Golems, boss.
 - **Jetpack**: tap JUMP to hop (hold for a full jump), let go in the air, then HOLD JUMP again to thrust.
   Burns fuel (JET gauge, top-left, about 2s of thrust). Fuel refills while standing on the ground.
   Tuning is in `CFG` (`jet*` values).
 Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manual fire.
 
 ## Intro cutscene (`src/intro.js`)
-Tap to play (this first tap also goes fullscreen + landscape) -> ~20s comic-style cutscene -> Level 1. Tap any time to skip.
+Tap to start (this first tap also goes fullscreen + landscape) -> logo + title fanfare (~3s) -> ~20s comic-style cutscene -> Level 1. Tap any time to skip.
 Beats: retired hero flipping flapjacks with Bessie -> the Roquefort Rodents' junk UFO crashes through the barn roof and
 tractor-beams Bessie -> Chris sighs, stretches an arm to twist the pepper grinder -> wall flips to reveal the armoury
 (Mac-Laster, Swiss-Shot, Fondue Flamethrower, Gouda Grenade). Art is placeholder, drawn with code in `makeIntroTextures()`.
@@ -55,7 +56,7 @@ Add `?skipintro` to the URL to go straight to Level 1 while testing.
 ## Sound (`src/audio.js`)
 Global `Sound`: all audio is synthesised with Web Audio (pulse/triangle/noise), no files. Starts on the first tap.
 `Sound.sfx(name)`, `Sound.music(name|null)` (tracks: ranch, tense, sneak, level1, boss; jingles: win, lose), `Sound.jet(bool)`.
-Tracks are tracker-style strings in `TRACKS` ("A4:2" = note, length in 16ths). Mute button (top centre) saves to localStorage.
+Tracks are tracker-style strings in `TRACKS` ("A4:2" = note, length in 16ths). Mute button (top right) saves to localStorage.
 
 ## Rules for AI changes
 - Plain JS + Phaser 3 (CDN). No build step, so a push deploys as-is.

@@ -43,6 +43,20 @@ function makeTextures(scene) {
     g.fillStyle(0x555b6e, 1).fillRect(10, 20, 4, 4).fillRect(20, 20, 4, 4);// feet
   });
 
+  // Jetpack space-mouse (flies). Faces right.
+  mk('flyer', 38, 36, g => {
+    g.fillStyle(0xff9a2a, 1).fillTriangle(8, 25, 14, 25, 11, 36).fillStyle(0xffe27a, 1).fillTriangle(9.5, 25, 12.5, 25, 11, 31);  // jet flame
+    g.fillStyle(0xd9503a, 1).fillRoundedRect(7, 12, 8, 14, 2);              // jet tank
+    g.lineStyle(2, 0xd9a5b3, 1).lineBetween(8, 20, 2, 26);                  // tail
+    g.fillStyle(0x9aa3b2, 1).fillEllipse(19, 16, 24, 14);                   // body
+    g.fillStyle(0x8b5a2b, 1).fillRect(14, 10, 10, 6);                       // armour plate
+    g.fillStyle(0x9aa3b2, 1).fillCircle(30, 14, 7);                         // head
+    g.fillStyle(0xf4a6b8, 1).fillCircle(28, 7, 4).fillCircle(36, 15, 2);
+    g.fillStyle(0x111111, 1).fillCircle(31, 12, 1.6);
+    g.fillStyle(0x7ad7ff, 0.8).fillCircle(31, 12, 6.5);                     // goggles
+    g.fillStyle(0x111111, 1).fillCircle(32, 12, 1.6);
+  });
+
   // Gouda-Golem
   mk('golem', 60, 64, g => {
     g.fillStyle(0xffc83d, 1).fillRoundedRect(4, 6, 52, 56, 8);

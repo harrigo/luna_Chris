@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.5';
+const BUILD = 'v0.6';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -25,7 +25,8 @@ const CFG = {
   jetMaxV: 260,     // max climb speed under thrust
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
   jetRegen: 0.7,    // fuel per second while standing on the ground
-  jetCeiling: 300   // max height
+  jetCeiling: 300,  // max height
+  autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
 
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -45,10 +46,11 @@ const dist2 = (t1, h1, t2, h2) => {
 // Spawns: m = space-mouse, g = Gouda-Golem, b = boss. t = seconds after wave start.
 const m = t => ({ type: 'mouse', t });
 const g = t => ({ type: 'golem', t });
+const fl = t => ({ type: 'flyer', t });      // jetpack mouse: hovers at height and drops cheese bombs
 const WAVES = [
-  { name: 'WAVE 1', spawns: [m(0), m(1.3), m(2.6), m(3.9), m(5.2)] },
-  { name: 'WAVE 2', spawns: [g(0), m(1), m(2.2), m(3.4), g(5), m(6), m(7)] },
-  { name: 'WAVE 3', spawns: [g(0), m(0.8), g(2.5), m(3), m(3.8), g(5), m(5.5), m(6.2), m(7)] },
+  { name: 'WAVE 1', spawns: [m(0), m(1), fl(2), m(2.4), m(3.6), fl(4), m(4.8), fl(6.2), m(6.8), m(7.6)] },
+  { name: 'WAVE 2', spawns: [g(0), m(0.8), fl(1.6), m(2.4), fl(3), g(4), m(4.6), fl(5.2), m(6), fl(6.8), m(7.4), fl(8.4), m(9)] },
+  { name: 'WAVE 3', spawns: [g(0), fl(0.6), m(1), fl(1.8), g(2.6), m(3), fl(3.4), m(3.8), fl(4.8), g(5.2), m(5.6), fl(6.2), m(6.6), fl(7.4), m(7.8), g(8.6), fl(9), m(9.4), fl(10.2)] },
   { name: 'BOSS: CRUSTY CROQUE MONSIEUR', spawns: [{ type: 'boss', t: 1.5 }] }
 ];
 
@@ -166,7 +168,8 @@ class Level1 extends Phaser.Scene {
     this.btn = {
       left:  { x: 64,     y: H - 68, r: 44 },
       right: { x: 172,    y: H - 68, r: 44 },
-      jump:  { x: W - 78, y: H - 78, r: 54 }
+      jump:  { x: W - 78, y: H - 78, r: 54 },
+      fire:  { x: W - 196, y: H - 60, r: 42 }
     };
     for (const k in this.btn) this.btnLabels[k].setPosition(this.btn[k].x, this.btn[k].y);
 
@@ -191,7 +194,7 @@ class Level1 extends Phaser.Scene {
 
   buildControls() {
     this.ctrlG = this.add.graphics().setDepth(20);
-    const labels = { left: '◀', right: '▶', jump: 'JUMP\n+JET' };
+    const labels = { left: '◀', right: '▶', jump: 'JUMP\n+JET', fire: 'FIRE' };
     this.btnLabels = {};
     for (const k in labels) {
       this.btnLabels[k] = this.add.text(0, 0, labels[k], {
@@ -357,7 +360,7 @@ class Level1 extends Phaser.Scene {
     P.fireCd -= dt;
     if (P.fireCd <= 0) {
       const tgt = this.pickTarget();
-      if (tgt || inp.fire) { this.fire(tgt); P.fireCd = CFG.fireInterval; }
+      if ((CFG.autoFire && tgt) || inp.fire) { this.fire(tgt); P.fireCd = CFG.fireInterval; }
     }
   }
 
@@ -438,7 +441,14 @@ class Level1 extends Phaser.Scene {
     const side = this.spawnSide;
     this.spawnSide = -this.spawnSide;
     const theta = wrap(P.theta + side * (halfAng + rnd(0, 0.15)));
-    if (type === 'mouse') {
+    if (type === 'flyer') {
+      const base = rnd(110, 270);
+      this.enemies.push({
+        type: 'flyer', theta, h: base, baseH: base, vh: 0, hp: 2, r: 15, ch: 12,
+        spr: this.add.image(0, 0, 'flyer').setOrigin(0.5, 0.6).setDepth(5),
+        t: 0, seed: rnd(0, 6), bombCd: rnd(0.8, 1.8), flash: 0, vx: 0, dh: 0, dir: -side
+      });
+    } else if (type === 'mouse') {
       this.enemies.push({
         type: 'mouse', theta, h: 0, vh: 0, hp: 2, r: 14, ch: 10,
         spr: this.add.image(0, 0, 'mouse').setOrigin(0.5, 22 / 24).setDepth(5),
@@ -472,6 +482,20 @@ class Level1 extends Phaser.Scene {
         e.vh -= CFG.gravity * dt;
         e.h += e.vh * dt;
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
+
+      } else if (e.type === 'flyer') {
+        const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
+        e.h += (want - e.h) * Math.min(1, dt * 3);
+        const hold = 90 + Math.sin(e.t * 0.7 + e.seed) * 70;
+        const mv = distP > hold ? dirP : -dirP * 0.6;
+        e.theta = wrap(e.theta + (mv * 105 / R) * dt);
+        e.dir = dirP;
+        e.bombCd -= dt;
+        if (e.bombCd <= 0 && distP < 230) {
+          this.addEBullet('cube', e.theta, e.h, dirP * 40, -190, 9, 3);
+          e.bombCd = rnd(1.5, 2.5);
+          Sound.sfx('cube');
+        }
 
       } else if (e.type === 'golem') {
         let mv = 0;
@@ -519,7 +543,7 @@ class Level1 extends Phaser.Scene {
       // touching Chris
       if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + 22) < (e.r + 12) * (e.r + 12)) {
         this.hurt();
-        if (e.type === 'mouse') e.hp = 0;     // mice go out in a blaze of crumbs
+        if (e.type === 'mouse' || e.type === 'flyer') e.hp = 0;     // mice go out in a blaze of crumbs
       }
     }
     this.reapEnemies();
@@ -532,7 +556,7 @@ class Level1 extends Phaser.Scene {
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
       if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
-      if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06)) {
+      if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06) || (e.type === 'flyer' && Math.random() < 0.12)) {
         this.pickups.push({ theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
       e.spr.destroy();

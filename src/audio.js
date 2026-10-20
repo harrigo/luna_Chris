@@ -250,6 +250,16 @@ const Sound = (() => {
       { drums: true, p: 'k.hks.hkk.hks.hs', vol: 1 }
     ] }),
 
+    // Title screen: heroic fanfare in C major
+    title: build({ bpm: 126, ch: [
+      { p: J('C5:2 -:1 C5:1 G4:2 C5:2 E5:4 -:2 D5:2', 'E5:2 -:1 E5:1 D5:2 C5:2 G5:6 -:2',
+              'A4:2 -:1 A4:1 C5:2 F5:2 A5:4 G5:2 F5:2', 'E5:2 D5:2 C5:2 D5:2 G4:6 G4:2 C5:8 -:8'),
+        w: 'pulse', duty: 0.25, vol: 0.18, gate: 0.9 },
+      { p: J(arpBar([48, 52, 55]), arpBar([48, 52, 55]), arpBar([53, 57, 60]), arpBar([55, 59, 62])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(36), bassBar(36), bassBar(41), bassBar(43)), w: 'triangle', vol: 0.32, gate: 0.8 },
+      { drums: true, p: 'k...s...k.k.s...', vol: 0.9 }
+    ] }),
+
     // Cutscene: jaunty space-ranch hoedown
     ranch: build({ bpm: 108, ch: [
       { p: J('G4:2 B4:2 D5:2 B4:2 G5:4 D5:2 B4:2', 'E5:2 G5:2 C6:2 G5:2 E5:4 C5:4', 'D5:2 F#5:2 A5:2 F#5:2 D5:4 A4:4', 'B4:2 D5:2 G5:2 D5:2 G4:8'),

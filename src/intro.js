@@ -179,7 +179,7 @@ class IntroScene extends Phaser.Scene {
     this.buildRanch();
 
     this.letterbox = this.add.graphics().setDepth(8);
-    this.capText = this.add.text(0, 0, 'TAP TO PLAY', { fontFamily: FONT, fontSize: '20px', color: '#ffffff', align: 'center', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.capText = this.add.text(0, 0, 'TAP TO START', { fontFamily: FONT, fontSize: '20px', color: '#ffffff', align: 'center', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
     this.skipText = this.add.text(0, 0, 'tap to skip', { fontFamily: FONT, fontSize: '12px', color: '#c9cde0' }).setOrigin(1, 0).setDepth(10).setVisible(false);
     this.gateTitle = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: FONT, fontSize: '64px', fontStyle: 'bold', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 10 }).setOrigin(0.5).setDepth(5);
     this.gateSub = this.add.text(0, 0, 'SPACE-RANCH HERO', { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(5);
@@ -297,11 +297,19 @@ class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: this.pancake, y: GROUND - 275, angle: 360, yoyo: true, repeat: -1, duration: 650, ease: 'Sine.easeOut' });
   }
 
+  // The first tap lands here: the title fanfare starts (browsers only allow sound after a tap) and the logo gets its moment.
   startShow() {
-    this.phase = 'play';
-    Sound.init(); Sound.music('ranch');
+    this.phase = 'title';
+    Sound.init(); Sound.music('title');
     this.pulse.stop();
-    this.capText.setAlpha(1);
+    this.capText.setText('').setAlpha(1);
+    this.tweens.add({ targets: [this.gateTitle, this.gateSub], scale: 1.12, yoyo: true, repeat: 3, duration: 330, ease: 'Sine.easeInOut' });
+    this.at(3200, () => this.story());
+  }
+
+  story() {
+    this.phase = 'play';
+    Sound.music('ranch');
     this.skipText.setVisible(true);
     this.tweens.add({ targets: [this.gateTitle, this.gateSub], alpha: 0, duration: 500, onComplete: () => { this.gateTitle.setVisible(false); this.gateSub.setVisible(false); } });
 
