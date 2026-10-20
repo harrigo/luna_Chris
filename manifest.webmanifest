@@ -1,0 +1,9 @@
+{
+  "name": "Lunachris",
+  "short_name": "Lunachris",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020"
+}

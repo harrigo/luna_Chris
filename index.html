@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b1020">
+  <link rel="manifest" href="manifest.webmanifest">
+  <title>Lunachris</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
+    #game { width: 100%; height: 100%; }
+    #err { position: fixed; left: 0; right: 0; bottom: 0; max-height: 40%; overflow: auto; margin: 0; padding: 8px 10px; background: rgba(160, 0, 0, .92); color: #fff; font: 12px/1.4 monospace; white-space: pre-wrap; display: none; z-index: 10; }
+    #ver { position: fixed; top: 4px; right: 6px; color: #6b7390; font: 11px monospace; z-index: 5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="ver"></div>
+  <pre id="err"></pre>
+
+  <script>
+    // On-screen error overlay so JS errors are visible when testing on a phone.
+    (function () {
+      var box = document.getElementById('err');
+      function show(msg) { box.style.display = 'block'; box.textContent += msg + '\n'; }
+      window.addEventListener('error', function (e) { show('ERROR: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')'); });
+      window.addEventListener('unhandledrejection', function (e) { show('PROMISE: ' + (e.reason && e.reason.message || e.reason)); });
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
