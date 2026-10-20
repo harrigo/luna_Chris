@@ -3,7 +3,7 @@
 Mobile-first Phaser 3 game. No build step: every push to `main` deploys to GitHub Pages.
 
 ## Deploy
-1. Repo Settings > Pages > Source: **GitHub Actions** (one-time).
+1. Repo Settings > Pages > Source: **GitHub Actions** (one-time). Alternatively, add a `PAGES_TOKEN` Actions secret containing a token with `repo` scope or Pages write permission to let the workflow enable Pages automatically.
 2. Push to `main`. The workflow in `.github/workflows/deploy.yml` publishes the site.
 3. Open `https://harrigo.github.io/Luna_chris/` on your phone, and use Share > Add to Home Screen for fullscreen.
 
