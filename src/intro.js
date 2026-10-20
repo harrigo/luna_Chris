@@ -179,10 +179,10 @@ class IntroScene extends Phaser.Scene {
     this.buildRanch();
 
     this.letterbox = this.add.graphics().setDepth(8);
-    this.capText = this.add.text(0, 0, 'TAP TO START', { fontFamily: FONT, fontSize: '20px', color: '#ffffff', align: 'center', fontStyle: 'bold' }).setOrigin(0.5).setDepth(10);
+    this.capText = this.add.text(0, 0, 'TAP TO START', { fontFamily: PIXEL, fontSize: '13px', color: '#ffffff', align: 'center' }).setOrigin(0.5).setDepth(10);
     this.skipText = this.add.text(0, 0, 'tap to skip', { fontFamily: FONT, fontSize: '12px', color: '#c9cde0' }).setOrigin(1, 0).setDepth(10).setVisible(false);
-    this.gateTitle = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: FONT, fontSize: '64px', fontStyle: 'bold', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 10 }).setOrigin(0.5).setDepth(5);
-    this.gateSub = this.add.text(0, 0, 'SPACE-RANCH HERO', { fontFamily: FONT, fontSize: '20px', fontStyle: 'bold', color: '#ffffff', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(5);
+    this.gateTitle = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '46px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 10 }).setOrigin(0.5).setDepth(5);
+    this.gateSub = this.add.text(0, 0, 'SPACE-RANCH HERO', { fontFamily: PIXEL, fontSize: '11px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(5);
     this.pulse = this.tweens.add({ targets: this.capText, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
 
     this.fit();
@@ -227,8 +227,8 @@ class IntroScene extends Phaser.Scene {
 
     this.capText.setPosition(W / 2, H - BAR_H / 2).setWordWrapWidth(W - 40);
     this.skipText.setOrigin(1, 1).setPosition(W - 10, H - 6);
-    this.gateTitle.setFontSize(Math.max(34, Math.min(64, 64 * s))).setPosition(W / 2, y0 + 62 * s);
-    this.gateSub.setFontSize(Math.max(14, 20 * s)).setPosition(W / 2, y0 + 108 * s);
+    this.gateTitle.setFontSize(Math.max(24, Math.min(46, 46 * s))).setPosition(W / 2, y0 + 62 * s);
+    this.gateSub.setFontSize(Math.max(9, 11 * s)).setPosition(W / 2, y0 + 108 * s);
   }
 
   add2(o) { this.stage.add(o); return o; }       // add an object to the stage container

@@ -1,6 +1,9 @@
 // Placeholder art, drawn with code so no asset files are needed.
 // Swap any of these for real images later by loading them under the same keys.
 
+// Retro pixel font (Google Fonts "Press Start 2P", loaded in index.html; falls back to monospace offline).
+const PIXEL = '"Press Start 2P", monospace';
+
 function makeTextures(scene) {
   if (scene.textures.exists('chris')) return;
 

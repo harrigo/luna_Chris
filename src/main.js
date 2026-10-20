@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.12';
+const BUILD = 'v0.13';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -34,6 +34,9 @@ const CFG = {
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
+
+// phone buzz (Android Chrome; ignored elsewhere)
+const buzz = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ } };
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 const wrap = a => { a %= TAU; return a < 0 ? a + TAU : a; };
@@ -137,6 +140,10 @@ class Level1 extends Phaser.Scene {
       spr: this.add.image(0, 0, 'chris').setOrigin(0.41, 1).setDepth(7)
     };
 
+    // particle emitters (screen space; positions come from screenPos())
+    this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
+    this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    this.fxGlint = this.add.particles(0, 0, 'spark', { lifespan: { min: 350, max: 700 }, speed: { min: 5, max: 40 }, scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 }, tint: 0xfff3a0, blendMode: 'ADD', emitting: false }).setDepth(9);
     this.buildHud();
     this.buildControls();
     this.buildOverlay();
@@ -204,22 +211,22 @@ class Level1 extends Phaser.Scene {
 
     this.waveText.setPosition(W / 2, 10);
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
-    this.jetText.setPosition(12, 38);
-    this.macText.setPosition(12, 54);
+    this.jetText.setPosition(12, 40);
+    this.macText.setPosition(12, 56);
     this.fpsText.setPosition(12, 74);
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
-    this.ovBody.setFontSize(this.landscape ? '15px' : '16px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
+    this.ovBody.setFontSize(this.landscape ? '9px' : '10px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
   }
 
   buildHud() {
-    const f = (size, color, extra) => Object.assign({ fontFamily: 'monospace', fontSize: size + 'px', color, fontStyle: 'bold' }, extra || {});
-    this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d')).setDepth(20);
-    this.waveText = this.add.text(0, 0, '', f(14, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
-    this.fpsText = this.add.text(0, 0, '', f(11, '#6b7390')).setDepth(20);
-    this.jetText = this.add.text(0, 0, 'JET', f(12, '#9fd8ff')).setDepth(20);
-    this.macText = this.add.text(0, 0, 'MAC', f(12, '#ffc36a')).setDepth(20);
-    this.bannerText = this.add.text(0, 0, '', f(26, '#ffd23f', { align: 'center' })).setOrigin(0.5).setDepth(20).setAlpha(0);
+    const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
+    this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d', { fontFamily: 'monospace', fontStyle: 'bold' })).setDepth(20);
+    this.waveText = this.add.text(0, 0, '', f(10, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
+    this.fpsText = this.add.text(0, 0, '', f(8, '#6b7390')).setDepth(20);
+    this.jetText = this.add.text(0, 0, 'JET', f(9, '#9fd8ff')).setDepth(20);
+    this.macText = this.add.text(0, 0, 'MAC', f(9, '#ffc36a')).setDepth(20);
+    this.bannerText = this.add.text(0, 0, '', f(17, '#ffd23f', { align: 'center', stroke: '#1a1020', strokeThickness: 4, lineSpacing: 8 })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
   }
 
@@ -229,15 +236,15 @@ class Level1 extends Phaser.Scene {
     this.btnLabels = {};
     for (const k in labels) {
       this.btnLabels[k] = this.add.text(0, 0, labels[k], {
-        fontFamily: 'monospace', fontSize: (k === 'left' || k === 'right') ? '30px' : '16px', color: '#ffffff', fontStyle: 'bold', align: 'center'
+        fontFamily: (k === 'left' || k === 'right') ? 'monospace' : PIXEL, fontSize: (k === 'left' || k === 'right') ? '30px' : '11px', color: '#ffffff', align: 'center', lineSpacing: 6
       }).setOrigin(0.5).setDepth(21).setAlpha(0.85);
     }
   }
 
   buildOverlay() {
     this.ovBg = this.add.rectangle(0, 0, 10, 10, 0x000000, 0.62).setOrigin(0).setDepth(30);
-    this.ovTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '34px', fontStyle: 'bold', color: '#ffd23f', align: 'center' }).setOrigin(0.5).setDepth(31);
-    this.ovBody = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '16px', color: '#ffffff', align: 'center', lineSpacing: 4 }).setOrigin(0.5, 0).setDepth(31);
+    this.ovTitle = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', align: 'center', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(31);
+    this.ovBody = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', align: 'center', lineSpacing: 9 }).setOrigin(0.5, 0).setDepth(31);
   }
 
   enterFullscreen() {
@@ -357,6 +364,8 @@ class Level1 extends Phaser.Scene {
         this.actors.splice(this.actors.indexOf(b), 1); b.spr.destroy();
         this.burst(P.theta, P.h + 30, 'spark', 14, 1);
         this.bonusHeart = true;
+        buzz([25, 40, 25, 40, 90]);
+        this.bang(P.theta, P.h + 30, 40);
         this.registry.set('bonusHeart', true);             // carried forward for Level 2
         this.updateHearts();
         Sound.sfx('power');
@@ -395,6 +404,7 @@ class Level1 extends Phaser.Scene {
   }
 
   die() {
+    buzz([120, 60, 250]);
     this.state = 'dead';
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
@@ -409,6 +419,8 @@ class Level1 extends Phaser.Scene {
       P.power = 0;
       P.invuln = CFG.invuln;
       Sound.sfx('clunk');
+      buzz(35);
+      this.bang(P.theta, P.h + 24, 18);
       this.burst(P.theta, P.h + 24, 'spark', 10, 1);
       this.cameras.main.shake(100, 0.005);
       this.banner('POWER-UP LOST!');
@@ -419,6 +431,8 @@ class Level1 extends Phaser.Scene {
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
     Sound.sfx('hurt');
+    this.bang(P.theta, P.h + 24, 12);
+    buzz(60);
     this.cameras.main.shake(120, 0.006);
     if (P.hp <= 0) this.die();
   }
@@ -553,7 +567,8 @@ class Level1 extends Phaser.Scene {
       dx = ex / len; dy = ey / len;
       P.facing = ex >= 0 ? 1 : -1;
     }
-    P.firing = 0.12;                      // keeps the drill-bit spinning for a moment
+    P.firing = 0.12;
+    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 48 * z, sp.y - 33 * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = wrap(P.theta + (Math.sign(dx) || 1) * (46 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
@@ -569,13 +584,8 @@ class Level1 extends Phaser.Scene {
 
   jetFlames(n) {
     const P = this.pl;
-    for (let i = 0; i < n; i++) {
-      this.parts.push({
-        theta: wrap(P.theta - P.facing * (16 / R)), h: P.h + 10,
-        vt: -P.facing * 30 + rnd(-30, 30), vh: rnd(-320, -200), life: rnd(0.12, 0.25),
-        spr: this.add.image(0, 0, 'flame').setDepth(6)
-      });
-    }
+    const s = this.screenPos(P.theta, P.h), z = this.zoom;
+    this.fxJet.emitParticleAt(s.x - P.facing * 17 * z, s.y - 19 * z, n + 1);
   }
 
   updateWaves(dt) {
@@ -597,7 +607,7 @@ class Level1 extends Phaser.Scene {
         spr: this.add.image(0, 0, 'croque').setDepth(6),
         t: 0, flash: 0, rainCd: 1.5, fanCd: 3, vx: 0, dh: 0, dir: 1
       });
-      Sound.sfx('bossIn'); Sound.music('boss');
+      Sound.sfx('bossIn'); Sound.music('boss'); buzz(150);
       return;
     }
     const halfAng = this.visHalf + 0.1;   // just off-screen
@@ -721,6 +731,9 @@ class Level1 extends Phaser.Scene {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
+      this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.type === 'golem' ? 30 : 14));
+      if (e.type === 'boss') { this.cameras.main.flash(300, 255, 240, 180); buzz([80, 50, 80, 50, 220]); }
+      else if (e.type === 'golem') buzz(25);
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
       if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
       if (e.type === 'golem' && (!this.gotPower || Math.random() < 0.3)) {     // the first Golem always drops a Power-Up
@@ -806,10 +819,13 @@ class Level1 extends Phaser.Scene {
         if (p.kind === 'power') {
           P.power = 1; P.overheat = false; P.ammo = 1;
           Sound.sfx('power');
+          buzz([20, 30, 20, 30, 60]);
+          this.bang(P.theta, P.h + 24, 26);
           this.banner('PARMESAN POWER!');
         } else {
           if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
           Sound.sfx('pickup');
+          buzz(20);
         }
         this.burst(p.theta, p.h + 8, 'spark', 6, 0.6);
         dead = true;
@@ -840,6 +856,17 @@ class Level1 extends Phaser.Scene {
 
   // ----------------------------------------------------------------- render
   // Convert (theta, h) to screen space relative to the player and position a sprite.
+  // screen position of a polar point (what place() does, for particle emitters)
+  screenPos(theta, h) {
+    const d = angDiff(theta, this.pl.theta), r = (R + h) * this.zoom;
+    return { x: this.cx + r * Math.sin(d), y: this.cy - r * Math.cos(d), vis: Math.abs(d) < 1.45 };
+  }
+
+  bang(theta, h, n) {
+    const s = this.screenPos(theta, h);
+    if (s.vis) this.fxBang.emitParticleAt(s.x, s.y, n);
+  }
+
   place(o, theta, h, extraRot) {
     const d = angDiff(theta, this.pl.theta);
     if (Math.abs(d) > 1.45) { o.setVisible(false); return; }   // far side of the planet
@@ -891,6 +918,16 @@ class Level1 extends Phaser.Scene {
     this.place(P.spr, P.theta, P.h, 0);
     P.spr.setFlipX(P.facing < 0);
     P.spr.setAlpha(P.invuln > 0 && Math.floor(this.t * 20) % 2 ? 0.35 : 1);
+
+    // sparkles: Chris while powered up, power-up pickups and Bessie's trail
+    this.glintT = (this.glintT || 0) + (this.lastDt || 0.016);
+    if (this.glintT > 0.05) {
+      this.glintT = 0;
+      if (P.power > 0) this.fxGlint.emitParticleAt(P.spr.x + rnd(-18, 18) * this.zoom, P.spr.y - rnd(4, 56) * this.zoom, 1);
+      for (const p of this.pickups) if (p.kind === 'power') this.fxGlint.emitParticleAt(p.spr.x + rnd(-12, 12), p.spr.y + rnd(-12, 12), 1);
+      const cows = this.nap ? [this.nap.cow] : (this.rescue && !this.rescue.landed ? [this.rescue.cow] : []);
+      for (const c of cows) this.fxGlint.emitParticleAt(c.spr.x + rnd(-14, 14), c.spr.y + rnd(-6, 24), 2);
+    }
 
     // spinning drill-bit on the end of the Mac-Laster, like a mincer's auger: fast while firing, idle-slow otherwise
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
@@ -953,11 +990,15 @@ class Level1 extends Phaser.Scene {
   }
 }
 
-window.game = new Phaser.Game({
+const startPhaser = () => { window.game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#0b1020',
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
   scene: [IntroScene, Level1]
-});
+}); };
+// wait (briefly) for the pixel font so the first text isn't drawn in the fallback font
+if (document.fonts && document.fonts.load) {
+  Promise.race([document.fonts.load('12px "Press Start 2P"'), new Promise(res => setTimeout(res, 2500))]).then(startPhaser, startPhaser);
+} else startPhaser();

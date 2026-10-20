@@ -72,6 +72,12 @@ Global `Sound`: all audio is synthesised with Web Audio (pulse/triangle/noise), 
 `Sound.sfx(name)`, `Sound.music(name|null)` (tracks: ranch, tense, sneak, level1, boss; jingles: win, lose), `Sound.jet(bool)`.
 Tracks are tracker-style strings in `TRACKS` ("A4:2" = note, length in 16ths). Mute button (top right) saves to localStorage.
 
+## Look and feel
+- Pixel font: `PIXEL` ("Press Start 2P" from Google Fonts, loaded in index.html; falls back to monospace offline). The game waits up to 2.5s for it before starting.
+- Particles (Phaser emitters in `Level1.create`): `fxJet` (jetpack flames), `fxBang` (explosions, muzzle flash), `fxGlint` (power-up / Bessie sparkles). Use `this.bang(theta, h, n)`.
+- Phone vibration via `buzz()` (Android): hits, power-up, kills, boss, burger.
+- Sky: parallax layers (milky-way dust, far/mid/near stars, shooting stars) using an unwrapped angle so it never jumps.
+
 ## Rules for AI changes
 - Plain JS + Phaser 3 (CDN). No build step, so a push deploys as-is.
 - Touch controls first. Test at ~844x390 landscape (phone).
