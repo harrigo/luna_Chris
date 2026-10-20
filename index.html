@@ -16,12 +16,14 @@
     #err { position: fixed; left: 0; right: 0; bottom: 0; max-height: 40%; overflow: auto; margin: 0; padding: 8px 10px; background: rgba(160, 0, 0, .92); color: #fff; font: 12px/1.4 monospace; white-space: pre-wrap; display: none; z-index: 10; }
     #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: #0b1020; color: #ffd23f; align-items: center; justify-content: center; text-align: center; font: bold 22px/1.5 monospace; }
     @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+    #mute { position: fixed; top: 4px; left: 50%; transform: translateX(-50%); z-index: 6; width: 34px; height: 28px; padding: 0; border: 1px solid #3a4266; border-radius: 6px; background: rgba(11,16,32,.6); color: #fff; font-size: 16px; line-height: 1; opacity: .75; touch-action: manipulation; }
     #ver { position: fixed; top: 4px; right: 6px; color: #6b7390; font: 11px monospace; z-index: 5; pointer-events: none; }
   </style>
 </head>
 <body>
   <div id="game"></div>
   <div id="ver"></div>
+  <button id="mute" aria-label="Sound on/off">&#128266;</button>
   <div id="rotate"><div>&#8635;<br>Rotate your phone<br>to landscape</div></div>
   <pre id="err"></pre>
 
@@ -41,7 +43,7 @@
   <script>
     // Load game scripts with a cache-busting timestamp so a phone never runs a stale build.
     (function () {
-      var files = ['src/textures.js', 'src/intro.js', 'src/main.js'], q = '?t=' + Date.now();
+      var files = ['src/audio.js', 'src/textures.js', 'src/intro.js', 'src/main.js'], q = '?t=' + Date.now();
       (function next(i) {
         if (i >= files.length) return;
         var s = document.createElement('script');

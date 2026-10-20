@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.4';
+const BUILD = 'v0.5';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -234,6 +234,7 @@ class Level1 extends Phaser.Scene {
   startGame() {
     this.hideOverlay();
     this.state = 'play';
+    Sound.init(); Sound.music('level1');
     this.nextWave();
   }
 
@@ -245,11 +246,13 @@ class Level1 extends Phaser.Scene {
     this.waveT = 0;
     this.clearT = 0;
     this.banner(w.name);
+    if (this.waveIdx > 0 && this.waveIdx < 3) Sound.sfx('wave');
     this.waveText.setText(this.waveIdx < 3 ? 'WAVE ' + (this.waveIdx + 1) + '/3' : 'BOSS');
   }
 
   win() {
     this.state = 'won';
+    Sound.jet(false); Sound.music('win');
     this.endT = this.t;
     this.clearEBullets();
     this.showOverlay('LEVEL 1 CLEAR!', 'The Croque Monsieur is toast. Literally.\nBut Bessie is still out there…\n\nLevel 2: Gorgonzola Gulch\ncoming soon\n\nTap to replay');
@@ -257,6 +260,7 @@ class Level1 extends Phaser.Scene {
 
   die() {
     this.state = 'dead';
+    Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
     this.showOverlay('CHRIS IS TOAST', 'The rats got away with Bessie.\n\nTap to try again');
@@ -269,6 +273,7 @@ class Level1 extends Phaser.Scene {
     P.invuln = CFG.invuln;
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
+    Sound.sfx('hurt');
     this.cameras.main.shake(120, 0.006);
     if (P.hp <= 0) this.die();
   }
@@ -327,11 +332,12 @@ class Level1 extends Phaser.Scene {
     if (ax !== 0) P.facing = ax;
 
     const grounded = P.h <= 0 && P.vh <= 0;
-    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; }
+    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; Sound.sfx('jump'); }
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
 
     P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0;
+    if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     if (P.thrusting) {
       P.vh = Math.min(CFG.jetMaxV, P.vh + CFG.jetAccel * dt);
       P.fuel = Math.max(0, P.fuel - CFG.jetDrain * dt);
@@ -373,6 +379,7 @@ class Level1 extends Phaser.Scene {
   // The Mac-Laster 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
   fire(tgt) {
     const P = this.pl;
+    if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
     let dx = P.facing, dy = 0;
     const gh = P.h + 26;
     if (tgt) {
@@ -424,6 +431,7 @@ class Level1 extends Phaser.Scene {
         spr: this.add.image(0, 0, 'croque').setDepth(6),
         t: 0, flash: 0, rainCd: 1.5, fanCd: 3, vx: 0, dh: 0, dir: 1
       });
+      Sound.sfx('bossIn'); Sound.music('boss');
       return;
     }
     const halfAng = this.visHalf + 0.1;   // just off-screen
@@ -473,6 +481,7 @@ class Level1 extends Phaser.Scene {
         e.shootCd -= dt;
         if (e.shootCd <= 0 && distP < 460) {
           const n = (e.volley++ % 3 === 2) ? 5 : 3;
+          Sound.sfx('cube');
           for (let k = 0; k < n; k++) {
             this.addEBullet('cube', e.theta + dirP * (32 / R), e.h + 30, dirP * 185, (k - (n - 1) / 2) * 45, 9, 3.5);
           }
@@ -493,6 +502,7 @@ class Level1 extends Phaser.Scene {
         e.fanCd -= dt;
         if (e.fanCd <= 0) {           // fan of toast crumbs
           e.fanCd = phase2 ? 2.4 : 4.2;
+          Sound.sfx('fan');
           const n = phase2 ? 7 : 5;
           for (let k = 0; k < n; k++) {
             const a = (k - (n - 1) / 2) * 0.4;
@@ -519,6 +529,7 @@ class Level1 extends Phaser.Scene {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
+      Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
       if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
       if ((e.type === 'golem' && Math.random() < 0.4) || (e.type === 'mouse' && Math.random() < 0.06)) {
@@ -558,6 +569,7 @@ class Level1 extends Phaser.Scene {
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
             e.hp -= 1;
+            Sound.sfx('hit');
             e.flash = 0.06;
             e.spr.setTint(0xff8a8a);
             dead = true;
@@ -598,6 +610,7 @@ class Level1 extends Phaser.Scene {
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
+        Sound.sfx('pickup');
         this.burst(p.theta, p.h + 8, 'spark', 6, 0.6);
         dead = true;
       }

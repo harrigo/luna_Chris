@@ -299,6 +299,7 @@ class IntroScene extends Phaser.Scene {
 
   startShow() {
     this.phase = 'play';
+    Sound.init(); Sound.music('ranch');
     this.pulse.stop();
     this.capText.setAlpha(1);
     this.skipText.setVisible(true);
@@ -306,10 +307,11 @@ class IntroScene extends Phaser.Scene {
 
     // ---- beat 1: the retired hero
     this.say('Luna Chris. The galaxy\'s most decorated astronaut.');
+    this.at(1300, () => Sound.sfx('flap'));
     this.at(2700, () => this.say('The space race burned him out. Now he flips flapjacks and looks after Bessie.'));
 
     // ---- beat 2: the Roquefort Rodents
-    this.at(6200, () => { this.say('Then the Roquefort Rodents came calling...'); this.ufoCrash(); });
+    this.at(6200, () => { this.say('Then the Roquefort Rodents came calling...'); Sound.music('tense'); this.ufoCrash(); });
     this.at(10600, () => this.say('Their world is rotting. Bessie\'s Mad Cheese is the only cure.'));
 
     // ---- beat 3: the armoury
@@ -317,6 +319,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   ufoCrash() {
+    Sound.sfx('ufoFly');
     const ufo = this.add2(this.add.image(-170, -90, 'i_ufo')).setAngle(20);
     this.ufo = ufo;
     this.time.addEvent({ delay: 55, repeat: 14, callback: () => { if (ufo.active) this.puffs(ufo.x - 70, ufo.y + 10, 1, 8, 0x555566); } });
@@ -324,6 +327,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   impact(ufo) {
+    Sound.sfx('crash');
     this.cameras.main.shake(380, 0.014);
     this.roof.setTexture('i_roofX');
     for (let i = 0; i < 8; i++) {
@@ -341,6 +345,7 @@ class IntroScene extends Phaser.Scene {
     this.rats = spots.map((x, i) => {
       const r = this.add2(this.add.image(650, 110, 'i_rat').setOrigin(0.5, 1).setScale(0.2).setAlpha(0));
       this.at(250 + i * 220, () => {
+        Sound.sfx('squeak');
         r.setAlpha(1);
         this.tweens.add({ targets: r, x, scale: 1, duration: 600, ease: 'Quad.easeOut' });
         this.tweens.add({ targets: r, y: GROUND, duration: 600, ease: 'Bounce.easeOut' });
@@ -355,6 +360,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   abduct(ufo) {
+    Sound.sfx('beam'); this.at(300, () => Sound.sfx('moo'));
     const bx = 470;
     const beam = this.add2(this.add.graphics());
     beam.fillStyle(0xfff3a0, 0.38).fillPoints([{ x: bx - 34, y: 96 }, { x: bx + 34, y: 96 }, { x: bx + 120, y: GROUND + 4 }, { x: bx - 120, y: GROUND + 4 }], true);
@@ -366,6 +372,7 @@ class IntroScene extends Phaser.Scene {
     this.at(1300, () => this.bubble(this.chris.x + 20, 90, '...', 1100));
     this.at(1500, () => {
       this.bessie.setAlpha(0);
+      Sound.sfx('whoosh');
       this.rats.forEach(r => this.tweens.add({ targets: r, alpha: 0, scale: 0.2, y: r.y - 80, duration: 300 }));
       this.tweens.add({ targets: beam, alpha: 0, duration: 250 });
       this.tweens.add({ targets: ufo, x: 900, y: -60, angle: -12, duration: 700, ease: 'Quad.easeIn' });
@@ -384,6 +391,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   buildCabin() {
+    Sound.music('sneak');
     const g = this.add2(this.add.graphics());
     g.fillStyle(0x6b4a2f, 1).fillRect(0, 0, STAGE_W, STAGE_H);
     for (let y = 0; y < GROUND; y += 36) line(g, 0, y, STAGE_W, y, 3, 0x553a24);
@@ -409,8 +417,9 @@ class IntroScene extends Phaser.Scene {
       onUpdate: () => this.spat2.setPosition(this.chris2.x + 64, this.chris2.y - 140)
     });
     this.say('Chris sighs...');
-    this.at(1100, () => this.bubble(this.chris2.x + 40, 96, '*sigh*', 1100));
-    this.at(1500, () => {                           // lets go of the spatula, wipes his hands
+    this.at(1100, () => { Sound.sfx('sigh'); this.bubble(this.chris2.x + 40, 96, '*sigh*', 1100); });
+    this.at(1500, () => {
+      Sound.sfx('clang');                           // lets go of the spatula, wipes his hands
       this.tweens.add({ targets: this.spat2, y: GROUND + 4, angle: 80, duration: 350, ease: 'Bounce.easeOut' });
     });
     this.at(2300, () => { this.say('...wipes his hands, and twists the pepper grinder.'); this.reach(); });
@@ -420,6 +429,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   reach() {
+    Sound.sfx('stretch');
     const c = this.chris2;
     const sx = c.x + 34, sy = c.y - 120;               // shoulder
     const hx0 = c.x + 64, hy0 = c.y - 140;             // hand rest position
@@ -434,6 +444,7 @@ class IntroScene extends Phaser.Scene {
       targets: this.glove, x: 470, y: 34, duration: 700, ease: 'Sine.easeInOut', onUpdate: draw,
       onComplete: () => {
         const grinder = this.grinder;
+        Sound.sfx('grind');
         this.tweens.add({ targets: grinder, angle: { from: -22, to: 22 }, yoyo: true, repeat: 5, duration: 130 });
         this.at(900, () => this.tweens.add({ targets: this.glove, x: hx0, y: hy0, duration: 500, ease: 'Sine.easeInOut', onUpdate: draw }));
       }
@@ -441,6 +452,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   flipWall() {
+    Sound.sfx('hiss'); this.at(250, () => Sound.sfx('clunk')); this.at(520, () => Sound.sfx('reveal'));
     this.cameras.main.shake(260, 0.006);
     this.puffs(320, 280, 6, 20); this.puffs(680, 280, 6, 20);
     this.tweens.add({
@@ -459,6 +471,7 @@ class IntroScene extends Phaser.Scene {
   leave() {
     if (this.leaving) return;
     this.leaving = true;
+    Sound.music(null);
     this.cameras.main.fadeOut(350, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('level1'));
   }

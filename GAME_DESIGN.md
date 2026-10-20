@@ -52,6 +52,11 @@ Add `?skipintro` to the URL to go straight to Level 1 while testing.
 - Tuning numbers are in `CFG` at the top of `main.js`; waves are in `WAVES`.
 - Planet radius `R` = 420 units. Per-level gravity can be changed via `CFG.gravity` (use for Gorgonzola Gulch).
 
+## Sound (`src/audio.js`)
+Global `Sound`: all audio is synthesised with Web Audio (pulse/triangle/noise), no files. Starts on the first tap.
+`Sound.sfx(name)`, `Sound.music(name|null)` (tracks: ranch, tense, sneak, level1, boss; jingles: win, lose), `Sound.jet(bool)`.
+Tracks are tracker-style strings in `TRACKS` ("A4:2" = note, length in 16ths). Mute button (top centre) saves to localStorage.
+
 ## Rules for AI changes
 - Plain JS + Phaser 3 (CDN). No build step, so a push deploys as-is.
 - Touch controls first. Test at ~844x390 landscape (phone).
@@ -64,7 +69,8 @@ Add `?skipintro` to the URL to go straight to Level 1 while testing.
 - [ ] Playtest balance on a real phone (player speed, golem fire rate, boss HP 150)
 - [ ] Weapon unlock + switch button (Swiss-Shot first)
 - [ ] Level 2: Gorgonzola Gulch
-- [ ] Sound effects and music
+- [x] Sound effects and music (v0.5, synthesised chiptune in `src/audio.js`)
+- [ ] Tune/compose better tracks, add Level 2 music
 - [ ] Real art for Chris, Bessie and the cheese beasts
 
 ## Art direction
