@@ -136,6 +136,8 @@ const Sound = (() => {
     cube:   () => tone({ type: 'pulse', duty: 0.125, f: 520, f2: 300, dur: 0.09, vol: 0.09 }),
     fan:    () => tone({ type: 'sawtooth', f: 200, f2: 760, dur: 0.3, vol: 0.13 }),
     power:  () => { arp([523, 659, 784, 1047, 1319], 0.055, { type: 'pulse', duty: 0.25, vol: 0.17 }); arp([262, 330, 392], 0.08, { type: 'triangle', vol: 0.2 }); },
+    ribbit: () => { wobble({ type: 'square', f: 150, f2: 95, dur: 0.22, vol: 0.14, rate: 28, depth: 40, lp: 900 }); },
+    zing:   () => { noise({ ft: 'highpass', f1: 2500, f2: 9000, dur: 0.18, vol: 0.14 }); tone({ type: 'sawtooth', f: 1400, f2: 500, dur: 0.14, vol: 0.07 }); },
     wave:   () => arp([440, 660], 0.08, { type: 'pulse', duty: 0.5, vol: 0.16 }),
     bossIn: () => { tone({ type: 'sawtooth', f: 74, f2: 46, dur: 1.5, vol: 0.4 }); noise({ ft: 'lowpass', f1: 400, f2: 80, dur: 1.5, vol: 0.4 }); },
     boom:   () => {
@@ -258,6 +260,25 @@ const Sound = (() => {
       { p: 'A4:1 A#4:1 B4:1 C5:1 C#5:1 D5:1 D#5:1 E5:1 F5:1 F#5:1 G5:1 G#5:1 A5:4 -:20', w: 'pulse', duty: 0.125, vol: 0.07, gate: 0.8 },
       { p: 'A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 A2:2 F2:4 E2:4 A2:12', w: 'triangle', vol: 0.36, gate: 0.85 },
       { drums: true, p: 'k.k.s.k.k.k.s.sk' + 'k.k.s.k.k.k.s.sk' + 'k...', vol: 0.9 }
+    ] }),
+
+    // Level 2: Gorgonzola Gulch, a woozy minor-key swamp
+    level2: build({ bpm: 120, ch: [
+      { p: J('D5:2 -:1 C#5:1 D5:2 F5:2 A5:4 G5:2 F5:2', 'E5:2 -:1 D#5:1 E5:2 G5:2 A#5:4 A5:2 G5:2', 'F5:2 -:1 E5:1 F5:2 A5:2 C6:4 A#5:2 A5:2', 'G5:2 F5:2 E5:2 D5:2 C#5:4 D5:4'),
+        w: 'pulse', duty: 0.125, vol: 0.16, gate: 0.85 },
+      { p: J(arpBar([50, 53, 57]), arpBar([52, 55, 59]), arpBar([53, 57, 60]), arpBar([55, 58, 62])), w: 'pulse', duty: 0.5, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(38), bassBar(40), bassBar(41), bassBar(43)), w: 'triangle', vol: 0.34, gate: 0.8 },
+      { drums: true, p: 'k...s...k.k.s...', vol: 0.85 }
+    ] }),
+
+    // Level 3: The Great Grater, clanking industrial E minor
+    level3: build({ bpm: 134, ch: [
+      { p: J('E5:1 -:1 E5:1 -:1 G5:2 E5:2 D5:1 -:1 D5:1 -:1 B4:2 -:2', 'E5:1 -:1 E5:1 -:1 G5:2 E5:2 F#5:1 -:1 F#5:1 -:1 A5:2 -:2',
+              'C5:1 -:1 C5:1 -:1 E5:2 C5:2 B4:1 -:1 B4:1 -:1 G4:2 -:2', 'D5:1 -:1 D5:1 -:1 F#5:2 D5:2 B4:4 -:2 A4:2'),
+        w: 'pulse', duty: 0.25, vol: 0.17, gate: 0.6 },
+      { p: J(arpBar([52, 55, 59]), arpBar([52, 55, 59]), arpBar([48, 52, 55]), arpBar([50, 54, 57])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(40), bassBar(40), bassBar(36), bassBar(38)), w: 'triangle', vol: 0.34, gate: 0.75 },
+      { drums: true, p: 'k.h.s.h.k.h.s.hh', vol: 1 }
     ] }),
 
     // Title screen: heroic fanfare in C major

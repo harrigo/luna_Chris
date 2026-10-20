@@ -3,7 +3,7 @@
 // newly added file (that's how "Sound is not defined" happened in v0.5). index.html always fetches this
 // file fresh, so add new scripts here.
 (function () {
-  var files = ['src/audio.js', 'src/textures.js', 'src/intro.js', 'src/chris.js', 'src/main.js'], q = '?t=' + Date.now();
+  var files = ['src/audio.js', 'src/textures.js', 'src/intro.js', 'src/chris.js', 'src/levels.js', 'src/main.js'], q = '?t=' + Date.now();
   (function next(i) {
     if (i >= files.length) return;
     var s = document.createElement('script');

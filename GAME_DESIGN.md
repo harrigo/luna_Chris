@@ -49,11 +49,14 @@ narrow escape from the boss's wreck (`startRescue`, state `rescue`) before the C
 After the boss and Bessie's escape, a cheeseburger drops and floats to Chris: bonus heart (burger icon next to the hearts, `registry 'bonusHeart'`
 saved for Level 2 to read).
 
-## Levels
-1. **The Gruyere Globe** (built): cheesy cratered moon. Waves of space-mice and Gouda-Golems, then boss
-   **Crusty Croque Monsieur** (toasted-sandwich drop-ship raining hot ham; fans of toast crumbs in phase 2).
-2. **Gorgonzola Gulch** (planned): toxic blue-cheese swamp. Mould spores change gravity (floaty jumps).
-   Enemies: mutated fuzzy bacteria blobs.
+## Levels (all open from the level-select screen; data lives in `src/levels.js`)
+1. **The Gruyere Globe**: cheesy cratered moon. Space-mice, jetpack mice, Gouda-Golems; boss **Crusty Croque Monsieur** (ham rain, toast fans).
+2. **Gorgonzola Gulch**: blue-cheese swamp. Green spore clouds = low gravity, purple = heavy (`zones`, `gAt()`). Fuzzy germs (split in two when
+   shot), leaping rat-frogs; boss **Baron von Blue** (spore rain, spore rings, calls in germs in phase 2).
+3. **The Great Grater**: the floor is a scrolling grater (`conveyor`): bare blades hurt, safe platforms ride along; the treadmill carries Chris
+   backwards. Slicer bots (throw floor discs) and diving cheese-slicing drones; boss **The Mega-Mandoline** (floor discs at several heights, drones).
+Each level: Bessie snatched at the start (stinger), narrow escape + cheeseburger after the boss. Add a level by adding an entry to `LEVELS`
+(waves, palette, music, boss, optional `zones` / `conveyor` + `platforms`) and, if needed, new enemies in `ENEMY` + `makeEnemy`/`updateEnemies`.
 
 ## How the code works
 - `src/main.js`: the whole level. Everything is in **polar coordinates** (`theta` = angle around planet,
@@ -94,7 +97,8 @@ hat lags/bounces, squash and stretch, gun recoil, spinning drill-bit. Swap any `
 - [ ] Commission/draw real art in the Earthworm Jim style (see art notes below) and swap in under the same texture keys
 - [ ] Playtest balance on a real phone (player speed, golem fire rate, boss HP 150)
 - [ ] Weapon unlock + switch button (Swiss-Shot first)
-- [ ] Level 2: Gorgonzola Gulch
+- [x] Level 2 and 3 (first pass, needs playtesting and balance)
+- [ ] Level 4+, per-level boss music, level unlocks / stars
 - [x] Sound effects and music (v0.5, synthesised chiptune in `src/audio.js`)
 - [ ] Tune/compose better tracks, add Level 2 music
 - [ ] Real art for Chris, Bessie and the cheese beasts
