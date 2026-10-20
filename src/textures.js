@@ -170,6 +170,9 @@ function makeTextures(scene) {
     });
   }
 
+  // soft round glow, tinted at runtime: used for the milky-way dust bands
+  mk('blob', 96, 96, g => { for (let i = 0; i < 12; i++) g.fillStyle(0xffffff, 0.07).fillCircle(48, 48, 48 - i * 3.8); });
+
   mk('crater', 70, 16, g => {
     g.fillStyle(0xc99a2a, 1).fillEllipse(35, 8, 70, 16);
     g.fillStyle(0xb5851c, 1).fillEllipse(35, 9, 56, 11);

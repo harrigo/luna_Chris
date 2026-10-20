@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.11';
+const BUILD = 'v0.12';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -90,11 +90,29 @@ class Level1 extends Phaser.Scene {
     this.nap = null;
 
     // distant stars
+    // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
+    //   milky-way dust band (slowest) -> faint far stars -> mid stars -> a few big twinkling near stars (fastest)
     this.bgStars = [];
-    for (let i = 0; i < 360; i++) {
-      const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(rnd(0.25, 0.9)).setScale(rnd(0.6, 1.6));
-      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1) });   // r = fraction of the way out from the planet
+    this.unw = 0; this.lastTheta = 0;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
+    const dust = [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0];
+    for (let i = 0; i < 46; i++) {
+      const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
+      const s = this.add.image(0, 0, 'blob').setDepth(0).setTint(dust[i % dust.length]).setAlpha(rnd(0.16, 0.32)).setScale(rnd(1.0, 2.4));
+      this.bgStars.push({ s, a: a + 0.8, r: 0.25 + rnd(0, 0.5) + Math.sin(a * 2) * 0.1, k: 0.08, dust: true });
     }
+    for (let i = 0; i < 200; i++) {
+      const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(rnd(0.15, 0.45)).setScale(rnd(0.4, 0.8));
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.15 });
+    }
+    for (let i = 0; i < 160; i++) {
+      const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(rnd(0.25, 0.9)).setScale(rnd(0.6, 1.4));
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.35 });   // r = fraction of the way out from the planet
+    }
+    for (let i = 0; i < 26; i++) {
+      const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(1).setScale(rnd(1.6, 2.6));
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.7, tw: rnd(0, 6) });
+    }
+    this.shoot = null; this.shootCd = rnd(3, 6);
 
     this.planetG = this.add.graphics().setDepth(1);
 
@@ -837,11 +855,27 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
 
     const Rz = R * this.zoom;
-    const rot = P.theta * 0.35;
+    this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
     const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
-      const a = b.a - rot, rr = r0 + b.r * span;
+      const a = b.a - this.unw * b.k, rr = r0 + b.r * span;
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
+      if (b.tw !== undefined) b.s.setAlpha(0.55 + 0.45 * Math.sin(this.t * 3 + b.tw));     // near stars twinkle
+    }
+    // the odd shooting star
+    const dtS = this.lastDt || 0.016;
+    this.shootCd -= dtS;
+    if (!this.shoot && this.shootCd <= 0) {
+      const x = rnd(0.1, 0.9) * this.W, y = rnd(0.02, 0.35) * this.H;
+      this.shoot = { x, y, vx: rnd(380, 520) * (Math.random() < 0.5 ? 1 : -1), vy: rnd(120, 200), life: 0.55 };
+    }
+    this.shootG = this.shootG || this.add.graphics().setDepth(0.5);
+    this.shootG.clear();
+    if (this.shoot) {
+      const s = this.shoot;
+      s.x += s.vx * dtS; s.y += s.vy * dtS; s.life -= dtS;
+      this.shootG.lineStyle(2, 0xffffff, Math.max(0, s.life * 1.8)).lineBetween(s.x, s.y, s.x - s.vx * 0.09, s.y - s.vy * 0.09);
+      if (s.life <= 0) { this.shoot = null; this.shootCd = rnd(4, 9); }
     }
 
     const pg = this.planetG;
