@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.33';
+const BUILD = 'v0.34';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1103,6 +1103,25 @@ class Level1 extends Phaser.Scene {
       e.dh = (e.h - ph) / idt;
 
       // touching Chris
+      // stomp: landing on an enemy's head hurts it and bounces Chris up (big ones need two, or one ground-pound)
+      if (P.vh < -40 && e.hp > 0 && this.state === 'play') {
+        const top = e.h + e.ch + e.r * 0.6;
+        if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
+          const pound = P.diving && P.vh < -380;
+          if (e.type === 'boss') e.hp -= pound ? 12 : 6;
+          else if (e.big) { e.stomps = (e.stomps || 0) + 1; if (pound || e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - 3); }
+          else e.hp = 0;
+          P.vh = pound ? 520 : 440; P.h = top + 1; P.jetArmed = false;
+          P.invuln = Math.max(P.invuln, 0.2);
+          e.flash = 0.12; e.flashCd = 0.15; e.spr.setTint(0xffffff);
+          this.burst(e.theta, top, 'spark', pound ? 16 : 8, pound ? 1.3 : 0.8);
+          this.cameras.main.shake(pound ? 140 : 70, pound ? 0.008 : 0.004);
+          Sound.sfx('jump'); buzz(pound ? 40 : 18);
+          if (e.hp > 0) this.banner(e.type === 'boss' ? 'BONK!' : 'ONE MORE!');
+          this.addScore(50);
+          continue;
+        }
+      }
       if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone') e.hp = 0;     // small fry go out in a blaze
