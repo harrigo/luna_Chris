@@ -186,6 +186,14 @@ function makeTextures(scene) {
     a.ell(80, 21, 8, 7, [0xc4c8da, 0x868ca6, 0x5a5e78]);                                                      // rat pilot
     a.rect(76, 19, 77, 21, 0xff2020); a.rect(83, 19, 84, 21, 0xff2020); a.rect(79, 25, 81, 26, 0xffffff);
     a.line([[69, 9], [75, 6]], 0xffffff, 2);                                                                     // glass glint
+    // armour: riveted steel plates bolted over the top slice + a cage over the cockpit (stomp-proof)
+    const ARM = [0xeef2f8, 0xa8b0bc, 0x5a6272];
+    a.poly([[16, 20], [20, 9], [62, 7], [64, 20]], ARM); a.poly([[96, 20], [98, 7], [140, 9], [144, 20]], ARM);
+    a.rect(16, 19, 64, 21, 0x3b4252); a.rect(96, 19, 144, 21, 0x3b4252);
+    for (const x of [24, 36, 48, 58, 102, 114, 126, 138]) { a.px(x, 12, 0x3b4252); a.px(x, 16, 0x3b4252); a.px(x - 1, 11, 0xffffff); }   // rivets
+    for (const [x0, x1] of [[20, 62], [98, 140]]) for (let x = x0; x <= x1; x += 6) a.poly([[x, 8], [x + 3, 3], [x + 6, 8]], ARM);   // stubby ridge
+    a.line([[66, 18], [70, 6], [80, 2], [90, 6], [94, 18]], 0x5a6272, 2);                                         // cockpit cage
+    a.line([[80, 2], [80, 33]], 0x5a6272, 2); a.line([[67, 12], [93, 12]], 0x5a6272, 1);
   }, 2);
 
   mk('wedge', 22, 18, g => {

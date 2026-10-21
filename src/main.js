@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.48';
+const BUILD = 'v0.49';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1188,6 +1188,12 @@ class Level1 extends Phaser.Scene {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
           const pound = P.diving && P.vh < -380;
+          if (e.type === 'boss' && this.def.boss.armouredTop) {           // armour plating: Chris just bounces off
+            P.vh = 380; P.h = top + 1; P.jetArmed = false; P.invuln = Math.max(P.invuln, 0.2);
+            this.burst(P.theta, top, 'spark', 12, 1.1); this.cameras.main.shake(80, 0.005);
+            Sound.sfx('zing'); buzz(30); this.banner('CLANG!');
+            continue;
+          }
           if (e.type === 'boss') e.hp -= pound ? 12 : 6;
           else if (e.big) { e.stomps = (e.stomps || 0) + 1; if (pound || e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - 3); }
           else e.hp = 0;
