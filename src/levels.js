@@ -83,9 +83,48 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 1.8), S('slicer', 3), S('drone', 4), S('drone', 5), S('slicer', 6.4), S('drone', 7), S('drone', 8), S('slicer', 9.4)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
+    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 6.
+    warp: { to: 6, theta: 2.55, h: 238, relics: [{ theta: 1.72, h: 236 }, { theta: 4.4, h: 242 }, { theta: 0.42, h: 214 }] },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
+  },
+
+  // secret warp level, reached through the black hole on level 3 (shows on level select once found)
+  6: {
+    id: 6, secret: true, name: 'Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A molten cheese moon, deep in a warp.\nFondue fountains everywhere.',
+    music: 'level1', bossName: 'LE GRAND FROMAGE', tip: 'WARP ZONE! MIND THE FONDUE FOUNTAINS!',
+    radius: 460, sky: [0x12030a, 0x6a1220], skyCols: [0x12030a, 0x24050f, 0x3c0816, 0x580e1c, 0x781a20, 0x9a2c22], bg: '#12030a', starTint: 0xffd0a0, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 14,
+    surface: { pal: [0x5a1406, 0xa8380e, 0xe06c18, 0xf6a62e, 0xffd65e, 0xfff0b0], seed: 6161 },
+    geysers: { n: 11, idle: [2.2, 4.6], warn: 0.9, erupt: 1.5, height: 235 },
+    planet: { fill: 0xf6a62e, inner: 0xe06c18, rim: 0xffd65e, glow: 0xffb060 },
+    dust: [0xff6a3a, 0xffb03a, 0xff3a6a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
+    gravity: 1, ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.6, half: 0.12, h: 90 }, { theta: 1.5, half: 0.11, h: 175 }, { theta: 2.6, half: 0.12, h: 90 }, { theta: 3.6, half: 0.11, h: 175 }, { theta: 4.6, half: 0.12, h: 90 }, { theta: 5.5, half: 0.11, h: 175 }],
+    props: [
+      { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffc8a8 },
+      { tex: 'pile_bones', n: 4, sc: [1.1, 1.6], tint: 0xe8a888, alpha: 0.92 },
+      { tex: 'p_tuft1', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xff9a5a }],
+    waves: [
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('flyer', 0.8), S('mouse', 1.6), S('drone', 2.4), S('mouse', 3.2), S('flyer', 4), S('golem', 5), S('mouse', 5.8), S('drone', 6.6), S('flyer', 7.4), S('mouse', 8.2)] },
+      { name: 'WAVE 2', spawns: [S('frog', 0), S('drone', 0.8), S('mouse', 1.4), S('golem', 2.4), S('flyer', 3), S('drone', 3.8), S('frog', 4.8), S('mouse', 5.4), S('flyer', 6.2), S('drone', 7), S('golem', 8), S('mouse', 8.6)] },
+      { name: 'WAVE 3', spawns: [S('golem', 0), S('slicer', 0.8), S('flyer', 1.6), S('drone', 2.2), S('frog', 3), S('mouse', 3.6), S('golem', 4.6), S('drone', 5.2), S('slicer', 6), S('flyer', 6.8), S('frog', 7.6), S('drone', 8.4), S('golem', 9.4)] }
+    ],
+    boss: { tex: 'croque', hp: 170, ai: 'croque', armouredTop: true, tint: 0xff9a6a },
+    win: 'Le Grand Fromage melted into the fountain!\nBessie bobbed up out of the fondue... and straight into another rat-ship.\nMore warps are out there somewhere...'
   }
 };
+
+// the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
+function makeWarpTextures(scene) {
+  makeBlackHolePix(scene, 'px_bhole');
+  if (scene.textures.exists('w_relic')) return;
+  pixSprite(scene, 'w_relic', 26, 24, p => {
+    p.line([[13, 1], [13, 6]], 0x8a929c);
+    p.ell(13, 13, 10, 8, [0xc0907a, 0x8a5a4a, 0x5a3a30]);
+    p.ell(13, 12, 6.5, 4.5, [0x5a3a30, 0x3a2420, 0x2a1a18]);
+    for (const [x, y] of [[9, 11], [13, 10], [17, 11], [11, 14], [15, 14]]) p.px(x, y, 0xffb070);
+    p.rect(1, 12, 4, 15, 0x8a929c); p.rect(22, 12, 25, 15, 0x8a929c);
+  });
+}
 
 // ---------------------------------------------------------------- extra art (all drawn with code)
 function makeLevelTextures(scene) {
@@ -414,6 +453,7 @@ class SelectScene extends Phaser.Scene {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
     if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => this.go(i + 1)));
+    if (this.input.keyboard) this.input.keyboard.on('keydown-SIX', () => { if (Progress.found(6)) this.go(6); });
     if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
@@ -422,6 +462,7 @@ class SelectScene extends Phaser.Scene {
       if (b === 'left' || b === 'right') { this.sel = Phaser.Math.Wrap(this.sel + (b === 'left' ? -1 : 1), 1, 4); this.showSel = true; Sound.sfx('jump'); }
       else if (b === 'a' || b === 'start') this.go(this.sel);
       else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
+      else if (b === 'y' && Progress.found(6)) this.go(6);
       else this.showSel = true;
     });
     this.events.once('shutdown', padOff);
@@ -469,6 +510,12 @@ class SelectScene extends Phaser.Scene {
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
     this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
+    if (Progress.found(6)) {                                         // found the warp on level 3: the secret level shows up
+      const s = this.add.text(W / 2, Math.min(H - 34, y0 + ch + 18), '* WARP: FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      s.on('pointerup', () => this.go(6));
+      this.tweens.add({ targets: s, alpha: 0.55, yoyo: true, repeat: -1, duration: 600 });
+      this.ui.add(s);
+    }
   }
 
   update(time) {

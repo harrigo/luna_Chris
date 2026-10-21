@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.65';
+const BUILD = 'v0.66';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -55,7 +55,9 @@ CFG.allWeapons = true;
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
-  beat(n) { try { if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } }
+  beat(n) { try { if (!(LEVELS[n] && LEVELS[n].secret) && n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
+  found(n) { try { return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels
+  find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } }
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock;
 
@@ -85,6 +87,7 @@ class Level1 extends Phaser.Scene {
 
   init(data) {
     this.autostart = !!(data && data.autostart);
+    this.warped = !!(data && data.warped);                       // arrived through a warp hole
     this.direct = !!(data && data.direct);                       // arrived from the level-select screen
     this.levelId = (data && data.level) || 1;
     this.def = LEVELS[this.levelId];
@@ -281,6 +284,21 @@ class Level1 extends Phaser.Scene {
 
     // level hazards: gravity spore clouds (level 2) and the moving grater floor (level 3)
     this.zoneSprs = [];
+    // SECRET WARP: a dull black hole in the sky + floating junk to smash (see LEVELS[n].warp)
+    this.warp = null; this.relics = []; this.warpK = 1;
+    const wd = this.def.warp;
+    if (wd) {
+      makeWarpTextures(this);
+      const glow = this.add.image(0, 0, 'puff').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
+      const hole = this.add.image(0, 0, 'px_bhole').setDepth(0.3).setTint(0x6a6268).setAlpha(0.6);
+      this.warp = { def: wd, theta: wd.theta, h: wd.h, hole, glow, stage: 0, size: 0.8, tgt: 0.8, pulse: 0, spin: 0, open: false, entering: false, t: 0 };
+      for (const r of wd.relics) {
+        const spr = this.add.image(0, 0, 'w_relic').setDepth(2.9);
+        const light = this.add.image(0, 0, 'spark').setDepth(2.95).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff3030);
+        this.relics.push({ theta: r.theta, h: r.h, hp: 6, r: 16, spr, light, ph: rnd(0, 6), flash: 0 });
+      }
+    }
+
     for (const z of (this.def.zones || [])) {
       const col = z.mult < 1 ? 0x6dff9a : 0xb06aff;
       for (let i = 0; i < 9; i++) {
@@ -525,6 +543,7 @@ class Level1 extends Phaser.Scene {
     this.state = 'play';
     Sound.init();
     this.waveText.setText('LEVEL ' + this.levelId);
+    if (this.warped) { this.warped = false; Sound.music('stinger', this.def.music); this.nextWave(); this.banner('WARP ZONE!\n' + this.def.name.toUpperCase()); this.cameras.main.fadeIn(600, 255, 255, 255); return; }
     if (this.autostart) { Sound.music(this.def.music); this.nextWave(); return; }   // retry: no cutscene, straight back in
     Sound.music('stinger', this.def.music);
     this.clearT = -1.8;                // first wave starts about 3s in, once the rat-ship has made off with Bessie
@@ -674,6 +693,98 @@ class Level1 extends Phaser.Scene {
     return false;
   }
 
+  // ---------------------------------------------------------------- the secret warp
+  relicHit(theta, h, rad, dmg) {
+    let hit = false;
+    for (const r of this.relics) {
+      if (r.hp <= 0) continue;
+      const rr = r.r + rad;
+      if (dist2(theta, h, r.theta, r.h) > rr * rr) continue;
+      r.hp -= dmg; hit = true;
+      r.spr.hsq = 1; r.spr.setTintFill(0xffffff); r.flash = 0.06;
+      Sound.sfx('clang');
+      if (r.hp <= 0) this.breakRelic(r);
+    }
+    return hit;
+  }
+
+  breakRelic(r) {
+    const W = this.warp;
+    this.burst(r.theta, r.h, 'spark', 16, 1.1); this.bang(r.theta, r.h, 34);
+    for (let k = 0; k < 5; k++) { const im = this.add.image(0, 0, 'db_bolt').setDepth(9); im.bsx = im.bsy = 1.5; this.parts.push({ theta: r.theta, h: r.h, vt: rnd(-200, 200), vh: rnd(100, 380), life: rnd(0.6, 1), spr: im }); }
+    this.addLight(r.theta, r.h, 90, 0xd0a0ff, 1, 0.5);
+    Sound.sfx('kill'); buzz(40);
+    r.spr.destroy(); r.light.destroy();
+    W.stage++; W.pulse = 1;
+    const left = this.relics.filter(x => x.hp > 0).length;
+    if (left === 0) this.time.delayedCall(500, () => this.openWarp());
+    else { W.tgt = 0.8 + W.stage * 0.35; this.time.delayedCall(250, () => Sound.sfx('beam')); }      // the "background" black hole thrums and swells
+  }
+
+  openWarp() {
+    const W = this.warp;
+    if (!W || W.open) return;
+    W.open = true; W.tgt = 2.6; W.pulse = 1;
+    W.hole.clearTint().setAlpha(1);
+    Sound.sfx('reveal'); this.cameras.main.shake(400, 0.01); this.camPunch(0.04);
+    this.addLight(W.theta, W.h, 260, 0xb04aff, 1, 1.2);
+    this.banner('A WARP HOLE HAS OPENED!');
+    buzz([40, 40, 40, 40, 120]);
+  }
+
+  updateWarp(dt) {
+    const W = this.warp, P = this.pl;
+    W.t += dt;
+    W.spin += dt * (W.open ? 2.4 : 0.12);
+    W.size += (W.tgt - W.size) * Math.min(1, dt * 2.2);
+    W.pulse = Math.max(0, W.pulse - dt * 1.2);
+    const s = W.size * (1 + 0.18 * W.pulse + (W.open ? 0.05 * Math.sin(this.t * 7) : 0));
+    W.hole.bsx = W.hole.bsy = s; this.place(W.hole, W.theta, W.h, W.spin);
+    W.glow.bsx = W.glow.bsy = s * 1.7; this.place(W.glow, W.theta, W.h);
+    W.glow.setAlpha(W.open ? 0.55 + 0.2 * Math.sin(this.t * 5) : 0.6 * W.pulse);
+    if (!W.open) W.hole.setTint(W.pulse > 0.25 ? 0xc8a0ff : 0x6a6268);
+    if (W.open && Math.random() < dt * 14) {                          // sparks spiralling in
+      const a = rnd(0, TAU), d = rnd(60, 110) * W.size / 2.6;
+      const im = this.add.image(0, 0, 'spark').setDepth(0.35).setTint(Math.random() < 0.5 ? 0xd0a0ff : 0xffd23f).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.addCounter({ from: 1, to: 0, duration: 650, onUpdate: tw => { const k = tw.getValue(), aa = a + (1 - k) * 2.5; this.place(im, wrap(W.theta + Math.cos(aa) * d * k / R), W.h + Math.sin(aa) * d * k); im.setScale(im.scaleX * (0.6 + k)); }, onComplete: () => im.destroy() });
+    }
+    for (const r of this.relics) {
+      if (r.hp <= 0) continue;
+      r.ph += dt;
+      const bob = Math.sin(r.ph * 1.6) * 4;
+      this.place(r.spr, r.theta, r.h + bob, Math.sin(r.ph * 0.9) * 0.25);
+      this.place(r.light, r.theta, r.h + bob + 13);
+      r.light.setAlpha(Math.sin(this.t * 4 + r.ph) > 0.5 ? 1 : 0.15);
+      r.spr.hsq = Math.max(0, (r.spr.hsq || 0) - dt * 7);
+      if (r.flash > 0) { r.flash -= dt; if (r.flash <= 0) r.spr.clearTint(); }
+    }
+    if (W.open && !W.entering && this.state === 'play') {
+      const rr = 24 * W.size;
+      if (dist2(P.theta, P.h + 30, W.theta, W.h) < rr * rr) this.enterWarp();
+    }
+    if (W.entering) {                                                  // sucked in: spiral to the centre, shrink, white-out
+      const k = Math.min(1, W.t / 1.4);
+      P.theta = wrap(P.theta + angDiff(W.theta, P.theta) * Math.min(1, dt * 4));
+      P.h += (W.h - 30 - P.h) * Math.min(1, dt * 4);
+      P.vx = 0; P.vh = 0;
+      this.warpK = Math.max(0.05, 1 - k);
+      W.size += dt * 0.8;
+    }
+  }
+
+  enterWarp() {
+    const W = this.warp;
+    W.entering = true; W.t = 0;
+    this.state = 'warp';
+    Progress.find(W.def.to);
+    this.clearEBullets(); Sound.jet(false); Sound.music(null);
+    Sound.sfx('whoosh'); Sound.sfx('beam'); buzz([80, 40, 200]);
+    this.banner('WARP ZONE!');
+    this.cameras.main.shake(1400, 0.006);
+    this.time.delayedCall(1300, () => this.cameras.main.fadeOut(450, 255, 255, 255));
+    this.time.delayedCall(1800, () => this.scene.restart({ level: W.def.to, warped: true, autostart: true }));
+  }
+
   nextWave() {
     this.waveIdx++;
     if (this.waveIdx >= this.waves.length) { this.win(); return; }
@@ -795,6 +906,7 @@ class Level1 extends Phaser.Scene {
       this.updateRescue(dt);
     }
     if (this.nap) this.updateNap(dt);
+    if (this.warp) this.updateWarp(dt);
     this.updateParticles(dt);
 
     this.fpsT += dt;
@@ -1114,6 +1226,7 @@ class Level1 extends Phaser.Scene {
       e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
+    if (this.relics.length) this.relicHit(theta, h, rad, dmg);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
     const ring = this.add.graphics().setDepth(8.5);
@@ -1157,6 +1270,13 @@ class Level1 extends Phaser.Scene {
       e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
+    }
+    for (const r of this.relics) {
+      if (r.hp <= 0) continue;
+      const a = angDiff(r.theta, B.t0) * B.dir;
+      if (a < -r.r / R || a > B.span) continue;
+      const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);
+      if (Math.abs(r.h - (B.gh + B.rise * f - sag)) <= r.r + B.band) this.relicHit(r.theta, r.h, 1, W.dmg);
     }
     if (hitAny) Sound.sfx('hit');
     this.reapEnemies();
@@ -1237,6 +1357,7 @@ class Level1 extends Phaser.Scene {
     e.spr.bsx = e.spr.bsy = k;
     if (type === 'boss') {
       e.ai = this.def.boss.ai; e.rainCd = 1.5; e.fanCd = 3; e.sumCd = 5; e.dir = 1;
+      if (this.def.boss.tint) { e.baseTint = this.def.boss.tint; e.spr.setTint(e.baseTint); }
     } else if (type === 'flyer') {
       e.h = e.baseH = rnd(110, 270); e.bombCd = rnd(0.8, 1.8);
     } else if (type === 'mouse' || type === 'germ' || type === 'minigerm') {
@@ -1439,7 +1560,7 @@ class Level1 extends Phaser.Scene {
       }
 
       if (e.flashCd > 0) e.flashCd -= dt;
-      if (e.flash > 0) { e.flash -= dt; if (e.flash <= 0) e.spr.clearTint(); }
+      if (e.flash > 0) { e.flash -= dt; if (e.flash <= 0) { if (e.baseTint) e.spr.setTint(e.baseTint); else e.spr.clearTint(); } }
       if (e.state === 'tele') e.spr.setTint(0xff6060);               // drone warning colour wins over the hit flash
       if (e.flipP !== undefined) {                                   // coin-flip spin around the vertical axis
         e.flipP += dt * TAU / 0.6;
@@ -1549,6 +1670,7 @@ class Level1 extends Phaser.Scene {
           }
         }
       }
+      if (!dead && this.relics.length && this.relicHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, this.weapon.bossDmg);
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
@@ -1813,7 +1935,8 @@ class Level1 extends Phaser.Scene {
     // spinning drill-bit on the end of the Mac-Grinder, like a mincer's auger: fast while firing, idle-slow otherwise
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
-    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom * this.warpK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    if (this.warp && this.warp.entering) this.rig.root.setRotation(this.rig.root.rotation + this.warp.t * 9);
     { // where the gun's muzzle actually is this frame (after recoil, crouch and facing), in world terms
       const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();
       const tp = m.transformPoint(tipImg.width * (1 - tipImg.originX) - 1, 0);

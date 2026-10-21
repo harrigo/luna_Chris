@@ -253,3 +253,17 @@ planet surface tiles/props, then cutscene backgrounds.
   4. The cabin. A pepper-grinder twist spins the fireplace round to reveal the armoury, and the Mac-Grinder flies into his hand.
   5. Night. He jet-boots up into the stars and the LUNA CHRIS logo appears.
 - Typewriter captions in a pixel panel, pixel speech bubbles, cinematic bars. Skip with tap, A or Enter.
+
+### v0.66 — Secret warp: Level 3 → Fondue Fountain (level 6)
+- Level 3 has a small, dim, grey black hole high in the sky (θ 2.55, h 238) that passes for background scenery.
+- Three bits of floating junk ("sieve-satellites" with a blinking red light) hover high up, above the high platforms. Any weapon can hit them (6 HP each).
+  - Each one destroyed makes the hole flash purple, thrum and grow.
+  - When all three are gone it wakes up: full colour, purple glow, spinning, sparks spiralling in, "A WARP HOLE HAS OPENED!".
+- Jet into the open hole and Chris is sucked in, spinning and shrinking. A white-out follows, then "WARP ZONE! FONDUE FOUNTAIN".
+- Level 6, Fondue Fountain:
+  - A molten-cheese moon: dithered red sky, 11 fondue geysers, 14 lava pools.
+  - A tougher enemy mix.
+  - Boss: Le Grand Fromage, currently a heat-tinted, tougher Croque.
+- Once found, it is saved (`lc_found6`) and appears on level select as "* WARP: FONDUE FOUNTAIN *" (tap, Y or the 6 key).
+- Secret levels don't count towards `lc_best`.
+- Data-driven: any level can get a `warp: { to, theta, h, relics: [...] }` entry.
