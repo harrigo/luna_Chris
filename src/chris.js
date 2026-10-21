@@ -83,8 +83,13 @@ function makeChrisTextures(scene) {
   pixSprite(scene, 'c_hat', 38, 30, a => {
     const W3 = [0xffffff, 0xeef2f8, 0xbcc6d6];
     a.ell(9, 17, 7.5, 7.5, W3); a.ell(29, 17, 7.5, 7.5, W3); a.ell(19, 11, 9.5, 9.5, W3); a.ell(19, 18, 8.5, 8, W3);
-    a.rrect(7, 21, 30, 28, 2, [0xffffff, 0xf1f1f1, 0xc4cede]);
-    for (const x of [13, 19, 25]) a.rect(x, 22, x, 27, 0xbcc6d6);                        // pleats
+    // the band wraps round the round helmet, so its top and bottom edges curve down in the middle
+    const curve = x => 3.2 * (1 - Math.pow((x + 0.5 - 18.5) / 12, 2));
+    for (let x = 6; x <= 31; x++) {
+      const c = curve(x), y0 = Math.round(19 + c * 0.6), y1 = Math.round(25 + c);
+      for (let y = y0; y <= y1; y++) a.px(x, y, y === y0 ? 0xffffff : (y >= y1 - 1 ? 0xc4cede : (x > 24 ? 0xe2e8f0 : 0xf1f1f1)));
+    }
+    for (const x of [12, 18, 25]) { const c = curve(x); for (let y = Math.round(20 + c * 0.6); y <= Math.round(24 + c); y++) a.px(x, y, 0xbcc6d6); }   // pleats follow the curve
     a.line([[14, 6], [16, 13]], 0xbcc6d6); a.line([[24, 7], [22, 13]], 0xbcc6d6);
   });
   // The Spaghetti Spinner (pixel art): teal body, a big reel of spaghetti on top, loose strand, red nozzle
