@@ -36,28 +36,50 @@ function makeTextures(scene) {
   });
 
   // Space-mouse in junk armour. Faces right.
-  mk('mouse', 34, 24, g => {
-    g.lineStyle(2, 0xd9a5b3, 1).lineBetween(5, 17, 0, 10);                 // tail
-    g.fillStyle(0x9aa3b2, 1).fillEllipse(16, 15, 24, 14);                  // body
-    g.fillStyle(0x8b5a2b, 1).fillRect(8, 9, 10, 6);                        // armour plate
-    g.fillStyle(0x9aa3b2, 1).fillCircle(27, 13, 7);                        // head
-    g.fillStyle(0xf4a6b8, 1).fillCircle(25, 6, 4).fillCircle(33, 14, 2);   // ear, nose
-    g.fillStyle(0x111111, 1).fillCircle(28, 11, 1.6);                      // eye
-    g.fillStyle(0x555b6e, 1).fillRect(10, 20, 4, 4).fillRect(20, 20, 4, 4);// feet
-  });
-
+  // ---- pixel-art rats: shapes painted onto a pixel grid, shaded in 3 tones (lit from top-left), then auto-outlined
+  const pixSprite = (key, w, h, paint) => {
+    const grid = new Array(w * h).fill(-1);
+    const shade = (tones, nx, ny) => { const l = -0.6 * nx - 0.8 * ny; return l > 0.3 ? tones[0] : (l < -0.35 ? tones[2] : tones[1]); };
+    const api = {
+      ell(cx, cy, rx, ry, tones) { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry; if (nx * nx + ny * ny <= 1 && x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = Array.isArray(tones) ? shade(tones, nx, ny) : tones; } },
+      rect(x0, y0, x1, y1, c) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = c; },
+      px(x, y, c) { if (x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = c; },
+      line(pts, c) { for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= n; k++) api.px(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), c); } }
+    };
+    paint(api);
+    const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
+    const OUTL = 0x1a1020, at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : grid[y * w + x];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let c = grid[y * w + x];
+      if (c < 0) { if (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0) c = OUTL; else continue; }
+      const i = (y * w + x) * 4; D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; D[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0); tex.refresh();
+  };
+  const FUR = [0xb4b8cc, 0x868ca6, 0x5a5e78], ARM = [0xd08a4a, 0x9a5a2a, 0x6a3a1a], STEEL = [0xeaf2ff, 0x8eaad6, 0x56709e], PINK = 0xf49ab0, DPINK = 0xc0607a;
+  const rat = (a, ox, oy, goggles) => {
+    a.line([[ox + 9, oy + 16], [ox + 5, oy + 15], [ox + 2, oy + 12], [ox + 1, oy + 9]], DPINK);       // tail
+    a.ell(ox + 24, oy + 7, 3, 3, PINK); a.px(ox + 24, oy + 7, DPINK);                                    // ear
+    a.ell(ox + 16, oy + 15, 9, 6, FUR);                                                               // body
+    a.ell(ox + 14, oy + 11.5, 6.5, 3.6, ARM);                                                         // armour shell
+    a.px(ox + 11, oy + 11, 0xf0c080); a.px(ox + 15, oy + 10, 0xf0c080);                                // rivets
+    a.ell(ox + 26, oy + 13, 6, 5, FUR);                                                               // head
+    a.ell(ox + 30.5, oy + 15, 2.6, 2, FUR);                                                           // snout
+    a.ell(ox + 25.5, oy + 9.5, 5, 2.4, STEEL);                                                        // helmet
+    a.px(ox + 33, oy + 14, PINK);                                                                     // nose
+    if (goggles) { a.ell(ox + 28, oy + 12, 2.4, 2.2, 0x6ad8ff); a.px(ox + 28, oy + 12, 0xff3030); a.px(ox + 27, oy + 11, 0xffffff); }
+    else { a.rect(ox + 27, oy + 11, ox + 28, oy + 12, 0xffffff); a.px(ox + 28, oy + 12, 0xff2020); } // mean red eye
+    a.px(ox + 31, oy + 17, 0xffffff); a.px(ox + 30, oy + 17, 0xffffff);                                // buck teeth
+    a.rect(ox + 11, oy + 20, ox + 13, oy + 21, 0x4a4e62); a.rect(ox + 19, oy + 20, ox + 21, oy + 21, 0x4a4e62);   // feet
+  };
+  // Space-mouse: walks the surface. Faces right; feet at y=22 (origin oy 22/24).
+  pixSprite('mouse', 34, 24, a => rat(a, 0, 0, false));
   // Jetpack space-mouse (flies). Faces right.
-  mk('flyer', 38, 36, g => {
-    g.fillStyle(0xff9a2a, 1).fillTriangle(8, 25, 14, 25, 11, 36).fillStyle(0xffe27a, 1).fillTriangle(9.5, 25, 12.5, 25, 11, 31);  // jet flame
-    g.fillStyle(0xd9503a, 1).fillRoundedRect(7, 12, 8, 14, 2);              // jet tank
-    g.lineStyle(2, 0xd9a5b3, 1).lineBetween(8, 20, 2, 26);                  // tail
-    g.fillStyle(0x9aa3b2, 1).fillEllipse(19, 16, 24, 14);                   // body
-    g.fillStyle(0x8b5a2b, 1).fillRect(14, 10, 10, 6);                       // armour plate
-    g.fillStyle(0x9aa3b2, 1).fillCircle(30, 14, 7);                         // head
-    g.fillStyle(0xf4a6b8, 1).fillCircle(28, 7, 4).fillCircle(36, 15, 2);
-    g.fillStyle(0x111111, 1).fillCircle(31, 12, 1.6);
-    g.fillStyle(0x7ad7ff, 0.8).fillCircle(31, 12, 6.5);                     // goggles
-    g.fillStyle(0x111111, 1).fillCircle(32, 12, 1.6);
+  pixSprite('flyer', 38, 36, a => {
+    a.ell(11, 31, 2.5, 4.5, [0xffe27a, 0xff9a2a, 0xff5a1a]);                                          // jet flame
+    a.rect(7, 13, 14, 25, 0x9a2a1a); a.rect(8, 13, 13, 24, 0xd9503a); a.rect(8, 14, 9, 22, 0xff8a6a); // jet tank
+    rat(a, 3, 1, true);
   });
 
   // Bessie, the zero-gravity cow. Faces right. Origin at her hooves.
