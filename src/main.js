@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.29';
+const BUILD = 'v0.30';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -174,11 +174,12 @@ class Level1 extends Phaser.Scene {
     // bubbling lava craters (level 1): glowing pools that spit droplets now and then
     this.lavas = [];
     for (let i = 0; i < (this.def.lava || 0); i++) {
-      const theta = i * TAU / this.def.lava + rnd(0.1, 0.4);
+      const theta = i * TAU / this.def.lava + rnd(0.1, 0.5);
       const glow = this.add.image(0, 0, 'lava_glow').setDepth(2).setBlendMode(Phaser.BlendModes.ADD);
       const pool = this.add.image(0, 0, 'lava_pool').setDepth(2.2);
-      pool.bsx = glow.bsx = rnd(0.9, 1.4);
-      this.lavas.push({ theta, pool, glow, cd: rnd(0.5, 3), ph: rnd(0, 6) });
+      const bub = this.add.image(0, 0, 'lava_drop').setDepth(2.3);
+      pool.bsx = glow.bsx = rnd(0.8, 1.4); pool.bsy = glow.bsy = rnd(0.9, 1.3);
+      this.lavas.push({ theta, h: -rnd(22, 190), pool, glow, bub, bt: rnd(0, 1), bx: 0, ph: rnd(0, 6) });   // set into the planet at random depths
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -1157,16 +1158,6 @@ class Level1 extends Phaser.Scene {
   }
 
   updateParticles(dt) {
-    for (const L of (this.lavas || [])) {
-      L.cd -= dt;
-      if (L.cd <= 0) {
-        L.cd = rnd(1.2, 3.5);
-        if (Math.abs(angDiff(L.theta, this.pl.theta)) < 1.2) {
-          const n = 3 + Math.floor(Math.random() * 4);
-          for (let i = 0; i < n; i++) this.parts.push({ theta: L.theta, h: 2, vt: rnd(-70, 70), vh: rnd(180, 360), life: rnd(0.8, 1.2), spr: this.add.image(0, 0, 'lava_drop').setDepth(2.4) });
-        }
-      }
-    }
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i];
       p.theta = wrap(p.theta + (p.vt / R) * dt);
@@ -1268,8 +1259,13 @@ class Level1 extends Phaser.Scene {
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
     for (const L of this.lavas) {
-      this.place(L.glow, L.theta, -2, 0); this.place(L.pool, L.theta, -6, 0);
+      this.place(L.glow, L.theta, L.h + 4, 0); this.place(L.pool, L.theta, L.h, 0);
       L.glow.setAlpha(0.55 + 0.35 * Math.sin(this.t * 4 + L.ph));
+      L.bt += (this.lastDt || 0.016) * 0.9;                                    // a bubble swells and pops, over and over
+      if (L.bt >= 1) { L.bt = 0; L.bx = rnd(-0.02, 0.02) * (420 / R); }
+      L.bub.sqx = L.bub.sqy = 0.3 + L.bt * 1.3;
+      this.place(L.bub, L.theta + L.bx, L.h + 2 + L.bt * 5, 0);
+      L.bub.setAlpha(L.bt < 0.9 ? 1 : (1 - L.bt) * 10);
     }
     for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 1, 0);
     for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);

@@ -26,10 +26,7 @@ const LEVELS = {
     gravity: 1, ledgeTex: 'ledge1',
     ledges: [{ theta: 0.9, half: 0.14, h: 85 }, { theta: 2.0, half: 0.12, h: 165 }, { theta: 3.3, half: 0.14, h: 85 }, { theta: 4.4, half: 0.12, h: 165 }, { theta: 5.5, half: 0.14, h: 85 }],
     props: [
-      { tex: 'pile_rind', n: 5, sc: [2.2, 3.2], depth: 1.6, tint: 0x6a5a40, alpha: 0.55, h: -10 },
-      { tex: 'pile_rind', n: 6, sc: [1.1, 1.7], tint: 0xc8b890, alpha: 0.9 },
       { tex: 'p_skull', n: 3, sc: [1, 1.3], tint: 0xe0d8c0 },
-      { tex: 'p_rock', n: 8, sc: [0.9, 1.5] }, { tex: 'p_wedge', n: 6, sc: [0.9, 1.5] }, { tex: 'p_flag', n: 3, sc: [1, 1.3] },
       { tex: 'p_tuft1', n: 12, sc: [0.8, 1.4], fg: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1), S('flyer', 2), S('mouse', 2.4), S('mouse', 3.6), S('flyer', 4), S('mouse', 4.8), S('flyer', 6.2), S('mouse', 6.8), S('mouse', 7.6)] },

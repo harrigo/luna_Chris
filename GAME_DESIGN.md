@@ -146,3 +146,4 @@ planet surface tiles/props, then cutscene backgrounds.
 ## v0.28 Level 1 cosmic sky
 - Bright blue-violet sky gradient. Deep-space layer (`bgDecor: 'cosmic'`): spiral galaxies, two black holes (spinning accretion swirl + pulsing core), ringed planets, then chunky outlined 5-point stars in six colours, spinning and twinkling. Each layer has its own parallax speed and the whole sky drifts slowly even when standing still.
 - Bubbling cheese-lava craters on the surface (`lava: 9`): glowing pools that spit droplets when near the player.
+- v0.30: Level 1 decluttered (rind heaps, rocks, cheese wedges and flags removed; a few skulls and grass tufts kept). Lava craters now sit inside the planet at random depths with a swelling/popping bubble instead of spitting droplets.
