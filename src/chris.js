@@ -220,6 +220,7 @@ class ChrisRig {
     this.setPowered(P.power > 0);
     this.duckA = (this.duckA || 0) + ((P.duck ? 1 : 0) - (this.duckA || 0)) * Math.min(1, dt * 16);   // crouch: squash down, spread a little
     const dk = this.duckA;
+    this.gunArm.setScale(1 / (1 + 0.12 * dk), 1 / (1 - 0.42 * dk));      // crouching squashes Chris, not his gun
     this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1) * (1 + 0.12 * dk), z * RIG_SCALE * (1 - 0.42 * dk)).setAlpha(alpha);
   }
 }
