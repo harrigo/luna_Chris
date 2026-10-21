@@ -4,6 +4,50 @@
 // Retro pixel font (Google Fonts "Press Start 2P", loaded in index.html; falls back to monospace offline).
 const PIXEL = '"Press Start 2P", monospace';
 
+// ---- pixel-sprite painter (shared): paint simple shapes onto a pixel grid, shade each in 3 tones
+// (lit from the top-left), then add a dark outline automatically. Used for all the 16-bit enemies.
+function pixSprite(scene, key, w, h, paint, outline) {
+  if (scene.textures.exists(key)) scene.textures.remove(key);
+  const grid = new Array(w * h).fill(-1);
+  const shade = (tones, nx, ny) => { const l = -0.6 * nx - 0.8 * ny; return l > 0.3 ? tones[0] : (l < -0.35 ? tones[2] : tones[1]); };
+  const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = c; };
+  const api = {
+    ell(cx, cy, rx, ry, tones) { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry; if (nx * nx + ny * ny <= 1) set(x, y, Array.isArray(tones) ? shade(tones, nx, ny) : tones); } },
+    rect(x0, y0, x1, y1, c) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, c); },
+    rrect(x0, y0, x1, y1, r, tones) {
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hw = (x1 - x0) / 2, hh = (y1 - y0) / 2;
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const qx = Math.max(0, Math.abs(x + 0.5 - cx) - (hw - r)), qy = Math.max(0, Math.abs(y + 0.5 - cy) - (hh - r));
+        if (qx * qx + qy * qy > r * r) continue;
+        set(x, y, Array.isArray(tones) ? shade(tones, (x + 0.5 - cx) / hw, (y + 0.5 - cy) / hh) : tones);
+      } },
+    poly(pts, tones) {
+      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, hw = Math.max(1, (x1 - x0) / 2), hh = Math.max(1, (y1 - y0) / 2);
+      for (let y = Math.floor(y0); y <= Math.ceil(y1); y++) for (let x = Math.floor(x0); x <= Math.ceil(x1); x++) {
+        const px = x + 0.5, py = y + 0.5; let inside = false;
+        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside; }
+        if (inside) set(x, y, Array.isArray(tones) ? shade(tones, (px - cx) / hw, (py - cy) / hh) : tones);
+      } },
+    px(x, y, c) { set(x | 0, y | 0, c); },
+    line(pts, c, th) {
+      th = th || 1;
+      for (let i = 0; i < pts.length - 1; i++) { const [xa, ya] = pts[i], [xb, yb] = pts[i + 1], n = Math.max(1, Math.round(Math.max(Math.abs(xb - xa), Math.abs(yb - ya))));
+        for (let k = 0; k <= n; k++) { const x = Math.round(xa + (xb - xa) * k / n), y = Math.round(ya + (yb - ya) * k / n); for (let dy = 0; dy < th; dy++) for (let dx = 0; dx < th; dx++) set(x + dx - (th >> 1), y + dy - (th >> 1), c); } } }
+  };
+  paint(api);
+  const OUTL = 0x1a1020;
+  for (let pass = 0; pass < (outline || 1); pass++) {
+    const src = grid.slice(), at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : src[y * w + x];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (src[y * w + x] < 0 && (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0)) grid[y * w + x] = OUTL;
+  }
+  const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
+  for (let i = 0; i < w * h; i++) { const c = grid[i]; if (c < 0) continue; D[i * 4] = (c >> 16) & 255; D[i * 4 + 1] = (c >> 8) & 255; D[i * 4 + 2] = c & 255; D[i * 4 + 3] = 255; }
+  ctx.putImageData(img, 0, 0); tex.refresh();
+}
+const OUTPX = 0x1a1020;
+
 function makeTextures(scene) {
   if (scene.textures.exists('chris')) return;
 
@@ -36,27 +80,6 @@ function makeTextures(scene) {
   });
 
   // Space-mouse in junk armour. Faces right.
-  // ---- pixel-art rats: shapes painted onto a pixel grid, shaded in 3 tones (lit from top-left), then auto-outlined
-  const pixSprite = (key, w, h, paint) => {
-    const grid = new Array(w * h).fill(-1);
-    const shade = (tones, nx, ny) => { const l = -0.6 * nx - 0.8 * ny; return l > 0.3 ? tones[0] : (l < -0.35 ? tones[2] : tones[1]); };
-    const api = {
-      ell(cx, cy, rx, ry, tones) { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
-        const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry; if (nx * nx + ny * ny <= 1 && x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = Array.isArray(tones) ? shade(tones, nx, ny) : tones; } },
-      rect(x0, y0, x1, y1, c) { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = c; },
-      px(x, y, c) { if (x >= 0 && y >= 0 && x < w && y < h) grid[y * w + x] = c; },
-      line(pts, c) { for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1], n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)); for (let k = 0; k <= n; k++) api.px(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), c); } }
-    };
-    paint(api);
-    const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
-    const OUTL = 0x1a1020, at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : grid[y * w + x];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      let c = grid[y * w + x];
-      if (c < 0) { if (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0) c = OUTL; else continue; }
-      const i = (y * w + x) * 4; D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; D[i + 3] = 255;
-    }
-    ctx.putImageData(img, 0, 0); tex.refresh();
-  };
   const FUR = [0xb4b8cc, 0x868ca6, 0x5a5e78], ARM = [0xd08a4a, 0x9a5a2a, 0x6a3a1a], STEEL = [0xeaf2ff, 0x8eaad6, 0x56709e], PINK = 0xf49ab0, DPINK = 0xc0607a;
   const rat = (a, ox, oy, goggles) => {
     a.line([[ox + 9, oy + 16], [ox + 5, oy + 15], [ox + 2, oy + 12], [ox + 1, oy + 9]], DPINK);       // tail
@@ -74,9 +97,9 @@ function makeTextures(scene) {
     a.rect(ox + 11, oy + 20, ox + 13, oy + 21, 0x4a4e62); a.rect(ox + 19, oy + 20, ox + 21, oy + 21, 0x4a4e62);   // feet
   };
   // Space-mouse: walks the surface. Faces right; feet at y=22 (origin oy 22/24).
-  pixSprite('mouse', 34, 24, a => rat(a, 0, 0, false));
+  pixSprite(scene, 'mouse', 34, 24, a => rat(a, 0, 0, false));
   // Jetpack space-mouse (flies). Faces right.
-  pixSprite('flyer', 38, 36, a => {
+  pixSprite(scene, 'flyer', 38, 36, a => {
     a.ell(11, 31, 2.5, 4.5, [0xffe27a, 0xff9a2a, 0xff5a1a]);                                          // jet flame
     a.rect(7, 13, 14, 25, 0x9a2a1a); a.rect(8, 13, 13, 24, 0xd9503a); a.rect(8, 14, 9, 22, 0xff8a6a); // jet tank
     rat(a, 3, 1, true);
@@ -108,15 +131,18 @@ function makeTextures(scene) {
   });
 
   // Gouda-Golem
-  mk('golem', 60, 64, g => {
-    g.fillStyle(0xffc83d, 1).fillRoundedRect(4, 6, 52, 56, 8);
-    g.fillStyle(0xe3a21a, 1).fillCircle(14, 16, 6).fillCircle(46, 14, 4).fillCircle(48, 46, 7).fillCircle(16, 50, 5);
-    g.fillStyle(0xffffff, 1).fillCircle(22, 28, 7).fillCircle(40, 28, 7);
-    g.fillStyle(0x222222, 1).fillCircle(23, 29, 3).fillCircle(39, 29, 3);
-    g.lineStyle(3, 0x7a4a00, 1).lineBetween(14, 20, 27, 25).lineBetween(48, 20, 35, 25);  // angry brows
-    g.fillStyle(0x7a4a00, 1).fillRoundedRect(20, 42, 22, 8, 3);            // mouth
-    g.fillStyle(0xb8800f, 1).fillRect(10, 58, 14, 6).fillRect(36, 58, 14, 6);
-  });
+  // Gouda-Golem: a walking block of cheese with holes and a furious face
+  pixSprite(scene, 'golem', 60, 64, a => {
+    const CH = [0xffe896, 0xffc83d, 0xd9961a];
+    a.rect(10, 56, 23, 63, 0x9a6a0c); a.rect(36, 56, 49, 63, 0x9a6a0c); a.rect(10, 56, 23, 57, 0xc48a1a); a.rect(36, 56, 49, 57, 0xc48a1a);   // stubby feet
+    a.rrect(4, 5, 55, 59, 7, CH);
+    for (const [x, y, r] of [[14, 15, 5], [46, 13, 3.5], [48, 46, 6], [15, 49, 4.5], [32, 55, 2.5], [7, 32, 2.5]]) { a.ell(x, y, r, r, 0xb8800f); a.ell(x - 0.6, y - 0.8, r * 0.7, r * 0.6, 0x8a5a08); }
+    for (const [x, y] of [[26, 12], [38, 52], [52, 30], [9, 40]]) a.px(x, y, 0xfff4c4);
+    a.ell(22, 28, 7, 7, 0xffffff); a.ell(39, 28, 7, 7, 0xffffff);
+    a.rect(22, 27, 25, 31, OUTPX); a.rect(36, 27, 39, 31, OUTPX); a.px(23, 28, 0xffffff); a.px(37, 28, 0xffffff);
+    a.line([[13, 18], [27, 24]], 0x6a3a00, 3); a.line([[47, 18], [33, 24]], 0x6a3a00, 3);              // angry brows
+    a.rrect(19, 41, 42, 50, 3, 0x6a3a00); a.rect(22, 41, 25, 44, 0xffffff); a.rect(30, 41, 33, 44, 0xffffff); a.rect(36, 47, 39, 50, 0xffffff);   // jagged teeth
+  }, 1);
 
   mk('cube', 14, 14, g => {
     g.fillStyle(0xffd23f, 1).fillRoundedRect(0, 0, 14, 14, 3);
@@ -140,18 +166,22 @@ function makeTextures(scene) {
   });
 
   // Crusty Croque Monsieur drop-ship
-  mk('croque', 160, 96, g => {
-    g.fillStyle(0xff6b1a, 1).fillTriangle(38, 74, 58, 74, 48, 94).fillTriangle(102, 74, 122, 74, 112, 94); // thrusters
-    g.fillStyle(0xd9a04f, 1).fillRoundedRect(10, 52, 140, 22, 10);        // bottom bread
-    g.fillStyle(0xffd23f, 1).fillRect(14, 45, 132, 8).fillTriangle(30, 53, 44, 53, 37, 64).fillTriangle(100, 53, 116, 53, 108, 66); // cheese drips
-    g.fillStyle(0xff8fa3, 1).fillRoundedRect(6, 36, 148, 11, 5);          // ham
-    g.fillStyle(0xd9a04f, 1).fillRoundedRect(14, 12, 132, 28, 12);        // top bread
-    g.lineStyle(3, 0x8a5a1f, 1).lineBetween(30, 18, 50, 36).lineBetween(70, 16, 90, 36).lineBetween(112, 18, 132, 36); // toast marks
-    g.fillStyle(0x7fd3ff, 1).fillCircle(80, 18, 15);                       // cockpit
-    g.fillStyle(0x9aa3b2, 1).fillCircle(80, 21, 8).fillCircle(73, 13, 4).fillCircle(87, 13, 4); // rat pilot
-    g.fillStyle(0x111111, 1).fillCircle(77, 20, 1.6).fillCircle(83, 20, 1.6);
-    g.fillStyle(0x8b5a2b, 1).fillRect(24, 56, 16, 8).fillRect(118, 58, 14, 7);   // rust patches
-  });
+  pixSprite(scene, 'croque', 160, 96, a => {
+    const BREAD = [0xf0c070, 0xd9a04f, 0x9a6a2a];
+    a.poly([[38, 72], [58, 72], [48, 94]], [0xffe27a, 0xff8a1a, 0xd04a10]); a.poly([[102, 72], [122, 72], [112, 94]], [0xffe27a, 0xff8a1a, 0xd04a10]);   // thrusters
+    a.rrect(10, 52, 149, 73, 9, BREAD);                                                                         // bottom slice
+    a.rect(14, 45, 145, 52, 0xffd23f); a.rect(14, 45, 145, 46, 0xfff09a);
+    a.poly([[30, 52], [44, 52], [37, 64]], [0xfff09a, 0xffd23f, 0xd9a51a]); a.poly([[100, 52], [116, 52], [108, 67]], [0xfff09a, 0xffd23f, 0xd9a51a]); a.poly([[66, 52], [74, 52], [70, 59]], 0xffd23f);   // drips
+    a.rrect(6, 36, 153, 46, 4, [0xffc0cc, 0xff8fa3, 0xd9566f]);                                              // ham
+    a.rrect(14, 11, 145, 39, 11, BREAD);                                                                        // top slice
+    for (const [x0, y0, x1, y1] of [[28, 18, 48, 34], [66, 18, 60, 34], [104, 18, 124, 34], [126, 20, 138, 30]]) a.line([[x0, y0], [x1, y1]], 0x7a4a1a, 2);   // toast marks
+    a.rect(24, 56, 39, 63, 0x8b5a2b); a.rect(118, 58, 131, 64, 0x8b5a2b); a.px(28, 58, 0xb07a40); a.px(122, 60, 0xb07a40);   // rust
+    a.ell(80, 18, 15, 15, [0xd8f4ff, 0x7fd3ff, 0x3a8ac0]);                                                    // cockpit
+    a.ell(73, 13, 4, 4, 0xf49ab0); a.ell(87, 13, 4, 4, 0xf49ab0);
+    a.ell(80, 21, 8, 7, [0xc4c8da, 0x868ca6, 0x5a5e78]);                                                      // rat pilot
+    a.rect(76, 19, 77, 21, 0xff2020); a.rect(83, 19, 84, 21, 0xff2020); a.rect(79, 25, 81, 26, 0xffffff);
+    a.line([[69, 9], [75, 6]], 0xffffff, 2);                                                                     // glass glint
+  }, 2);
 
   mk('wedge', 22, 18, g => {
     g.fillStyle(0xffd23f, 1).fillTriangle(0, 17, 22, 17, 22, 2);

@@ -99,103 +99,87 @@ function makeLevelTextures(scene) {
   const OUT = 0x1a1020;
 
   // fuzzy mutated bacteria blob
-  const germ = (g, cx, cy, r, fuzz) => {
-    g.lineStyle(2, 0x2f6f5a, 1);
-    for (let i = 0; i < fuzz; i++) {
-      const a = (i / fuzz) * Math.PI * 2, l = r + 5 + (i % 3) * 1.6;
-      g.lineBetween(cx + Math.cos(a) * (r - 2), cy + Math.sin(a) * (r - 2), cx + Math.cos(a) * l, cy + Math.sin(a) * l);
-    }
-    g.fillStyle(0x4fcf9a, 1).fillCircle(cx, cy, r);
-    g.fillStyle(0x7be8b8, 1).fillCircle(cx - r * 0.25, cy - r * 0.3, r * 0.55);
-    g.lineStyle(2, OUT, 1).strokeCircle(cx, cy, r);
+  const GERM = [0x9cf0c4, 0x4fcf9a, 0x2a8a62];
+  const germ = (a, cx, cy, r, fuzz) => {
+    for (let i = 0; i < fuzz; i++) { const ang = (i / fuzz) * Math.PI * 2, l = r + 3 + (i % 3); a.line([[cx + Math.cos(ang) * (r - 1), cy + Math.sin(ang) * (r - 1)], [cx + Math.cos(ang) * l, cy + Math.sin(ang) * l]], 0x2f6f5a); }
+    a.ell(cx, cy, r, r, GERM);
+    a.ell(cx - r * 0.35, cy - r * 0.4, r * 0.25, r * 0.2, 0xd8ffe8);
+    a.px(cx + r * 0.4, cy + r * 0.3, 0x2a8a62); a.px(cx - r * 0.5, cy + r * 0.5, 0x2a8a62);
   };
-  mk('germ', 42, 40, g => {
-    germ(g, 21, 21, 14, 16);
-    g.fillStyle(0xffffff, 1).fillCircle(15, 17, 5).fillCircle(27, 17, 5);
-    g.fillStyle(OUT, 1).fillCircle(16, 18, 2.2).fillCircle(26, 18, 2.2);
-    g.fillStyle(0x1d4a3a, 1).fillRoundedRect(14, 25, 14, 5, 2);
-    g.fillStyle(0xffffff, 1).fillRect(17, 25, 2, 3).fillRect(23, 25, 2, 3);
+  pixSprite(scene, 'germ', 42, 40, a => {
+    germ(a, 21, 21, 13, 16);
+    a.ell(15, 17, 4.5, 4.5, 0xffffff); a.ell(27, 17, 4.5, 4.5, 0xffffff);
+    a.rect(15, 17, 17, 19, OUTPX); a.rect(25, 17, 27, 19, OUTPX);
+    a.rrect(14, 25, 28, 29, 1, 0x1d4a3a); a.rect(17, 25, 18, 27, 0xffffff); a.rect(23, 25, 24, 27, 0xffffff);
   });
-  mk('minigerm', 26, 24, g => {
-    germ(g, 13, 13, 8, 10);
-    g.fillStyle(0xffffff, 1).fillCircle(10, 11, 3).fillCircle(16, 11, 3);
-    g.fillStyle(OUT, 1).fillCircle(10.5, 11.5, 1.4).fillCircle(15.5, 11.5, 1.4);
+  pixSprite(scene, 'minigerm', 26, 24, a => {
+    germ(a, 13, 13, 7.5, 10);
+    a.ell(10, 11, 2.6, 2.6, 0xffffff); a.ell(16, 11, 2.6, 2.6, 0xffffff); a.px(10, 12, OUTPX); a.px(16, 12, OUTPX);
   });
 
   // rat-frog hybrid: green skin, rat ears and tail, big eyes. Faces right.
-  mk('frog', 60, 46, g => {
-    g.lineStyle(3, 0xe9a8b8, 1).lineBetween(8, 30, 0, 18).lineBetween(0, 18, 4, 10);        // rat tail
-    g.fillStyle(0x4d8a3c, 1).fillEllipse(26, 30, 38, 24);                                    // body
-    g.fillStyle(0xcbe29a, 1).fillEllipse(30, 36, 26, 12);                                    // belly
-    g.fillStyle(0x3d7230, 1).fillRoundedRect(8, 32, 18, 12, 5).fillRoundedRect(30, 36, 20, 9, 4);   // big back legs
-    g.fillStyle(0x4d8a3c, 1).fillCircle(44, 24, 12);                                         // head
-    g.fillStyle(0xe9a8b8, 1).fillCircle(38, 10, 6).fillCircle(50, 10, 6);                    // rat ears
-    g.fillStyle(0x8a5a6a, 1).fillCircle(38, 10, 3).fillCircle(50, 10, 3);
-    g.fillStyle(0xffffff, 1).fillCircle(40, 18, 5.5).fillCircle(50, 18, 5.5);                // goggle eyes
-    g.fillStyle(OUT, 1).fillCircle(41.5, 19, 2.4).fillCircle(51.5, 19, 2.4);
-    g.fillStyle(0x23461c, 1).fillRoundedRect(38, 28, 18, 5, 2);                              // wide mouth
-    g.lineStyle(1.5, 0xe9a8b8, 1).lineBetween(54, 26, 62, 23).lineBetween(54, 28, 62, 30);   // whiskers
-    g.lineStyle(2, OUT, 1).strokeCircle(44, 24, 12).strokeEllipse(26, 30, 38, 24);
+  pixSprite(scene, 'frog', 60, 46, a => {
+    const SKIN = [0x8ad06a, 0x4d8a3c, 0x2e5a22];
+    a.line([[9, 30], [3, 22], [1, 16], [4, 10]], 0xe9a8b8, 2);                                                // rat tail
+    a.rrect(7, 31, 26, 44, 5, [0x5aa046, 0x3d7230, 0x24481a]); a.rrect(30, 35, 50, 44, 4, [0x5aa046, 0x3d7230, 0x24481a]);   // big back legs
+    a.ell(26, 30, 18, 11.5, SKIN); a.ell(30, 36, 12, 5.5, [0xeef8c8, 0xcbe29a, 0x9ab86a]);                 // body + belly
+    a.ell(38, 10, 5.5, 5.5, 0xe9a8b8); a.ell(50, 10, 5.5, 5.5, 0xe9a8b8); a.ell(38, 10, 2.5, 2.5, 0x8a5a6a); a.ell(50, 10, 2.5, 2.5, 0x8a5a6a);   // rat ears
+    a.ell(44, 24, 11.5, 11, SKIN);                                                                            // head
+    a.ell(40, 18, 5, 5, 0xffffff); a.ell(50, 18, 5, 5, 0xffffff); a.rect(41, 18, 43, 20, OUTPX); a.rect(51, 18, 53, 20, OUTPX);
+    a.rect(38, 28, 55, 30, 0x23461c); a.px(55, 27, 0x23461c);                                                 // wide grin
+    a.line([[55, 25], [59, 23]], 0xe9a8b8); a.line([[55, 28], [59, 30]], 0xe9a8b8);                          // whiskers
+    for (const [x, y] of [[18, 25], [24, 22], [30, 26], [14, 30]]) a.px(x, y, 0x2e5a22);                      // warts
   });
 
   // cheese-slicing drone: steel disc, rotor, blade underneath, angry red eye
-  mk('drone', 50, 38, g => {
-    g.fillStyle(0xaab4c4, 1).fillRect(4, 2, 42, 4);                                          // rotor
-    g.fillStyle(0x6b7585, 1).fillRect(22, 5, 6, 6);
-    g.fillStyle(0x8c98ab, 1).fillEllipse(25, 19, 38, 18);                                    // body
-    g.fillStyle(0xc9d3e0, 1).fillEllipse(25, 15, 26, 8);
-    g.fillStyle(0xff3c3c, 1).fillCircle(25, 19, 5);                                          // eye
-    g.fillStyle(0xffffff, 1).fillCircle(23.5, 17.5, 1.6);
-    g.fillStyle(0xd9e2f0, 1).fillTriangle(6, 28, 44, 28, 25, 37);                            // cheese-slicing blade
-    for (let i = 0; i < 6; i++) g.fillStyle(0x7a8497, 1).fillTriangle(9 + i * 6, 28, 13 + i * 6, 28, 11 + i * 6, 32);
-    g.lineStyle(2, OUT, 1).strokeEllipse(25, 19, 38, 18);
+  pixSprite(scene, 'drone', 50, 38, a => {
+    const STL = [0xdfe6f0, 0x8c98ab, 0x56607a];
+    a.rect(4, 2, 45, 4, 0xaab4c4); a.rect(4, 2, 45, 2, 0xe8eef6); a.rect(22, 5, 27, 9, 0x56607a);              // rotor + hub
+    a.poly([[6, 27], [44, 27], [25, 36]], [0xf2f6fc, 0xc4cede, 0x8a96aa]);                                     // blade
+    for (let i = 0; i < 6; i++) a.poly([[9 + i * 6, 27], [13 + i * 6, 27], [11 + i * 6, 31]], 0x6a7488);
+    a.ell(25, 19, 19, 9, STL);
+    a.rect(10, 20, 40, 21, 0x56607a);                                                                          // panel seam
+    a.ell(25, 18, 5, 5, [0xff8a8a, 0xff3030, 0xa01010]); a.rect(23, 16, 24, 17, 0xffffff);                    // eye
   });
 
   // slicer bot: a rolling saw-blade with a face
-  mk('slicer', 46, 46, g => {
-    g.fillStyle(0xcfd8e6, 1);
+  pixSprite(scene, 'slicer', 46, 46, a => {
     for (let i = 0; i < 14; i++) {
-      const a = (i / 14) * Math.PI * 2;
-      g.fillTriangle(23 + Math.cos(a - 0.14) * 17, 23 + Math.sin(a - 0.14) * 17, 23 + Math.cos(a + 0.14) * 17, 23 + Math.sin(a + 0.14) * 17, 23 + Math.cos(a) * 23, 23 + Math.sin(a) * 23);
+      const ang = (i / 14) * Math.PI * 2;
+      a.poly([[23 + Math.cos(ang - 0.15) * 16, 23 + Math.sin(ang - 0.15) * 16], [23 + Math.cos(ang + 0.15) * 16, 23 + Math.sin(ang + 0.15) * 16], [23 + Math.cos(ang + 0.05) * 22, 23 + Math.sin(ang + 0.05) * 22]], [0xf2f6fc, 0xcfd8e6, 0x9aa6ba]);
     }
-    g.fillStyle(0x8c98ab, 1).fillCircle(23, 23, 18);
-    g.fillStyle(0xaab4c4, 1).fillCircle(23, 23, 12);
-    g.fillStyle(0xff3c3c, 1).fillCircle(23, 23, 5);
-    g.fillStyle(0xffffff, 1).fillCircle(21.5, 21.5, 1.6);
-    g.lineStyle(2, OUT, 1).strokeCircle(23, 23, 18);
+    a.ell(23, 23, 17, 17, [0xc4cede, 0x8c98ab, 0x56607a]);
+    a.ell(23, 23, 11, 11, [0xdfe6f0, 0xaab4c4, 0x7a8698]);
+    for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2; a.px(23 + Math.cos(ang) * 14, 23 + Math.sin(ang) * 14, 0x3b4252); }   // bolts
+    a.ell(23, 23, 5, 5, [0xff8a8a, 0xff3030, 0xa01010]); a.rect(21, 21, 22, 22, 0xffffff);
   });
 
   // boss: Baron von Blue, a giant crowned blue-cheese blob with frog legs
-  mk('baron', 116, 100, g => {
-    g.fillStyle(0x3d7230, 1).fillRoundedRect(8, 74, 30, 22, 8).fillRoundedRect(78, 74, 30, 22, 8);   // frog feet
-    g.fillStyle(0x7fa4e8, 1).fillEllipse(58, 54, 100, 76);                                            // blue-cheese body
-    g.fillStyle(0xa9c4f5, 1).fillEllipse(48, 40, 56, 30);
-    g.fillStyle(0x3d57a8, 1).fillCircle(26, 62, 7).fillCircle(86, 50, 9).fillCircle(70, 76, 6).fillCircle(40, 76, 5).fillCircle(96, 68, 5);   // mould veins
-    g.fillStyle(0xffffff, 1).fillCircle(42, 44, 14).fillCircle(76, 44, 14);                           // goggle eyes
-    g.fillStyle(OUT, 1).fillCircle(46, 47, 6).fillCircle(72, 47, 6);
-    g.lineStyle(5, OUT, 1).lineBetween(28, 30, 54, 38).lineBetween(90, 30, 64, 38);                   // angry brows
-    g.fillStyle(0x1b2a55, 1).fillRoundedRect(36, 62, 46, 16, 6);                                      // mouth
-    g.fillStyle(0xffffff, 1).fillRect(42, 62, 6, 7).fillRect(56, 62, 6, 7).fillRect(70, 62, 6, 7);
-    g.fillStyle(0xffd23f, 1).fillPoints([{ x: 30, y: 24 }, { x: 36, y: 4 }, { x: 46, y: 16 }, { x: 58, y: 0 }, { x: 70, y: 16 }, { x: 80, y: 4 }, { x: 86, y: 24 }], true);   // crown
-    g.lineStyle(3, OUT, 1).strokePoints([{ x: 30, y: 24 }, { x: 36, y: 4 }, { x: 46, y: 16 }, { x: 58, y: 0 }, { x: 70, y: 16 }, { x: 80, y: 4 }, { x: 86, y: 24 }], true);
-    g.lineStyle(3, OUT, 1).strokeEllipse(58, 54, 100, 76);
-  });
+  pixSprite(scene, 'baron', 116, 100, a => {
+    a.rrect(8, 74, 38, 96, 8, [0x5aa046, 0x3d7230, 0x24481a]); a.rrect(78, 74, 108, 96, 8, [0x5aa046, 0x3d7230, 0x24481a]);   // frog feet
+    a.ell(58, 54, 49, 37, [0xb8d0ff, 0x7fa4e8, 0x4a6ab8]);                                                     // blue-cheese body
+    for (const [x, y, r] of [[26, 62, 7], [86, 50, 8], [70, 78, 5.5], [40, 77, 4.5], [96, 68, 5], [20, 44, 4]]) { a.ell(x, y, r, r * 0.8, 0x3d57a8); a.ell(x + 1, y + 1, r * 0.5, r * 0.4, 0x2a3a80); }   // mould veins
+    a.line([[30, 66], [24, 74]], 0x3d57a8, 2); a.line([[88, 56], [96, 50]], 0x3d57a8, 2);
+    a.ell(42, 44, 13, 13, 0xffffff); a.ell(76, 44, 13, 13, 0xffffff);
+    a.rect(43, 44, 49, 51, OUTPX); a.rect(69, 44, 75, 51, OUTPX); a.rect(44, 45, 45, 46, 0xffffff); a.rect(70, 45, 71, 46, 0xffffff);
+    a.line([[28, 29], [54, 38]], OUTPX, 4); a.line([[90, 29], [64, 38]], OUTPX, 4);                           // angry brows
+    a.rrect(36, 62, 82, 78, 5, 0x1b2a55); a.rect(42, 62, 47, 68, 0xffffff); a.rect(56, 62, 61, 68, 0xffffff); a.rect(70, 62, 75, 68, 0xffffff); a.rect(49, 73, 53, 78, 0xffffff); a.rect(63, 73, 67, 78, 0xffffff);
+    a.poly([[30, 25], [36, 4], [46, 16], [58, 0], [70, 16], [80, 4], [86, 25]], [0xfff09a, 0xffd23f, 0xc9901a]);   // crown
+    a.ell(58, 18, 3, 3, 0xff3a5a); a.ell(42, 20, 2, 2, 0x4ab0ff); a.ell(74, 20, 2, 2, 0x4ab0ff);
+  }, 2);
 
   // boss: the Mega-Mandoline, a giant steel grater with spinning slicer blades
-  mk('mandoline', 130, 96, g => {
-    g.fillStyle(0x59616d, 1).fillRoundedRect(6, 6, 118, 84, 10);
-    g.fillStyle(0xaab4c4, 1).fillRoundedRect(14, 12, 102, 72, 8);
-    g.lineStyle(2, 0x59616d, 1);
-    for (let y = 22; y < 80; y += 11) for (let x = 24; x < 108; x += 14) g.fillStyle(0x59616d, 1).fillCircle(x + ((y / 11) % 2) * 7, y, 3.2);   // grater holes
-    g.fillStyle(0xd9e2f0, 1).fillRect(14, 56, 102, 6);                                               // blade slot
-    g.fillStyle(0xff3c3c, 1).fillCircle(65, 38, 12);                                                 // angry eye
-    g.fillStyle(0xffffff, 1).fillCircle(61, 34, 3.5);
-    g.lineStyle(5, OUT, 1).lineBetween(46, 22, 62, 28).lineBetween(84, 22, 68, 28);
-    g.fillStyle(0xd62828, 1).fillRoundedRect(36, 66, 58, 12, 4);                                     // grinning slot
-    for (let i = 0; i < 6; i++) g.fillStyle(0xffffff, 1).fillTriangle(40 + i * 9, 66, 48 + i * 9, 66, 44 + i * 9, 74);
-    g.fillStyle(0x3b4252, 1).fillRoundedRect(0, 40, 10, 24, 4).fillRoundedRect(120, 40, 10, 24, 4);  // handles
-    g.lineStyle(4, OUT, 1).strokeRoundedRect(6, 6, 118, 84, 10);
-  });
+  pixSprite(scene, 'mandoline', 130, 96, a => {
+    a.rrect(0, 40, 10, 64, 3, [0x5a6272, 0x3b4252, 0x23283a]); a.rrect(120, 40, 130, 64, 3, [0x5a6272, 0x3b4252, 0x23283a]);   // handles
+    a.rrect(6, 6, 124, 90, 9, [0x7a8494, 0x59616d, 0x3b4252]);
+    a.rrect(14, 12, 116, 84, 7, [0xdfe6f0, 0xaab4c4, 0x7a8698]);
+    for (let y = 22; y < 80; y += 11) for (let x = 24; x < 108; x += 14) { const xx = x + ((y / 11) % 2) * 7; a.ell(xx, y, 3, 2.6, 0x3b4252); a.px(xx, y + 2, 0xf2f6fc); }   // grater holes
+    a.rect(14, 56, 116, 61, 0xf2f6fc); a.rect(14, 61, 116, 62, 0x7a8698);                                      // blade slot
+    a.ell(65, 38, 12, 12, [0xff8a8a, 0xff3030, 0xa01010]); a.rect(60, 33, 62, 35, 0xffffff);                  // angry eye
+    a.line([[46, 22], [62, 28]], OUTPX, 4); a.line([[84, 22], [68, 28]], OUTPX, 4);
+    a.rrect(36, 66, 94, 78, 3, 0xd62828); a.rect(36, 66, 94, 67, 0xff6a6a);
+    for (let i = 0; i < 6; i++) a.poly([[40 + i * 9, 66], [48 + i * 9, 66], [44 + i * 9, 74]], 0xffffff);
+  }, 2);
 
   // enemy bullets
   mk('spore', 18, 18, g => {
