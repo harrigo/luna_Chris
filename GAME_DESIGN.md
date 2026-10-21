@@ -151,3 +151,13 @@ planet surface tiles/props, then cutscene backgrounds.
 ## v0.31 Gruyère Globe surface + fondue geysers
 - `def.surface`: the planet is a generated pixel-art texture (`makePlanetTexture` in levels.js): value-noise cheese tones dithered with a 4x4 Bayer matrix, crusty rind at the edge, 70 shaded craters (dark bowl, lit lower lip), 45 Gruyère holes, and thousands of crumbs, grit specks and little rock chunks. Built at half resolution and drawn at 2x with nearest filtering (fat 16-bit pixels); it rotates with the world. A fixed dithered overlay (`makePlanetShade`) darkens deeper into the planet and adds a rim light.
 - `def.geysers`: 7 fondue geysers around the moon (none at the start position). Cycle: idle 3.5–7s → warn 1.1s (vent glows and shakes, bubbles, zing) → erupt 1.3s (screen shake, boom, column of molten cheese blobs ~175 high). Standing in the column during an eruption hurts.
+
+## v0.32 16-bit pass + parallax space (Level 1)
+- `pixelArt: true` in the Phaser config: every texture is drawn with hard-edged nearest-neighbour pixels.
+- Sky pieces are now real pixel art generated into small canvases (`pixTex` in levels.js), dithered with a 4x4 Bayer matrix, all pixels opaque (transparency comes from dithering), shown at 2–3x:
+  - dithered banded sky (`skyCols`, regenerated at 1/3 screen size on resize)
+  - 5 swirling nebulae (domain-warped noise, purple/magenta/blue palettes) — slowest layer
+  - 4 pixel spiral galaxies, 6 glowing star clusters, 2 black holes, ringed planets
+  - chunky pixel stars (tinted, twinkling)
+  - orbital debris (rocks, satellites, bolts, cheese chunks) tumbling past on the nearest, fastest layer
+- The rat UFO hangs in the sky beaming Bessie up (animated 4-frame dithered tractor beam, Bessie slowly spinning in it, ship bobbing with a little parallax sway). Hidden during the level-start snatch and the rescue.

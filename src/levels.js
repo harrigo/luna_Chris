@@ -20,7 +20,7 @@ const LEVELS = {
   1: {
     id: 1, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
-    radius: 420, sky: [0x111a6a, 0x4a2296], bg: '#111a6a', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
+    radius: 420, sky: [0x111a6a, 0x4a2296], skyCols: [0x0a0c40, 0x11186a, 0x1d1f86, 0x2d2192, 0x45249a, 0x5e2a9c], bg: '#0a0c40', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
     surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242 },
     geysers: { n: 7, idle: [3.5, 7], warn: 1.1, erupt: 1.3, height: 175 },
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
@@ -578,4 +578,152 @@ function makePlanetShade(scene, key, Rw) {
   ctx.putImageData(img, 0, 0);
   tex.refresh();
   tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+
+// ---------------------------------------------------------------- pixel-art sky (16-bit parallax layers)
+// Every sky piece is drawn into a small canvas pixel by pixel (dithered, limited palette) and shown scaled up
+// with nearest-neighbour filtering, so it reads as chunky 16-bit art rather than smooth vector shapes.
+function pixTex(scene, key, w, h, draw) {
+  if (scene.textures.exists(key)) return;
+  const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
+  const put = (x, y, col, a) => {
+    x |= 0; y |= 0; if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const i = (y * w + x) * 4; D[i] = (col >> 16) & 255; D[i + 1] = (col >> 8) & 255; D[i + 2] = col & 255; D[i + 3] = a === undefined ? 255 : a;
+  };
+  draw(put, w, h);
+  ctx.putImageData(img, 0, 0); tex.refresh(); tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+const bay = (x, y) => BAYER4[(y & 3) * 4 + (x & 3)];
+function rng(seed) { let s = seed; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function vnoise(rand, G) {
+  const g = []; for (let i = 0; i < (G + 1) * (G + 1); i++) g.push(rand());
+  return (u, v) => {                         // u, v in 0..1
+    const fx = Math.max(0, Math.min(G - 0.001, u * G)), fy = Math.max(0, Math.min(G - 0.001, v * G)), ix = fx | 0, iy = fy | 0, tx = fx - ix, ty = fy - iy;
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty), q = (a, b) => g[b * (G + 1) + a];
+    return (q(ix, iy) * (1 - sx) + q(ix + 1, iy) * sx) * (1 - sy) + (q(ix, iy + 1) * (1 - sx) + q(ix + 1, iy + 1) * sx) * sy;
+  };
+}
+
+// swirling nebula: domain-warped noise, quantised to a few tones with Bayer dithering, dithered soft edge
+function makeNebula(scene, key, seed, pal) {
+  pixTex(scene, key, 140, 90, (put, w, h) => {
+    const r = rng(seed), n1 = vnoise(r, 6), n2 = vnoise(r, 12);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      let u = x / w - 0.5, v = y / h - 0.5;
+      const d = Math.hypot(u * 1.1, v * 1.5), ang = Math.atan2(v, u) + (0.55 - d) * 4.2;      // swirl
+      const su = 0.5 + Math.cos(ang) * d, sv = 0.5 + Math.sin(ang) * d;
+      let den = n1(su, sv) * 0.75 + n2(su, sv) * 0.4 - d * 1.5 + 0.12;
+      const t = bay(x, y);
+      if (den < 0.08 + t * 0.12) continue;                                                 // dithered transparent edge
+      const lv = Math.min(pal.length - 1, Math.floor((den - 0.08) * 7 + t * 0.9));
+      put(x, y, pal[lv], 255);
+    }
+  });
+}
+
+// star cluster: a dithered glow core with lots of single-pixel stars and a few cross-shaped bright ones
+function makeCluster(scene, key, seed) {
+  pixTex(scene, key, 48, 48, (put, w, h) => {
+    const r = rng(seed), cols = [0xffffff, 0xbfe4ff, 0xfff1a0, 0xffc0f0];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const d = Math.hypot(x - 24, y - 24) / 24;
+      if (d < 0.75 && (0.75 - d) * 0.9 > bay(x, y) + 0.25) put(x, y, d < 0.3 ? 0x6a52d8 : 0x3a2e8a);
+    }
+    for (let i = 0; i < 70; i++) { const a = r() * 6.28, d = Math.pow(r(), 1.8) * 22; put(24 + Math.cos(a) * d, 24 + Math.sin(a) * d, cols[i % 4]); }
+    for (let i = 0; i < 5; i++) {
+      const a = r() * 6.28, d = r() * 14, x = 24 + Math.cos(a) * d | 0, y = 24 + Math.sin(a) * d | 0, c = cols[i % 4];
+      put(x, y, 0xffffff); put(x - 1, y, c); put(x + 1, y, c); put(x, y - 1, c); put(x, y + 1, c); if (i < 2) { put(x - 2, y, c); put(x + 2, y, c); put(x, y - 2, c); put(x, y + 2, c); }
+    }
+  });
+}
+
+// spiral galaxy, pixel version
+function makeGalaxyPix(scene, key, seed, pal) {
+  pixTex(scene, key, 64, 40, (put, w, h) => {
+    const r = rng(seed);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const u = (x - 32) / 30, v = (y - 20) / 18, d = Math.hypot(u, v);
+      if (d > 1) continue;
+      const ang = Math.atan2(v, u), arm = Math.cos(2 * (ang - d * 4.5));                   // two arms
+      const val = (arm * 0.5 + 0.5) * (1 - d) * 1.4 + (d < 0.22 ? 0.9 : 0) + (r() - 0.5) * 0.15;
+      const t = bay(x, y);
+      if (val < 0.18 + t * 0.2) continue;
+      put(x, y, pal[Math.min(pal.length - 1, Math.floor(val * 3 + t * 0.8))]);
+    }
+  });
+}
+
+// black hole: dithered orange accretion ring, pitch-black core, purple halo
+function makeBlackHolePix(scene, key) {
+  pixTex(scene, key, 56, 40, (put, w, h) => {
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const u = (x - 28) / 26, v = (y - 20) / 13, d = Math.hypot(u, v), t = bay(x, y);
+      if (d < 0.38) put(x, y, 0x000000);
+      else if (d < 0.44) put(x, y, 0xfff3c0);
+      else if (d < 0.78) { const k = (d - 0.44) / 0.34; put(x, y, k + t * 0.35 < 0.45 ? 0xffd23f : (k + t * 0.35 < 0.85 ? 0xff8a1a : 0xc0401a)); }
+      else if (d < 1 && (1 - d) * 3 > t) put(x, y, 0x4a1ab0);
+    }
+  });
+}
+
+// orbital debris: little tumbling bits of junk
+function makeDebris(scene) {
+  const OUTC = 0x1a1020;
+  pixTex(scene, 'db_rock', 14, 12, put => {
+    const rows = ['....xxxxx.....', '..xxoooooxx...', '.xoooooooooxx.', 'xoooo.ooooooox', 'xooooooo.oooox', 'xoooooooooooox', '.xoo.oooooooox', '.xoooooooo..ox', '..xxoooooooxx.', '....xxxxxxx...'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'x') put(x, y + 1, OUTC); else if (ch === 'o') put(x, y + 1, y < 4 ? 0x9a8a9e : 0x6a5a72); else if (ch === '.' && y > 0 && y < 9 && x > 0 && x < 13) {} }));
+  });
+  pixTex(scene, 'db_sat', 22, 10, put => {
+    for (let x = 0; x < 22; x++) for (let y = 0; y < 10; y++) {
+      const panel = (x < 7 || x > 14) && y > 1 && y < 8, body = x >= 8 && x <= 13 && y >= 2 && y <= 7;
+      if (panel) put(x, y, (x + y) % 3 === 0 ? 0x1a1020 : ((x % 3 === 0) ? 0x2a4ab0 : 0x4a7aff));
+      else if (body) put(x, y, x === 8 || x === 13 || y === 2 || y === 7 ? 0x1a1020 : 0xd8dfe8);
+      else if (x === 7 || x === 14) { if (y === 4 || y === 5) put(x, y, 0x8a929c); }
+    }
+    put(11, 0, 0xff4040); put(11, 1, 0x8a929c);
+  });
+  pixTex(scene, 'db_bolt', 8, 8, put => {
+    const rows = ['..xxxx..', '.xooOox.', 'xoo..oox', 'xo....ox', 'xo....ox', 'xoo..oox', '.xooOox.', '..xxxx..'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'x') put(x, y, OUTC); else if (ch === 'o') put(x, y, 0xb8c0cc); else if (ch === 'O') put(x, y, 0xffffff); }));
+  });
+  pixTex(scene, 'db_cheese', 12, 10, put => {
+    const rows = ['xx..........', 'xoxx........', 'xoooxx......', 'xoo.ooxx....', 'xoooooooxx..', 'xoooo.oooox.', 'xooooooooox.', 'xxxxxxxxxxx.'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'x') put(x, y + 1, OUTC); else if (ch === 'o') put(x, y + 1, y < 4 ? 0xffe27a : 0xf0cb52); else if (ch === '.' && x < 10 && y > 1 && y < 7 && row[x - 1] === 'o') put(x, y + 1, 0xc99a2a); }));
+  });
+}
+
+// chunky pixel star (tinted at runtime)
+function makePixStar(scene) {
+  pixTex(scene, 'px_star', 9, 9, put => {
+    const rows = ['....x....', '....o....', '...xox...', 'xoooOooox', '..xoOox..', '..xo.ox..', '.xo...ox.', '.x.....x.', '.........'];
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'x') put(x, y, 0x1a1020); else if (ch === 'o') put(x, y, 0xdddddd); else if (ch === 'O') put(x, y, 0xffffff); }));
+  });
+}
+
+// the tractor beam: dithered cone with bright rings; several frames so the rings travel down
+function makeBeam(scene) {
+  for (let f = 0; f < 4; f++) pixTex(scene, 'beam' + f, 40, 84, (put, w, h) => {
+    for (let y = 0; y < h; y++) {
+      const half = 4 + (y / h) * 16;
+      for (let x = 0; x < w; x++) {
+        const dx = Math.abs(x + 0.5 - w / 2) / half; if (dx > 1) continue;
+        const t = bay(x, y), ring = ((y + f * 3) % 12) < 2;
+        const a = (1 - dx) * 0.9 + (ring ? 0.35 : 0) - (y / h) * 0.25;
+        if (a > t * 0.55) put(x, y, ring ? 0xfffbe0 : (dx < 0.45 ? 0xffe04a : 0xffa21a));
+      }
+    }
+  });
+}
+
+// dithered banded sky gradient, regenerated to fit the screen (key reused)
+function makeSkyDither(scene, key, w, h, cols) {
+  if (scene.textures.exists(key)) scene.textures.remove(key);
+  pixTex(scene, key, w, h, (put) => {
+    const n = cols.length - 1;
+    for (let y = 0; y < h; y++) {
+      const v = (y / (h - 1)) * n;
+      const lo = Math.floor(v), f = v - lo;
+      for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
+    }
+  });
 }

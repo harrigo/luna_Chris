@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.31';
+const BUILD = 'v0.32';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -90,6 +90,7 @@ class Level1 extends Phaser.Scene {
     this.rescue = null;
     this.nap = null;
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
+    this.skyImg = null; this.abduct = null;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -99,26 +100,37 @@ class Level1 extends Phaser.Scene {
     this.bgStars = [];
     this.unw = 0; this.lastTheta = 0;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
     const dust = this.def.dust;
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < (this.def.bgDecor === 'cosmic' ? 0 : 46); i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
       const s = this.add.image(0, 0, 'blob').setDepth(0).setTint(dust[i % dust.length]).setAlpha(Math.min(0.6, rnd(0.16, 0.32) * this.def.dustAlpha)).setScale(rnd(1.0, 2.4) * (this.levelId === 2 ? 1.5 : 1));
       this.bgStars.push({ s, a: a + 0.8, r: 0.25 + rnd(0, 0.5) + Math.sin(a * 2) * 0.1, k: 0.08, dust: true });
     }
-    if (this.def.bgDecor === 'cosmic') {               // level 1: spiral galaxies, black holes, ringed planets at different depths
-      const gcol = [0x7ab8ff, 0xff7ad8, 0xb48aff, 0x6affe0];
-      for (let i = 0; i < 7; i++) {
-        const s = this.add.image(0, 0, 'c_galaxy').setDepth(0).setTint(gcol[i % 4]).setAlpha(rnd(0.8, 1)).setScale(rnd(1.0, 2.0)).setBlendMode(Phaser.BlendModes.ADD).setRotation(rnd(-0.6, 0.6));
-        this.bgStars.push({ s, a: i * TAU / 7 + rnd(-0.2, 0.2), r: rnd(0.3, 0.9), k: rnd(0.04, 0.09), rv: rnd(0.04, 0.1) * (i % 2 ? 1 : -1) });
+    if (this.def.bgDecor === 'cosmic') {               // level 1: 16-bit parallax space, far -> near
+      makeDebris(this); makePixStar(this); makeBeam(this); makeBlackHolePix(this, 'px_bhole');
+      const nebPal = [[0x1e0c52, 0x3a1680, 0x6224a8, 0x9a3ccc, 0xd47af0], [0x2a0838, 0x581870, 0x8e2496, 0xd04ab8, 0xff90dc], [0x0c1a50, 0x16348a, 0x2a5cc0, 0x5a96f0, 0xa0d4ff]];
+      for (let i = 0; i < 5; i++) {                    // swirling nebulae (slowest)
+        makeNebula(this, 'neb' + i, 101 + i * 37, nebPal[i % 3]);
+        const s = this.add.image(0, 0, 'neb' + i).setDepth(0).setAlpha(0.9).setFlipX(i % 2 === 1);
+        s.setScale(3);
+        this.bgStars.push({ s, a: i * TAU / 5 + rnd(-0.3, 0.3), r: rnd(0.35, 0.95), k: rnd(0.035, 0.06), rv: rnd(0.01, 0.03) * (i % 2 ? 1 : -1) });
       }
-      for (let i = 0; i < 2; i++) {
-        const a = i * Math.PI + rnd(0.6, 1.4), r = rnd(0.45, 0.85), k = rnd(0.1, 0.14), sc = rnd(0.9, 1.4);
-        const d = this.add.image(0, 0, 'c_disk').setDepth(0).setScale(sc).setBlendMode(Phaser.BlendModes.ADD);
-        const h = this.add.image(0, 0, 'c_hole').setDepth(0).setScale(sc);
-        this.bgStars.push({ s: d, a, r, k, rv: 0.6 });
-        this.bgStars.push({ s: h, a, r, k, pulse: rnd(0, 6), bsc: sc });
+      const galPal = [[0x3a3aa0, 0x7a8aff, 0xc8d8ff, 0xffffff], [0x6a2a8a, 0xc05ad0, 0xffa0f0, 0xffffff]];
+      for (let i = 0; i < 4; i++) {                    // pixel spiral galaxies
+        makeGalaxyPix(this, 'gal' + i, 300 + i * 11, galPal[i % 2]);
+        const s = this.add.image(0, 0, 'gal' + i).setDepth(0).setScale(i < 2 ? 3 : 2).setRotation(rnd(-0.5, 0.5));
+        this.bgStars.push({ s, a: i * TAU / 4 + 0.7, r: rnd(0.3, 0.9), k: rnd(0.06, 0.09), rv: 0.05 * (i % 2 ? 1 : -1) });
+      }
+      for (let i = 0; i < 6; i++) {                    // glowing star clusters
+        makeCluster(this, 'clu' + i, 500 + i * 7);
+        const s = this.add.image(0, 0, 'clu' + i).setDepth(0).setScale(2);
+        this.bgStars.push({ s, a: i * TAU / 6 + 0.3, r: rnd(0.2, 0.95), k: rnd(0.1, 0.14), pulse: rnd(0, 6), bsc: 2 });
+      }
+      for (let i = 0; i < 2; i++) {                    // black holes
+        const s = this.add.image(0, 0, 'px_bhole').setDepth(0).setScale(2);
+        this.bgStars.push({ s, a: i * Math.PI + rnd(0.6, 1.4), r: rnd(0.45, 0.85), k: 0.12, rv: 0.25, pulse: rnd(0, 6), bsc: 2 });
       }
       for (let i = 0; i < 3; i++) {
-        const s = this.add.image(0, 0, 'c_ringed').setDepth(0).setScale(rnd(0.5, 1.0)).setRotation(rnd(-0.4, 0.4)).setTint([0xffffff, 0x9fd8ff, 0xffb0e0][i]);
+        const s = this.add.image(0, 0, 'c_ringed').setDepth(0).setScale(rnd(0.5, 0.9)).setRotation(rnd(-0.4, 0.4)).setTint([0xffffff, 0x9fd8ff, 0xffb0e0][i]);
         this.bgStars.push({ s, a: i * TAU / 3 + 1, r: rnd(0.3, 0.8), k: rnd(0.16, 0.24) });
       }
     }
@@ -139,9 +151,21 @@ class Level1 extends Phaser.Scene {
       const scol = [0xffd23f, 0x5ce1ff, 0xff6ad5, 0x7dff8a, 0xffffff, 0xff9a3a];
       for (let i = 0; i < 34; i++) {
         const near = i < 12;
-        const s = this.add.image(0, 0, 'c_star').setDepth(0).setTint(scol[i % scol.length]).setScale(near ? rnd(0.8, 1.3) : rnd(0.35, 0.7));
-        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: near ? rnd(0.75, 0.95) : rnd(0.4, 0.55), rv: rnd(-0.8, 0.8), tws: rnd(0, 6), bsc: s.scale });
+        const s = this.add.image(0, 0, 'px_star').setDepth(0).setTint(scol[i % scol.length]).setScale(near ? 3 : 2);
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: near ? rnd(0.75, 0.95) : rnd(0.4, 0.55), tws: rnd(0, 6), bsc: s.scale });
       }
+      const deb = ['db_rock', 'db_rock', 'db_sat', 'db_bolt', 'db_cheese', 'db_cheese'];
+      for (let i = 0; i < 12; i++) {                   // orbital debris tumbling past (nearest layer)
+        const s = this.add.image(0, 0, deb[i % deb.length]).setDepth(0.4).setScale(2);
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.02, 0.6), k: rnd(0.6, 1.1), rv: rnd(-1.6, 1.6) });
+      }
+      // the rat UFO beaming Bessie up: always hangs in the sky as a reminder of the goal
+      this.abduct = {
+        beam: this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(0.6).setScale(2).setAlpha(0),
+        cow: this.add.image(0, 0, 'bessie').setDepth(0.62).setAlpha(0),
+        ship: this.add.image(0, 0, 'ratship').setDepth(0.64).setAlpha(0),
+        f: 0, ft: 0, a: 0
+      };
     }
     if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
       for (let i = 0; i < 40; i++) {
@@ -321,7 +345,13 @@ class Level1 extends Phaser.Scene {
     this.visArc = R * this.visHalf;
     this.maxStarR = Math.hypot(W, this.cy);
 
-    this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
+    if (this.def.skyCols) {                             // 16-bit dithered sky bands
+      const sw = Math.ceil(W / 3), sh = Math.ceil(H / 3);
+      if (this.skyImg) this.skyImg.destroy();
+      makeSkyDither(this, 'skyd' + this.levelId, sw, sh, this.def.skyCols);
+      this.skyImg = this.add.image(0, 0, 'skyd' + this.levelId).setOrigin(0).setScale(3).setDepth(-1);
+      this.skyG.clear();
+    } else this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
 
     this.btn = {
       left:  { x: 64,     y: H - 68, r: 44 },
@@ -1273,6 +1303,15 @@ class Level1 extends Phaser.Scene {
       if (b.tws !== undefined) b.s.setScale(b.bsc * (0.75 + 0.3 * Math.sin(this.t * 2.2 + b.tws)));
       if (b.pulse !== undefined) b.s.setScale(b.bsc * (1 + 0.08 * Math.sin(this.t * 3 + b.pulse)));
     }
+    if (this.abduct) {                                  // UFO + beam + spinning Bessie, gently bobbing, a little parallax sway
+      const A = this.abduct, dtA = this.lastDt || 0.016, z = Math.min(1.2, this.zoom * 1.1);
+      A.a += ((this.state === 'play' && !this.nap ? 1 : 0) - A.a) * Math.min(1, dtA * 2);
+      A.ft += dtA; if (A.ft > 0.09) { A.ft = 0; A.f = (A.f + 1) % 4; A.beam.setTexture('beam' + A.f); }
+      const sx = this.W * 0.76 + Math.sin(this.unw * 0.6) * this.W * 0.05 + Math.sin(this.t * 0.7) * 8, sy = this.H * 0.13 + Math.sin(this.t * 1.3) * 5;
+      A.ship.setPosition(sx, sy).setScale(z * 0.9).setRotation(Math.sin(this.t * 1.1) * 0.06).setAlpha(A.a);
+      A.beam.setPosition(sx, sy + 10 * z).setScale(2 * z).setAlpha(A.a);
+      A.cow.setPosition(sx + Math.sin(this.t * 0.9) * 6, sy + (70 + Math.sin(this.t * 0.8) * 22) * z).setScale(z * 0.55).setRotation(this.t * 0.8).setAlpha(A.a);
+    }
     // the odd shooting star
     const dtS = this.lastDt || 0.016;
     this.shootCd -= dtS;
@@ -1404,6 +1443,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#0b1020',
+  pixelArt: true,                  // hard-edged pixels everywhere (16-bit look)
   // Fixed-ish logical height: the game is laid out at about phone height (~430px) on every screen and
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
