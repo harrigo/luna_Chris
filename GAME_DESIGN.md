@@ -203,3 +203,8 @@ planet surface tiles/props, then cutscene backgrounds.
 - v0.52 the Spaghetti Spinner is now a constant stream (`beam: true`): hold fire and a wobbly noodle runs ~330 units along the curve of the planet at gun height, hitting every enemy in line for 1.5 damage every 0.1s (15/s each). It drains the tank in ~2.2s (`drain: 0.45`/s), then jams like the Mac-Grinder until it refills. Parmesan Power makes it thicker/wider and stops the drain.
 - v0.53 the spaghetti stream starts exactly at the nozzle: each frame the nozzle sprite's world transform gives the muzzle point (after recoil, crouch and facing), converted back to planet coordinates (`this.muzzle`). The stream is pinned there (no wobble at the root) and the damage line uses the same start point and height.
 - v0.54 Spinner stream: range 330 → 200; the noodle droops (sags up to 46 units by the tip) and the last ~40% crumbles into flickering, shrinking bits that shed falling noodle crumbs (`fxNoodle`). Anything the stream touches is taken out (`dmg: 99`); the boss takes 2.5 per tick (25/s) instead. The hit check follows the droop curve.
+
+## v0.55 the Swiss-Shot
+- Third weapon (unlock level 3; unlocked for now): a pixel cheese cannon — Swiss-wheel barrel with holes, brass bands, a drum of cheese balls and a flared brass bell muzzle.
+- Lobs fat Swiss cheese balls (`swissball`) up at ~46° (speed 360, gravity 900), landing ~160 units ahead. On hitting the ground or an enemy it bursts (`swissBlast`): 7 damage within 64 units (60% at the edge), crumbs, sparks, shake, boom. Slow (0.45s), ~8 shots per tank. Parmesan Power = 3 balls in a spread. Great for groups and anything low or behind cover.
+- All guns' shots now start exactly at their real muzzle (the rig's tip sprite), like the spaghetti stream.

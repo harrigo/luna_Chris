@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.54';
+const BUILD = 'v0.55';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -44,7 +44,10 @@ const WEAPONS = [
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
     beam: true, range: 200, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
-    blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } }
+    blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
+  { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
+    lob: true, interval: 0.45, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 64, blastDmg: 7, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    blurb: 'Lobs fat balls of Swiss that burst in a cheesy blast. Hits groups and over cover.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
 const Progress = {           // remembered on the device: highest level beaten
@@ -911,7 +914,8 @@ class Level1 extends Phaser.Scene {
     const W = this.weapon;
     if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
     let dx = P.facing, dy = 0;
-    const gh = P.h + (P.duck ? 22 : 40);   // muzzle height: chest height, or low when ducking
+    const M = this.muzzle;
+    const gh = M ? M.h : P.h + (P.duck ? 22 : 40);   // shots leave the real muzzle (falls back to chest / crouch height)
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
@@ -925,7 +929,8 @@ class Level1 extends Phaser.Scene {
     P.firing = 0.12;
     if (Pad.state.connected) Pad.pulse(90, 0.05, 0.3);          // a light buzz in the hands while the Mac-Grinder fires
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
-    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
+    const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
+    if (W.lob) { const fc = dx >= 0 ? 1 : -1; dx = fc * Math.cos(W.angle); dy = Math.sin(W.angle); }      // the Swiss-Shot lobs upwards
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -933,10 +938,26 @@ class Level1 extends Phaser.Scene {
         bt, bh: gh, theta: bt, h: gh,
         vt: ux * W.speed, vh: uy * W.speed,
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
-        life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null,
+        life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0, blast: W.blast || 0, blastDmg: W.blastDmg || 0,
         spr: this.add.image(0, 0, W.shot).setDepth(8)
       });
     }
+  }
+
+  // Swiss-Shot burst: hurts everything within the blast radius
+  swissBlast(theta, h, rad, dmg) {
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
+      if (d > rad + e.r) continue;
+      e.hp -= dmg * (d < rad * 0.5 + e.r ? 1 : 0.6);
+      if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
+    }
+    this.bang(theta, h + 6, 22);
+    this.burst(theta, h + 6, 'crumb', 14, 1.1);
+    const s = this.screenPos(theta, h + 6); for (let k = 0; k < 10; k++) this.fxBang.emitParticleAt(s.x, s.y, 1);
+    this.cameras.main.shake(110, 0.006);
+    Sound.sfx('boom'); buzz(35);
   }
 
   // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
@@ -1323,6 +1344,7 @@ class Level1 extends Phaser.Scene {
       const b = this.pBullets[i];
       b.age += dt;
       b.bt = wrap(b.bt + (b.vt / R) * dt);
+      if (b.grav) b.vh -= b.grav * dt;
       b.bh += b.vh * dt;
       const w = Math.sin(b.age * 38 + b.ph) * (b.wob === undefined ? 5 : b.wob);      // corkscrew: pasta twisting out of the extruder
       b.theta = wrap(b.bt + (b.px * w) / R);
@@ -1342,6 +1364,7 @@ class Level1 extends Phaser.Scene {
           }
         }
       }
+      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg);
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
     this.reapEnemies();

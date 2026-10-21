@@ -106,6 +106,28 @@ function makeChrisTextures(scene) {
     a.poly([[5, 1], [13, 3], [13, 8], [5, 10]], [0xff8a8a, 0xe03030, 0x901818]);                        // flared red nozzle
     a.rect(12, 4, 13, 7, 0x1a1020);
   });
+  // The Swiss-Shot (pixel art): a cheese cannon - wheel-of-Swiss barrel with holes, brass bands, a drum of cheese balls
+  pixSprite(scene, 'c_gun3', 34, 26, a => {
+    const CH = [0xfff09a, 0xffcf3a, 0xc9901a], BR = [0xffe0a0, 0xd0a040, 0x8a6018];
+    a.rrect(10, 18, 16, 25, 2, [0xb07a40, 0x7a4a1a, 0x4a2a0a]);                                      // grip
+    a.line([[17, 19], [20, 23], [16, 24]], 0x3b4252);
+    a.rrect(2, 9, 33, 21, 5, CH);                                                                      // cheese barrel
+    for (const [x, y, r] of [[8, 13, 1.8], [15, 17, 1.5], [21, 12, 2], [27, 16, 1.6], [12, 11, 1]]) a.ell(x, y, r, r, 0xa8701a);   // holes
+    a.rect(5, 9, 6, 21, 0xc9901a); a.rect(5, 9, 5, 21, BR[1]); a.rect(24, 9, 25, 21, BR[1]); a.rect(30, 9, 31, 21, BR[1]);   // brass bands
+    a.ell(10, 5, 6, 5, [0xb8c0cc, 0x7a8698, 0x4a5262]);                                                  // ammo drum
+    for (const [x, y] of [[8, 3], [12, 3], [10, 6]]) { a.ell(x, y, 1.6, 1.6, 0xffd23f); }
+    a.rect(4, 7, 16, 8, 0x4a5262);
+  });
+  pixSprite(scene, 'c_bell', 12, 18, a => {                                                            // flared brass muzzle
+    a.poly([[0, 5], [6, 3], [11, 0], [11, 17], [6, 14], [0, 12]], [0xffe0a0, 0xd0a040, 0x8a6018]);
+    a.rect(10, 3, 11, 14, 0x1a1020);
+  });
+  // the Swiss-Shot's ammo: a fat ball of Swiss cheese
+  pixSprite(scene, 'swissball', 14, 14, a => {
+    a.ell(7, 7, 6, 6, [0xfff09a, 0xffcf3a, 0xc9901a]);
+    a.ell(5, 5, 1.3, 1.3, 0xa8701a); a.ell(9, 8, 1.5, 1.5, 0xa8701a); a.ell(5, 10, 1, 1, 0xa8701a);
+    a.px(4, 3, 0xffffff);
+  });
   // the projectile: a long wavy strand of spaghetti
   pixSprite(scene, 'spaghetti', 36, 9, a => {
     const pts = []; for (let x = 1; x <= 34; x++) pts.push([x, 4 + Math.round(Math.sin(x / 34 * Math.PI * 3) * 2.4)]);
