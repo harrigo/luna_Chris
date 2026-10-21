@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.56';
+const BUILD = 'v0.57';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -50,6 +50,8 @@ const WEAPONS = [
     blurb: 'Lobs fat balls of Swiss that burst in a cheesy blast. Hits groups and over cover.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
+CFG.fx = !/[?&]lowfx/.test(location.search);      // glow / light effects (add ?lowfx to the URL to turn them off on slow phones)
+const glowFx = (obj, col, strength, dist) => { try { if (CFG.fx && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { try { if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } }
@@ -115,6 +117,7 @@ class Level1 extends Phaser.Scene {
     this.nap = null;
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
@@ -188,9 +191,11 @@ class Level1 extends Phaser.Scene {
       this.abduct = {
         beam: this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(0.6).setScale(2).setAlpha(0),
         cow: this.add.image(0, 0, 'bessie').setDepth(0.62).setAlpha(0),
+
         ship: this.add.image(0, 0, 'ratship').setDepth(0.64).setAlpha(0),
         f: 0, ft: 0, a: 0
       };
+      glowFx(this.abduct.beam, 0xffd23f, 3, 10); glowFx(this.abduct.ship, 0x9fd8ff, 1, 6);
     }
     if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
       for (let i = 0; i < 40; i++) {
@@ -237,7 +242,8 @@ class Level1 extends Phaser.Scene {
       const pool = this.add.image(0, 0, 'lava_pool').setDepth(2.2);
       const bub = this.add.image(0, 0, 'lava_drop').setDepth(2.3);
       pool.bsx = glow.bsx = rnd(0.8, 1.4); pool.bsy = glow.bsy = rnd(0.9, 1.3);
-      this.lavas.push({ theta, h: -rnd(22, 190), pool, glow, bub, bt: rnd(0, 1), bx: 0, ph: rnd(0, 6) });   // set into the planet at random depths
+      this.lavas.push({ theta, h: -rnd(22, 190), pool, glow, bub, bt: rnd(0, 1), bx: 0, ph: rnd(0, 6) });
+      glowFx(pool, 0xff7a1a, 3, 6);   // set into the planet at random depths
     }
 
     // fondue geysers (level 1): idle -> warn (vent glows, bubbles, rumble) -> erupt (column of molten cheese that hurts)
@@ -248,7 +254,7 @@ class Level1 extends Phaser.Scene {
       const glow = this.add.image(0, 0, 'lava_glow').setDepth(2.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       const vent = this.add.image(0, 0, 'geyser_vent').setOrigin(0.5, 0.75).setDepth(2.6);
       glow.bsx = 1.3; glow.bsy = 2;
-      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0 });
+      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0, fx: glowFx(vent, 0xff9a2a, 1, 10) });
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -296,6 +302,7 @@ class Level1 extends Phaser.Scene {
     // particle emitters (screen space; positions come from screenPos())
     this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
     this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    this.fxHaze = this.add.particles(0, 0, 'blob', { lifespan: { min: 1100, max: 1700 }, speedY: { min: -40, max: -18 }, speedX: { min: -10, max: 10 }, scale: { start: 0.15, end: 0.55 }, alpha: { start: 0.18, end: 0 }, tint: [0xff9a2a, 0xffc04a], blendMode: 'ADD', emitting: false }).setDepth(2.9);
     this.fxNoodle = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 650 }, speedX: { min: -30, max: 30 }, speedY: { min: 10, max: 60 }, gravityY: 500, scale: { start: 1.3, end: 0.4 }, tint: [0xffd23f, 0xffb52a, 0xffe27a], emitting: false }).setDepth(8);
     this.fxRatJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 220, max: 420 }, speedY: { min: 30, max: 80 }, speedX: { min: -14, max: 14 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(4.8);
     this.fxGlint = this.add.particles(0, 0, 'spark', { lifespan: { min: 350, max: 700 }, speed: { min: 5, max: 40 }, scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 }, tint: 0xfff3a0, blendMode: 'ADD', emitting: false }).setDepth(9);
@@ -650,6 +657,7 @@ class Level1 extends Phaser.Scene {
   }
 
   hurt() {
+    this.camKick((Math.random() < 0.5 ? -1 : 1) * 7, -4);
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
     if (P.power > 0) {                     // the Parmesan Power-Up takes the hit instead of a heart
@@ -707,11 +715,16 @@ class Level1 extends Phaser.Scene {
 
   // ----------------------------------------------------------------- update
   update(time, delta) {
-    const dt = Math.min(delta / 1000, 0.05);
-    this.lastDt = dt;
+    const rawDt = Math.min(delta / 1000, 0.05);
     const inp = this.readInput();
+    this.lastDt = rawDt;
     if (this.coarse && this.H > this.W) { this.render(inp); return; }   // paused while the "rotate your phone" prompt shows
     if (this.paused) { this.render(inp); return; }
+    if (this.hitStop > 0) { this.hitStop -= rawDt; this.fxTick(rawDt); this.render(inp); return; }   // hit-stop: freeze for a few frames on big impacts
+    this.slowT = Math.max(0, (this.slowT || 0) - rawDt);
+    const dt = rawDt * (this.slowT > 0 ? 0.3 + 0.7 * Math.pow(Math.max(0, 1 - this.slowT / 1.4), 3) : 1);   // boss-kill slow motion, easing back
+    this.lastDt = dt;
+    this.fxTick(rawDt);
     this.t += dt;
 
     if (this.state === 'play') {
@@ -939,8 +952,58 @@ class Level1 extends Phaser.Scene {
         vt: ux * W.speed, vh: uy * W.speed,
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0, blast: W.blast || 0, blastDmg: W.blastDmg || 0,
-        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; return im; })()
+        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; if (W.lob) glowFx(im, 0xffe27a, 2, 6); return im; })()
       });
+    }
+  }
+
+  // ---------------------------------------------------------------- modern FX layer
+  camKick(x, y) { this.kick.vx += x * 22; this.kick.vy += y * 22; }          // directional camera knock (springs back)
+  camPunch(a) { this.punch = Math.max(this.punch, a); }                        // quick zoom-in punch on big impacts
+  addLight(theta, h, r, col, a, life) { if (CFG.fx && this.lights.length < 30) this.lights.push({ theta, h, r, col, a, life, max: life }); }
+  fxTick(dt) {
+    const K = this.kick;                                                         // spring the camera kick back to centre
+    K.vx += (-K.x * 260 - K.vx * 18) * dt; K.vy += (-K.y * 260 - K.vy * 18) * dt;
+    K.x += K.vx * dt; K.y += K.vy * dt;
+    this.punch = Math.max(0, this.punch - dt * 0.35);
+    const cam = this.cameras.main;
+    cam.setScroll(Math.round(K.x), Math.round(K.y));
+    cam.setZoom(1 + this.punch);
+    for (let i = this.lights.length - 1; i >= 0; i--) { this.lights[i].life -= dt; if (this.lights[i].life <= 0) this.lights.splice(i, 1); }
+    for (const e of this.enemies) if (e.spr.hsq > 0) e.spr.hsq = Math.max(0, e.spr.hsq - dt * 7);
+  }
+  // soft additive light halos (the "next-gen" layer over the pixel art): brightens whatever is near a light source
+  drawLights() {
+    if (!CFG.fx) return;
+    if (!this.textures.exists('halo')) {
+      const t = this.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      c.fillStyle = gr; c.fillRect(0, 0, 128, 128); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    const P = this.pl, L = [];
+    for (const l of this.lights) L.push([l.theta, l.h, l.r, l.col, l.a * (l.life / l.max)]);
+    for (const lv of (this.lavas || [])) if (Math.abs(angDiff(lv.theta, P.theta)) < 1.2) L.push([lv.theta, lv.h + 6, 70, 0xff7a1a, 0.22 + 0.08 * Math.sin(this.t * 4 + lv.ph)]);
+    for (const G of (this.geysers || [])) if (Math.abs(angDiff(G.theta, P.theta)) < 1.2) {
+      if (G.st === 'erupt') L.push([G.theta, 70, 150, 0xff9a2a, 0.55 + 0.1 * Math.sin(this.t * 30)]);
+      else if (G.st === 'warn') L.push([G.theta, 10, 70, 0xff7a1a, 0.25 + 0.2 * Math.abs(Math.sin(this.t * 14))]);
+    }
+    if (this.muzzle && (P.firing > 0 || P.beamOn)) L.push([this.muzzle.theta, this.muzzle.h, P.beamOn ? 60 : 45, 0xffd27a, 0.35 + Math.random() * 0.15]);
+    if (P.power > 0) L.push([P.theta, P.h + 30, 60, 0xfff3a0, 0.18]);
+    for (const pk of this.pickups) if (pk.kind === 'power') L.push([pk.theta, pk.h + 8, 50, 0xfff3a0, 0.3]);
+    const A = this.abduct; if (A && A.theta !== undefined && A.a > 0.05) L.push([A.theta, A.h - 70, 110, 0xffd23f, 0.22 * A.a]);
+    const z = this.zoom;
+    while (this.lightPool.length < L.length) this.lightPool.push(this.add.image(0, 0, 'halo').setBlendMode(Phaser.BlendModes.ADD).setDepth(9.6));
+    this.lightPool.forEach((im, i) => {
+      const l = L[i];
+      if (!l) { im.setVisible(false); return; }
+      const sp = this.screenPos(l[0], l[1]);
+      im.setVisible(sp.vis).setPosition(sp.x, sp.y).setScale(l[2] * 2 * z / 128).setTint(l[3]).setAlpha(Math.max(0, Math.min(1, l[4])));
+    });
+    // heat haze rising off the geysers
+    this.hazeT -= this.lastDt || 0.016;
+    if (this.hazeT <= 0 && this.geysers && this.geysers.length) {
+      this.hazeT = 0.12;
+      for (const G of this.geysers) if (Math.abs(angDiff(G.theta, P.theta)) < 1) { const sp = this.screenPos(G.theta, 6); this.fxHaze.emitParticleAt(sp.x, sp.y, G.st === 'idle' ? 1 : 3); }
     }
   }
 
@@ -952,7 +1015,7 @@ class Level1 extends Phaser.Scene {
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
       e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6);
-      if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
+      if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
@@ -973,6 +1036,8 @@ class Level1 extends Phaser.Scene {
       this.tweens.add({ targets: pud, alpha: 0, delay: 1600, duration: 900, onComplete: () => { this.actors.splice(this.actors.indexOf(P), 1); pud.destroy(); } });
     }
     this.cameras.main.shake(200, 0.012);
+    this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camPunch(0.035);
+    this.addLight(theta, h + 10, rad * 1.6, 0xffe080, 1, 0.45);
     Sound.sfx('boom'); buzz([60, 30, 90]);
   }
 
@@ -993,14 +1058,15 @@ class Level1 extends Phaser.Scene {
       const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
       if (Math.abs(e.h + e.ch - (B.gh - sag)) > e.r + B.band) continue;
       e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true;
-      if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
+      if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
     }
     if (hitAny) Sound.sfx('hit');
     this.reapEnemies();
   }
   drawBeam() {
-    const g = this.beamG || (this.beamG = this.add.graphics().setDepth(8));
+    if (!this.beamG) { this.beamG = this.add.graphics().setDepth(8); try { if (CFG.fx && this.beamG.postFX) this.beamG.postFX.addGlow(0xffd23f, 2, 0, false, 0.1, 8); } catch (e) { /* ignore */ } }
+    const g = this.beamG;
     g.clear();
     const P = this.pl;
     if (!P.beamOn) return;
@@ -1299,7 +1365,7 @@ class Level1 extends Phaser.Scene {
           else e.hp = 0;
           P.vh = pound ? 520 : 440; P.h = top + 1; P.jetArmed = false;
           P.invuln = Math.max(P.invuln, 0.2);
-          e.flash = 0.12; e.flashCd = 0.15; e.spr.setTint(0xffffff);
+          e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1.4; this.hitStop = Math.max(this.hitStop || 0, 0.06); this.camKick(0, 5);
           this.burst(e.theta, top, 'spark', pound ? 16 : 8, pound ? 1.3 : 0.8);
           this.cameras.main.shake(pound ? 140 : 70, pound ? 0.008 : 0.004);
           Sound.sfx('jump'); buzz(pound ? 40 : 18);
@@ -1323,8 +1389,10 @@ class Level1 extends Phaser.Scene {
       this.addScore({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, boss: 5000 }[e.type] || 100);
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.big ? 30 : 14));
-      if (e.type === 'boss') { this.cameras.main.flash(300, 255, 240, 180); buzz([80, 50, 80, 50, 220]); }
-      else if (e.big) buzz(25);
+      if (e.type === 'boss') { this.cameras.main.flash(450, 255, 255, 255); buzz([80, 50, 80, 50, 220]); this.hitStop = 0.3; this.slowT = 1.4; this.camPunch(0.08); }
+      else if (e.big) { buzz(25); this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camPunch(0.025); }
+      else this.hitStop = Math.max(this.hitStop || 0, 0.035);
+      this.addLight(e.theta, e.h + e.ch, e.type === 'boss' ? 260 : (e.big ? 110 : 70), 0xffc060, e.type === 'boss' ? 1 : 0.7, 0.35);
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
       if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
       if (e.type === 'germ') {          // bacteria split in two
@@ -1332,7 +1400,7 @@ class Level1 extends Phaser.Scene {
       }
       if (e.big && (!this.gotPower || Math.random() < 0.3)) {     // the first big enemy always drops a Power-Up
         this.gotPower = true;
-        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: this.add.image(0, 0, 'power').setDepth(6) });
+        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); glowFx(im, 0xfff3a0, 3, 8); return im; })() });
       } else if (Math.random() < (e.drop || 0)) {
         this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
@@ -1346,7 +1414,7 @@ class Level1 extends Phaser.Scene {
     this.eBullets.push({
       kind, theta: wrap(theta), h, vt, vh, r, life,
       spin: 0, spinV: kind === 'cube' ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : 0)),
-      spr: this.add.image(0, 0, kind).setDepth(8)
+      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); glowFx(im, kind === 'spore' ? 0x7dff8a : (kind === 'blade' ? 0xdfe6f0 : 0xffc040), 2, 6); return im; })()
     });
   }
 
@@ -1374,7 +1442,7 @@ class Level1 extends Phaser.Scene {
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
             e.hp -= b.dmg || 1;
             Sound.sfx('hit');
-            if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }      // limited blink rate, not constant flicker
+            if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
             if (b.hits) { b.hits.push(e); this.burst(b.theta, b.h, 'spark', 3, 0.4); if (b.hits.length >= b.pierce) { dead = true; break; } }
             else { dead = true; break; }
           }
@@ -1519,7 +1587,8 @@ class Level1 extends Phaser.Scene {
     o.setVisible(true);
     o.setPosition(this.cx + r * Math.sin(d), this.cy - r * Math.cos(d));
     o.setRotation(d + (extraRot || 0));
-    o.setScale((o.bsx || 1) * z * (o.sqx || 1), (o.bsy || 1) * z * (o.sqy || 1));
+    const hq = o.hsq || 0;                                   // hit squash (impact) on top of any other squash
+    o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (1 - 0.22 * hq));
   }
 
   render(inp) {
@@ -1612,6 +1681,7 @@ class Level1 extends Phaser.Scene {
       G.glow.setAlpha(k);
       this.place(G.glow, G.theta, 6, 0);
       G.vent.sqx = G.st === 'warn' ? 1 + 0.08 * Math.sin(this.t * 40) : 1;
+      if (G.fx) G.fx.outerStrength = G.st === 'erupt' ? 6 : (G.st === 'warn' ? 2 + 2 * Math.abs(Math.sin(this.t * 14)) : 0.8);
     }
     for (const L of this.lavas) {
       this.place(L.glow, L.theta, L.h + 4, 0); this.place(L.pool, L.theta, L.h, 0);
@@ -1667,6 +1737,7 @@ class Level1 extends Phaser.Scene {
     }
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     this.drawBeam();
+    this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
