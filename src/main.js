@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.39';
+const BUILD = 'v0.40';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -395,17 +395,17 @@ class Level1 extends Phaser.Scene {
     const ink = { stroke: '#1a1020', strokeThickness: 3 };
     this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d', { fontFamily: 'monospace', fontStyle: 'bold' })).setDepth(20).setVisible(false);
     this.waveText = this.add.text(0, 0, '', f(16, '#ffd23f', { stroke: '#1a1020', strokeThickness: 5 })).setOrigin(0.5, 0).setDepth(20);
-    this.scoreText = this.add.text(0, 0, 'SCORE: 0000000', f(9, '#ffffff', ink)).setOrigin(0.5, 0).setDepth(20);
+    this.scoreText = this.add.text(0, 0, 'SCORE: 0000000', f(8, '#ffffff', ink)).setOrigin(0.5, 0).setDepth(20);
     this.fpsText = this.add.text(0, 0, '', f(6, '#6b7390')).setDepth(20);
-    this.nameText = this.add.text(0, 0, 'CHRIS', f(9, '#ffd23f', ink)).setDepth(20);
+    this.nameText = this.add.text(0, 0, 'CHRIS', f(8, '#ffd23f', ink)).setDepth(20);
     this.jetText = this.add.text(0, 0, 'JET', f(8, '#9fd8ff', ink)).setDepth(20);
     this.macText = this.add.text(0, 0, 'MAC', f(8, '#ffc36a', ink)).setDepth(20);
-    this.portrait = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setOrigin(0).setScale(1.5).setDepth(20.5) : null;
+    this.portrait = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setOrigin(0).setScale(2).setDepth(20.5) : null;
     this.cheeseIcons = []; for (let i = 0; i < CFG.maxHp; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
     this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
-    this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(7, '#ffffff', ink)).setDepth(20);
+    this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
-    this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.42).setDepth(20.6) : null;
+    this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
     this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
     this.pauseText = this.add.text(0, 0, 'PAUSED', f(26, '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5).setDepth(32).setVisible(false);
@@ -1515,10 +1515,9 @@ class Level1 extends Phaser.Scene {
     const flash = Math.floor(this.t * 8) % 2;
     const gx = 96, gy = 46, gw = 136, gh = 8;
     pix(gx, gy, gw, gh, 0x0c0a24);
-    const fc = P.fuel > 0.3 ? 0x39c6ff : (flash ? 0xff5a3c : 0xa02a1a);
-    hg.fillStyle(fc, 1).fillRect(gx, gy, Math.round(gw * P.fuel), gh);
-    hg.fillStyle(0xffffff, 0.45).fillRect(gx, gy + 1, Math.round(gw * P.fuel), 2);             // shine stripe
-    for (let x = gx + 12; x < gx + gw; x += 12) hg.fillStyle(0x0c0a24, 0.6).fillRect(x, gy, 1, gh);   // segment ticks
+    const fc = P.fuel > 0.3 ? 0x39c6ff : (flash ? 0xff5a3c : 0xa02a1a), nb = 17, bw = gw / nb;    // fills in chunky 8px blocks
+    const litB = Math.ceil(P.fuel * nb - 0.05);
+    for (let i = 0; i < litB; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
     const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
     this.macIcons.forEach((m, i) => m.setTexture(P.power > 0 ? (flash ? 'hud_mac_gold' : 'hud_mac') : P.overheat ? (flash ? 'hud_mac_hot' : 'hud_mac_off') : (i < lit ? 'hud_mac' : 'hud_mac_off')));
 
@@ -1532,10 +1531,11 @@ class Level1 extends Phaser.Scene {
       prog = Math.min(1, (this.waveIdx + Math.max(0, Math.min(1, frac))) / nW);
     }
     this.distProg = (this.distProg || 0) + (prog - (this.distProg || 0)) * Math.min(1, (this.lastDt || 0.016) * 3);
-    pix(D.dx0, D.dy - 2, D.dx1 - D.dx0, 5, 0x0c0a24);
-    hg.fillStyle(0xffd23f, 1).fillRect(D.dx0, D.dy - 2, Math.round((D.dx1 - D.dx0) * this.distProg), 5);
-    for (let i = 1; i < nW; i++) hg.fillStyle(0xffffff, 0.8).fillRect(Math.round(D.dx0 + (D.dx1 - D.dx0) * i / nW), D.dy - 4, 1, 9);
-    if (this.chrisMark) this.chrisMark.setPosition(D.dx0 + (D.dx1 - D.dx0) * this.distProg, D.dy);
+    const dw = D.dx1 - D.dx0, db = 6, dn = Math.floor(dw / db), dl = Math.floor(this.distProg * dn + 0.001);   // chunky 6px blocks
+    pix(D.dx0, D.dy - 3, dn * db, 6, 0x0c0a24);
+    for (let i = 0; i < dl; i++) hg.fillStyle(i % 2 ? 0xffb52a : 0xffd23f, 1).fillRect(D.dx0 + i * db, D.dy - 3, db - 1, 6);
+    for (let i = 1; i < nW; i++) hg.fillStyle(0xffffff, 1).fillRect(D.dx0 + Math.round(dn * i / nW) * db - 1, D.dy - 5, 2, 10);
+    if (this.chrisMark) this.chrisMark.setPosition(D.dx0 + dl * db, D.dy);
     this.cowIcon.setRotation(Math.sin(this.t * 2) * 0.15);
 
     this.scoreShown += Math.ceil((this.score - this.scoreShown) * Math.min(1, (this.lastDt || 0.016) * 8));

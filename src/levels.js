@@ -692,7 +692,8 @@ function makeBeam(scene) {
       for (let x = 0; x < w; x++) {
         const dx = Math.abs(x + 0.5 - w / 2) / half; if (dx > 1) continue;
         const t = bay(x, y), ring = ((y + f * 3) % 12) < 2;
-        const a = (1 - dx) * 0.9 + (ring ? 0.35 : 0) - (y / h) * 0.25;
+        const fade = y / h < 0.55 ? 1 : Math.max(0, 1 - (y / h - 0.55) / 0.45);          // the bottom of the beam fades out
+        const a = ((1 - dx) * 0.9 + (ring ? 0.35 : 0) - (y / h) * 0.25) * fade;
         if (a > t * 0.55) put(x, y, ring ? 0xfffbe0 : (dx < 0.45 ? 0xffe04a : 0xffa21a));
       }
     }
