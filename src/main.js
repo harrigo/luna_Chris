@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.24';
+const BUILD = 'v0.25';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1298,15 +1298,23 @@ const startPhaser = () => { window.game = new Phaser.Game({
   input: { activePointers: 4 },
   scene: [IntroScene, SelectScene, Level1]
 });
-  let tm = 0;
-  const refit = () => { clearTimeout(tm); tm = setTimeout(() => { const f = fitSize(); window.game.scale.setZoom(f.k); window.game.scale.resize(f.w, f.h); }, 60); };
+  // Phones report the new size late when going fullscreen / rotating, so check a few times after each
+  // event and also poll: whenever the window size and the game size disagree, refit.
+  const apply = () => {
+    const f = fitSize(), sc = window.game.scale;
+    if (Math.abs(sc.width - f.w) > 1 || Math.abs(sc.height - f.h) > 1 || Math.abs(sc.zoom - f.k) > 0.01) { sc.setZoom(f.k); sc.resize(f.w, f.h); }
+  };
+  const refit = () => [50, 200, 500, 1000].forEach(ms => setTimeout(apply, ms));
   window.addEventListener('resize', refit);
+  window.addEventListener('orientationchange', refit);
   document.addEventListener('fullscreenchange', refit);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
+  setInterval(apply, 400);
 };
 const DESIGN_H = 516;          // logical height on big screens (bigger = more zoomed out)
 function fitSize() {
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const el = document.getElementById('game');
+  const vw = (el && el.clientWidth) || window.innerWidth, vh = (el && el.clientHeight) || window.innerHeight;
   const k = Math.max(1, vh / DESIGN_H);
   return { k, w: Math.ceil(vw / k), h: Math.ceil(vh / k) };
 }
