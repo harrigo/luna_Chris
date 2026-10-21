@@ -98,9 +98,14 @@ function makeTextures(scene) {
   };
   // Space-mouse: walks the surface. Faces right; feet at y=22 (origin oy 22/24).
   pixSprite(scene, 'mouse', 34, 24, a => rat(a, 0, 0, false));
+  // animated jet flame for the flying rats: 3 flickering frames (origin at the top)
+  [[6, 2.6], [8, 3], [5, 2.2]].forEach(([len, wd], i) => pixSprite(scene, 'ratjet' + i, 9, 13, a => {
+    a.poly([[4.5 - wd, 0], [4.5 + wd, 0], [4.5 + (i === 1 ? 1 : -1), len + 4]], [0xffb24a, 0xff7a1a, 0xd8401a]);
+    a.poly([[4.5 - wd * 0.5, 0], [4.5 + wd * 0.5, 0], [4.5, len]], 0xffe27a);
+    a.px(4, 0, 0xffffff);
+  }));
   // Jetpack space-mouse (flies). Faces right.
   pixSprite(scene, 'flyer', 38, 36, a => {
-    a.ell(11, 31, 2.5, 4.5, [0xffe27a, 0xff9a2a, 0xff5a1a]);                                          // jet flame
     a.rect(7, 13, 14, 25, 0x9a2a1a); a.rect(8, 13, 13, 24, 0xd9503a); a.rect(8, 14, 9, 22, 0xff8a6a); // jet tank
     rat(a, 3, 1, true);
   });

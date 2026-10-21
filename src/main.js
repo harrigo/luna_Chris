@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.38';
+const BUILD = 'v0.39';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -272,6 +272,7 @@ class Level1 extends Phaser.Scene {
     // particle emitters (screen space; positions come from screenPos())
     this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
     this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    this.fxRatJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 220, max: 420 }, speedY: { min: 30, max: 80 }, speedX: { min: -14, max: 14 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(4.8);
     this.fxGlint = this.add.particles(0, 0, 'spark', { lifespan: { min: 350, max: 700 }, speed: { min: 5, max: 40 }, scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 }, tint: 0xfff3a0, blendMode: 'ADD', emitting: false }).setDepth(9);
     this.buildHud();
     this.buildControls();
@@ -1155,6 +1156,7 @@ class Level1 extends Phaser.Scene {
         this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
       e.spr.destroy();
+      if (e.jet) e.jet.destroy();
       this.enemies.splice(i, 1);
     }
   }
@@ -1461,6 +1463,17 @@ class Level1 extends Phaser.Scene {
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : (e.roll !== undefined ? e.roll : 0));
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
+      if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
+        if (!e.jet) e.jet = this.add.image(0, 0, 'ratjet0').setOrigin(0.5, 0).setDepth(4.9);
+        const sc = Math.abs(e.spr.scaleX), fl = e.dir < 0 ? -1 : 1, r = e.spr.rotation;
+        const ox = -8 * fl * sc, oy = 4.5 * sc;                       // tank bottom, relative to the sprite origin
+        const jx = e.spr.x + ox * Math.cos(r) - oy * Math.sin(r), jy = e.spr.y + ox * Math.sin(r) + oy * Math.cos(r);
+        e.jet.setTexture('ratjet' + (Math.floor(this.t * 18 + e.theta * 10) % 3)).setPosition(jx, jy)
+          .setRotation(r + Math.sin(this.t * 23 + e.theta * 7) * 0.18).setScale(sc * 1.3 * (0.95 + Math.sin(this.t * 31) * 0.08), sc * 1.3 * (0.85 + Math.abs(Math.sin(this.t * 17 + e.theta)) * 0.35))
+          .setVisible(e.spr.visible).setAlpha(e.spr.alpha);
+        e.jetT = (e.jetT || 0) - (this.lastDt || 0.016);
+        if (e.spr.visible && e.jetT <= 0) { e.jetT = 0.05; this.fxRatJet.emitParticleAt(jx - Math.sin(r) * 9 * sc, jy + Math.cos(r) * 9 * sc, 1); }
+      }
     }
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
