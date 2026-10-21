@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.67';
+const BUILD = 'v0.68';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -55,15 +55,14 @@ CFG.allWeapons = true;
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 // Same look as glowFx for things that never change texture, but the halo is drawn once into a cached texture
 // instead of costing a shader pass every frame (lava pools, enemy shots, swiss balls, power-ups...).
-const bakedGlow = (obj, col, strength, dist) => {
-  try {
-    if (!Settings.glow || !obj || !obj.scene || obj.__glowBase) return;
-    const sc = obj.scene, base = obj.texture.key, d = Math.ceil(dist || 8);
-    const gk = base + '_g' + col.toString(16) + '_' + strength + '_' + d;
-    if (!sc.textures.exists(gk)) {
-      const src = sc.textures.get(base).getSourceImage(), w = src.width, h = src.height, W = w + d * 2, H = h + d * 2;
+const glowKey = (base, col, strength, d) => base + '_g' + col.toString(16) + '_' + strength + '_' + d;
+function makeGlowTexture(sc, base, col, strength, dist) {
+  const d = Math.ceil(dist || 8), gk = glowKey(base, col, strength, d);
+  if (!sc.textures.exists(gk)) {
+    {
+      const f = sc.textures.getFrame(base), w = f.cutWidth, h = f.cutHeight, W = w + d * 2, H = h + d * 2;    // works on atlas frames too
       const ct = sc.textures.createCanvas(gk, W, H), ctx = ct.getContext();
-      ctx.drawImage(src, d, d);
+      ctx.drawImage(f.source.image, f.cutX, f.cutY, w, h, d, d, w, h);
       const img = ctx.getImageData(0, 0, W, H), D = img.data, N = W * H;
       let A = new Float32Array(N), B = new Float32Array(N);
       for (let i = 0; i < N; i++) A[i] = D[i * 4 + 3] / 255;
@@ -80,6 +79,13 @@ const bakedGlow = (obj, col, strength, dist) => {
       }
       ctx.putImageData(img, 0, 0); ct.refresh();
     }
+  }
+  return gk;
+}
+const bakedGlow = (obj, col, strength, dist) => {
+  try {
+    if (!Settings.glow || !obj || !obj.scene || obj.__glowBase) return;
+    const base = obj.texture.key, d = Math.ceil(dist || 8), gk = makeGlowTexture(obj.scene, base, col, strength, d);
     const dox = obj.displayOriginX, doy = obj.displayOriginY;
     obj.__glowBase = { key: base, dox, doy };
     obj.setTexture(gk); obj.setDisplayOrigin(dox + d, doy + d);
@@ -88,7 +94,7 @@ const bakedGlow = (obj, col, strength, dist) => {
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { try { if (!(LEVELS[n] && LEVELS[n].secret) && n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
-  found(n) { try { return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels
+  found(n) { try { if (n === 5.5 && localStorage.getItem('lc_found6') === '1') return true; return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels (5.5 was briefly numbered 6)
   find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } }
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock;
@@ -172,22 +178,17 @@ class Level1 extends Phaser.Scene {
       this.bgStars.push({ s, a: a + 0.8, r: 0.25 + rnd(0, 0.5) + Math.sin(a * 2) * 0.1, k: 0.08, dust: true });
     }
     if (this.def.bgDecor === 'cosmic') {               // level 1: 16-bit parallax space, far -> near
-      makeDebris(this); makePixStar(this); makeBeam(this); makeBlackHolePix(this, 'px_bhole');
-      const nebPal = [[0x1e0c52, 0x3a1680, 0x6224a8, 0x9a3ccc, 0xd47af0], [0x2a0838, 0x581870, 0x8e2496, 0xd04ab8, 0xff90dc], [0x0c1a50, 0x16348a, 0x2a5cc0, 0x5a96f0, 0xa0d4ff]];
+      makeCosmicTextures(this);
       for (let i = 0; i < 5; i++) {                    // swirling nebulae (slowest)
-        makeNebula(this, 'neb' + i, 101 + i * 37, nebPal[i % 3]);
         const s = this.add.image(0, 0, 'neb' + i).setDepth(0).setAlpha(0.9).setFlipX(i % 2 === 1);
         s.setScale(3);
         this.bgStars.push({ s, a: i * TAU / 5 + rnd(-0.3, 0.3), r: rnd(0.35, 0.95), k: rnd(0.035, 0.06), rv: rnd(0.01, 0.03) * (i % 2 ? 1 : -1) });
       }
-      const galPal = [[0x3a3aa0, 0x7a8aff, 0xc8d8ff, 0xffffff], [0x6a2a8a, 0xc05ad0, 0xffa0f0, 0xffffff]];
       for (let i = 0; i < 4; i++) {                    // pixel spiral galaxies
-        makeGalaxyPix(this, 'gal' + i, 300 + i * 11, galPal[i % 2]);
         const s = this.add.image(0, 0, 'gal' + i).setDepth(0).setScale(i < 2 ? 3 : 2).setRotation(rnd(-0.5, 0.5));
         this.bgStars.push({ s, a: i * TAU / 4 + 0.7, r: rnd(0.3, 0.9), k: rnd(0.06, 0.09), rv: 0.05 * (i % 2 ? 1 : -1) });
       }
       for (let i = 0; i < 6; i++) {                    // glowing star clusters
-        makeCluster(this, 'clu' + i, 500 + i * 7);
         const s = this.add.image(0, 0, 'clu' + i).setDepth(0).setScale(2);
         this.bgStars.push({ s, a: i * TAU / 6 + 0.3, r: rnd(0.2, 0.95), k: rnd(0.1, 0.14), pulse: rnd(0, 6), bsc: 2 });
       }
@@ -1215,11 +1216,7 @@ class Level1 extends Phaser.Scene {
   // soft additive light halos (the "next-gen" layer over the pixel art): brightens whatever is near a light source
   drawLights() {
     if (!Settings.lights) { for (const im of this.lightPool) im.setVisible(false); return; }
-    if (!this.textures.exists('halo')) {
-      const t = this.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
-      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-      c.fillStyle = gr; c.fillRect(0, 0, 128, 128); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
-    }
+    makeHalo(this);
     const P = this.pl, L = [];
     for (const l of this.lights) L.push([l.theta, l.h, l.r, l.col, l.a * (l.life / l.max)]);
     for (const lv of (this.lavas || [])) if (Math.abs(angDiff(lv.theta, P.theta)) < 1.2) L.push([lv.theta, lv.h + 6, 70, 0xff7a1a, 0.22 + 0.08 * Math.sin(this.t * 4 + lv.ph)]);

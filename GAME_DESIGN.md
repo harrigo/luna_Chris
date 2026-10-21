@@ -275,3 +275,31 @@ planet surface tiles/props, then cutscene backgrounds.
   - Level 2 boss fight: offscreen render passes 42 → 1 per frame, draw calls 40 → 9. Level 1: 46 → 17 passes.
 - `makePlanetTexture` stamps craters and holes over their own bounding boxes instead of testing all 115 at every pixel. Output is byte-identical; about 450ms → 30ms per planet, which removes the start-of-level hitch on levels 1 and 6.
 - Removed the unused PAUSED text (replaced by the pause menu).
+
+## ROADMAP — the full campaign (from Harri, v0.68)
+Bessie is snatched back at the end of every level until Level 9.
+
+- **Level 1: The Gruyère Globe** *(built)*
+- **Level 2: Gorgonzola Gulch** *(built)*
+- **Level 3: The Great Grater** *(built; currently also hosts the warp hole to 5.5 until Level 5 exists)*
+- **Level 4: Mount Mozzarella** — A highly volatile volcanic planet. Instead of lava, elastic strands of boiling string cheese snap and whip across the screen. Boss: a giant pizza oven spitting homing pepperoni discs.
+- **Level 5: The Brie-muda Triangle** — A spectral, pale pocket dimension covered in powdery rind. Enemy bullets move in bizarre geometric patterns while ghostly dairy-maid phantoms try to ram you off the planet's curve.
+- **Level 5.5 (Secret Detour): The Forbidden Fondue Fountain** *(first version built as the warp level)* — A luxurious, multi-tiered party planet made of spinning metallic rings pumping cascades of scalding Alpine cheese. Enemies: Kamikaze Croutons and rats pole-vaulting on giant fondue forks. Boss: the Triple-Tiered Terror, a colossal fountain engine acting as a bullet-hell sprinkler system.
+  - *Still to do:* spinning ring scenery, croutons, fork-vault rats and the Triple-Tiered Terror boss. Its current boss is a placeholder (a tinted Croque).
+- **Level 6: Cheddar Gorge** — A high-speed pursuit on a tiny planetoid. You're constantly arcing forward, chased by a gargantuan rolling wheel of Spicy Pepper Jack that takes up half the screen.
+- **Level 7: The Astro-Rat Armada** — Platforming across a fleet of rusted, spherical rat spaceships locked in orbit. Destroy their engines to make them crash into each other while dodging the flagship's sweeping lasers.
+- **Level 8: Lactose Labyrinth** — A claustrophobic puzzle-shooter inside a hollowed-out block of Swiss cheese. Tight spherical chambers full of ricocheting Mac-Laster bullets and heavily armoured Rat-Paladins.
+- **Level 9: Parmesan Prime** — The collapsing rat homeworld. Fight to the core to rescue Bessie from a massive dairy-extraction machine, then the final showdown with the Grand Rat-King in his rusty, cheese-powered mech suit. (The only level where the rescue sticks.)
+
+### v0.68 — Intro fix, single sprite sheet, Fondue Fountain → Level 5.5
+- **Intro fix:** pressing during the title logo used to skip the whole story. Now:
+  - A press on the title goes straight into the story.
+  - In the story, the first press shows "TAP AGAIN TO SKIP", and a second press within about 2 seconds skips.
+- **Sprite sheet (`src/atlas.js`) — the technique for ALL sprites from now on:**
+  - At boot, `buildAllTextures()` runs every generator once (planets, space backdrops and pre-made glows included).
+  - `Atlas.pack()` then shelf-packs everything onto shared 2048×2048 pages and re-points each key at its patch, so game code keeps using the same names.
+  - 161 sprites currently use about two-thirds of one page.
+  - Texture switches per frame: L1 102 → 44, L2 53 → 8, L3 55 → 6, L5.5 107 → 50.
+  - **Rule:** any new sprite generator must be called from `buildAllTextures()`.
+  - Kept off the sheet: the smooth light halo, the title photo, and the resize-dependent sky gradients.
+- **Renumbering:** Fondue Fountain is now Level 5.5, the secret detour, per the roadmap. Its warp still lives on Level 3 until Level 5 exists. Earlier "found" saves carry over.

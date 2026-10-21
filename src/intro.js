@@ -256,9 +256,8 @@ class IntroScene extends Phaser.Scene {
   }
 
   create() {
+    buildAllTextures(this);                                    // every sprite, generated once and packed onto the shared sheet
     if (/[?&]skipintro/.test(window.location.search)) { this.scene.start('level1'); return; }
-    makeIntroTextures(this);
-    makeTextures(this); makeLevelTextures(this); makeChrisTextures(this); makeDebris(this); makeBeam(this); makePixStar(this); makeIntroPix(this);
     this.cameras.main.setBackgroundColor('#000000');
     this.phase = 'gate';            // gate (waiting for first tap) -> title -> play -> leaving
     this.wantFs = false;
@@ -296,18 +295,16 @@ class IntroScene extends Phaser.Scene {
 
     const padOff = Pad.on(b => {                       // controller: any face button / Start
       if (!['a', 'b', 'x', 'y', 'start'].includes(b)) return;
-      Sound.init();
-      if (this.phase === 'gate') this.startShow(); else this.leave();
+      Sound.init(); this.press();
     });
     this.events.once('shutdown', padOff);
     if (this.input.keyboard) this.input.keyboard.on('keydown', e => {
       if (!['Enter', ' ', 'Escape', 'x', 'X', 'z', 'Z'].includes(e.key)) return;
-      Sound.init();
-      if (this.phase === 'gate') this.startShow(); else this.leave();
+      Sound.init(); this.press();
     });
     this.input.on('pointerdown', () => {
       if (this.phase === 'gate') this.wantFs = true;
-      else if (this.phase === 'play' || this.phase === 'title') this.leave();
+      else this.press();
     });
     // Fullscreen needs a tap *release* (user activation), so it is requested on pointerup.
     this.input.on('pointerup', () => {
@@ -347,6 +344,19 @@ class IntroScene extends Phaser.Scene {
     const tfs = Math.max(24, Math.min(50, W / 17));
     this.gateTitle.setFontSize(tfs).setPosition(W / 2, H * 0.74);
     this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.74 + tfs * 0.8);
+  }
+
+  // any tap / key / button: start -> straight into the story -> (tap twice) skip the story
+  press() {
+    if (this.leaving) return;
+    if (this.phase === 'gate') { this.startShow(); return; }
+    if (this.phase === 'title') { if (this.titleT) this.titleT.remove(); this.story(); return; }
+    if (this.phase === 'play') {
+      if (this.skipArmed) { this.leave(); return; }
+      this.skipArmed = true;
+      this.skipText.setText('TAP AGAIN TO SKIP >>').setColor('#ffd23f');
+      this.time.delayedCall(2200, () => { this.skipArmed = false; if (this.skipText.active) this.skipText.setText('SKIP >>').setColor('#9fa6c2'); });
+    }
   }
 
   at(ms, fn) { return this.time.delayedCall(ms, () => { if (!this.leaving) fn(); }); }
@@ -396,11 +406,12 @@ class IntroScene extends Phaser.Scene {
     this.pulse.stop();
     this.capText.setText('').setAlpha(1);
     this.tweens.add({ targets: [this.gateTitle, this.gateSub], scale: 1.12, yoyo: true, repeat: 3, duration: 330, ease: 'Sine.easeInOut' });
-    this.at(this.art ? 4400 : 1500, () => this.story());
+    this.titleT = this.at(this.art ? 4400 : 1500, () => this.story());
   }
 
   story() {
-    this.phase = 'play';
+    if (this.phase === 'play') return;
+    this.phase = 'play'; this.skipArmed = false;
     Sound.music('ranch');
     this.tweens.add({ targets: [this.gateTitle, this.gateSub, this.capText], alpha: 0, duration: 400 });
     this.cameras.main.fadeOut(350, 0, 0, 0);

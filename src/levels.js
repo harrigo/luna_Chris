@@ -83,14 +83,15 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 1.8), S('slicer', 3), S('drone', 4), S('drone', 5), S('slicer', 6.4), S('drone', 7), S('drone', 8), S('slicer', 9.4)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
-    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 6.
-    warp: { to: 6, theta: 2.55, h: 238, relics: [{ theta: 1.72, h: 236 }, { theta: 4.4, h: 242 }, { theta: 0.42, h: 214 }] },
+    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5.
+    // (Temporary home: per the roadmap the warp to 5.5 belongs on level 5 once that level exists.)
+    warp: { to: 5.5, theta: 2.55, h: 238, relics: [{ theta: 1.72, h: 236 }, { theta: 4.4, h: 242 }, { theta: 0.42, h: 214 }] },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
   },
 
-  // secret warp level, reached through the black hole on level 3 (shows on level select once found)
-  6: {
-    id: 6, secret: true, name: 'Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A molten cheese moon, deep in a warp.\nFondue fountains everywhere.',
+  // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
+  5.5: {
+    id: 5.5, secret: true, name: 'The Forbidden Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A molten cheese moon, deep in a warp.\nFondue fountains everywhere.',
     music: 'level1', bossName: 'LE GRAND FROMAGE', tip: 'WARP ZONE! MIND THE FONDUE FOUNTAINS!',
     radius: 460, sky: [0x12030a, 0x6a1220], skyCols: [0x12030a, 0x24050f, 0x3c0816, 0x580e1c, 0x781a20, 0x9a2c22], bg: '#12030a', starTint: 0xffd0a0, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 14,
     surface: { pal: [0x5a1406, 0xa8380e, 0xe06c18, 0xf6a62e, 0xffd65e, 0xfff0b0], seed: 6161 },
@@ -453,7 +454,7 @@ class SelectScene extends Phaser.Scene {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
     if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => this.go(i + 1)));
-    if (this.input.keyboard) this.input.keyboard.on('keydown-SIX', () => { if (Progress.found(6)) this.go(6); });
+    if (this.input.keyboard) this.input.keyboard.on('keydown-FIVE', () => { if (Progress.found(5.5)) this.go(5.5); });
     if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
@@ -462,7 +463,7 @@ class SelectScene extends Phaser.Scene {
       if (b === 'left' || b === 'right') { this.sel = Phaser.Math.Wrap(this.sel + (b === 'left' ? -1 : 1), 1, 4); this.showSel = true; Sound.sfx('jump'); }
       else if (b === 'a' || b === 'start') this.go(this.sel);
       else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
-      else if (b === 'y' && Progress.found(6)) this.go(6);
+      else if (b === 'y' && Progress.found(5.5)) this.go(5.5);
       else this.showSel = true;
     });
     this.events.once('shutdown', padOff);
@@ -510,9 +511,9 @@ class SelectScene extends Phaser.Scene {
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
     this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
-    if (Progress.found(6)) {                                         // found the warp on level 3: the secret level shows up
-      const s = this.add.text(W / 2, Math.min(H - 34, y0 + ch + 18), '* WARP: FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-      s.on('pointerup', () => this.go(6));
+    if (Progress.found(5.5)) {                                       // found the warp: the secret level shows up
+      const s = this.add.text(W / 2, Math.min(H - 34, y0 + ch + 18), '* WARP: LEVEL 5.5 FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      s.on('pointerup', () => this.go(5.5));
       this.tweens.add({ targets: s, alpha: 0.55, yoyo: true, repeat: -1, duration: 600 });
       this.ui.add(s);
     }
@@ -774,6 +775,24 @@ function makeSkyDither(scene, key, w, h, cols) {
       for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
     }
   });
+}
+
+// the level-1 style space backdrop: debris, stars, tractor beam, black holes, nebulae, galaxies, star clusters
+function makeCosmicTextures(scene) {
+  makeDebris(scene); makePixStar(scene); makeBeam(scene); makeBlackHolePix(scene, 'px_bhole');
+  const nebPal = [[0x1e0c52, 0x3a1680, 0x6224a8, 0x9a3ccc, 0xd47af0], [0x2a0838, 0x581870, 0x8e2496, 0xd04ab8, 0xff90dc], [0x0c1a50, 0x16348a, 0x2a5cc0, 0x5a96f0, 0xa0d4ff]];
+  for (let i = 0; i < 5; i++) makeNebula(scene, 'neb' + i, 101 + i * 37, nebPal[i % 3]);
+  const galPal = [[0x3a3aa0, 0x7a8aff, 0xc8d8ff, 0xffffff], [0x6a2a8a, 0xc05ad0, 0xffa0f0, 0xffffff]];
+  for (let i = 0; i < 4; i++) makeGalaxyPix(scene, 'gal' + i, 300 + i * 11, galPal[i % 2]);
+  for (let i = 0; i < 6; i++) makeCluster(scene, 'clu' + i, 500 + i * 7);
+}
+
+// soft additive light halo (smooth-filtered, so it stays OFF the pixel atlas)
+function makeHalo(scene) {
+  if (scene.textures.exists('halo')) return;
+  const t = scene.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  c.fillStyle = gr; c.fillRect(0, 0, 128, 128); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
 }
 
 // ---------------------------------------------------------------- 16-bit HUD icons
