@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.51';
+const BUILD = 'v0.52';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -43,8 +43,8 @@ const WEAPONS = [
     interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot',
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    interval: 0.24, speed: 980, life: 0.8, ammo: 0.06, dmg: 2, wobble: 1.5, pierce: 4, sfxEvery: 1, sfx: 'zing',
-    blurb: 'Long noodles that punch through a whole line of rats.', stats: { POWER: 4, RATE: 2, RANGE: 4, PIERCE: 4 } }
+    beam: true, range: 330, drain: 0.45, tick: 0.1, dmg: 1.5, sfx: 'shoot',             // a constant stream: ~2.2s per tank, 15 damage/s to everything in line
+    blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } }
 ];
 CFG.allWeapons = true;
 const Progress = {           // remembered on the device: highest level beaten
@@ -111,7 +111,7 @@ class Level1 extends Phaser.Scene {
     this.rescue = null;
     this.nap = null;
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
-    this.skyImg = null; this.abduct = null;
+    this.skyImg = null; this.abduct = null; this.beamG = null;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
@@ -865,7 +865,19 @@ class Level1 extends Phaser.Scene {
     if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = (CFG.autoFire && tgt) || inp.fire;
-    if (P.fireCd <= 0 && want && !P.overheat) {
+    const W = this.weapon;
+    P.beamOn = !!(W.beam && want && !P.overheat && this.state === 'play');
+    if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
+      if (P.beamOn) {
+        P.firing = 0.12;
+        if (P.power <= 0) {
+          P.ammo = Math.max(0, P.ammo - W.drain * dt); P.ammoHold = CFG.ammoDelay;
+          if (P.ammo <= 0) { P.overheat = true; P.beamOn = false; Sound.sfx('hiss'); }
+        }
+        P.beamT = (P.beamT || 0) - dt;
+        if (P.beamT <= 0) { P.beamT = W.tick; this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
+      }
+    } else if (P.fireCd <= 0 && want && !P.overheat) {
       this.fire(tgt);
       P.fireCd = this.weapon.interval;
       if (P.power <= 0) {
@@ -924,6 +936,45 @@ class Level1 extends Phaser.Scene {
         spr: this.add.image(0, 0, W.shot).setDepth(8)
       });
     }
+  }
+
+  // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
+  beamGeom(W) {
+    const P = this.pl, dir = P.facing || 1, gh = P.h + (P.duck ? 22 : 40);
+    const t0 = wrap(P.theta + dir * (70 / R)), span = W.range / (R + gh);
+    return { dir, gh, t0, span, band: P.power > 0 ? 20 : 11 };
+  }
+  beamHit(W) {
+    const B = this.beamGeom(W);
+    let hitAny = false;
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      const a = angDiff(e.theta, B.t0) * B.dir;
+      if (a < -e.r / R || a > B.span) continue;
+      if (Math.abs(e.h + e.ch - B.gh) > e.r + B.band) continue;
+      e.hp -= W.dmg; hitAny = true;
+      if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
+      this.burst(e.theta, B.gh, 'spark', 2, 0.4);
+    }
+    if (hitAny) Sound.sfx('hit');
+    this.reapEnemies();
+  }
+  drawBeam() {
+    const g = this.beamG || (this.beamG = this.add.graphics().setDepth(8));
+    g.clear();
+    const P = this.pl;
+    if (!P.beamOn) return;
+    const B = this.beamGeom(this.weapon), z = this.zoom, pts = [];
+    const n = 40, thick = P.power > 0 ? 1.6 : 1;
+    for (let i = 0; i <= n; i++) {
+      const f = i / n, th = wrap(B.t0 + B.dir * B.span * f);
+      const wv = Math.sin(this.t * 34 - f * 22) * (3 + f * 5) + Math.sin(this.t * 11 + f * 7) * 2;   // wobbly noodle, looser towards the end
+      pts.push(this.screenPos(th, B.gh + wv));
+    }
+    const line = (w, c, a) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, a); g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath(); };
+    line(9, 0x1a1020, 1); line(6, 0xffb52a, 1); line(3, 0xffe27a, 1);
+    for (let i = 3; i < n; i += 6) { const p = pts[i]; g.fillStyle(0xfff4c4, 1).fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2); }   // glints
+    const end = pts[n]; if (Math.random() < 0.5) this.fxBang.emitParticleAt(end.x, end.y, 1);                                          // splatter at the tip
   }
 
   jetFlames(n) {
@@ -1560,6 +1611,7 @@ class Level1 extends Phaser.Scene {
       }
     }
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
+    this.drawBeam();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
