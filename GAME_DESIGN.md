@@ -137,3 +137,8 @@ planet surface tiles/props, then cutscene backgrounds.
 - Duck: Down on stick/D-pad, Down arrow or S. Only on the ground; Chris squashes down, stops walking (left/right just turns), fires from 22 instead of 40 height and has a smaller, lower hitbox, so chest-high shots fly over. No touch control for it yet.
 - Big screens show ~20% more of the world (`DESIGN_H` 430 → 516). Phones are unchanged.
 - v0.26: Duck in mid-air = tuck and drop: cuts the jetpack, triple gravity (capped at 900/s), you can still steer left/right, shoots low, and a hard landing does a little ground-pound shake.
+
+## v0.27 animated title art
+- Title / "tap to start" screen uses painted key art (`assets/title.jpg`, 1024x572) with code effects layered on top in `IntroScene.buildTitleArt()`: slow drift + zoom, flickering muzzle glow and sparks at the drill, macaroni spraying out, steam from the hopper, jet-boot flames, pulsing UFO beam, twinkling stars, bottom shade for the logo. The logo slams in and wobbles. The art fades out when the story starts.
+- Effect positions are in the art's own pixels, so swapping in a new picture means updating those coordinates.
+- To make Chris himself move (arm recoil, breathing), the art would need to be split into layers (background / Chris / gun / UFO).
