@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.63';
+const BUILD = 'v0.64';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -13,6 +13,7 @@ const TAU = Math.PI * 2;
 let R = 420; // planet radius in world units (set per level from LEVELS[n].radius)
 
 const CFG = {
+  finalLevel: 9,          // Bessie only stays rescued after this level; before it the rats always snatch her back
   gravity: 1500,
   jumpV: 560,
   runSpeed: 230,
@@ -616,12 +617,61 @@ class Level1 extends Phaser.Scene {
         this.banner('EXTRA HEART! CHEESEBURGER!');
       }
     }
+    if (this.levelId < CFG.finalLevel) {            // Bessie is never really safe until the last level: the rats swoop back in
+      if (!r.snatch && t > 5.2) this.startSnatch();
+      if (r.snatch) { if (this.updateSnatch(dt)) { this.rescue = null; this.finishWin(); } return; }
+    }
     if (t > 7.4) {
       r.cow.spr.destroy(); this.actors.splice(this.actors.indexOf(r.cow), 1);
       if (r.burger && !r.got) { r.burger.spr.destroy(); this.actors.splice(this.actors.indexOf(r.burger), 1); }
       this.rescue = null;
       this.finishWin();
     }
+  }
+
+  // ...and just when you think she's safe: a rat-ship drops out of the sky, beams Bessie up and legs it.
+  startSnatch() {
+    const r = this.rescue;
+    const ship = { spr: this.add.image(0, 0, 'ratship').setDepth(7), theta: r.cow.theta, h: 720, rot: 0 };
+    const beam = this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(5.9).setAlpha(0);
+    glowFx(beam, 0xffd23f, 3, 10); glowFx(ship.spr, 0x9fd8ff, 1, 6);
+    this.actors.push(ship);
+    r.snatch = { ship, beam, t: 0, f: 0, ft: 0, grabbed: false };
+    const lines = ['WAIT... WHAT\'S THAT NOISE?', 'OH NO. NOT AGAIN...', 'IS THAT... ANOTHER SHIP?!', 'SQUEAK SQUEAK SQUEAK!'];
+    this.banner(lines[(this.levelId - 1) % lines.length]);
+    Sound.music(null); Sound.sfx('whoosh');
+  }
+
+  updateSnatch(dt) {
+    const r = this.rescue, S = r.snatch, cow = r.cow, ship = S.ship;
+    S.t += dt;
+    const t = S.t;
+    if (t < 1.3) {                                    // dives in fast and brakes over her
+      const k = t / 1.3, e = 1 - Math.pow(1 - k, 3);
+      ship.h = 720 - (720 - 175) * e; ship.theta = cow.theta; ship.rot = Math.sin(t * 9) * 0.12 * (1 - k);
+    } else if (t < 2.9) {                             // tractor beam: up she goes, legs flailing
+      if (!S.grabbed) { S.grabbed = true; Sound.sfx('beam'); Sound.sfx('moo'); this.banner('THEY\'VE GOT BESSIE AGAIN!'); buzz([40, 30, 40]); this.cameras.main.shake(200, 0.006); }
+      const k = (t - 1.3) / 1.6;
+      ship.h = 175 + Math.sin(t * 3) * 4; ship.rot = Math.sin(t * 2) * 0.05;
+      cow.h = (ship.h - 48) * k * k; cow.rot = Math.sin(t * 7) * 0.35;
+    } else {                                          // ...and away round the planet, accelerating
+      const k = t - 2.9;
+      ship.theta = wrap(ship.theta - (0.1 + k * 0.5) * dt); ship.h += k * 60 * dt; ship.rot = -0.25;
+      cow.theta = ship.theta; cow.h = ship.h - 48 - Math.sin(t * 5) * 4; cow.rot = Math.sin(t * 4) * 0.25;
+      if (!S.taunt && k > 0.4) { S.taunt = true; Sound.sfx('squeak'); }
+    }
+    // the beam hangs off the bottom of the ship while it's grabbing her
+    const ba = t < 1.1 ? 0 : (t < 2.9 ? Math.min(1, (t - 1.1) * 4) : Math.max(0, 1 - (t - 2.9) * 2.5));
+    const sp = this.screenPos(ship.theta, ship.h - 10), d = angDiff(ship.theta, this.pl.theta), z = this.zoom;
+    S.ft += dt; if (S.ft > 0.09) { S.ft = 0; S.f = (S.f + 1) % 4; S.beam.setTexture('beam' + S.f); }
+    S.beam.setPosition(sp.x, sp.y).setRotation(d).setScale(2 * z, (ship.h - 10) / 84 * z).setAlpha(sp.vis ? ba * 0.85 : 0);
+    if (t > 5.4) {
+      for (const a of [ship, cow]) { a.spr.destroy(); this.actors.splice(this.actors.indexOf(a), 1); }
+      S.beam.destroy();
+      if (r.burger && !r.got) { r.burger.spr.destroy(); this.actors.splice(this.actors.indexOf(r.burger), 1); }
+      return true;
+    }
+    return false;
   }
 
   nextWave() {
@@ -646,6 +696,7 @@ class Level1 extends Phaser.Scene {
   finishWin() {
     Progress.beat(this.levelId);
     this.state = 'won';
+    if (this.levelId < CFG.finalLevel) Sound.music('win');
     this.endT = this.t;
     this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\nTap for level select');
   }

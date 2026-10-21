@@ -36,7 +36,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
     boss: { tex: 'croque', hp: 110, ai: 'croque', armouredTop: true },
-    win: 'The Croque Monsieur is toast. Literally.\nBessie is safe... for now.\nA fresh rat-ship is already circling.'
+    win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
   2: {
@@ -59,7 +59,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('frog', 0), S('germ', 0.6), S('frog', 1.8), S('germ', 2.4), S('germ', 3.2), S('frog', 4.4), S('germ', 5), S('frog', 6.4), S('germ', 6.8), S('germ', 7.8), S('frog', 8.6), S('germ', 9.4)] }
     ],
     boss: { tex: 'baron', hp: 120, ai: 'baron' },
-    win: 'Baron von Blue is mould-y history!\nBessie squelches free, narrowly.\nThe rats are heading for a giant grater...'
+    win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
   3: {
@@ -83,7 +83,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 1.8), S('slicer', 3), S('drone', 4), S('drone', 5), S('slicer', 6.4), S('drone', 7), S('drone', 8), S('slicer', 9.4)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
-    win: 'The Mega-Mandoline is sliced and diced!\nBessie bounces clear of the blades.\nMore levels coming soon...'
+    win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
   }
 };
 

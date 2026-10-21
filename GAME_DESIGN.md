@@ -234,3 +234,11 @@ planet surface tiles/props, then cutscene backgrounds.
   - RUMBLE on/off.
 - Menus work by touch, keyboard (arrows/WASD, Enter/Space) and controller (d-pad, A, B).
 - In menus, left/right change a setting and select toggles it.
+
+### v0.64 — Bessie is never safe (until level 9)
+- Story arc: on every level before the last (`CFG.finalLevel = 9`), the rescue is a fake-out.
+  - Bessie lands and the banner says "...Bessie is safe!".
+  - You get the cheeseburger heart.
+  - Then a rat-ship dives out of the sky, tractor-beams her up and races off round the planet.
+  - The banner reads "THEY'VE GOT BESSIE AGAIN!" and the level-clear text sets up the chase.
+- Only on level 9 does the rescue stick.
