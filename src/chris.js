@@ -123,10 +123,16 @@ function makeChrisTextures(scene) {
     a.rect(10, 3, 11, 14, 0x1a1020);
   });
   // the Swiss-Shot's ammo: a fat ball of Swiss cheese
-  pixSprite(scene, 'swissball', 14, 14, a => {
-    a.ell(7, 7, 6, 6, [0xfff09a, 0xffcf3a, 0xc9901a]);
-    a.ell(5, 5, 1.3, 1.3, 0xa8701a); a.ell(9, 8, 1.5, 1.5, 0xa8701a); a.ell(5, 10, 1, 1, 0xa8701a);
-    a.px(4, 3, 0xffffff);
+  pixSprite(scene, 'swissball', 22, 22, a => {
+    a.ell(11, 11, 10, 10, [0xfff09a, 0xffcf3a, 0xc9901a]);
+    for (const [x, y, r] of [[7, 7, 2], [14, 9, 2.4], [8, 15, 1.6], [15, 15, 1.4], [11, 4, 1]]) { a.ell(x, y, r, r, 0xa8701a); a.px(x + 1, y + 1, 0xffe27a); }
+    a.rect(5, 4, 6, 4, 0xffffff); a.px(4, 5, 0xffffff);
+  });
+  // the splat it leaves: a puddle of melted Swiss
+  pixSprite(scene, 'swisssplat', 60, 16, a => {
+    a.ell(30, 10, 28, 5.5, [0xfff09a, 0xffcf3a, 0xc9901a]);
+    for (const [x, r] of [[8, 3], [18, 4], [42, 4], [53, 3]]) a.ell(x, 6, r, r, [0xfff09a, 0xffcf3a, 0xc9901a]);
+    a.ell(22, 10, 2, 1.4, 0xa8701a); a.ell(38, 11, 2.4, 1.6, 0xa8701a);
   });
   // the projectile: a long wavy strand of spaghetti
   pixSprite(scene, 'spaghetti', 36, 9, a => {

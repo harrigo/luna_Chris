@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.55';
+const BUILD = 'v0.56';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -46,7 +46,7 @@ const WEAPONS = [
     beam: true, range: 200, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
     blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
-    lob: true, interval: 0.45, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 64, blastDmg: 7, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    lob: true, interval: 0.45, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
     blurb: 'Lobs fat balls of Swiss that burst in a cheesy blast. Hits groups and over cover.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
@@ -939,25 +939,41 @@ class Level1 extends Phaser.Scene {
         vt: ux * W.speed, vh: uy * W.speed,
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0, blast: W.blast || 0, blastDmg: W.blastDmg || 0,
-        spr: this.add.image(0, 0, W.shot).setDepth(8)
+        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; return im; })()
       });
     }
   }
 
   // Swiss-Shot burst: hurts everything within the blast radius
-  swissBlast(theta, h, rad, dmg) {
+  swissBlast(theta, h, rad, dmg, bossDmg) {
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
       const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
       if (d > rad + e.r) continue;
-      e.hp -= dmg * (d < rad * 0.5 + e.r ? 1 : 0.6);
+      const full = d < rad * 0.55 + e.r;
+      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
     }
-    this.bang(theta, h + 6, 22);
-    this.burst(theta, h + 6, 'crumb', 14, 1.1);
-    const s = this.screenPos(theta, h + 6); for (let k = 0; k < 10; k++) this.fxBang.emitParticleAt(s.x, s.y, 1);
-    this.cameras.main.shake(110, 0.006);
-    Sound.sfx('boom'); buzz(35);
+    // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
+    const s = this.screenPos(theta, h + 4), z = this.zoom;
+    const ring = this.add.graphics().setDepth(8.5);
+    this.tweens.addCounter({ from: 0, to: 1, duration: 380, ease: 'Cubic.easeOut', onUpdate: tw => {
+      const k = tw.getValue(); ring.clear();
+      ring.lineStyle(Math.max(2, 10 * (1 - k) * z), 0xffe27a, 1 - k).strokeCircle(s.x, s.y, rad * z * k);
+      ring.lineStyle(Math.max(1, 4 * (1 - k) * z), 0xffffff, (1 - k) * 0.8).strokeCircle(s.x, s.y, rad * z * k * 0.8);
+    }, onComplete: () => ring.destroy() });
+    this.bang(theta, h + 6, 60);
+    this.burst(theta, h + 6, 'crumb', 26, 1.8);
+    for (let k = 0; k < 6; k++) { const im = this.add.image(0, 0, 'swissball').setDepth(9); im.bsx = im.bsy = rnd(0.5, 0.9);   // flying cheese chunks
+      this.parts.push({ theta, h: h + 8, vt: rnd(-260, 260), vh: rnd(250, 520), life: rnd(0.6, 1), spr: im }); }
+    for (let k = 0; k < 18; k++) this.fxBang.emitParticleAt(s.x + rnd(-10, 10) * z, s.y + rnd(-10, 10) * z, 1);
+    if (h < 30) {                                       // landed: leave a melted-cheese puddle that fades
+      const pud = this.add.image(0, 0, 'swisssplat').setDepth(2.8); pud.bsx = rad / 32; pud.bsy = 1.4;
+      const P = { spr: pud, theta, h: -1, rot: 0 }; this.actors.push(P);
+      this.tweens.add({ targets: pud, alpha: 0, delay: 1600, duration: 900, onComplete: () => { this.actors.splice(this.actors.indexOf(P), 1); pud.destroy(); } });
+    }
+    this.cameras.main.shake(200, 0.012);
+    Sound.sfx('boom'); buzz([60, 30, 90]);
   }
 
   // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
@@ -1364,7 +1380,7 @@ class Level1 extends Phaser.Scene {
           }
         }
       }
-      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg);
+      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, this.weapon.bossDmg);
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
     this.reapEnemies();
