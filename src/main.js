@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.37';
+const BUILD = 'v0.38';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1351,14 +1351,39 @@ class Level1 extends Phaser.Scene {
       if (b.tws !== undefined) b.s.setScale(b.bsc * (0.75 + 0.3 * Math.sin(this.t * 2.2 + b.tws)));
       if (b.pulse !== undefined) b.s.setScale(b.bsc * (1 + 0.08 * Math.sin(this.t * 3 + b.pulse)));
     }
-    if (this.abduct) {                                  // UFO + beam + spinning Bessie, gently bobbing, a little parallax sway
-      const A = this.abduct, dtA = this.lastDt || 0.016, z = Math.min(1.2, this.zoom * 1.1);
+    if (this.abduct) {                                  // the rat UFO with Bessie: lives up in the world and keeps its distance
+      const A = this.abduct, dtA = this.lastDt || 0.016, P = this.pl, z = this.zoom;
       A.a += ((this.state === 'play' && !this.nap ? 1 : 0) - A.a) * Math.min(1, dtA * 2);
+      if (A.theta === undefined) { A.theta = wrap(P.theta + 0.4); A.tgt = A.theta; A.st = 'hover'; A.vt = 0; A.wt = 0; A.h = 215; }
+      const off = angDiff(A.theta, P.theta);
+      if (A.st !== 'flee' && Math.abs(off) < 0.14) {                     // Chris got too close: zip off to one side
+        const away = Math.sign(off) || (P.facing || 1);
+        A.fdir = Math.random() < 0.45 ? -away : away;                    // sometimes swoops over to the other side
+        A.fd = rnd(0.45, 0.6); A.st = 'flee'; Sound.sfx('whoosh');
+      } else if (A.st === 'hover' && Math.abs(off) > 0.8) {              // left far behind: drift back into view (slower than Chris runs)
+        A.st = 'return'; A.tgt = wrap(P.theta + Math.sign(off) * 0.5);
+      }
+      if (A.st === 'hover') {                                            // idle wander
+        A.wt -= dtA; if (A.wt <= 0) { A.wt = rnd(1.5, 3.5); A.tgt = wrap(A.theta + rnd(-0.08, 0.08)); A.th = rnd(190, 240); }
+      }
+      if (A.st === 'return') A.tgt = wrap(P.theta + Math.sign(angDiff(A.theta, P.theta) || 1) * 0.5);
+      if (A.st === 'flee') A.tgt = wrap(P.theta + A.fdir * A.fd);          // keeps its distance while you chase
+      const toT = angDiff(A.tgt, A.theta), maxV = A.st === 'flee' ? 1.3 : (A.st === 'return' ? 0.3 : 0.08);
+      const want = Math.max(-maxV, Math.min(maxV, toT * (A.st === 'flee' ? 4 : 2)));
+      A.vt += (want - A.vt) * Math.min(1, dtA * (A.st === 'flee' ? 5 : 2));
+      A.theta = wrap(A.theta + A.vt * dtA);
+      if (A.st !== 'hover' && Math.abs(toT) < 0.02) A.st = 'hover';
+      A.h += ((A.th || 215) - A.h) * Math.min(1, dtA * 0.8);
+      // project into the rotating view like everything else
+      const d = angDiff(A.theta, P.theta), rr = (R + A.h + Math.sin(this.t * 1.3) * 6) * z;
+      const sx = this.cx + rr * Math.sin(d), sy = this.cy - rr * Math.cos(d), tilt = d - A.vt * 0.35;
+      const vis = Math.abs(d) < 1.45 ? A.a : 0;
+      A.ship.setPosition(sx, sy).setScale(z * 0.9).setRotation(tilt + Math.sin(this.t * 1.1) * 0.05).setAlpha(vis);
       A.ft += dtA; if (A.ft > 0.09) { A.ft = 0; A.f = (A.f + 1) % 4; A.beam.setTexture('beam' + A.f); }
-      const sx = this.W * 0.76 + Math.sin(this.unw * 0.6) * this.W * 0.05 + Math.sin(this.t * 0.7) * 8, sy = this.H * 0.13 + Math.sin(this.t * 1.3) * 5;
-      A.ship.setPosition(sx, sy).setScale(z * 0.9).setRotation(Math.sin(this.t * 1.1) * 0.06).setAlpha(A.a);
-      A.beam.setPosition(sx, sy + 10 * z).setScale(2 * z).setAlpha(A.a);
-      A.cow.setPosition(sx + Math.sin(this.t * 0.9) * 6, sy + (70 + Math.sin(this.t * 0.8) * 22) * z).setScale(z * 0.55).setRotation(this.t * 0.8).setAlpha(A.a);
+      A.beam.setPosition(sx - Math.sin(tilt) * 8 * z, sy + Math.cos(tilt) * 8 * z).setScale(2 * z).setRotation(tilt).setAlpha(A.st === 'flee' ? vis * 0.6 : vis);
+      A.swing = (A.swing || 0) + (-A.vt * 0.9 - (A.swing || 0)) * Math.min(1, dtA * 3);        // Bessie lags behind when it moves
+      const cd = (75 + Math.sin(this.t * 0.8) * 18) * z, ca = tilt + A.swing;
+      A.cow.setPosition(sx - Math.sin(ca) * cd, sy + Math.cos(ca) * cd).setScale(z * 0.55).setRotation(this.t * 0.8).setAlpha(vis);
     }
     // the odd shooting star
     const dtS = this.lastDt || 0.016;
