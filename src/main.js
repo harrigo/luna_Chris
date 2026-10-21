@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.66';
+const BUILD = 'v0.67';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -53,6 +53,38 @@ const WEAPONS = [
 CFG.allWeapons = true;
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
+// Same look as glowFx for things that never change texture, but the halo is drawn once into a cached texture
+// instead of costing a shader pass every frame (lava pools, enemy shots, swiss balls, power-ups...).
+const bakedGlow = (obj, col, strength, dist) => {
+  try {
+    if (!Settings.glow || !obj || !obj.scene || obj.__glowBase) return;
+    const sc = obj.scene, base = obj.texture.key, d = Math.ceil(dist || 8);
+    const gk = base + '_g' + col.toString(16) + '_' + strength + '_' + d;
+    if (!sc.textures.exists(gk)) {
+      const src = sc.textures.get(base).getSourceImage(), w = src.width, h = src.height, W = w + d * 2, H = h + d * 2;
+      const ct = sc.textures.createCanvas(gk, W, H), ctx = ct.getContext();
+      ctx.drawImage(src, d, d);
+      const img = ctx.getImageData(0, 0, W, H), D = img.data, N = W * H;
+      let A = new Float32Array(N), B = new Float32Array(N);
+      for (let i = 0; i < N; i++) A[i] = D[i * 4 + 3] / 255;
+      const rad = Math.max(1, Math.round(d / 2));
+      for (let pass = 0; pass < 2; pass++) {                         // two box-blur passes ~ a soft gaussian halo
+        for (let y = 0; y < H; y++) { let acc = 0; for (let x = -rad; x < W + rad; x++) { if (x + rad < W) acc += A[y * W + x + rad]; if (x - rad - 1 >= 0) acc -= A[y * W + x - rad - 1]; if (x >= 0 && x < W) B[y * W + x] = acc / (rad * 2 + 1); } }
+        for (let x = 0; x < W; x++) { let acc = 0; for (let y = -rad; y < H + rad; y++) { if (y + rad < H) acc += B[(y + rad) * W + x]; if (y - rad - 1 >= 0) acc -= B[(y - rad - 1) * W + x]; if (y >= 0 && y < H) A[y * W + x] = acc / (rad * 2 + 1); } }
+      }
+      const r = (col >> 16) & 255, g = (col >> 8) & 255, bl = col & 255, k = 0.75 * strength;
+      for (let i = 0; i < N; i++) {
+        const oa = D[i * 4 + 3] / 255, ga = Math.min(1, A[i] * k) * (1 - oa);
+        const a = oa + ga; if (a <= 0) continue;
+        D[i * 4] = (D[i * 4] * oa + r * ga) / a; D[i * 4 + 1] = (D[i * 4 + 1] * oa + g * ga) / a; D[i * 4 + 2] = (D[i * 4 + 2] * oa + bl * ga) / a; D[i * 4 + 3] = a * 255;
+      }
+      ctx.putImageData(img, 0, 0); ct.refresh();
+    }
+    const dox = obj.displayOriginX, doy = obj.displayOriginY;
+    obj.__glowBase = { key: base, dox, doy };
+    obj.setTexture(gk); obj.setDisplayOrigin(dox + d, doy + d);
+  } catch (e) { /* ignore */ }
+};
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { try { if (!(LEVELS[n] && LEVELS[n].secret) && n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
@@ -201,7 +233,7 @@ class Level1 extends Phaser.Scene {
         ship: this.add.image(0, 0, 'ratship').setDepth(0.64).setAlpha(0),
         f: 0, ft: 0, a: 0
       };
-      glowFx(this.abduct.beam, 0xffd23f, 3, 10); glowFx(this.abduct.ship, 0x9fd8ff, 1, 6);
+      glowFx(this.abduct.beam, 0xffd23f, 3, 10); bakedGlow(this.abduct.ship, 0x9fd8ff, 1, 6);
     }
     if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
       for (let i = 0; i < 40; i++) {
@@ -249,7 +281,7 @@ class Level1 extends Phaser.Scene {
       const bub = this.add.image(0, 0, 'lava_drop').setDepth(2.3);
       pool.bsx = glow.bsx = rnd(0.8, 1.4); pool.bsy = glow.bsy = rnd(0.9, 1.3);
       this.lavas.push({ theta, h: -rnd(22, 190), pool, glow, bub, bt: rnd(0, 1), bx: 0, ph: rnd(0, 6) });
-      glowFx(pool, 0xff7a1a, 3, 6);   // set into the planet at random depths
+      bakedGlow(pool, 0xff7a1a, 3, 6);   // set into the planet at random depths
     }
 
     // fondue geysers (level 1): idle -> warn (vent glows, bubbles, rumble) -> erupt (column of molten cheese that hurts)
@@ -449,8 +481,6 @@ class Level1 extends Phaser.Scene {
     this.macText.setPosition(66, 63);
     this.menuText.setPosition(W - 10, 58);
     this.pauseBtnText.setPosition(W - 10, 94);
-    this.pauseText.setPosition(W / 2, H * 0.42);
-    this.pauseHint.setPosition(W / 2, H * 0.42 + 34);
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(10, 66);
     this.cheatText.setPosition(10, 76);
@@ -484,8 +514,6 @@ class Level1 extends Phaser.Scene {
     this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
     this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
-    this.pauseText = this.add.text(0, 0, 'PAUSED', f(26, '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5).setDepth(32).setVisible(false);
-    this.pauseHint = this.add.text(0, 0, 'START / P / TAP TO RESUME', f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5).setDepth(32).setVisible(false);
     this.zoneText = this.add.text(0, 0, '', f(9, '#9bff6a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0).setDepth(20);
     this.bannerText = this.add.text(0, 0, '', f(17, '#ffd23f', { align: 'center', stroke: '#1a1020', strokeThickness: 4, lineSpacing: 8 })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
@@ -653,7 +681,7 @@ class Level1 extends Phaser.Scene {
     const r = this.rescue;
     const ship = { spr: this.add.image(0, 0, 'ratship').setDepth(7), theta: r.cow.theta, h: 720, rot: 0 };
     const beam = this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(5.9).setAlpha(0);
-    glowFx(beam, 0xffd23f, 3, 10); glowFx(ship.spr, 0x9fd8ff, 1, 6);
+    glowFx(beam, 0xffd23f, 3, 10); bakedGlow(ship.spr, 0x9fd8ff, 1, 6);
     this.actors.push(ship);
     r.snatch = { ship, beam, t: 0, f: 0, ft: 0, grabbed: false };
     const lines = ['WAIT... WHAT\'S THAT NOISE?', 'OH NO. NOT AGAIN...', 'IS THAT... ANOTHER SHIP?!', 'SQUEAK SQUEAK SQUEAK!'];
@@ -950,7 +978,10 @@ class Level1 extends Phaser.Scene {
   // graphics setting changed mid-level: drop shader glows if they're now off (lights follow the setting live)
   applyGfx() {
     if (!Settings.glow) {
-      for (const o of this.children.list) { try { if (o.preFX) o.preFX.clear(); if (o.postFX) o.postFX.clear(); } catch (e) { /* ignore */ } }
+      for (const o of this.children.list) {
+        try { if (o.preFX) o.preFX.clear(); if (o.postFX) o.postFX.clear(); } catch (e) { /* ignore */ }
+        if (o.__glowBase) { const g = o.__glowBase; o.setTexture(g.key); o.setDisplayOrigin(g.dox, g.doy); o.__glowBase = null; }
+      }
     }
   }
 
@@ -1147,7 +1178,7 @@ class Level1 extends Phaser.Scene {
         vt: ux * W.speed, vh: uy * W.speed,
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0, blast: W.blast || 0, blastDmg: W.blastDmg || 0,
-        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; if (W.lob) glowFx(im, 0xffe27a, 2, 6); return im; })()
+        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
     }
   }
@@ -1622,7 +1653,7 @@ class Level1 extends Phaser.Scene {
       }
       if (e.big && (!this.gotPower || Math.random() < 0.3)) {     // the first big enemy always drops a Power-Up
         this.gotPower = true;
-        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); glowFx(im, 0xfff3a0, 3, 8); return im; })() });
+        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
       } else if (Math.random() < (e.drop || 0)) {
         this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
@@ -1636,7 +1667,7 @@ class Level1 extends Phaser.Scene {
     this.eBullets.push({
       kind, theta: wrap(theta), h, vt, vh, r, life,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : 0)),
-      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); glowFx(im, kind === 'spore' ? 0x7dff8a : (kind === 'blade' ? 0xdfe6f0 : 0xffc040), 2, 6); return im; })()
+      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); bakedGlow(im, kind === 'spore' ? 0x7dff8a : (kind === 'blade' ? 0xdfe6f0 : 0xffc040), 2, 6); return im; })()
     });
   }
 

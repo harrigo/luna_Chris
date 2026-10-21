@@ -267,3 +267,11 @@ planet surface tiles/props, then cutscene backgrounds.
 - Once found, it is saved (`lc_found6`) and appears on level select as "* WARP: FONDUE FOUNTAIN *" (tap, Y or the 6 key).
 - Secret levels don't count towards `lc_best`.
 - Data-driven: any level can get a `warp: { to, theta, h, relics: [...] }` entry.
+
+### v0.67 — Performance pass (no visual changes)
+- Profiled: game JavaScript is under 1% of frame time. The real cost was GPU work from per-object shader glows. No leaks: the object count stays flat over long play, and listeners are cleaned up on restart.
+- `bakedGlow()` pre-draws the glow halo into a cached texture once, for things whose texture never changes: lava pools, enemy shots, swiss balls, the power-up and the rat-ships. It looks the same as the shader glow and costs nothing per frame. Switching graphics to LOW mid-level undoes it.
+  - Live shader glow is kept only on animated things: the tractor beams and the pulsing geyser vents.
+  - Level 2 boss fight: offscreen render passes 42 → 1 per frame, draw calls 40 → 9. Level 1: 46 → 17 passes.
+- `makePlanetTexture` stamps craters and holes over their own bounding boxes instead of testing all 115 at every pixel. Output is byte-identical; about 450ms → 30ms per planet, which removes the start-of-level hitch on levels 1 and 6.
+- Removed the unused PAUSED text (replaced by the pause menu).

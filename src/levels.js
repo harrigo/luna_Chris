@@ -556,34 +556,45 @@ function makePlanetTexture(scene, key, Rw, pal, seed) {
   for (let i = 0; i < 45; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.8; holes.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: 2 + rand() * 7 }); }
   const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
   const put = (i, t) => { const col = P[Math.max(0, Math.min(P.length - 1, t))]; D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255; };
+  // pass 1: base cheese tone per pixel (T), then craters and holes are stamped over just their own bounding boxes
+  // (same result as testing every feature at every pixel, but ~50x faster; the first feature listed wins, as before)
+  const T = new Int8Array(S * S), dist = new Float32Array(S * S).fill(2);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.hypot(dx, dy) / r;
-    const i = (y * S + x) * 4;
+    const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.sqrt(dx * dx + dy * dy) / r;
     if (d > 1) continue;
+    const j = y * S + x; dist[j] = d;
     const th = BAYER4[(y & 3) * 4 + (x & 3)];
     // base cheese: noise picks a tone, the Bayer threshold dithers between neighbouring tones
     let v = 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
     // rind crust towards the edge
     if (d > 0.935) v = 1.5 + (noise(x * 2, y * 2) - 0.5) * 1.6 - (d - 0.935) * 8;
     else if (d > 0.9) v -= (d - 0.9) / 0.035 * 1.2;
-    let t = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
-    // craters: dark bowl, lit lower-right lip, shadowed upper-left
-    for (const k of craters) {
-      const cx2 = x - k.x, cy2 = y - k.y, dd = Math.hypot(cx2, cy2) / k.r;
-      if (dd < 1.25) {
-        if (dd < 1) { const sh = (cx2 + cy2) / k.r; t = (sh > 0.3 ? 2 : 1) + ((0.5 + sh * 0.5) > th ? 0 : -1); }
-        else { const lip = (cx2 + cy2) / k.r; if (lip > 0.2) t = Math.max(t, 4); else if (lip < -0.4) t = Math.min(t, 1); }
-        break;
-      }
-    }
-    // gruyere holes: very dark with a bright lower rim
-    for (const h of holes) {
-      const hx = x - h.x, hy = y - h.y, dd = Math.hypot(hx, hy) / h.r;
-      if (dd < 1) { t = dd > 0.7 && hy > 0 ? 3 : 0; break; }
-    }
-    if (d > 0.985) t = 0;                                             // dark outline pixel ring
-    put(i, t);
+    T[j] = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
   }
+  // craters: dark bowl, lit lower-right lip, shadowed upper-left
+  const took = new Uint8Array(S * S);
+  for (const k of craters) {
+    const e = k.r * 1.25;
+    for (let y = Math.max(0, Math.floor(k.y - e)); y <= Math.min(S - 1, Math.ceil(k.y + e)); y++) for (let x = Math.max(0, Math.floor(k.x - e)); x <= Math.min(S - 1, Math.ceil(k.x + e)); x++) {
+      const j = y * S + x; if (took[j] || dist[j] > 1) continue;
+      const cx2 = x - k.x, cy2 = y - k.y, dd = Math.sqrt(cx2 * cx2 + cy2 * cy2) / k.r;
+      if (dd >= 1.25) continue;
+      took[j] = 1;
+      const th = BAYER4[(y & 3) * 4 + (x & 3)];
+      if (dd < 1) { const sh = (cx2 + cy2) / k.r; T[j] = (sh > 0.3 ? 2 : 1) + ((0.5 + sh * 0.5) > th ? 0 : -1); }
+      else { const lip = (cx2 + cy2) / k.r; if (lip > 0.2) T[j] = Math.max(T[j], 4); else if (lip < -0.4) T[j] = Math.min(T[j], 1); }
+    }
+  }
+  // gruyere holes: very dark with a bright lower rim
+  took.fill(0);
+  for (const h of holes) {
+    for (let y = Math.max(0, Math.floor(h.y - h.r)); y <= Math.min(S - 1, Math.ceil(h.y + h.r)); y++) for (let x = Math.max(0, Math.floor(h.x - h.r)); x <= Math.min(S - 1, Math.ceil(h.x + h.r)); x++) {
+      const j = y * S + x; if (took[j] || dist[j] > 1) continue;
+      const hx = x - h.x, hy = y - h.y, dd = Math.sqrt(hx * hx + hy * hy) / h.r;
+      if (dd < 1) { took[j] = 1; T[j] = dd > 0.7 && hy > 0 ? 3 : 0; }
+    }
+  }
+  for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring
   // crumbs & debris: scattered 1-2px specks
   const speck = (x, y, t) => { if (x < 0 || y < 0 || x >= S || y >= S) return; const dd = Math.hypot(x - c, y - c) / r; if (dd > 0.96) return; put((y * S + x) * 4, t); };
   for (let i = 0; i < S * 3; i++) {
