@@ -30,5 +30,24 @@ const Pad = (() => {
   }
   requestAnimationFrame(poll);
   window.addEventListener('gamepadconnected', () => { if (typeof Sound !== 'undefined') Sound.init(); });
-  return { state, on(fn) { subs.push(fn); return () => { subs = subs.filter(f => f !== fn); }; } };
+  // Rumble (Xbox / most controllers in Chrome & Edge): same patterns as navigator.vibrate - a number of ms,
+  // or [on, off, on, ...]. Longer pulses rumble harder.
+  function pad() { const ps = navigator.getGamepads ? navigator.getGamepads() : []; for (const p of ps) if (p && p.connected) return p; return null; }
+  function pulse(ms, strong, weak) {
+    const gp = pad(), act = gp && gp.vibrationActuator;
+    if (!act || !act.playEffect) return;
+    act.playEffect(act.type === 'vibration' ? 'vibration' : 'dual-rumble', { startDelay: 0, duration: ms, strongMagnitude: strong, weakMagnitude: weak }).catch(() => {});
+  }
+  function rumble(p) {
+    const seq = Array.isArray(p) ? p : [p];
+    let t = 0;
+    seq.forEach((ms, i) => {
+      if (i % 2 === 0 && ms > 0) {
+        const strong = Math.min(1, 0.2 + ms / 160), weak = Math.min(1, 0.45 + ms / 200);
+        if (t === 0) pulse(ms, strong, weak); else setTimeout(() => pulse(ms, strong, weak), t);
+      }
+      t += ms;
+    });
+  }
+  return { state, rumble, pulse, on(fn) { subs.push(fn); return () => { subs = subs.filter(f => f !== fn); }; } };
 })();

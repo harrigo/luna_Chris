@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.34';
+const BUILD = 'v0.35';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -36,7 +36,10 @@ const CFG = {
 };
 
 // phone buzz (Android Chrome; ignored elsewhere)
-const buzz = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ } };
+const buzz = p => {           // phone vibration + controller rumble
+  try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ }
+  try { if (typeof Pad !== 'undefined' && Pad.state.connected) Pad.rumble(p); } catch (e) { /* not supported */ }
+};
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 const wrap = a => { a %= TAU; return a < 0 ? a + TAU : a; };
@@ -830,6 +833,7 @@ class Level1 extends Phaser.Scene {
       P.facing = ex >= 0 ? 1 : -1;
     }
     P.firing = 0.12;
+    if (Pad.state.connected) Pad.pulse(70, 0, 0.18);          // a light buzz in the hands while the Mac-Blaster fires
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 58 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = wrap(P.theta + (Math.sign(dx) || 1) * (56 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
