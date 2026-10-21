@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.58';
+const BUILD = 'v0.59';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -404,13 +404,15 @@ class Level1 extends Phaser.Scene {
       this.skyG.clear();
     } else this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
 
+    // touch layout: floating MOVE stick (left side), floating AIM+FIRE stick (right side), JUMP button up the right edge
     this.btn = {
-      left:  { x: 64,     y: H - 68, r: 44 },
-      right: { x: 172,    y: H - 68, r: 44 },
-      jump:  { x: W - 78, y: H - 78, r: 54 },
-      fire:  { x: W - 196, y: H - 60, r: 42 }
+      move: { x: 92, y: H - 86, r: 52 },
+      aim:  { x: W - 170, y: H - 86, r: 52 },
+      jump: { x: W - 58, y: H - 150, r: 40 }
     };
-    for (const k in this.btn) this.btnLabels[k].setPosition(this.btn[k].x, this.btn[k].y);
+    this.btnLabels.move.setPosition(this.btn.move.x, this.btn.move.y + 64);
+    this.btnLabels.aim.setPosition(this.btn.aim.x, this.btn.aim.y + 64);
+    this.btnLabels.jump.setPosition(this.btn.jump.x, this.btn.jump.y);
 
     this.waveText.setPosition(W / 2, 4);
     this.scoreText.setPosition(W / 2, 26);
@@ -470,13 +472,12 @@ class Level1 extends Phaser.Scene {
 
   buildControls() {
     this.ctrlG = this.add.graphics().setDepth(20);
-    const labels = { left: '◀', right: '▶', jump: 'JUMP\n+JET', fire: 'FIRE' };
+    const labels = { move: 'MOVE', aim: 'AIM+FIRE', jump: 'JUMP\n+JET' };
     this.btnLabels = {};
     for (const k in labels) {
-      this.btnLabels[k] = this.add.text(0, 0, labels[k], {
-        fontFamily: (k === 'left' || k === 'right') ? 'monospace' : PIXEL, fontSize: (k === 'left' || k === 'right') ? '30px' : '11px', color: '#ffffff', align: 'center', lineSpacing: 6
-      }).setOrigin(0.5).setDepth(21).setAlpha(0.85);
+      this.btnLabels[k] = this.add.text(0, 0, labels[k], { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', align: 'center', lineSpacing: 6 }).setOrigin(0.5).setDepth(21).setAlpha(0.7);
     }
+    this.sticks = { move: null, aim: null };          // live twin-stick state (touch)
   }
 
   buildOverlay() {
@@ -778,15 +779,25 @@ class Level1 extends Phaser.Scene {
 
   readInput() {
     const d = { left: false, right: false, jump: false, fire: false, down: false };
-    for (const p of this.input.manager.pointers) {
+    // touch twin-sticks: each finger is a stick based where it first touched down
+    const S = this.sticks; S.move = null; S.aim = null;
+    if (this.touchUI && this.btn) for (const p of this.input.manager.pointers) {
       if (!p || !p.isDown) continue;
-      let best = null, bd = 1e9;
-      for (const k in this.btn) {
-        const b = this.btn[k];
-        const dd = Math.hypot(p.x - b.x, p.y - b.y);
-        if (dd < b.r * 1.25 && dd < bd) { bd = dd; best = k; }
+      const ox = p.downX, oy = p.downY;
+      if (oy < this.H * 0.28) continue;                                  // the HUD / menu area isn't a stick
+      const J = this.btn.jump;
+      if (Math.hypot(ox - J.x, oy - J.y) < J.r * 1.3) { d.jump = true; continue; }
+      const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
+      if (ox < this.W * 0.45) {                                          // MOVE stick
+        S.move = { ox, oy, vx, vy };
+        if (vx < -0.3) d.left = true; else if (vx > 0.3) d.right = true;
+        if (vy > 0.55 && Math.abs(vy) > Math.abs(vx) * 0.8) d.down = true;            // pull down: duck / drop fast
+        if (vy < -0.6 && Math.abs(vy) > Math.abs(vx) * 0.7) d.jump = true;           // push up: jump (hold for the jetpack)
+      } else {                                                           // AIM+FIRE stick: touching fires, dragging aims
+        S.aim = { ox, oy, vx, vy };
+        d.fire = true;
+        if (Math.hypot(vx, vy) > 0.35) d.aim = { x: vx, y: vy };
       }
-      if (best) d[best] = true;
     }
     const k = this.keys;
     if (k) {
@@ -1771,11 +1782,20 @@ class Level1 extends Phaser.Scene {
     const cg = this.ctrlG;
     cg.clear();
     for (const k in this.btnLabels) this.btnLabels[k].setVisible(this.touchUI);
-    if (this.touchUI) for (const k in this.btn) {
-      const b = this.btn[k];
-      const on = inp[k];
-      cg.fillStyle(0xffffff, on ? 0.38 : 0.14).fillCircle(b.x, b.y, b.r);
-      cg.lineStyle(3, 0xffffff, on ? 0.9 : 0.45).strokeCircle(b.x, b.y, b.r);
+    if (this.touchUI && this.btn) {
+      const stick = (rest, live) => {                       // base ring where the thumb landed (or a ghost at rest) + the knob
+        const bx = live ? live.ox : rest.x, by = live ? live.oy : rest.y;
+        cg.fillStyle(0xffffff, live ? 0.12 : 0.06).fillCircle(bx, by, rest.r);
+        cg.lineStyle(3, 0xffffff, live ? 0.6 : 0.25).strokeCircle(bx, by, rest.r);
+        const kx = bx + (live ? live.vx * rest.r * 0.75 : 0), ky = by + (live ? live.vy * rest.r * 0.75 : 0);
+        cg.fillStyle(0xffffff, live ? 0.5 : 0.18).fillCircle(kx, ky, rest.r * 0.42);
+        cg.lineStyle(2, 0x1a1020, live ? 0.6 : 0.2).strokeCircle(kx, ky, rest.r * 0.42);
+      };
+      stick(this.btn.move, this.sticks.move);
+      stick(this.btn.aim, this.sticks.aim);
+      const J = this.btn.jump, on = inp.jump;
+      cg.fillStyle(0xffffff, on ? 0.38 : 0.14).fillCircle(J.x, J.y, J.r);
+      cg.lineStyle(3, 0xffffff, on ? 0.9 : 0.45).strokeCircle(J.x, J.y, J.r);
     }
 
     // boss health bar
