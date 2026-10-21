@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.27';
+const BUILD = 'v0.28';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -104,6 +104,24 @@ class Level1 extends Phaser.Scene {
       const s = this.add.image(0, 0, 'blob').setDepth(0).setTint(dust[i % dust.length]).setAlpha(Math.min(0.6, rnd(0.16, 0.32) * this.def.dustAlpha)).setScale(rnd(1.0, 2.4) * (this.levelId === 2 ? 1.5 : 1));
       this.bgStars.push({ s, a: a + 0.8, r: 0.25 + rnd(0, 0.5) + Math.sin(a * 2) * 0.1, k: 0.08, dust: true });
     }
+    if (this.def.bgDecor === 'cosmic') {               // level 1: spiral galaxies, black holes, ringed planets at different depths
+      const gcol = [0x7ab8ff, 0xff7ad8, 0xb48aff, 0x6affe0];
+      for (let i = 0; i < 7; i++) {
+        const s = this.add.image(0, 0, 'c_galaxy').setDepth(0).setTint(gcol[i % 4]).setAlpha(rnd(0.8, 1)).setScale(rnd(1.0, 2.0)).setBlendMode(Phaser.BlendModes.ADD).setRotation(rnd(-0.6, 0.6));
+        this.bgStars.push({ s, a: i * TAU / 7 + rnd(-0.2, 0.2), r: rnd(0.3, 0.9), k: rnd(0.04, 0.09), rv: rnd(0.04, 0.1) * (i % 2 ? 1 : -1) });
+      }
+      for (let i = 0; i < 2; i++) {
+        const a = i * Math.PI + rnd(0.6, 1.4), r = rnd(0.45, 0.85), k = rnd(0.1, 0.14), sc = rnd(0.9, 1.4);
+        const d = this.add.image(0, 0, 'c_disk').setDepth(0).setScale(sc).setBlendMode(Phaser.BlendModes.ADD);
+        const h = this.add.image(0, 0, 'c_hole').setDepth(0).setScale(sc);
+        this.bgStars.push({ s: d, a, r, k, rv: 0.6 });
+        this.bgStars.push({ s: h, a, r, k, pulse: rnd(0, 6), bsc: sc });
+      }
+      for (let i = 0; i < 3; i++) {
+        const s = this.add.image(0, 0, 'c_ringed').setDepth(0).setScale(rnd(0.5, 1.0)).setRotation(rnd(-0.4, 0.4)).setTint([0xffffff, 0x9fd8ff, 0xffb0e0][i]);
+        this.bgStars.push({ s, a: i * TAU / 3 + 1, r: rnd(0.3, 0.8), k: rnd(0.16, 0.24) });
+      }
+    }
     for (let i = 0; i < 200; i++) {
       const s = this.add.image(0, 0, 'bgstar').setDepth(0).setAlpha(rnd(0.15, 0.45)).setScale(rnd(0.4, 0.8));
       this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.15 });
@@ -117,6 +135,14 @@ class Level1 extends Phaser.Scene {
       this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0, 1), k: 0.7, tw: rnd(0, 6) });
     }
     for (const b of this.bgStars) if (!b.dust && this.def.starTint !== 0xffffff) b.s.setTint(this.def.starTint);
+    if (this.def.bgDecor === 'cosmic') {               // chunky coloured stars, nearer and faster, spinning and twinkling
+      const scol = [0xffd23f, 0x5ce1ff, 0xff6ad5, 0x7dff8a, 0xffffff, 0xff9a3a];
+      for (let i = 0; i < 34; i++) {
+        const near = i < 12;
+        const s = this.add.image(0, 0, 'c_star').setDepth(0).setTint(scol[i % scol.length]).setScale(near ? rnd(0.8, 1.3) : rnd(0.35, 0.7));
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: near ? rnd(0.75, 0.95) : rnd(0.4, 0.55), rv: rnd(-0.8, 0.8), tws: rnd(0, 6), bsc: s.scale });
+      }
+    }
     if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
       for (let i = 0; i < 40; i++) {
         const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
@@ -143,6 +169,16 @@ class Level1 extends Phaser.Scene {
       const spr = this.add.image(0, 0, 'hole').setDepth(2).setTint(this.def.decorTint).setAlpha(rnd(0.5, 1) * this.def.decorAlpha);
       spr.bsx = spr.bsy = rnd(0.5, 2.2);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
+    }
+
+    // bubbling lava craters (level 1): glowing pools that spit droplets now and then
+    this.lavas = [];
+    for (let i = 0; i < (this.def.lava || 0); i++) {
+      const theta = i * TAU / this.def.lava + rnd(0.1, 0.4);
+      const glow = this.add.image(0, 0, 'lava_glow').setDepth(2).setBlendMode(Phaser.BlendModes.ADD);
+      const pool = this.add.image(0, 0, 'lava_pool').setDepth(2.2);
+      pool.bsx = glow.bsx = rnd(0.9, 1.4);
+      this.lavas.push({ theta, pool, glow, cd: rnd(0.5, 3), ph: rnd(0, 6) });
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -1121,6 +1157,16 @@ class Level1 extends Phaser.Scene {
   }
 
   updateParticles(dt) {
+    for (const L of (this.lavas || [])) {
+      L.cd -= dt;
+      if (L.cd <= 0) {
+        L.cd = rnd(1.2, 3.5);
+        if (Math.abs(angDiff(L.theta, this.pl.theta)) < 1.2) {
+          const n = 3 + Math.floor(Math.random() * 4);
+          for (let i = 0; i < n; i++) this.parts.push({ theta: L.theta, h: 2, vt: rnd(-70, 70), vh: rnd(180, 360), life: rnd(0.8, 1.2), spr: this.add.image(0, 0, 'lava_drop').setDepth(2.4) });
+        }
+      }
+    }
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i];
       p.theta = wrap(p.theta + (p.vt / R) * dt);
@@ -1186,10 +1232,12 @@ class Level1 extends Phaser.Scene {
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
     const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
-      const a = b.a - this.unw * b.k, rr = r0 + b.r * span;
+      const a = b.a - (this.unw + this.t * 0.03) * b.k, rr = r0 + b.r * span;     // drifts slowly even when standing still
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
       if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
       if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
+      if (b.tws !== undefined) b.s.setScale(b.bsc * (0.75 + 0.3 * Math.sin(this.t * 2.2 + b.tws)));
+      if (b.pulse !== undefined) b.s.setScale(b.bsc * (1 + 0.08 * Math.sin(this.t * 3 + b.pulse)));
     }
     // the odd shooting star
     const dtS = this.lastDt || 0.016;
@@ -1219,6 +1267,10 @@ class Level1 extends Phaser.Scene {
     for (const zs of this.zoneSprs) { this.place(zs.spr, zs.theta, zs.h + Math.sin(this.t * 0.9 + zs.ph) * 12, 0); zs.spr.setAlpha(0.2 + 0.1 * Math.sin(this.t * 1.3 + zs.ph)); }
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
+    for (const L of this.lavas) {
+      this.place(L.glow, L.theta, -2, 0); this.place(L.pool, L.theta, -6, 0);
+      L.glow.setAlpha(0.55 + 0.35 * Math.sin(this.t * 4 + L.ph));
+    }
     for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 1, 0);
     for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
 

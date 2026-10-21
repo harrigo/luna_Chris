@@ -142,3 +142,7 @@ planet surface tiles/props, then cutscene backgrounds.
 - Title / "tap to start" screen uses painted key art (`assets/title.jpg`, 1024x572) with code effects layered on top in `IntroScene.buildTitleArt()`: slow drift + zoom, flickering muzzle glow and sparks at the drill, macaroni spraying out, steam from the hopper, jet-boot flames, pulsing UFO beam, twinkling stars, bottom shade for the logo. The logo slams in and wobbles. The art fades out when the story starts.
 - Effect positions are in the art's own pixels, so swapping in a new picture means updating those coordinates.
 - To make Chris himself move (arm recoil, breathing), the art would need to be split into layers (background / Chris / gun / UFO).
+
+## v0.28 Level 1 cosmic sky
+- Bright blue-violet sky gradient. Deep-space layer (`bgDecor: 'cosmic'`): spiral galaxies, two black holes (spinning accretion swirl + pulsing core), ringed planets, then chunky outlined 5-point stars in six colours, spinning and twinkling. Each layer has its own parallax speed and the whole sky drifts slowly even when standing still.
+- Bubbling cheese-lava craters on the surface (`lava: 9`): glowing pools that spit droplets when near the player.

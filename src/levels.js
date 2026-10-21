@@ -20,7 +20,7 @@ const LEVELS = {
   1: {
     id: 1, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
-    radius: 420, sky: [0x0b1020, 0x1b1245], bg: '#0b1020', starTint: 0xffffff, dustAlpha: 1, bgDecor: null,
+    radius: 420, sky: [0x111a6a, 0x4a2296], bg: '#111a6a', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTex: 'ledge1',
@@ -336,6 +336,54 @@ function makeLevelTextures(scene) {
     g.fillStyle(0xffd23f, 1).fillRect(2, 11, 26, 5);
   });
   mk('p_cone', 14, 16, g => { g.fillStyle(OUT, 1).fillTriangle(0, 16, 7, 0, 14, 16); g.fillStyle(0xff8a2a, 1).fillTriangle(2, 15, 7, 3, 12, 15); g.fillStyle(0xffffff, 1).fillRect(4, 9, 6, 2); });
+  // ---- level 1 "cosmic" sky: chunky 16-bit space stuff (white parts are tinted at runtime)
+  const star5 = (g, cx, cy, ro, ri) => {
+    const pts = [];
+    for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? ri : ro; pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }); }
+    return pts;
+  };
+  mk('c_star', 26, 26, g => {
+    g.fillStyle(OUT, 1).fillPoints(star5(g, 13, 14, 13, 6), true);
+    g.fillStyle(0xffffff, 1).fillPoints(star5(g, 13, 14, 9.5, 4.2), true);
+  });
+  const spiral = (g, cx, cy, arms, col, maxR) => {
+    for (let arm = 0; arm < arms; arm++) {
+      for (let i = 0; i < 70; i++) {
+        const t = i / 70, a = arm * (Math.PI * 2 / arms) + t * 4.2, r = 4 + t * maxR;
+        g.fillStyle(col, (1 - t) * 0.85).fillCircle(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.62, 6 * (1 - t) + 1.5);
+      }
+    }
+  };
+  mk('c_galaxy', 120, 90, g => {
+    spiral(g, 60, 45, 2, 0xffffff, 54);
+    g.fillStyle(0xffffff, 1).fillEllipse(60, 45, 20, 13);
+  });
+  mk('c_disk', 120, 90, g => {                     // black hole accretion swirl (orange, not tinted)
+    spiral(g, 60, 45, 3, 0xff8a2a, 52);
+    spiral(g, 60, 45, 3, 0xffd23f, 30);
+  });
+  mk('c_hole', 40, 30, g => {
+    g.fillStyle(0x6a2aff, 0.5).fillEllipse(20, 15, 40, 28);
+    g.fillStyle(0x000000, 1).fillEllipse(20, 15, 28, 19);
+  });
+  mk('c_ringed', 90, 56, g => {
+    g.lineStyle(9, OUT, 1).strokeEllipse(45, 30, 84, 22);
+    g.lineStyle(5, 0xffd9a8, 1).strokeEllipse(45, 30, 84, 22);
+    g.fillStyle(OUT, 1).fillCircle(45, 28, 22);
+    g.fillStyle(0xff9a5a, 1).fillCircle(45, 28, 19);
+    g.fillStyle(0xe0603a, 1).fillRect(28, 20, 34, 5).fillRect(27, 31, 36, 4);
+    g.fillStyle(0xffd0a0, 1).fillCircle(37, 20, 5);
+    g.lineStyle(5, 0xffd9a8, 1).beginPath().arc(45, 30, 42, 0.15, Math.PI - 0.15).strokePath();   // front of the ring
+  });
+  // bubbling cheese-lava crater on the moon's surface + its droplets
+  mk('lava_pool', 76, 22, g => {
+    g.fillStyle(OUT, 1).fillEllipse(38, 11, 76, 22);
+    g.fillStyle(0xb06a10, 1).fillEllipse(38, 11, 70, 17);
+    g.fillStyle(0xff7a1a, 1).fillEllipse(38, 12, 56, 11);
+    g.fillStyle(0xffd23f, 1).fillEllipse(34, 11, 30, 5);
+  });
+  mk('lava_glow', 90, 50, g => { for (let i = 0; i < 8; i++) g.fillStyle(0xff9a2a, 0.08).fillEllipse(45, 25, 90 - i * 10, 50 - i * 5.5); });
+  mk('lava_drop', 10, 10, g => { g.fillStyle(OUT, 1).fillCircle(5, 5, 5); g.fillStyle(0xff8a1a, 1).fillCircle(5, 5, 3.6); g.fillStyle(0xffe27a, 1).fillCircle(4, 4, 1.6); });
   // big background gear for the industrial level
   mk('gear', 180, 180, g => {
     g.fillStyle(0xffffff, 1);
