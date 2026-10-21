@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.53';
+const BUILD = 'v0.54';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -43,7 +43,7 @@ const WEAPONS = [
     interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot',
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    beam: true, range: 330, drain: 0.45, tick: 0.1, dmg: 1.5, sfx: 'shoot',             // a constant stream: ~2.2s per tank, 15 damage/s to everything in line
+    beam: true, range: 200, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
     blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } }
 ];
 CFG.allWeapons = true;
@@ -293,6 +293,7 @@ class Level1 extends Phaser.Scene {
     // particle emitters (screen space; positions come from screenPos())
     this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
     this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    this.fxNoodle = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 650 }, speedX: { min: -30, max: 30 }, speedY: { min: 10, max: 60 }, gravityY: 500, scale: { start: 1.3, end: 0.4 }, tint: [0xffd23f, 0xffb52a, 0xffe27a], emitting: false }).setDepth(8);
     this.fxRatJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 220, max: 420 }, speedY: { min: 30, max: 80 }, speedX: { min: -14, max: 14 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(4.8);
     this.fxGlint = this.add.particles(0, 0, 'spark', { lifespan: { min: 350, max: 700 }, speed: { min: 5, max: 40 }, scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 }, tint: 0xfff3a0, blendMode: 'ADD', emitting: false }).setDepth(9);
     this.buildHud();
@@ -952,8 +953,9 @@ class Level1 extends Phaser.Scene {
       if (e.hp <= 0) continue;
       const a = angDiff(e.theta, B.t0) * B.dir;
       if (a < -e.r / R || a > B.span) continue;
-      if (Math.abs(e.h + e.ch - B.gh) > e.r + B.band) continue;
-      e.hp -= W.dmg; hitAny = true;
+      const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
+      if (Math.abs(e.h + e.ch - (B.gh - sag)) > e.r + B.band) continue;
+      e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
     }
@@ -965,18 +967,24 @@ class Level1 extends Phaser.Scene {
     g.clear();
     const P = this.pl;
     if (!P.beamOn) return;
-    const B = this.beamGeom(this.weapon), z = this.zoom, pts = [];
-    const n = 40, thick = P.power > 0 ? 1.6 : 1;
+    const W = this.weapon, B = this.beamGeom(W), z = this.zoom, pts = [];
+    const n = 36, thick = P.power > 0 ? 1.6 : 1, solid = Math.round(n * 0.62);
     for (let i = 0; i <= n; i++) {
       const f = i / n, th = wrap(B.t0 + B.dir * B.span * f);
-      const wv = (Math.sin(this.t * 34 - f * 22) * (3 + f * 5) + Math.sin(this.t * 11 + f * 7) * 2) * Math.min(1, f * 6);   // wobbly noodle, pinned at the nozzle, looser towards the end
-      pts.push(this.screenPos(th, B.gh + wv));
+      const wv = (Math.sin(this.t * 34 - f * 22) * (2 + f * 4) + Math.sin(this.t * 11 + f * 7) * 1.5) * Math.min(1, f * 6);   // wobbly, pinned at the nozzle
+      pts.push(this.screenPos(th, B.gh + wv - f * f * (W.droop || 0)));                                                        // droops under its own weight
     }
     if (this.muzzle) { pts[0] = { x: this.muzzle.x, y: this.muzzle.y }; }
-    const line = (w, c, a) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, a); g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath(); };
-    line(9, 0x1a1020, 1); line(6, 0xffb52a, 1); line(3, 0xffe27a, 1);
-    for (let i = 3; i < n; i += 6) { const p = pts[i]; g.fillStyle(0xfff4c4, 1).fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2); }   // glints
-    const end = pts[n]; if (Math.random() < 0.5) this.fxBang.emitParticleAt(end.x, end.y, 1);                                          // splatter at the tip
+    const strand = (a, b, w, c) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, 1); g.beginPath(); g.moveTo(pts[a].x, pts[a].y); for (let i = a + 1; i <= b; i++) g.lineTo(pts[i].x, pts[i].y); g.strokePath(); };
+    const seg = (a, b, sc) => { strand(a, b, 9 * sc, 0x1a1020); strand(a, b, 6 * sc, 0xffb52a); strand(a, b, 3 * sc, 0xffe27a); };
+    seg(0, solid, 1);                                                                                                  // the solid stream
+    const flick = Math.floor(this.t * 20);
+    for (let i = solid + 1, k = 0; i < n; i += 2, k++) {                                                               // then it breaks up into bits
+      if ((i + flick) % 5 === 0) continue;                                                                             // gaps flicker as it crumbles
+      seg(i, Math.min(n, i + 1), Math.max(0.45, 1 - k * 0.12));
+    }
+    for (let i = 3; i < solid; i += 6) { const p = pts[i]; g.fillStyle(0xfff4c4, 1).fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2); }   // glints
+    for (let k = 0; k < 2; k++) { const p = pts[solid + Math.floor(Math.random() * (n - solid))]; this.fxNoodle.emitParticleAt(p.x, p.y, 1); }   // crumbs falling off the end
   }
 
   jetFlames(n) {
