@@ -66,6 +66,7 @@ const Pad = (() => {
     return null;
   }
   function pulse(ms, strong, weak) {
+    if (typeof Settings !== 'undefined' && !Settings.rumble) return;
     const gp = pad(); if (!gp) return;
     ms = Math.max(90, ms);                                     // very short pulses are hard to feel on Xbox pads
     const act = gp.vibrationActuator;

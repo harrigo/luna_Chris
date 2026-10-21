@@ -414,12 +414,14 @@ class SelectScene extends Phaser.Scene {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
     if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => this.go(i + 1)));
+    if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
     this.selG = this.add.graphics().setDepth(2);
     const padOff = Pad.on(b => {
       if (b === 'left' || b === 'right') { this.sel = Phaser.Math.Wrap(this.sel + (b === 'left' ? -1 : 1), 1, 4); this.showSel = true; Sound.sfx('jump'); }
       else if (b === 'a' || b === 'start') this.go(this.sel);
+      else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
       else this.showSel = true;
     });
     this.events.once('shutdown', padOff);
@@ -463,6 +465,9 @@ class SelectScene extends Phaser.Scene {
     }
     this.cardRects = [];
     for (let i = 1; i <= 3; i++) this.cardRects[i] = { x: x0 + (i - 1) * (cw + gap), y: y0, w: cw, h: ch };
+    const back = this.add.text(12, 12, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
+    back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
+    this.ui.add(back);
     this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
   }
 

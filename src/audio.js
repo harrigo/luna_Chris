@@ -402,6 +402,7 @@ const Sound = (() => {
     pause(on) { if (musicBus) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.5, ctx.currentTime, 0.05); if (on) jet(false); },
     jingle: music,
     isMuted: () => muted,
+    setMuted,
     // test helpers
     _rms: () => {
       if (!analyser) return -1;

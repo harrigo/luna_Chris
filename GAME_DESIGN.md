@@ -223,3 +223,14 @@ planet surface tiles/props, then cutscene backgrounds.
 - v0.60 move stick: pushing up past ~45% jumps; pushing to the top (~90%) lights the jetpack immediately (no hold delay), and works on diagonals so you can fly while steering.
 - v0.61 belly reduced to a slight overhang: a thin crescent of skin (22x9) peeking out under the front of the hem with a shadow crease, navel and shine; smaller jiggle.
 - v0.62 chef's hat band is curved (bows down in the middle as it wraps round the helmet); the pleats follow the curve.
+
+### v0.63 — Main menu, pause menu and settings
+- After the title: a main menu with PLAY and OPTIONS. Level select has a "< MENU" back button (ESC / B work too).
+- Pause (START / P / ESC / PAUSE button) opens a menu: RESUME, the options, and QUIT TO MENU.
+- Options, saved on the device:
+  - GRAPHICS: HIGH = glow + light halos + heat haze; MEDIUM = light halos only; LOW = no effects. `?lowfx` forces LOW.
+  - SOUND on/off.
+  - SCREEN SHAKE on/off.
+  - RUMBLE on/off.
+- Menus work by touch, keyboard (arrows/WASD, Enter/Space) and controller (d-pad, A, B).
+- In menus, left/right change a setting and select toggles it.

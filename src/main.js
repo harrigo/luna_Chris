@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.62';
+const BUILD = 'v0.63';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -50,8 +50,8 @@ const WEAPONS = [
     blurb: 'Lobs fat balls of Swiss that burst in a cheesy blast. Hits groups and over cover.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
-CFG.fx = !/[?&]lowfx/.test(location.search);      // glow / light effects (add ?lowfx to the URL to turn them off on slow phones)
-const glowFx = (obj, col, strength, dist) => { try { if (CFG.fx && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
+// graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
+const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { try { if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } }
@@ -60,6 +60,7 @@ const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || 
 
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble
+  if (typeof Settings !== 'undefined' && !Settings.rumble) return;
   try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ }
   try { if (typeof Pad !== 'undefined' && Pad.state.connected) Pad.rumble(p); } catch (e) { /* not supported */ }
 };
@@ -117,6 +118,7 @@ class Level1 extends Phaser.Scene {
     this.nap = null;
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
+    { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
@@ -323,7 +325,7 @@ class Level1 extends Phaser.Scene {
     if (this.input.keyboard) ['P', 'ESC'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (this.state === 'play' || this.state === 'rescue' || this.paused) this.togglePause(); }));
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
-      if (this.paused) { this.togglePause(); return; }
+      if (this.paused) return;                          // taps go to the pause menu
       if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
@@ -336,7 +338,7 @@ class Level1 extends Phaser.Scene {
     const padOff = Pad.on(b => {
       if (b === 'back') { this.scene.start('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
-      if (this.paused) { if (b === 'a') this.togglePause(); return; }
+      if (this.paused) return;                          // the pause menu handles its own buttons
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
@@ -773,8 +775,20 @@ class Level1 extends Phaser.Scene {
     this.time.paused = this.paused;
     if (this.paused) this.tweens.pauseAll(); else this.tweens.resumeAll();
     Sound.pause(this.paused);
-    this.pauseText.setVisible(this.paused);
-    this.pauseHint.setVisible(this.paused);
+    if (this.paused) {
+      this.pauseMenu = makeMenu(this, { title: 'PAUSED', depth: 40, items: [
+        { label: () => 'RESUME', act: d => { if (!d) this.togglePause(); } },
+        ...optionItems(() => this.applyGfx()),
+        { label: () => 'QUIT TO MENU', act: d => { if (!d) { this.togglePause(); this.scene.start('menu'); } } }
+      ] });
+    } else if (this.pauseMenu) { this.pauseMenu.destroy(); this.pauseMenu = null; }
+  }
+
+  // graphics setting changed mid-level: drop shader glows if they're now off (lights follow the setting live)
+  applyGfx() {
+    if (!Settings.glow) {
+      for (const o of this.children.list) { try { if (o.preFX) o.preFX.clear(); if (o.postFX) o.postFX.clear(); } catch (e) { /* ignore */ } }
+    }
   }
 
   readInput() {
@@ -990,9 +1004,9 @@ class Level1 extends Phaser.Scene {
   }
 
   // ---------------------------------------------------------------- modern FX layer
-  camKick(x, y) { this.kick.vx += x * 22; this.kick.vy += y * 22; }          // directional camera knock (springs back)
-  camPunch(a) { this.punch = Math.max(this.punch, a); }                        // quick zoom-in punch on big impacts
-  addLight(theta, h, r, col, a, life) { if (CFG.fx && this.lights.length < 30) this.lights.push({ theta, h, r, col, a, life, max: life }); }
+  camKick(x, y) { if (Settings.shake) { this.kick.vx += x * 22; this.kick.vy += y * 22; } }          // directional camera knock (springs back)
+  camPunch(a) { if (Settings.shake) this.punch = Math.max(this.punch, a); }                        // quick zoom-in punch on big impacts
+  addLight(theta, h, r, col, a, life) { if (Settings.lights && this.lights.length < 30) this.lights.push({ theta, h, r, col, a, life, max: life }); }
   fxTick(dt) {
     const K = this.kick;                                                         // spring the camera kick back to centre
     K.vx += (-K.x * 260 - K.vx * 18) * dt; K.vy += (-K.y * 260 - K.vy * 18) * dt;
@@ -1006,7 +1020,7 @@ class Level1 extends Phaser.Scene {
   }
   // soft additive light halos (the "next-gen" layer over the pixel art): brightens whatever is near a light source
   drawLights() {
-    if (!CFG.fx) return;
+    if (!Settings.lights) { for (const im of this.lightPool) im.setVisible(false); return; }
     if (!this.textures.exists('halo')) {
       const t = this.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
@@ -1097,7 +1111,7 @@ class Level1 extends Phaser.Scene {
     this.reapEnemies();
   }
   drawBeam() {
-    if (!this.beamG) { this.beamG = this.add.graphics().setDepth(8); try { if (CFG.fx && this.beamG.postFX) this.beamG.postFX.addGlow(0xffd23f, 2, 0, false, 0.1, 8); } catch (e) { /* ignore */ } }
+    if (!this.beamG) { this.beamG = this.add.graphics().setDepth(8); try { if (Settings.glow && this.beamG.postFX) this.beamG.postFX.addGlow(0xffd23f, 2, 0, false, 0.1, 8); } catch (e) { /* ignore */ } }
     const g = this.beamG;
     g.clear();
     const P = this.pl;
@@ -1862,7 +1876,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, SelectScene, WeaponScene, Level1]
+  scene: [IntroScene, MenuScene, SelectScene, WeaponScene, Level1]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

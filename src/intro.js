@@ -567,6 +567,6 @@ class IntroScene extends Phaser.Scene {
     this.leaving = true;
     Sound.music(null);
     this.cameras.main.fadeOut(350, 0, 0, 0);
-    this.time.delayedCall(380, () => this.scene.start('select'));
+    this.time.delayedCall(380, () => this.scene.start('menu'));
   }
 }
