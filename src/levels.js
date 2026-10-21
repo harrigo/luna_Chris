@@ -727,3 +727,31 @@ function makeSkyDither(scene, key, w, h, cols) {
     }
   });
 }
+
+// ---------------------------------------------------------------- 16-bit HUD icons
+function makeHudTextures(scene) {
+  const OUTC = 0x1a1020;
+  const wedge = (key, light, mid, holes) => pixTex(scene, key, 13, 10, put => {
+    const inside = (x, y) => y >= 1 && y <= 9 && x >= 0 && x <= Math.floor(1 + (y - 1) * 1.45);
+    for (let y = 0; y < 10; y++) for (let x = 0; x < 13; x++) {
+      if (!inside(x, y)) continue;
+      const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+      put(x, y, edge ? OUTC : (y < 4 ? light : mid));
+    }
+    if (holes) for (const [x, y] of [[3, 6], [6, 7], [2, 4], [7, 5]]) put(x, y, holes);
+  });
+  wedge('hud_cheese', 0xfff09a, 0xffcf3a, 0xc9901a);
+  wedge('hud_cheese_off', 0x5a4a6a, 0x3a2e4a, 0x2a2036);
+  const elbow = (key, c1, c2) => pixTex(scene, key, 9, 8, put => {
+    const inR = (x, y) => { const d = Math.hypot(x + 0.5 - 1, y + 0.5 - 7.5); return x >= 1 && y <= 7 && d >= 3 && d <= 7; };
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 9; x++) {
+      if (!inR(x, y)) continue;
+      const edge = !inR(x - 1, y) || !inR(x + 1, y) || !inR(x, y - 1) || !inR(x, y + 1);
+      put(x, y, edge ? OUTC : (Math.hypot(x - 1, y - 7.5) > 5 ? c1 : c2));
+    }
+  });
+  elbow('hud_mac', 0xffe27a, 0xffa21a);
+  elbow('hud_mac_off', 0x4a3e5a, 0x3a2e4a);
+  elbow('hud_mac_hot', 0xff7a6a, 0xd0302a);
+  elbow('hud_mac_gold', 0xfffbe0, 0xffd23f);
+}

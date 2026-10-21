@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.32';
+const BUILD = 'v0.33';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -91,6 +91,7 @@ class Level1 extends Phaser.Scene {
     this.nap = null;
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null;
+    this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -361,16 +362,24 @@ class Level1 extends Phaser.Scene {
     };
     for (const k in this.btn) this.btnLabels[k].setPosition(this.btn[k].x, this.btn[k].y);
 
-    this.waveText.setPosition(W / 2, 10);
+    this.waveText.setPosition(W / 2, 4);
+    this.scoreText.setPosition(W / 2, 26);
+    if (this.portrait) this.portrait.setPosition(10, 10);
+    this.nameText.setPosition(66, 8);
+    this.cheeseIcons.forEach((c, i) => c.setPosition(66 + i * 28, 20));
+    this.macIcons.forEach((c, i) => c.setPosition(96 + i * 20, 61));
+    this.hud = { dx0: W - 262, dx1: W - 74, dy: 24 };
+    this.distText.setPosition(this.hud.dx0, 8);
+    this.cowIcon.setPosition(this.hud.dx1 + 14, this.hud.dy + 1);
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
-    this.jetText.setPosition(12, 40);
-    this.macText.setPosition(12, 56);
+    this.jetText.setPosition(66, 46);
+    this.macText.setPosition(66, 63);
     this.menuText.setPosition(W - 10, 58);
     this.pauseBtnText.setPosition(W - 10, 94);
     this.pauseText.setPosition(W / 2, H * 0.42);
     this.pauseHint.setPosition(W / 2, H * 0.42 + 34);
     this.zoneText.setPosition(W / 2, 52);
-    this.fpsText.setPosition(12, 74);
+    this.fpsText.setPosition(10, 66);
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
     this.ovBody.setFontSize(this.landscape ? '9px' : '10px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
@@ -378,11 +387,21 @@ class Level1 extends Phaser.Scene {
 
   buildHud() {
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
-    this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d', { fontFamily: 'monospace', fontStyle: 'bold' })).setDepth(20);
-    this.waveText = this.add.text(0, 0, '', f(10, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
-    this.fpsText = this.add.text(0, 0, '', f(8, '#6b7390')).setDepth(20);
-    this.jetText = this.add.text(0, 0, 'JET', f(9, '#9fd8ff')).setDepth(20);
-    this.macText = this.add.text(0, 0, 'MAC', f(9, '#ffc36a')).setDepth(20);
+    makeHudTextures(this);
+    const ink = { stroke: '#1a1020', strokeThickness: 3 };
+    this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d', { fontFamily: 'monospace', fontStyle: 'bold' })).setDepth(20).setVisible(false);
+    this.waveText = this.add.text(0, 0, '', f(16, '#ffd23f', { stroke: '#1a1020', strokeThickness: 5 })).setOrigin(0.5, 0).setDepth(20);
+    this.scoreText = this.add.text(0, 0, 'SCORE: 0000000', f(9, '#ffffff', ink)).setOrigin(0.5, 0).setDepth(20);
+    this.fpsText = this.add.text(0, 0, '', f(6, '#6b7390')).setDepth(20);
+    this.nameText = this.add.text(0, 0, 'CHRIS', f(9, '#ffd23f', ink)).setDepth(20);
+    this.jetText = this.add.text(0, 0, 'JET', f(8, '#9fd8ff', ink)).setDepth(20);
+    this.macText = this.add.text(0, 0, 'MAC', f(8, '#ffc36a', ink)).setDepth(20);
+    this.portrait = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setOrigin(0).setScale(1.5).setDepth(20.5) : null;
+    this.cheeseIcons = []; for (let i = 0; i < CFG.maxHp; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
+    this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
+    this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(7, '#ffffff', ink)).setDepth(20);
+    this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
+    this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.42).setDepth(20.6) : null;
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
     this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
     this.pauseText = this.add.text(0, 0, 'PAUSED', f(26, '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5).setDepth(32).setVisible(false);
@@ -428,12 +447,14 @@ class Level1 extends Phaser.Scene {
     this.tweens.add({ targets: this.bannerText, alpha: 0, delay: 1400, duration: 500 });
   }
 
+  addScore(n) { this.score += n; }
+
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
-    this.heartsText.setText('♥'.repeat(hp) + '♡'.repeat(CFG.maxHp - hp));
-    if (this.bonusHeart) {                 // the cheeseburger heart sits after the hearts
-      if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.8);
-      this.burgerIcon.setPosition(12 + this.heartsText.width + 20, 20);
+    this.cheeseIcons.forEach((c, i) => c.setTexture(i < hp ? 'hud_cheese' : 'hud_cheese_off'));
+    if (this.bonusHeart) {                 // the cheeseburger heart sits after the cheese wedges
+      if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.55);
+      this.burgerIcon.setPosition(66 + CFG.maxHp * 28 + 12, 30);
     }
   }
 
@@ -526,7 +547,7 @@ class Level1 extends Phaser.Scene {
         r.got = true;
         this.actors.splice(this.actors.indexOf(b), 1); b.spr.destroy();
         this.burst(P.theta, P.h + 30, 'spark', 14, 1);
-        this.bonusHeart = true;
+        this.bonusHeart = true; this.addScore(1000);
         buzz([25, 40, 25, 40, 90]);
         this.bang(P.theta, P.h + 30, 40);
         this.registry.set('bonusHeart', true);             // carried forward for Level 2
@@ -548,6 +569,8 @@ class Level1 extends Phaser.Scene {
     if (this.waveIdx >= this.waves.length) { this.win(); return; }
     const w = this.waves[this.waveIdx];
     this.queue = w.spawns.map(s => Object.assign({}, s)).sort((a, b) => a.t - b.t);
+    this.waveTotal = Math.max(1, this.queue.length);
+    if (this.waveIdx > 0) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;
     this.clearT = 0;
     this.banner(this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name);
@@ -1092,6 +1115,7 @@ class Level1 extends Phaser.Scene {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
+      this.addScore({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, boss: 5000 }[e.type] || 100);
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.big ? 30 : 14));
       if (e.type === 'boss') { this.cameras.main.flash(300, 255, 240, 180); buzz([80, 50, 80, 50, 220]); }
@@ -1181,13 +1205,14 @@ class Level1 extends Phaser.Scene {
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (p.kind === 'power') {
-          P.power = 1; P.overheat = false; P.ammo = 1;
+          P.power = 1; P.overheat = false; P.ammo = 1; this.addScore(500);
           Sound.sfx('power');
           buzz([20, 30, 20, 30, 60]);
           this.bang(P.theta, P.h + 24, 26);
           this.banner('PARMESAN POWER!');
         } else {
           if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
+          this.addScore(50);
           Sound.sfx('pickup');
           buzz(20);
         }
@@ -1412,29 +1437,49 @@ class Level1 extends Phaser.Scene {
     const boss = this.enemies.find(e => e.type === 'boss');
     if (boss) {
       const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
-      const x0 = (this.W - w) / 2, y0 = this.landscape ? 34 : 62;
+      const x0 = (this.W - w) / 2, y0 = this.landscape ? 42 : 62;
       const frac = Math.max(0, boss.hp / boss.maxHp);
       hg.fillStyle(0x000000, 0.5).fillRect(x0, y0, w, 10);
       hg.fillStyle(0xff8c1a, 1).fillRect(x0, y0, w * frac, 10);
       hg.lineStyle(2, 0xffffff, 0.8).strokeRect(x0, y0, w, 10);
     }
 
-    // jetpack fuel gauge
-    const gx = 44, gy = 40, gw = 110, gh = 10;
-    hg.fillStyle(0x000000, 0.5).fillRect(gx, gy, gw, gh);
-    hg.fillStyle(P.fuel > 0.3 ? 0x39c6ff : 0xff5a3c, 1).fillRect(gx, gy, gw * P.fuel, gh);
-    hg.lineStyle(2, 0xffffff, P.thrusting ? 1 : 0.55).strokeRect(gx, gy, gw, gh);
+    // 16-bit HUD: framed portrait, JET bar, macaroni ammo icons, distance-to-cow track, rolling score
+    const pix = (x, y, w, h, fill) => {                 // chunky framed box: dark outline, light bevel
+      hg.fillStyle(0x1a1020, 1).fillRect(x - 2, y - 2, w + 4, h + 4);
+      hg.fillStyle(0xc9cde0, 1).fillRect(x - 1, y - 1, w + 2, h + 2);
+      hg.fillStyle(fill, 1).fillRect(x, y, w, h);
+    };
+    if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);
+    const flash = Math.floor(this.t * 8) % 2;
+    const gx = 96, gy = 46, gw = 136, gh = 8;
+    pix(gx, gy, gw, gh, 0x0c0a24);
+    const fc = P.fuel > 0.3 ? 0x39c6ff : (flash ? 0xff5a3c : 0xa02a1a);
+    hg.fillStyle(fc, 1).fillRect(gx, gy, Math.round(gw * P.fuel), gh);
+    hg.fillStyle(0xffffff, 0.45).fillRect(gx, gy + 1, Math.round(gw * P.fuel), 2);             // shine stripe
+    for (let x = gx + 12; x < gx + gw; x += 12) hg.fillStyle(0x0c0a24, 0.6).fillRect(x, gy, 1, gh);   // segment ticks
+    const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
+    this.macIcons.forEach((m, i) => m.setTexture(P.power > 0 ? (flash ? 'hud_mac_gold' : 'hud_mac') : P.overheat ? (flash ? 'hud_mac_hot' : 'hud_mac_off') : (i < lit ? 'hud_mac' : 'hud_mac_off')));
 
-    // Mac-Laster pasta gauge (gold with a countdown while the Parmesan Power-Up is active, red while jammed)
-    const my = 56, flash = Math.floor(this.t * 8) % 2;
-    hg.fillStyle(0x000000, 0.5).fillRect(gx, my, gw, gh);
-    if (P.power > 0) {
-      hg.fillStyle(flash ? 0xfff3a0 : 0xffd23f, 1).fillRect(gx, my, gw, gh);
-    } else {
-      hg.fillStyle(P.overheat ? (flash ? 0xff3c3c : 0x7a1f1f) : 0xff8c1a, 1).fillRect(gx, my, gw * P.ammo, gh);
-      if (P.overheat) hg.lineStyle(1, 0xffffff, 0.9).lineBetween(gx + gw * CFG.ammoRestart, my, gx + gw * CFG.ammoRestart, my + gh);
+    // distance to the cow = progress through the level (waves, then the boss)
+    const D = this.hud, nW = this.waves.length;
+    let prog = 0;
+    if (this.state === 'rescue' || this.state === 'won') prog = 1;
+    else if (this.waveIdx >= 0) {
+      let frac = 1 - ((this.queue || []).length + this.enemies.filter(e => e.type !== 'boss').length) / this.waveTotal;
+      if (boss) frac = 1 - Math.max(0, boss.hp / boss.maxHp);
+      prog = Math.min(1, (this.waveIdx + Math.max(0, Math.min(1, frac))) / nW);
     }
-    hg.lineStyle(2, 0xffffff, 0.55).strokeRect(gx, my, gw, gh);
+    this.distProg = (this.distProg || 0) + (prog - (this.distProg || 0)) * Math.min(1, (this.lastDt || 0.016) * 3);
+    pix(D.dx0, D.dy - 2, D.dx1 - D.dx0, 5, 0x0c0a24);
+    hg.fillStyle(0xffd23f, 1).fillRect(D.dx0, D.dy - 2, Math.round((D.dx1 - D.dx0) * this.distProg), 5);
+    for (let i = 1; i < nW; i++) hg.fillStyle(0xffffff, 0.8).fillRect(Math.round(D.dx0 + (D.dx1 - D.dx0) * i / nW), D.dy - 4, 1, 9);
+    if (this.chrisMark) this.chrisMark.setPosition(D.dx0 + (D.dx1 - D.dx0) * this.distProg, D.dy);
+    this.cowIcon.setRotation(Math.sin(this.t * 2) * 0.15);
+
+    this.scoreShown += Math.ceil((this.score - this.scoreShown) * Math.min(1, (this.lastDt || 0.016) * 8));
+    if (this.scoreShown > this.score) this.scoreShown = this.score;
+    this.scoreText.setText('SCORE: ' + String(this.scoreShown).padStart(7, '0'));
     P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
   }
 }

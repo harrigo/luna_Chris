@@ -169,6 +169,7 @@ class IntroScene extends Phaser.Scene {
 
   preload() {
     this.load.image('titleArt', 'assets/title.jpg?v=1');
+    this.load.image('portrait', 'assets/portrait.png?v=1');
   }
 
   // Animated title screen: the painted key art, slowly drifting, with effects layered on top
