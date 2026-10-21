@@ -170,17 +170,23 @@ function makeTextures(scene) {
     g.lineStyle(1.5, 0xb84e00, 1).strokeEllipse(8, 4.5, 9, 4);
   });
 
-  // Crusty Croque Monsieur drop-ship
+  // Crusty Croque Monsieur drop-ship: a flying cheeseburger with cannons on both sides and a turret underneath
   pixSprite(scene, 'croque', 160, 96, a => {
-    const BREAD = [0xf0c070, 0xd9a04f, 0x9a6a2a];
-    a.poly([[38, 72], [58, 72], [48, 94]], [0xffe27a, 0xff8a1a, 0xd04a10]); a.poly([[102, 72], [122, 72], [112, 94]], [0xffe27a, 0xff8a1a, 0xd04a10]);   // thrusters
-    a.rrect(10, 52, 149, 73, 9, BREAD);                                                                         // bottom slice
-    a.rect(14, 45, 145, 52, 0xffd23f); a.rect(14, 45, 145, 46, 0xfff09a);
-    a.poly([[30, 52], [44, 52], [37, 64]], [0xfff09a, 0xffd23f, 0xd9a51a]); a.poly([[100, 52], [116, 52], [108, 67]], [0xfff09a, 0xffd23f, 0xd9a51a]); a.poly([[66, 52], [74, 52], [70, 59]], 0xffd23f);   // drips
-    a.rrect(6, 36, 153, 46, 4, [0xffc0cc, 0xff8fa3, 0xd9566f]);                                              // ham
-    a.rrect(14, 11, 145, 39, 11, BREAD);                                                                        // top slice
-    for (const [x0, y0, x1, y1] of [[28, 18, 48, 34], [66, 18, 60, 34], [104, 18, 124, 34], [126, 20, 138, 30]]) a.line([[x0, y0], [x1, y1]], 0x7a4a1a, 2);   // toast marks
-    a.rect(24, 56, 39, 63, 0x8b5a2b); a.rect(118, 58, 131, 64, 0x8b5a2b); a.px(28, 58, 0xb07a40); a.px(122, 60, 0xb07a40);   // rust
+    const BREAD = [0xf0c070, 0xd9a04f, 0x9a6a2a], STL = [0xdfe6f0, 0x8c98ab, 0x4a5262];
+    a.poly([[38, 72], [56, 72], [47, 92]], [0xffe27a, 0xff8a1a, 0xd04a10]); a.poly([[104, 72], [122, 72], [113, 92]], [0xffe27a, 0xff8a1a, 0xd04a10]);   // thrusters
+    a.rrect(70, 70, 90, 84, 4, STL); a.rect(76, 84, 84, 93, 0x4a5262); a.rect(77, 84, 83, 92, 0x8c98ab); a.rect(76, 92, 84, 93, 0x1a1020);   // belly turret
+    a.rrect(0, 50, 16, 62, 3, STL); a.rect(0, 52, 3, 60, 0x1a1020); a.rect(5, 50, 6, 62, 0x4a5262);                                // left cannon
+    a.rrect(144, 50, 160, 62, 3, STL); a.rect(157, 52, 160, 60, 0x1a1020); a.rect(154, 50, 155, 62, 0x4a5262);                      // right cannon
+    a.rrect(12, 56, 148, 74, 9, BREAD);                                                                         // bottom bun
+    a.px(30, 64, 0x8b5a2b); a.px(31, 64, 0x8b5a2b); a.px(124, 66, 0x8b5a2b);                                     // scorch
+    for (let x = 12; x < 148; x += 8) a.poly([[x, 56], [x + 4, 51], [x + 8, 56], [x + 4, 59]], [0x9aff6a, 0x4fcf4a, 0x2a8a2a]);   // lettuce frill
+    a.rrect(10, 42, 150, 56, 6, [0x9a5a2a, 0x6a3a1a, 0x3a200c]);                                               // the beef patty
+    for (let y = 44; y < 55; y++) for (let x = 12; x < 148; x++) if (((x * 7 + y * 13) % 11) === 0) a.px(x, y, 0x4a2a10);   // dithered char texture
+    for (const x of [30, 58, 86, 114]) a.line([[x, 46], [x + 10, 52]], 0x2a1608, 2);                            // grill marks
+    a.poly([[8, 36], [152, 36], [152, 44], [128, 44], [122, 54], [116, 44], [84, 44], [78, 58], [72, 44], [42, 44], [36, 52], [30, 44], [8, 44]], [0xfff09a, 0xffd23f, 0xd9a51a]);   // melting cheese slice
+    a.rect(10, 37, 150, 37, 0xfff8c0);
+    a.rrect(14, 11, 145, 39, 11, BREAD);                                                                        // top bun
+    for (const [x, y] of [[30, 16], [44, 22], [60, 15], [104, 16], [118, 23], [132, 15]]) { a.rect(x, y, x + 2, y + 1, 0xfff4d8); }   // sesame seeds
     a.ell(80, 18, 15, 15, [0xd8f4ff, 0x7fd3ff, 0x3a8ac0]);                                                    // cockpit
     a.ell(73, 13, 4, 4, 0xf49ab0); a.ell(87, 13, 4, 4, 0xf49ab0);
     a.ell(80, 21, 8, 7, [0xc4c8da, 0x868ca6, 0x5a5e78]);                                                      // rat pilot
@@ -196,6 +202,11 @@ function makeTextures(scene) {
     a.line([[80, 2], [80, 33]], 0x5a6272, 2); a.line([[67, 12], [93, 12]], 0x5a6272, 1);
   }, 2);
 
+  // the burger boss's cannon shot: a sizzling meatball
+  pixSprite(scene, 'meatball', 14, 14, a => {
+    a.ell(7, 7, 6, 6, [0xb06a3a, 0x7a3a1a, 0x4a200c]);
+    a.px(5, 5, 0xd08a5a); a.px(8, 9, 0x3a1808); a.px(4, 9, 0x3a1808); a.px(9, 4, 0xffc070);
+  });
   mk('wedge', 22, 18, g => {
     g.fillStyle(0xffd23f, 1).fillTriangle(0, 17, 22, 17, 22, 2);
     g.fillStyle(0xe3a21a, 1).fillCircle(15, 12, 2.5).fillCircle(9, 15, 1.5);

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.57';
+const BUILD = 'v0.58';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -803,6 +803,7 @@ class Level1 extends Phaser.Scene {
       if (g.jump) d.jump = true;
       if (g.fire) d.fire = true;
       if (g.down) d.down = true;
+      if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; }   // twin-stick: aiming fires
     }
     return d;
   }
@@ -842,6 +843,11 @@ class Level1 extends Phaser.Scene {
       }
     }
     if (ax !== 0) P.facing = ax;
+    if (inp.aim) {                                      // twin-stick: face and aim where the right stick points, whatever way you run
+      if (Math.abs(inp.aim.x) > 0.2) P.facing = inp.aim.x > 0 ? 1 : -1;
+      const up = Math.atan2(-inp.aim.y, Math.abs(inp.aim.x));
+      P.aimA = Math.max(-0.6, Math.min(1.25, up));
+    } else P.aimA = (P.aimA || 0) * Math.max(0, 1 - dt * 10);
 
     const hPrev = P.h;
     P.floor = this.floorAt(P.theta, P.h);
@@ -926,7 +932,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     const W = this.weapon;
     if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
-    let dx = P.facing, dy = 0;
+    let dx = P.facing * Math.cos(P.aimA || 0), dy = Math.sin(P.aimA || 0);    // aimed up/down with the right stick
     const M = this.muzzle;
     const gh = M ? M.h : P.h + (P.duck ? 22 : 40);   // shots leave the real muzzle (falls back to chest / crouch height)
     if (tgt) {
@@ -943,7 +949,7 @@ class Level1 extends Phaser.Scene {
     if (Pad.state.connected) Pad.pulse(90, 0.05, 0.3);          // a light buzz in the hands while the Mac-Grinder fires
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
-    if (W.lob) { const fc = dx >= 0 ? 1 : -1; dx = fc * Math.cos(W.angle); dy = Math.sin(W.angle); }      // the Swiss-Shot lobs upwards
+    if (W.lob) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -955,6 +961,20 @@ class Level1 extends Phaser.Scene {
         spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; if (W.lob) glowFx(im, 0xffe27a, 2, 6); return im; })()
       });
     }
+  }
+
+  // world position of a point on the boss sprite (texture pixels from its top-left), so shots leave real cannons
+  bossGun(e, tx, ty) {
+    const k = e.spr.bsx || 1, ox = tx * k, oy = -(ty - 48) * k;            // croque texture is 160x96, origin at its centre
+    const rot = e.spr.rotation - angDiff(e.theta, this.pl.theta);          // the sprite's own tilt on top of the world angle
+    const rx = ox * Math.cos(rot) + oy * Math.sin(rot), ry = -ox * Math.sin(rot) + oy * Math.cos(rot);
+    const flip = e.spr.flipX ? -1 : 1;
+    return { theta: wrap(e.theta + (rx * flip) / (R + e.h)), h: e.h + ry };
+  }
+  muzzleFlash(theta, h) {
+    const s = this.screenPos(theta, h);
+    if (s.vis) for (let i = 0; i < 6; i++) this.fxBang.emitParticleAt(s.x, s.y, 1);
+    this.addLight(theta, h, 60, 0xffa040, 0.8, 0.2);
   }
 
   // ---------------------------------------------------------------- modern FX layer
@@ -1045,8 +1065,8 @@ class Level1 extends Phaser.Scene {
   beamGeom(W) {
     const P = this.pl, dir = P.facing || 1, M = this.muzzle;
     const gh = M ? M.h : P.h + (P.duck ? 22 : 40);
-    const t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), span = W.range / (R + gh);
-    return { dir, gh, t0, span, band: P.power > 0 ? 20 : 11 };
+    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), span = W.range * Math.cos(aa) / (R + gh);
+    return { dir, gh, t0, span, rise: W.range * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
   }
   beamHit(W) {
     const B = this.beamGeom(W);
@@ -1056,7 +1076,7 @@ class Level1 extends Phaser.Scene {
       const a = angDiff(e.theta, B.t0) * B.dir;
       if (a < -e.r / R || a > B.span) continue;
       const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
-      if (Math.abs(e.h + e.ch - (B.gh - sag)) > e.r + B.band) continue;
+      if (Math.abs(e.h + e.ch - (B.gh + B.rise * f - sag)) > e.r + B.band) continue;
       e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
@@ -1075,7 +1095,7 @@ class Level1 extends Phaser.Scene {
     for (let i = 0; i <= n; i++) {
       const f = i / n, th = wrap(B.t0 + B.dir * B.span * f);
       const wv = (Math.sin(this.t * 34 - f * 22) * (2 + f * 4) + Math.sin(this.t * 11 + f * 7) * 1.5) * Math.min(1, f * 6);   // wobbly, pinned at the nozzle
-      pts.push(this.screenPos(th, B.gh + wv - f * f * (W.droop || 0)));                                                        // droops under its own weight
+      pts.push(this.screenPos(th, B.gh + B.rise * f + wv - f * f * (W.droop || 0)));                                                        // droops under its own weight
     }
     if (this.muzzle) { pts[0] = { x: this.muzzle.x, y: this.muzzle.y }; }
     const strand = (a, b, w, c) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, 1); g.beginPath(); g.moveTo(pts[a].x, pts[a].y); for (let i = a + 1; i <= b; i++) g.lineTo(pts[i].x, pts[i].y); g.strokePath(); };
@@ -1293,18 +1313,22 @@ class Level1 extends Phaser.Scene {
         e.fanCd -= dt;
         e.sumCd -= dt;
         if (e.ai === 'croque') {
-          if (e.rainCd <= 0) {          // hot ham rain
-            e.rainCd = phase2 ? 0.5 : 0.8;
-            this.addEBullet('ham', P.theta + rnd(-0.22, 0.22), 300, rnd(-40, 40), -300, 13, 2);
+          if (e.rainCd <= 0) {          // side cannons: the one facing Chris fires a meatball straight at him
+            e.rainCd = phase2 ? 0.55 : 0.85;
+            const side = toP >= 0 ? 1 : -1, c = this.bossGun(e, side * 80, 56);
+            const ex = angDiff(P.theta, c.theta) * R, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 270 : 230;
+            this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3);
+            this.muzzleFlash(c.theta, c.h); Sound.sfx('cube');
           }
-          if (e.fanCd <= 0) {           // fan of toast crumbs
+          if (e.fanCd <= 0) {           // belly turret: a spread of toast crumbs fired downwards
             e.fanCd = phase2 ? 3.4 : 5.2;
             Sound.sfx('fan');
-            const n = phase2 ? 5 : 4;
+            const c = this.bossGun(e, 0, 93), n = phase2 ? 5 : 4;
             for (let k = 0; k < n; k++) {
               const a = (k - (n - 1) / 2) * 0.4;
-              this.addEBullet('crumb', e.theta, e.h - 30, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
+              this.addEBullet('crumb', c.theta, c.h, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
             }
+            this.muzzleFlash(c.theta, c.h);
           }
         } else if (e.ai === 'baron') {
           if (e.rainCd <= 0) {          // slow spore globs drift down around Chris
@@ -1413,7 +1437,7 @@ class Level1 extends Phaser.Scene {
   addEBullet(kind, theta, h, vt, vh, r, life) {
     this.eBullets.push({
       kind, theta: wrap(theta), h, vt, vh, r, life,
-      spin: 0, spinV: kind === 'cube' ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : 0)),
+      spin: 0, spinV: (kind === 'cube' || kind === 'meatball') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : 0)),
       spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); glowFx(im, kind === 'spore' ? 0x7dff8a : (kind === 'blade' ? 0xdfe6f0 : 0xffc040), 2, 6); return im; })()
     });
   }
@@ -1760,7 +1784,7 @@ class Level1 extends Phaser.Scene {
     const boss = this.enemies.find(e => e.type === 'boss');
     if (boss) {
       const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
-      const x0 = (this.W - w) / 2, y0 = this.landscape ? 42 : 62;
+      const x0 = (this.W - w) / 2, y0 = this.landscape ? 90 : 96;            // below the HUD panel and weapon box
       const frac = Math.max(0, boss.hp / boss.maxHp);
       hg.fillStyle(0x000000, 0.5).fillRect(x0, y0, w, 10);
       hg.fillStyle(0xff8c1a, 1).fillRect(x0, y0, w * frac, 10);

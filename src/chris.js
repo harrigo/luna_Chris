@@ -297,7 +297,7 @@ class ChrisRig {
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3, this.torso.y - 26 + sw * 0.6 * run);
-    this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4);
+    this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0));   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
 

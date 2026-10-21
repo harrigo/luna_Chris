@@ -49,6 +49,9 @@ const Pad = (() => {
     state.left = !!now.left; state.right = !!now.right; state.up = !!now.up; state.down = !!now.down;
     state.jump = !!(now.a || now.lb);
     state.fire = !!(now.x || now.b || now.rt || now.rb);
+    // right stick = twin-stick aim: push it to aim and fire that way while the left stick moves
+    const rx = gp ? (gp.axes[2] || 0) : 0, ry = gp ? (gp.axes[3] || 0) : 0, rm = Math.hypot(rx, ry);
+    state.aimOn = rm > 0.45; state.aimX = rx; state.aimY = ry;
     state.held = now;
     requestAnimationFrame(poll);
   }
