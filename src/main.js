@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.43';
+const BUILD = 'v0.44';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -17,6 +17,7 @@ const CFG = {
   jumpV: 560,
   runSpeed: 230,
   maxHp: 5,
+  jetHoldDelay: 0.28, // hold jump this long after take-off and the jetpack lights by itself
   fireInterval: 0.085,
   bulletSpeed: 760,
   bulletLife: 0.6,
@@ -756,7 +757,9 @@ class Level1 extends Phaser.Scene {
     const hPrev = P.h;
     P.floor = this.floorAt(P.theta, P.h);
     const grounded = P.h <= P.floor && P.vh <= 0;
-    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; Sound.sfx('jump'); }
+    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; P.holdT = 0; Sound.sfx('jump'); }
+    if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
+    else if (!inp.jump) P.holdT = CFG.jetHoldDelay + 1;                                                                                // (a fresh press in mid-air lights it at once)
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
 
