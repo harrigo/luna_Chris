@@ -23,7 +23,9 @@ const LEVELS = {
     radius: 420, sky: [0x0b1020, 0x1b1245], bg: '#0b1020', starTint: 0xffffff, dustAlpha: 1, bgDecor: null,
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
-    gravity: 1,
+    gravity: 1, ledgeTint: 0xffe58a,
+    ledges: [{ theta: 0.9, half: 0.14, h: 85 }, { theta: 2.0, half: 0.12, h: 165 }, { theta: 3.3, half: 0.14, h: 85 }, { theta: 4.4, half: 0.12, h: 165 }, { theta: 5.5, half: 0.14, h: 85 }],
+    props: [{ tex: 'p_rock', n: 9, sc: [0.8, 1.5] }, { tex: 'p_wedge', n: 7, sc: [0.9, 1.5] }, { tex: 'p_flag', n: 4, sc: [1, 1.3] }, { tex: 'p_tuft1', n: 12, sc: [0.8, 1.4], fg: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1), S('flyer', 2), S('mouse', 2.4), S('mouse', 3.6), S('flyer', 4), S('mouse', 4.8), S('flyer', 6.2), S('mouse', 6.8), S('mouse', 7.6)] },
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
@@ -39,7 +41,9 @@ const LEVELS = {
     radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
     dust: [0x2fbf8f, 0x3ad0c0, 0x6a8cff, 0x9bff6a], decorTint: 0x4fa88f, decorAlpha: 1,
-    gravity: 1,
+    gravity: 1, ledgeTint: 0x8fe0c8,
+    ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
+    props: [{ tex: 'p_shroom', n: 10, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 12, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 7, sc: [0.9, 1.4] }, { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     // spore clouds: theta, half-width (rad), gravity multiplier (green = floaty, purple = heavy)
     zones: [
       { theta: 0.0, half: 0.5, mult: 0.38 }, { theta: 1.05, half: 0.36, mult: 1.7 },
@@ -61,7 +65,9 @@ const LEVELS = {
     radius: 300, sky: [0x0e0506, 0x56260c], bg: '#0e0506', starTint: 0xffd9a8, dustAlpha: 1.4, bgDecor: 'gears',
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0xd5dde8 },
     dust: [0xff9a3a, 0xff6a3a, 0x8aa0c0, 0xffd23f], decorTint: 0x8a929c, decorAlpha: 0.55,
-    gravity: 1,
+    gravity: 1, ledgeTint: 0xaab4c4,
+    ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
+    props: [{ tex: 'p_pipe', n: 6, sc: [0.9, 1.4] }, { tex: 'p_whisk', n: 6, sc: [0.9, 1.3] }, { tex: 'p_crate', n: 5, sc: [0.9, 1.3] }, { tex: 'p_cone', n: 9, sc: [0.8, 1.2], fg: true }],
     conveyor: 90,            // the surface scrolls backwards at this many units/s
     platforms: { count: 8, half: 0.2 },
     waves: [
@@ -200,6 +206,55 @@ function makeLevelTextures(scene) {
     g.fillStyle(0x8c98ab, 1).fillCircle(12, 12, 7);
     g.fillStyle(0x3b4252, 1).fillCircle(12, 12, 3);
   });
+  // ---- ledges and scenery props
+  mk('ledge', 64, 16, g => {
+    g.fillStyle(OUT, 1).fillRoundedRect(0, 2, 64, 13, 4);
+    g.fillStyle(0xffffff, 1).fillRoundedRect(2, 3, 60, 8, 3);
+    g.fillStyle(0xb0b0b0, 1).fillRect(4, 11, 56, 3);
+    g.fillStyle(0x808080, 1).fillCircle(14, 7, 2).fillCircle(32, 8, 2).fillCircle(50, 7, 2);
+  });
+  mk('p_rock', 30, 22, g => {
+    g.fillStyle(OUT, 1).fillTriangle(0, 22, 9, 3, 30, 22); g.fillStyle(0xd9b13a, 1).fillTriangle(3, 20, 10, 6, 25, 20);
+    g.fillStyle(0xf0cb52, 1).fillTriangle(10, 6, 14, 8, 8, 14);
+  });
+  mk('p_wedge', 34, 26, g => {
+    g.fillStyle(OUT, 1).fillTriangle(0, 26, 4, 6, 34, 26); g.fillStyle(0xffd23f, 1).fillTriangle(3, 24, 6, 9, 29, 24);
+    g.fillStyle(0xc99a2a, 1).fillCircle(11, 19, 3).fillCircle(20, 21, 2).fillCircle(9, 13, 2);
+  });
+  mk('p_flag', 24, 44, g => {
+    g.fillStyle(OUT, 1).fillRect(5, 4, 4, 40); g.fillStyle(0xcfcfcf, 1).fillRect(6, 5, 2, 38);
+    g.fillStyle(OUT, 1).fillTriangle(8, 4, 24, 11, 8, 18); g.fillStyle(0xff6a6a, 1).fillTriangle(9, 6, 21, 11, 9, 16);
+    g.fillStyle(0xffd23f, 1).fillCircle(14, 11, 2);
+  });
+  mk('p_tuft1', 18, 10, g => { g.fillStyle(0xb5851c, 1).fillTriangle(0, 10, 3, 2, 6, 10).fillTriangle(5, 10, 9, 0, 13, 10).fillTriangle(12, 10, 15, 3, 18, 10); });
+  mk('p_shroom', 30, 34, g => {
+    g.fillStyle(OUT, 1).fillRect(11, 16, 9, 18).fillEllipse(15, 14, 30, 22);
+    g.fillStyle(0xdfe8d0, 1).fillRect(12, 17, 7, 16); g.fillStyle(0x3a7fd0, 1).fillEllipse(15, 14, 26, 18);
+    g.fillStyle(0xcfe8ff, 1).fillCircle(9, 12, 2).fillCircle(17, 9, 2).fillCircle(21, 15, 2);
+  });
+  mk('p_reed', 14, 52, g => {
+    g.fillStyle(OUT, 1).fillRect(5, 12, 4, 40).fillRoundedRect(3, 0, 8, 20, 3);
+    g.fillStyle(0x4a8f3a, 1).fillRect(6, 13, 2, 38); g.fillStyle(0x7a4a2a, 1).fillRoundedRect(4, 1, 6, 18, 2);
+  });
+  mk('p_stalk', 22, 40, g => {
+    g.fillStyle(OUT, 1).fillTriangle(0, 40, 11, 0, 22, 40); g.fillStyle(0x6fb4e8, 1).fillTriangle(3, 38, 11, 6, 19, 38);
+    g.fillStyle(0xcfe8ff, 1).fillTriangle(9, 12, 12, 12, 10, 30);
+  });
+  mk('p_tuft2', 20, 14, g => { g.fillStyle(0x2f9f6a, 1).fillTriangle(0, 14, 3, 1, 7, 14).fillTriangle(6, 14, 10, 0, 14, 14).fillTriangle(12, 14, 17, 3, 20, 14); });
+  mk('p_pipe', 22, 36, g => {
+    g.fillStyle(OUT, 1).fillRect(2, 8, 18, 28).fillRect(0, 2, 22, 10);
+    g.fillStyle(0x8a929c, 1).fillRect(4, 10, 14, 26); g.fillStyle(0xb8c0cc, 1).fillRect(2, 4, 18, 6); g.fillStyle(0xd8e0ec, 1).fillRect(6, 10, 3, 24);
+  });
+  mk('p_whisk', 26, 34, g => {
+    g.lineStyle(3, OUT, 1).strokeEllipse(13, 12, 22, 22).strokeEllipse(13, 12, 10, 22); g.fillStyle(OUT, 1).fillRect(10, 22, 6, 12);
+    g.lineStyle(1.5, 0xd8e0ec, 1).strokeEllipse(13, 12, 22, 22).strokeEllipse(13, 12, 10, 22); g.fillStyle(0x8a929c, 1).fillRect(11, 23, 4, 10);
+  });
+  mk('p_crate', 30, 28, g => {
+    g.fillStyle(OUT, 1).fillRect(0, 0, 30, 28); g.fillStyle(0x6a717c, 1).fillRect(2, 2, 26, 24);
+    g.lineStyle(2, 0xb8c0cc, 1).lineBetween(2, 2, 28, 26).lineBetween(28, 2, 2, 26);
+    g.fillStyle(0xffd23f, 1).fillRect(2, 11, 26, 5);
+  });
+  mk('p_cone', 14, 16, g => { g.fillStyle(OUT, 1).fillTriangle(0, 16, 7, 0, 14, 16); g.fillStyle(0xff8a2a, 1).fillTriangle(2, 15, 7, 3, 12, 15); g.fillStyle(0xffffff, 1).fillRect(4, 9, 6, 2); });
   // big background gear for the industrial level
   mk('gear', 180, 180, g => {
     g.fillStyle(0xffffff, 1);

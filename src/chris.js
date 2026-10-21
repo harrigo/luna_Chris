@@ -141,7 +141,7 @@ class ChrisRig {
   update(P, dt, x, y, z, alpha, augerFrame) {
     this.t += dt;
     const t = this.t;
-    const grounded = P.h <= 0.5 && P.vh <= 0;
+    const grounded = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
     const spd = Math.abs(P.vx);
     const run = grounded ? Math.min(1, spd / 140) : 0;
 

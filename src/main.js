@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.19';
+const BUILD = 'v0.20';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -142,6 +142,23 @@ class Level1 extends Phaser.Scene {
       const spr = this.add.image(0, 0, 'hole').setDepth(2).setTint(this.def.decorTint).setAlpha(rnd(0.5, 1) * this.def.decorAlpha);
       spr.bsx = spr.bsy = rnd(0.5, 2.2);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
+    }
+
+    // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
+    this.ledgeSprs = [];
+    for (const L of (this.def.ledges || [])) {
+      const spr = this.add.image(0, 0, 'ledge').setDepth(3).setTint(this.def.ledgeTint || 0xffffff);
+      spr.bsx = (L.half * 2 * R) / 64; spr.bsy = 1;
+      this.ledgeSprs.push({ spr, L });
+    }
+    this.props = [];
+    for (const pr of (this.def.props || [])) {
+      for (let i = 0; i < pr.n; i++) {
+        const spr = this.add.image(0, 0, pr.tex).setOrigin(0.5, 1).setDepth(pr.fg ? 8.2 : 2.5);
+        spr.bsx = spr.bsy = rnd(pr.sc[0], pr.sc[1]) * 1.35;
+        if (Math.random() < 0.5) spr.setFlipX(true);
+        this.props.push({ spr, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.fg ? -4 : -2, sway: pr.sway ? rnd(0, 6) : -1 });
+      }
     }
 
     // level hazards: gravity spore clouds (level 2) and the moving grater floor (level 3)
@@ -480,6 +497,13 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // floating ledges (one-way: jump up through them, land on top). Returns the height of the highest ledge you could be standing on, else 0.
+  floorAt(theta, h) {
+    let f = 0;
+    for (const L of (this.def.ledges || [])) if (L.h > f && L.h <= h + 4 && Math.abs(angDiff(theta, L.theta)) < L.half) f = L.h;
+    return f;
+  }
+
   onPlatform(theta) {
     const pf = this.def.platforms;
     for (let i = 0; i < pf.count; i++) if (Math.abs(angDiff(theta, wrap(i * TAU / pf.count - this.convPhase))) < pf.half) return true;
@@ -567,7 +591,9 @@ class Level1 extends Phaser.Scene {
     }
     if (ax !== 0) P.facing = ax;
 
-    const grounded = P.h <= 0 && P.vh <= 0;
+    const hPrev = P.h;
+    P.floor = this.floorAt(P.theta, P.h);
+    const grounded = P.h <= P.floor && P.vh <= 0;
     if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; Sound.sfx('jump'); }
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
@@ -585,7 +611,8 @@ class Level1 extends Phaser.Scene {
     P.vh -= this.gAt(P.theta) * dt;
     P.h += P.vh * dt;
     if (P.h >= CFG.jetCeiling) { P.h = CFG.jetCeiling; if (P.vh > 0) P.vh = 0; }
-    if (P.h <= 0) { P.h = 0; if (P.vh < 0) P.vh = 0; }
+    const fl2 = this.floorAt(P.theta, hPrev);
+    if (P.h <= fl2) { P.h = fl2; P.floor = fl2; if (P.vh < 0) P.vh = 0; }
 
     P.invuln = Math.max(0, P.invuln - dt);
 
@@ -1138,6 +1165,8 @@ class Level1 extends Phaser.Scene {
     for (const zs of this.zoneSprs) { this.place(zs.spr, zs.theta, zs.h + Math.sin(this.t * 0.9 + zs.ph) * 12, 0); zs.spr.setAlpha(0.2 + 0.1 * Math.sin(this.t * 1.3 + zs.ph)); }
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
+    for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 7, 0);
+    for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
 
     this.place(P.spr, P.theta, P.h, 0);
     P.spr.setFlipX(P.facing < 0);
