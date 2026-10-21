@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.45';
+const BUILD = 'v0.46';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -310,6 +310,17 @@ class Level1 extends Phaser.Scene {
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
     });
     this.events.once('shutdown', padOff);
+    // cheat mode: H / phone shake gives a heart
+    const cheatOff = Cheat.on_(type => {
+      if (type === 'mode') { this.cheatText.setVisible(Cheat.on); return; }
+      if (type !== 'heart' || !Cheat.on || (this.state !== 'play' && this.state !== 'rescue')) return;
+      const P = this.pl;
+      if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); this.banner('+1 CHEESE'); }
+      else if (!this.bonusHeart) { this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
+      Sound.sfx('pickup'); buzz(25);
+      this.burst(P.theta, P.h + 30, 'spark', 8, 0.6);
+    });
+    this.events.once('shutdown', cheatOff);
     // Fullscreen needs a real tap *release* (user activation), so ask for it on pointerup.
     this.input.on('pointerup', () => { if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); } });
 
@@ -385,6 +396,7 @@ class Level1 extends Phaser.Scene {
     this.pauseHint.setPosition(W / 2, H * 0.42 + 34);
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(10, 66);
+    this.cheatText.setPosition(10, 76);
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
     this.ovBody.setFontSize(this.landscape ? '9px' : '10px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
@@ -405,6 +417,7 @@ class Level1 extends Phaser.Scene {
     this.cheeseIcons = []; for (let i = 0; i < CFG.maxHp; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
     this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
+    this.cheatText = this.add.text(0, 0, 'CHEAT', f(8, '#ff4d8d', ink)).setDepth(20).setVisible(Cheat.on);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
     this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
