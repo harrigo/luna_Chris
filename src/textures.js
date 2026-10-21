@@ -60,7 +60,7 @@ function makeTextures(scene) {
 
   mk('bgstar', 3, 3, g => { g.fillStyle(0xffffff, 1).fillRect(0, 0, 3, 3); });
 
-  // Luna Chris: bulky NASA suit, "Kiss the Cook" apron, Mac-Laster 3000. Faces right.
+  // Luna Chris: bulky NASA suit, "Kiss the Cook" apron, Mac-Grinder 3000. Faces right.
   mk('chris', 54, 60, g => {
     g.fillStyle(0xd9503a, 1).fillRoundedRect(0, 15, 5, 22, 2).fillRoundedRect(5, 15, 5, 22, 2); // jetpack tanks
     g.fillStyle(0x555b6e, 1).fillRect(0.5, 37, 4, 4).fillRect(5.5, 37, 4, 4);                  // jet nozzles
@@ -74,7 +74,7 @@ function makeTextures(scene) {
     g.fillStyle(0x1b2b4a, 1).fillEllipse(29, 12, 14, 10);                  // visor
     g.fillStyle(0x6fa8ff, 1).fillEllipse(31, 10, 5, 3);                    // visor glint
     g.fillStyle(0xeef2f8, 1).fillRoundedRect(24, 24, 14, 6, 3);            // arm
-    g.fillStyle(0xff8c1a, 1).fillRoundedRect(34, 22, 16, 9, 3);            // Mac-Laster body
+    g.fillStyle(0xff8c1a, 1).fillRoundedRect(34, 22, 16, 9, 3);            // Mac-Grinder body
     g.fillStyle(0x7a3b00, 1).fillRect(40, 24, 3, 5);                       // extruder
     g.fillStyle(0xffc36a, 1).fillRect(48, 24, 4, 5);                       // muzzle
   });
@@ -164,7 +164,7 @@ function makeTextures(scene) {
   mk('flame', 9, 9, g => { g.fillStyle(0xff7a1a, 1).fillCircle(4.5, 4.5, 4.5); g.fillStyle(0xffe27a, 1).fillCircle(4.5, 4.5, 2.2); });
   mk('spark', 6, 6, g => { g.fillStyle(0xffe27a, 1).fillCircle(3, 3, 3); });
 
-  // Mac-Laster macaroni shell
+  // Mac-Grinder macaroni shell
   mk('macaroni', 16, 9, g => {
     g.fillStyle(0xff9a1f, 1).fillEllipse(8, 4.5, 16, 9);
     g.lineStyle(1.5, 0xb84e00, 1).strokeEllipse(8, 4.5, 9, 4);
@@ -214,19 +214,17 @@ function makeTextures(scene) {
     g.lineStyle(2, 0x5a3a12, 1).strokeRoundedRect(2, 2, 30, 12, 6).strokeRoundedRect(2, 22, 30, 7, 4);
   });
 
-  // Mac-Laster drill-bit / pasta-auger: 4 frames of a spinning spiral screw (frames cycle to look like it's grinding)
+  // Mac-Grinder drill-bit: 4 pixel frames of a spinning spiral screw (the threads shift each frame)
   for (let f = 0; f < 4; f++) {
-    mk('auger' + f, 30, 18, g => {
-      const hh = x => 7.5 * (1 - x / 32) + 1.5;                   // half-height at x: tapers to the tip
-      g.fillStyle(0xb7bfcc, 1).fillTriangle(0, 9 - 8.5, 0, 9 + 8.5, 30, 9);
-      g.lineStyle(3, 0x4a5163, 1);
-      for (let i = -1; i < 5; i++) {
-        const x = i * 7.5 + f * 1.9;
-        if (x < 0 || x > 27) continue;
-        g.lineBetween(x, 9 - hh(x), x + 4, 9 + hh(x + 4));        // slanted thread: shifts each frame
+    pixSprite(scene, 'auger' + f, 24, 16, a => {
+      a.rect(0, 2, 2, 13, 0xd9631a); a.rect(0, 2, 2, 3, 0xffa04a);                                  // orange collar
+      a.poly([[3, 1.5], [23.5, 8], [3, 14.5]], [0xf2f6fc, 0xb7bfcc, 0x7a8698]);                    // steel cone
+      for (let i = -1; i < 5; i++) {                                                               // slanted threads
+        const x = 3 + i * 5 + f * 1.25, hh = t => 6.5 * (1 - (t - 3) / 21) + 0.5;
+        if (x < 3 || x > 20) continue;
+        a.line([[x, 8 - hh(x)], [x + 3, 8 + hh(x + 3)]], 0x4a5163);
       }
-      g.lineStyle(2, 0x2d3345, 1).strokeTriangle(0, 0.5, 0, 17.5, 30, 9);
-      g.fillStyle(0xff8c1a, 1).fillRect(0, 2, 3, 14);              // collar
+      a.px(5, 4, 0xffffff); a.px(6, 4, 0xffffff);                                                  // glint
     });
   }
 

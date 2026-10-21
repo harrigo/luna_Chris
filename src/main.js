@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.40';
+const BUILD = 'v0.41';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -26,7 +26,7 @@ const CFG = {
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
   jetRegen: 0.7,    // fuel per second while standing on the ground
   jetCeiling: 300,  // max height
-  ammoPerShot: 0.022, // Mac-Laster gauge: full tank is about 45 shots
+  ammoPerShot: 0.022, // Mac-Grinder gauge: full tank is about 45 shots
   ammoRegen: 0.5,     // refill per second once you stop shooting
   ammoDelay: 0.35,    // pause after the last shot before it refills
   ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
@@ -784,7 +784,7 @@ class Level1 extends Phaser.Scene {
 
     P.invuln = Math.max(0, P.invuln - dt);
 
-    // Mac-Laster: hold FIRE (Z/X on keyboard). Pasta gauge drains per shot and refills when you let off.
+    // Mac-Grinder: hold FIRE (Z/X on keyboard). Pasta gauge drains per shot and refills when you let off.
     P.fireCd -= dt;
     P.ammoHold = Math.max(0, P.ammoHold - dt);
     if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
@@ -817,7 +817,7 @@ class Level1 extends Phaser.Scene {
     return best;
   }
 
-  // The Mac-Laster 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
+  // The Mac-Grinder 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
   fire(tgt) {
     const P = this.pl;
     if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
@@ -834,9 +834,9 @@ class Level1 extends Phaser.Scene {
       P.facing = ex >= 0 ? 1 : -1;
     }
     P.firing = 0.12;
-    if (Pad.state.connected) Pad.pulse(70, 0, 0.18);          // a light buzz in the hands while the Mac-Blaster fires
-    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 58 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
-    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (56 / R));
+    if (Pad.state.connected) Pad.pulse(70, 0, 0.18);          // a light buzz in the hands while the Mac-Grinder fires
+    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
+    const bt = wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -1455,7 +1455,7 @@ class Level1 extends Phaser.Scene {
       for (const c of cows) this.fxGlint.emitParticleAt(c.spr.x + rnd(-14, 14), c.spr.y + rnd(-6, 24), 2);
     }
 
-    // spinning drill-bit on the end of the Mac-Laster, like a mincer's auger: fast while firing, idle-slow otherwise
+    // spinning drill-bit on the end of the Mac-Grinder, like a mincer's auger: fast while firing, idle-slow otherwise
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom, P.spr.alpha, Math.floor(this.augerPhase) % 4);

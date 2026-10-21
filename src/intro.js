@@ -143,7 +143,7 @@ function makeIntroTextures(scene) {
     rrect(gg, 2, 2, 376, 200, 6, 0x2b3447, 5);
     line(gg, 10, 14, 370, 14, 4, 0x39d0c8); line(gg, 10, 190, 370, 190, 4, 0x39d0c8);
     line(gg, 190, 22, 190, 182, 3, 0x1a2234);
-    // Mac-Laster 3000
+    // Mac-Grinder 3000
     rrect(gg, 24, 38, 92, 28, 6, 0xff8c1a); rrect(gg, 58, 28, 22, 48, 3, 0x7a3b00);
     poly(gg, [[116, 40], [152, 52], [116, 64]], 0xffc36a, 3); poly(gg, [[34, 66], [50, 66], [44, 90]], 0x555b6e, 3);
     // Swiss-Shot
@@ -557,7 +557,7 @@ class IntroScene extends Phaser.Scene {
         this.tweens.add({ targets: flash, alpha: 0, duration: 450, onComplete: () => flash.destroy() });
         const glow = this.add2(this.add.image(310 + 88, 96 + 52, 'i_glow').setScale(1.1).setAlpha(0.7));
         this.tweens.add({ targets: glow, scale: 1.5, alpha: 0.25, yoyo: true, repeat: -1, duration: 600, ease: 'Sine.easeInOut' });
-        this.say('...and reaches for the Mac-Laster 3000.');
+        this.say('...and reaches for the Mac-Grinder 3000.');
       }
     });
   }

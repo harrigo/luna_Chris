@@ -83,10 +83,21 @@ function makeChrisTextures(scene) {
     rr(g, 0, 2, 11, 7, 3, 0xeef2f8);
     ci(g, 13, 5.5, 4.5, 0xffffff, 2);
   });
-  mk('c_gun', 32, 14, g => {
-    rr(g, 0, 2, 25, 10, 3, 0xff8c1a);
-    g.fillStyle(0x7a3b00, 1).fillRect(13, 0, 6, 14);
-    rr(g, 24, 4, 7, 6, 2, 0xffc36a);
+  // The Mac-Grinder (pixel art): chunky orange grinder body, glass hopper heaped with macaroni,
+  // a crank with a red knob at the back, wooden grip and a steel barrel ring. The drill bit is a separate spinning part.
+  pixSprite(scene, 'c_gun', 34, 26, a => {
+    const OR = [0xffa04a, 0xff7a1a, 0xc4501a], STL = [0xdfe6f0, 0x9aa4b4, 0x5a6272];
+    a.line([[4, 14], [1, 9]], 0x7a8698, 2); a.rrect(0, 5, 3, 8, 1, [0xff8a8a, 0xe03030, 0x901818]);   // crank + knob
+    a.rrect(10, 18, 16, 25, 2, [0xb07a40, 0x7a4a1a, 0x4a2a0a]);                                      // grip
+    a.line([[17, 19], [20, 23], [16, 24]], 0x3b4252);                                                  // trigger guard
+    a.rrect(4, 10, 27, 20, 4, OR);                                                                     // body
+    a.rect(6, 17, 25, 18, 0xc4501a); a.rect(7, 11, 22, 11, 0xffc890);                                   // under-shade + top shine
+    a.ell(9, 15, 2.6, 2.6, STL); a.px(9, 15, 0x3b4252);                                                 // crank hub
+    a.rrect(26, 11, 33, 19, 2, STL); a.rect(29, 11, 30, 19, 0x5a6272);                                  // barrel ring
+    a.poly([[11, 10], [23, 10], [26, 2], [8, 2]], [0xeaf8ff, 0xb8e4ff, 0x6ab0e0]);                      // glass hopper
+    a.rect(8, 0, 26, 2, [0xff8a8a, 0xe03030, 0x901818][1]);                                             // red rim
+    for (const [x, y] of [[11, 4], [15, 3], [19, 4], [13, 6], [17, 6], [21, 6], [15, 8]]) { a.px(x, y, 0xffd23f); a.px(x + 1, y, 0xffa21a); a.px(x, y + 1, 0xffa21a); }   // macaroni
+    a.px(10, 3, 0xffffff); a.px(10, 4, 0xffffff);                                                       // glass glint
   });
   mk('c_tanks', 14, 28, g => {
     rr(g, 0, 0, 6, 20, 2, 0xd9503a); rr(g, 7, 0, 6, 20, 2, 0xd9503a);
@@ -115,8 +126,8 @@ class ChrisRig {
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
-    this.gun = img('c_gun', 6, 1, 0, 0.5);
-    this.auger = img('auger0', 27, 1, 0, 0.5);
+    this.gun = img('c_gun', 4, 1, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
+    this.auger = img('auger0', 44, 1, 0, 0.5).setScale(1.25);
     this.gunArm.add([this.gArm, this.gun, this.auger]);
     this.root.add([this.cape, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
 
