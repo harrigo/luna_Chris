@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.22';
+const BUILD = 'v0.23';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -198,7 +198,10 @@ class Level1 extends Phaser.Scene {
     if (this.wantFs === undefined) this.wantFs = false;
     this.coarse = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
 
+    // on-screen buttons only on touch devices (a PC uses keyboard / controller); they appear if a touch ever happens
+    this.touchUI = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
     this.input.on('pointerdown', p => {
+      if (p.wasTouch) this.touchUI = true;
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
@@ -1218,7 +1221,8 @@ class Level1 extends Phaser.Scene {
     // controls
     const cg = this.ctrlG;
     cg.clear();
-    for (const k in this.btn) {
+    for (const k in this.btnLabels) this.btnLabels[k].setVisible(this.touchUI);
+    if (this.touchUI) for (const k in this.btn) {
       const b = this.btn[k];
       const on = inp[k];
       cg.fillStyle(0xffffff, on ? 0.38 : 0.14).fillCircle(b.x, b.y, b.r);
@@ -1262,10 +1266,24 @@ const startPhaser = () => { window.game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   backgroundColor: '#0b1020',
-  scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', fullscreenTarget: document.documentElement },
+  // Fixed-ish logical height: the game is laid out at about phone height (~430px) on every screen and
+  // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
+  scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
   scene: [IntroScene, SelectScene, Level1]
-}); };
+});
+  let tm = 0;
+  const refit = () => { clearTimeout(tm); tm = setTimeout(() => { const f = fitSize(); window.game.scale.setZoom(f.k); window.game.scale.resize(f.w, f.h); }, 60); };
+  window.addEventListener('resize', refit);
+  document.addEventListener('fullscreenchange', refit);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
+};
+const DESIGN_H = 430;
+function fitSize() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const k = Math.max(1, vh / DESIGN_H);
+  return { k, w: Math.ceil(vw / k), h: Math.ceil(vh / k) };
+}
 // wait (briefly) for the pixel font so the first text isn't drawn in the fallback font
 if (document.fonts && document.fonts.load) {
   Promise.race([document.fonts.load('12px "Press Start 2P"'), new Promise(res => setTimeout(res, 2500))]).then(startPhaser, startPhaser);

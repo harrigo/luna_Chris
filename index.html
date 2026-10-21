@@ -16,6 +16,7 @@
   <style>
     html, body { margin: 0; height: 100%; background: #0b1020; overflow: hidden; touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
     #game { width: 100%; height: 100%; }
+    #game canvas { image-rendering: auto !important; }   /* smooth upscaling on big screens (Phaser sets 'pixelated' when zoomed) */
     #err { position: fixed; left: 0; right: 0; bottom: 0; max-height: 40%; overflow: auto; margin: 0; padding: 8px 10px; background: rgba(160, 0, 0, .92); color: #fff; font: 12px/1.4 monospace; white-space: pre-wrap; display: none; z-index: 10; }
     #rotate { display: none; position: fixed; inset: 0; z-index: 50; background: #0b1020; color: #ffd23f; align-items: center; justify-content: center; text-align: center; font: 15px/1.8 'Press Start 2P', monospace; }
     @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }

@@ -127,3 +127,7 @@ planet surface tiles/props, then cutscene backgrounds.
 - Xbox / standard gamepads via the browser Gamepad API (`src/pad.js`, loaded first). Left stick or D-pad = move, A (or LB) = jump / hold for jetpack, X / B / RT / RB = fire, Start or A = start / retry / continue, View = level menu.
 - Level select: left/right highlights a card, A or Start plays it. Intro: any face button or Start skips.
 - Browsers only expose a controller after one of its buttons is pressed while the page has focus.
+
+## v0.23 screen scaling
+- The game is laid out at ~430px logical height on every screen (`DESIGN_H` in main.js) and scaled up with `scale.setZoom`, so a big PC monitor shows the same framing as a phone instead of a tiny planet. Canvas upscaling is smooth (`image-rendering: auto`).
+- On-screen touch buttons are hidden on devices without a touchscreen; they appear if a touch ever happens.
