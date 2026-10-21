@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.25';
+const BUILD = 'v0.26';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -616,8 +616,9 @@ class Level1 extends Phaser.Scene {
 
   updatePlayer(dt, inp) {
     const P = this.pl;
-    P.duck = !!inp.down && P.h <= (P.floor || 0) + 0.5 && P.vh <= 0 && !inp.jump;   // crouch: stop, shoot low, smaller target
-    const ax = P.duck ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
+    const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
+    const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
     P.vx += (ax * CFG.runSpeed - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
@@ -645,7 +646,8 @@ class Level1 extends Phaser.Scene {
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
 
-    P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0;
+    P.diving = !grounded && !!inp.down;                       // duck in mid-air = tuck and drop fast (cuts the jetpack)
+    P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     if (P.thrusting) {
       P.vh = Math.min(CFG.jetMaxV, P.vh + CFG.jetAccel * dt);
@@ -655,11 +657,16 @@ class Level1 extends Phaser.Scene {
       P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
     }
 
-    P.vh -= this.gAt(P.theta) * dt;
+    P.vh -= this.gAt(P.theta) * dt * (P.diving ? 3.2 : 1);
+    if (P.diving && P.vh > -220) P.vh = -220;                // kill the upward float straight away
+    if (P.diving) P.vh = Math.max(P.vh, -900);
     P.h += P.vh * dt;
     if (P.h >= CFG.jetCeiling) { P.h = CFG.jetCeiling; if (P.vh > 0) P.vh = 0; }
     const fl2 = this.floorAt(P.theta, hPrev);
-    if (P.h <= fl2) { P.h = fl2; P.floor = fl2; if (P.vh < 0) P.vh = 0; }
+    if (P.h <= fl2) {
+      if (P.diving && P.vh < -420) { this.cameras.main.shake(90, 0.006); this.burst(P.theta, fl2 + 4, 'spark', 8, 0.8); Sound.sfx('jump'); buzz(25); }   // ground-pound thud
+      P.h = fl2; P.floor = fl2; if (P.vh < 0) P.vh = 0;
+    }
 
     P.invuln = Math.max(0, P.invuln - dt);
 
