@@ -26,62 +26,73 @@ function makeChrisTextures(scene) {
 
   mk('blank', 2, 2, () => {});
 
-  mk('c_boot', 24, 13, g => {
-    rr(g, 1, 1, 22, 11, 5, 0x3b4252);
-    g.fillStyle(0xd9d9e0, 1).fillRect(3, 9, 18, 2);
-  });
-  mk('c_leg', 16, 18, g => {                                          // chunky suit legs
-    rr(g, 1, 0, 14, 18, 5, 0xdfe6f0);
-    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(3, 11, 13, 11);             // knee crease
-  });
+  // ---- Luna Chris in pixel art, styled after the title art: white/ice-blue suit with red and blue trim,
+  // glass helmet over a furious red-nosed face with a big moustache, chef's toque, the "KISS THE COOK" apron.
+  // Every part keeps its old size and pivot, so the rig animation is unchanged.
+  const SUIT = [0xffffff, 0xd6e2f4, 0x93a8cc], SKIN = [0xffd9c4, 0xf2b593, 0xc9805e], BLUE = [0x8aa8ff, 0x4a6ad8, 0x2a3a90];
+  const CREAM = [0xffffff, 0xfff1dc, 0xd8c4a8], RED = [0xff6a6a, 0xd62828, 0x8a1414], HAIR = 0x5a3216;
+  const FONT3 = { K: ['1.1', '11.', '11.', '1.1', '1.1'], I: ['111', '.1.', '.1.', '.1.', '111'], S: ['111', '1..', '111', '..1', '111'],
+    T: ['111', '.1.', '.1.', '.1.', '.1.'], H: ['1.1', '1.1', '111', '1.1', '1.1'], E: ['111', '1..', '11.', '1..', '111'], C: ['111', '1..', '1..', '1..', '111'], O: ['111', '1.1', '1.1', '1.1', '111'] };
+  const word = (a, txt, x, y, col) => { for (const ch of txt) { (FONT3[ch] || []).forEach((row, j) => [...row].forEach((v, i) => { if (v === '1') a.px(x + i, y + j, col); })); x += 4; } };
 
-  // suit torso with the belly hanging out the bottom
-  mk('c_body', 44, 42, g => {
-    el(g, 22, 34, 30, 14, 0xf6bfa3);                                  // just a slight overhang of belly under the shirt
-    g.fillStyle(0xffd9c4, 1).fillEllipse(17, 36, 9, 3);
-    rr(g, 5, 1, 34, 31, 12, 0xeef2f8);                                // the suit, a size too small
-    ci(g, 14, 11, 4, 0x1d4ed8, 2);                                    // mission patch
-    g.lineStyle(2, 0xb9c3d6, 1).lineBetween(9, 29, 35, 29);           // stretched hem
+  pixSprite(scene, 'c_boot', 24, 13, a => {
+    a.rrect(1, 1, 22, 10, 4, BLUE);
+    a.rect(2, 9, 21, 10, 0xd9d9e0); a.rect(2, 10, 21, 10, 0x8a8a98);                    // sole
+    a.rect(14, 3, 17, 3, 0xc4d4ff);                                                     // toe shine
   });
-  // the apron: "KISS THE COOK"
-  mk('c_apron', 28, 38, g => {
-    g.fillStyle(0xd62828, 1).fillPoints([{ x: 8, y: 1 }, { x: 20, y: 1 }, { x: 24, y: 12 }, { x: 27, y: 35 }, { x: 1, y: 35 }, { x: 4, y: 12 }], true);
-    g.lineStyle(2, OUT, 1).strokePoints([{ x: 8, y: 1 }, { x: 20, y: 1 }, { x: 24, y: 12 }, { x: 27, y: 35 }, { x: 1, y: 35 }, { x: 4, y: 12 }], true);
-    g.fillStyle(0xffffff, 1).fillRect(7, 15, 14, 2).fillRect(6, 21, 16, 2).fillRect(9, 27, 10, 2);
+  pixSprite(scene, 'c_leg', 16, 18, a => {
+    a.rrect(1, 0, 14, 17, 4, SUIT);
+    a.rect(2, 9, 13, 9, 0xd62828); a.rect(2, 10, 13, 11, 0x4a6ad8);                     // red + blue knee trim
   });
-  // the apron's other life: a cape
-  mk('c_cape', 50, 46, g => {
-    const pts = [{ x: 48, y: 2 }, { x: 48, y: 14 }, { x: 22, y: 30 }, { x: 14, y: 45 }, { x: 8, y: 33 }, { x: 1, y: 40 }, { x: 5, y: 22 }, { x: 24, y: 8 }];
-    g.fillStyle(0xd62828, 1).fillPoints(pts, true);
-    g.fillStyle(0xa31d1d, 1).fillPoints([{ x: 48, y: 8 }, { x: 48, y: 14 }, { x: 22, y: 30 }, { x: 14, y: 45 }, { x: 24, y: 26 }], true);
-    g.lineStyle(2, OUT, 1).strokePoints(pts, true);
-    g.fillStyle(0xffffff, 1).fillRect(26, 15, 2, 9).fillRect(32, 12, 2, 9);        // a ghost of the apron lettering
+  // suit torso with a slight belly overhang under the hem
+  pixSprite(scene, 'c_body', 44, 42, a => {
+    a.ell(22, 34, 14.5, 6.5, SKIN);                                                     // belly
+    a.px(22, 35, 0xb06a4a); a.px(22, 36, 0xc9805e);                                     // navel
+    a.rrect(5, 1, 38, 31, 10, SUIT);                                                    // the suit, a size too small
+    a.rect(6, 27, 37, 28, 0xd62828); a.rect(7, 29, 36, 30, 0x93a8cc);                   // red hem trim + stretched hem
+    a.ell(14, 11, 4, 4, BLUE); a.px(14, 10, 0xffffff); a.px(13, 11, 0xffffff); a.px(15, 11, 0xffffff); a.px(14, 12, 0xffd23f);   // mission patch
+    a.rect(30, 4, 33, 6, 0xd62828); a.rect(30, 7, 33, 8, 0x4a6ad8);                     // shoulder flag
+  }, 1);
+  // the apron: "KISS THE COOK", cream with red lettering and macaroni-cheese stains
+  pixSprite(scene, 'c_apron', 28, 38, a => {
+    a.poly([[8, 1], [20, 1], [24, 12], [27, 35], [1, 35], [4, 12]], CREAM);
+    a.rect(8, 1, 20, 2, 0xd62828);                                                       // neck band
+    word(a, 'KISS', 7, 12, 0xd62828); word(a, 'THE', 9, 18, 0xd62828); word(a, 'COOK', 7, 24, 0xd62828);
+    for (const [x, y] of [[5, 30], [6, 30], [20, 29], [21, 30], [22, 16], [4, 21], [18, 32]]) a.px(x, y, 0xff9a2a);   // stains
+    a.px(19, 9, 0xffd23f); a.px(9, 31, 0xffd23f);
   });
-
-  // head: glass helmet bubble, big eyes, handlebar mustache
-  mk('c_head', 30, 30, g => {
-    ci(g, 15, 15, 14, 0xf3c9a8, 2);                                  // face
-    g.fillStyle(0xffffff, 1).fillEllipse(10.5, 12.5, 8, 10).fillEllipse(20.5, 12.5, 8, 10);
-    g.lineStyle(1.5, OUT, 1).strokeEllipse(10.5, 12.5, 8, 10).strokeEllipse(20.5, 12.5, 8, 10);
-    g.fillStyle(OUT, 1).fillCircle(12.5, 13, 2.2).fillCircle(22.5, 13, 2.2);                 // eyes look forward
-    g.lineStyle(2.5, 0x4a2c10, 1).lineBetween(6, 6.5, 13, 8.5).lineBetween(24, 6.5, 17, 8.5);   // heavy brows
-    g.fillStyle(0xf09a8a, 1).fillCircle(15.5, 17.5, 3);                                      // nose
-    g.fillStyle(0x4a2c10, 1).fillEllipse(9.5, 21.5, 9, 4.5).fillEllipse(21.5, 21.5, 9, 4.5); // mustache
-    g.lineStyle(2, OUT, 1).lineBetween(11, 25.5, 20, 25.5);                                  // grin
-    g.lineStyle(3, 0xcfe3ff, 0.9).strokeCircle(15, 15, 13.5);                                // helmet rim
-    g.fillStyle(0xffffff, 0.35).fillEllipse(9, 7, 7, 4);                                     // glass glint
+  // the apron's other life: a cape (same cream cloth, red edge)
+  pixSprite(scene, 'c_cape', 50, 46, a => {
+    const pts = [[48, 2], [48, 14], [22, 30], [14, 45], [8, 33], [1, 40], [5, 22], [24, 8]];
+    a.poly(pts, CREAM);
+    a.poly([[48, 8], [48, 14], [22, 30], [14, 45], [24, 26]], [0xf0e0c8, 0xd8c4a8, 0xb8a080]);          // fold in shadow
+    a.line([[48, 13], [22, 29], [14, 44]], 0xd62828, 2);                                                // red hem
+    word(a, 'KISS', 22, 12, 0xd62828);                                                                  // a ghost of the lettering
+  });
+  // head: glass helmet bubble round a furious face: one squint, one bulging eye, red nose, big moustache, gritted teeth
+  pixSprite(scene, 'c_head', 30, 30, a => {
+    a.ell(15, 15, 14, 14, [0xe8f8ff, 0xb8e0ff, 0x7ab0e0]);                              // helmet glass
+    a.ell(15, 16, 11, 11.5, SKIN);                                                       // face
+    a.line([[6, 8], [13, 11]], HAIR, 2); a.line([[24, 7], [17, 11]], HAIR, 2);           // angry brows
+    a.rect(7, 12, 12, 12, 0x1a1020); a.px(8, 13, 0x1a1020);                              // squinting eye
+    a.ell(20.5, 13, 3.2, 3.4, 0xffffff); a.rect(21, 12, 22, 14, 0x1a1020);                // bulging eye
+    a.ell(16, 17.5, 3.4, 3, [0xff9a9a, 0xe03a3a, 0xa01818]); a.px(15, 16, 0xffffff);     // big red nose
+    a.poly([[5, 22], [9, 19], [15, 20.5], [21, 19], [26, 21], [28, 18], [27, 23], [21, 23], [15, 22.5], [9, 23], [3, 24], [2, 20]], HAIR);   // handlebar moustache
+    a.rect(10, 24, 20, 26, 0xffffff); a.rect(10, 25, 20, 25, 0x8a7a7a); a.px(13, 24, 0x8a7a7a); a.px(17, 24, 0x8a7a7a); a.px(13, 26, 0x8a7a7a); a.px(17, 26, 0x8a7a7a);   // gritted teeth
+    a.px(5, 6, 0xffffff); a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(4, 8, 0xffffff);   // glass glint
   });
   // chef's toque
-  mk('c_hat', 38, 30, g => {
-    ci(g, 9, 17, 8, 0xffffff, 2); ci(g, 29, 17, 8, 0xffffff, 2); ci(g, 19, 11, 10, 0xffffff, 2); ci(g, 19, 18, 9, 0xffffff, 0);
-    rr(g, 7, 21, 24, 8, 2, 0xf1f1f1);
-    g.lineStyle(1.5, 0xb9c3d6, 1).lineBetween(13, 22, 13, 28).lineBetween(19, 22, 19, 28).lineBetween(25, 22, 25, 28);
-    g.lineStyle(1.5, 0xb9c3d6, 1).lineBetween(14, 6, 16, 14).lineBetween(24, 7, 22, 14);
+  pixSprite(scene, 'c_hat', 38, 30, a => {
+    const W3 = [0xffffff, 0xeef2f8, 0xbcc6d6];
+    a.ell(9, 17, 7.5, 7.5, W3); a.ell(29, 17, 7.5, 7.5, W3); a.ell(19, 11, 9.5, 9.5, W3); a.ell(19, 18, 8.5, 8, W3);
+    a.rrect(7, 21, 30, 28, 2, [0xffffff, 0xf1f1f1, 0xc4cede]);
+    for (const x of [13, 19, 25]) a.rect(x, 22, x, 27, 0xbcc6d6);                        // pleats
+    a.line([[14, 6], [16, 13]], 0xbcc6d6); a.line([[24, 7], [22, 13]], 0xbcc6d6);
   });
-
-  mk('c_arm', 18, 11, g => {
-    rr(g, 0, 2, 11, 7, 3, 0xeef2f8);
-    ci(g, 13, 5.5, 4.5, 0xffffff, 2);
+  // gun arm: suit sleeve, red cuff, big white glove
+  pixSprite(scene, 'c_arm', 18, 11, a => {
+    a.rrect(0, 2, 10, 8, 2, SUIT); a.rect(8, 2, 9, 8, 0xd62828);
+    a.ell(13, 5.5, 4.2, 4.2, [0xffffff, 0xeef2f8, 0xbcc6d6]);
   });
   // The Mac-Grinder (pixel art): chunky orange grinder body, glass hopper heaped with macaroni,
   // a crank with a red knob at the back, wooden grip and a steel barrel ring. The drill bit is a separate spinning part.
@@ -99,9 +110,11 @@ function makeChrisTextures(scene) {
     for (const [x, y] of [[11, 4], [15, 3], [19, 4], [13, 6], [17, 6], [21, 6], [15, 8]]) { a.px(x, y, 0xffd23f); a.px(x + 1, y, 0xffa21a); a.px(x, y + 1, 0xffa21a); }   // macaroni
     a.px(10, 3, 0xffffff); a.px(10, 4, 0xffffff);                                                       // glass glint
   });
-  mk('c_tanks', 14, 28, g => {
-    rr(g, 0, 0, 6, 20, 2, 0xd9503a); rr(g, 7, 0, 6, 20, 2, 0xd9503a);
-    g.fillStyle(0x555b6e, 1).fillRect(0, 20, 6, 6).fillRect(7, 20, 6, 6);
+  // jetpack: twin white tanks with red caps and steel nozzles
+  pixSprite(scene, 'c_tanks', 14, 28, a => {
+    a.rrect(0, 1, 5, 20, 2, SUIT); a.rrect(7, 1, 12, 20, 2, SUIT);
+    a.rect(0, 1, 5, 3, 0xd62828); a.rect(7, 1, 12, 3, 0xd62828);
+    a.rect(1, 21, 4, 25, 0x5a6272); a.rect(8, 21, 11, 25, 0x5a6272); a.rect(1, 21, 4, 21, 0x9aa4b4); a.rect(8, 21, 11, 21, 0x9aa4b4);
   });
 }
 
