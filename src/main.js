@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.23';
+const BUILD = 'v0.24';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -89,6 +89,7 @@ class Level1 extends Phaser.Scene {
     this.actors = [];               // decorative things placed in the world: Bessie, the rat-ship, falling debris
     this.rescue = null;
     this.nap = null;
+    this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -192,7 +193,7 @@ class Level1 extends Phaser.Scene {
     this.buildOverlay();
 
     this.keys = this.input.keyboard
-      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X' })
+      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X', down: 'DOWN', s: 'S' })
       : null;
 
     if (this.wantFs === undefined) this.wantFs = false;
@@ -200,8 +201,11 @@ class Level1 extends Phaser.Scene {
 
     // on-screen buttons only on touch devices (a PC uses keyboard / controller); they appear if a touch ever happens
     this.touchUI = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
+    if (this.input.keyboard) ['P', 'ESC'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (this.state === 'play' || this.state === 'rescue' || this.paused) this.togglePause(); }));
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
+      if (this.paused) { this.togglePause(); return; }
+      if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
@@ -211,6 +215,8 @@ class Level1 extends Phaser.Scene {
     // controller: A/Start = start / retry / continue, View (back) = level menu
     const padOff = Pad.on(b => {
       if (b === 'back') { this.scene.start('select'); return; }
+      if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
+      if (this.paused) { if (b === 'a') this.togglePause(); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
@@ -273,6 +279,9 @@ class Level1 extends Phaser.Scene {
     this.jetText.setPosition(12, 40);
     this.macText.setPosition(12, 56);
     this.menuText.setPosition(W - 10, 58);
+    this.pauseBtnText.setPosition(W - 10, 94);
+    this.pauseText.setPosition(W / 2, H * 0.42);
+    this.pauseHint.setPosition(W / 2, H * 0.42 + 34);
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(12, 74);
     this.ovBg.setSize(W, H);
@@ -288,6 +297,9 @@ class Level1 extends Phaser.Scene {
     this.jetText = this.add.text(0, 0, 'JET', f(9, '#9fd8ff')).setDepth(20);
     this.macText = this.add.text(0, 0, 'MAC', f(9, '#ffc36a')).setDepth(20);
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
+    this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
+    this.pauseText = this.add.text(0, 0, 'PAUSED', f(26, '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5).setDepth(32).setVisible(false);
+    this.pauseHint = this.add.text(0, 0, 'START / P / TAP TO RESUME', f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5).setDepth(32).setVisible(false);
     this.zoneText = this.add.text(0, 0, '', f(9, '#9bff6a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0).setDepth(20);
     this.bannerText = this.add.text(0, 0, '', f(17, '#ffd23f', { align: 'center', stroke: '#1a1020', strokeThickness: 4, lineSpacing: 8 })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
@@ -537,6 +549,7 @@ class Level1 extends Phaser.Scene {
     this.lastDt = dt;
     const inp = this.readInput();
     if (this.coarse && this.H > this.W) { this.render(inp); return; }   // paused while the "rotate your phone" prompt shows
+    if (this.paused) { this.render(inp); return; }
     this.t += dt;
 
     if (this.state === 'play') {
@@ -561,8 +574,17 @@ class Level1 extends Phaser.Scene {
     this.render(inp);
   }
 
+  togglePause() {
+    this.paused = !this.paused;
+    this.time.paused = this.paused;
+    if (this.paused) this.tweens.pauseAll(); else this.tweens.resumeAll();
+    Sound.pause(this.paused);
+    this.pauseText.setVisible(this.paused);
+    this.pauseHint.setVisible(this.paused);
+  }
+
   readInput() {
-    const d = { left: false, right: false, jump: false, fire: false };
+    const d = { left: false, right: false, jump: false, fire: false, down: false };
     for (const p of this.input.manager.pointers) {
       if (!p || !p.isDown) continue;
       let best = null, bd = 1e9;
@@ -579,6 +601,7 @@ class Level1 extends Phaser.Scene {
       if (k.right.isDown || k.d.isDown) d.right = true;
       if (k.space.isDown || k.up.isDown || k.w.isDown) d.jump = true;
       if (k.z.isDown || k.x.isDown) d.fire = true;
+      if (k.down.isDown || k.s.isDown) d.down = true;
     }
     const g = Pad.state;
     if (g.connected) {
@@ -586,13 +609,16 @@ class Level1 extends Phaser.Scene {
       if (g.right) d.right = true;
       if (g.jump) d.jump = true;
       if (g.fire) d.fire = true;
+      if (g.down) d.down = true;
     }
     return d;
   }
 
   updatePlayer(dt, inp) {
     const P = this.pl;
-    const ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    P.duck = !!inp.down && P.h <= (P.floor || 0) + 0.5 && P.vh <= 0 && !inp.jump;   // crouch: stop, shoot low, smaller target
+    const ax = P.duck ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);
+    if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
     P.vx += (ax * CFG.runSpeed - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
@@ -675,7 +701,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
     let dx = P.facing, dy = 0;
-    const gh = P.h + 40;                  // muzzle height: the gun is at Chris's chest, not his boots
+    const gh = P.h + (P.duck ? 22 : 40);   // muzzle height: chest height, or low when ducking
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
@@ -687,7 +713,7 @@ class Level1 extends Phaser.Scene {
       P.facing = ex >= 0 ? 1 : -1;
     }
     P.firing = 0.12;
-    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 58 * z, sp.y - 40 * z, 1); }                      // keeps the drill-bit spinning for a moment
+    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 58 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = wrap(P.theta + (Math.sign(dx) || 1) * (56 / R));
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
@@ -960,7 +986,7 @@ class Level1 extends Phaser.Scene {
       e.dh = (e.h - ph) / idt;
 
       // touching Chris
-      if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + 22) < (e.r + 12) * (e.r + 12)) {
+      if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone') e.hp = 0;     // small fry go out in a blaze
       }
@@ -1043,8 +1069,8 @@ class Level1 extends Phaser.Scene {
       b.spin += b.spinV * dt;
       let dead = b.life <= 0 || b.h < -2;
       if (!dead && P.invuln <= 0) {
-        const rr = b.r + 12;
-        if (dist2(b.theta, b.h, P.theta, P.h + 22) < rr * rr) { this.hurt(); dead = true; }
+        const rr = b.r + (P.duck ? 8 : 12);
+        if (dist2(b.theta, b.h, P.theta, P.h + (P.duck ? 10 : 22)) < rr * rr) { this.hurt(); dead = true; }
       }
       if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); }
     }
@@ -1278,7 +1304,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   document.addEventListener('fullscreenchange', refit);
   if (window.visualViewport) window.visualViewport.addEventListener('resize', refit);
 };
-const DESIGN_H = 430;
+const DESIGN_H = 516;          // logical height on big screens (bigger = more zoomed out)
 function fitSize() {
   const vw = window.innerWidth, vh = window.innerHeight;
   const k = Math.max(1, vh / DESIGN_H);

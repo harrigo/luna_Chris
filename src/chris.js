@@ -207,6 +207,8 @@ class ChrisRig {
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
 
     this.setPowered(P.power > 0);
-    this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1), z * RIG_SCALE).setAlpha(alpha);
+    this.duckA = (this.duckA || 0) + ((P.duck ? 1 : 0) - (this.duckA || 0)) * Math.min(1, dt * 16);   // crouch: squash down, spread a little
+    const dk = this.duckA;
+    this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1) * (1 + 0.12 * dk), z * RIG_SCALE * (1 - 0.42 * dk)).setAlpha(alpha);
   }
 }

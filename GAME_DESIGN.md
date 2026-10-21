@@ -131,3 +131,8 @@ planet surface tiles/props, then cutscene backgrounds.
 ## v0.23 screen scaling
 - The game is laid out at ~430px logical height on every screen (`DESIGN_H` in main.js) and scaled up with `scale.setZoom`, so a big PC monitor shows the same framing as a phone instead of a tiny planet. Canvas upscaling is smooth (`image-rendering: auto`).
 - On-screen touch buttons are hidden on devices without a touchscreen; they appear if a touch ever happens.
+
+## v0.24 pause, duck, wider view
+- Pause: Start (controller), P or Esc (keyboard), or the PAUSE label under MENU (touch). Freezes the game, timers and tweens and turns the music down; Start / P / A / tap resumes.
+- Duck: Down on stick/D-pad, Down arrow or S. Only on the ground; Chris squashes down, stops walking (left/right just turns), fires from 22 instead of 40 height and has a smaller, lower hitbox, so chest-high shots fly over. No touch control for it yet.
+- Big screens show ~20% more of the world (`DESIGN_H` 430 → 516). Phones are unchanged.
