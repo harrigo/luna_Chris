@@ -430,7 +430,7 @@ class SelectScene extends Phaser.Scene {
     this.going = true;
     Sound.sfx('wave');
     this.cameras.main.fadeOut(200, 0, 0, 0);
-    this.time.delayedCall(230, () => this.scene.start('level1', { level: n, direct: true }));     // (timer, not the fade event: that can be skipped)
+    this.time.delayedCall(230, () => this.scene.start('weapons', { level: n }));     // next: choose a weapon (timer, not the fade event: that can be skipped)
   }
 
   build() {
@@ -739,4 +739,126 @@ function makeHudTextures(scene) {
   elbow('hud_mac_off', 0x4a3e5a, 0x3a2e4a);
   elbow('hud_mac_hot', 0xff7a6a, 0xd0302a);
   elbow('hud_mac_gold', 0xfffbe0, 0xffd23f);
+}
+
+
+// ---------------------------------------------------------------- weapon select (between level select and the level)
+class WeaponScene extends Phaser.Scene {
+  constructor() { super('weapons'); }
+  init(data) { this.levelId = (data && data.level) || 1; }
+
+  create() {
+    makeTextures(this); makeLevelTextures(this); makeChrisTextures(this);
+    this.cameras.main.setBackgroundColor('#0b1020');
+    this.cameras.main.fadeIn(200, 0, 0, 0);
+    this.going = false;
+    let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
+    this.sel = WEAPONS[wi] && weaponUnlocked(WEAPONS[wi], this.levelId) ? wi : 0;
+    this.stars = [];
+    for (let i = 0; i < 90; i++) this.stars.push({ x: Math.random(), y: Math.random(), s: 1 + Math.floor(Math.random() * 3), tw: Math.random() * 6 });
+    this.bg = this.add.graphics().setDepth(0);
+    this.ui = this.add.container(0, 0).setDepth(1);
+    this.selG = this.add.graphics().setDepth(2);
+    this.build();
+    this.scale.on('resize', this.build, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.build, this));
+    const kb = this.input.keyboard;
+    if (kb) {
+      kb.on('keydown-LEFT', () => this.move(-1)); kb.on('keydown-RIGHT', () => this.move(1));
+      kb.on('keydown-A', () => this.move(-1)); kb.on('keydown-D', () => this.move(1));
+      kb.on('keydown-ONE', () => this.pick(0)); kb.on('keydown-TWO', () => this.pick(1));
+      kb.on('keydown-ENTER', () => this.pick(this.sel)); kb.on('keydown-SPACE', () => this.pick(this.sel)); kb.on('keydown-X', () => this.pick(this.sel));
+      kb.on('keydown-ESC', () => this.back());
+    }
+    const padOff = Pad.on(b => {
+      if (b === 'left' || b === 'right') this.move(b === 'left' ? -1 : 1);
+      else if (b === 'a' || b === 'start') this.pick(this.sel);
+      else if (b === 'b' || b === 'back') this.back();
+    });
+    this.events.once('shutdown', padOff);
+  }
+
+  move(d) {
+    const n = WEAPONS.length;
+    for (let k = 1; k <= n; k++) { const i = ((this.sel + d * k) % n + n) % n; if (weaponUnlocked(WEAPONS[i], this.levelId)) { if (i !== this.sel) { this.sel = i; Sound.sfx('jump'); } return; } }
+  }
+
+  pick(i) {
+    if (this.going || !WEAPONS[i]) return;
+    if (!weaponUnlocked(WEAPONS[i], this.levelId)) { Sound.sfx('zing'); this.cameras.main.shake(100, 0.004); return; }
+    this.going = true; this.sel = i;
+    try { localStorage.setItem('lc_weapon', String(i)); } catch (e) { /* ignore */ }
+    Sound.sfx('power');
+    this.cameras.main.flash(150, 255, 230, 160);
+    this.cameras.main.fadeOut(250, 0, 0, 0);
+    this.time.delayedCall(280, () => this.scene.start('level1', { level: this.levelId, direct: true }));
+  }
+
+  back() { if (!this.going) { this.going = true; this.scene.start('select'); } }
+
+  build() {
+    const W = this.scale.width, H = this.scale.height;
+    this.ui.removeAll(true);
+    const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
+    const ink = { stroke: '#1a1020', strokeThickness: 4 };
+    this.ui.add(this.add.text(W / 2, Math.max(14, H * 0.05), 'CHOOSE YOUR WEAPON', f(16, '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5, 0));
+    this.ui.add(this.add.text(W / 2, Math.max(36, H * 0.05 + 24), 'LEVEL ' + this.levelId + ': ' + LEVELS[this.levelId].short, f(8, '#9fd8ff', ink)).setOrigin(0.5, 0));
+    const n = WEAPONS.length, gap = 18, cw = Math.min(300, (W - gap * (n + 1)) / n), ch = Math.min(280, H - 110);
+    const x0 = (W - (cw * n + gap * (n - 1))) / 2, y0 = Math.max(64, H * 0.2);
+    this.cards = [];
+    WEAPONS.forEach((w, i) => {
+      const x = x0 + i * (cw + gap), open = weaponUnlocked(w, this.levelId);
+      const g = this.add.graphics();
+      g.fillStyle(0x1a1020, 1).fillRect(x - 3, y0 - 3, cw + 6, ch + 6);
+      g.fillStyle(0xc9cde0, 1).fillRect(x - 1, y0 - 1, cw + 2, ch + 2);
+      g.fillStyle(open ? 0x151b40 : 0x14141c, 1).fillRect(x, y0, cw, ch);
+      this.ui.add(g);
+      // the gun, big and pixelly, with its drill / nozzle on the front
+      const gs = Math.max(2, Math.min(4, Math.floor(cw / 70)));
+      const gx = x + cw / 2 - (34 + 20) * gs / 2, gy = y0 + 22 + 26 * gs / 2;
+      const gun = this.add.image(gx, gy, w.gunTex).setOrigin(0, 15 / 26).setScale(gs);
+      const tip = this.add.image(gx + 32 * gs, gy, w.tipTex === 'auger' ? 'auger0' : w.tipTex).setOrigin(0, 0.5).setScale(gs);
+      if (!open) { gun.setTint(0x333344); tip.setTint(0x333344); }
+      this.ui.add([tip, gun]);
+      this.cards.push({ x, y: y0, w: cw, h: ch, gun, tip, gy, open, w8: w });
+      let ty = gy + 16 * gs;
+      this.ui.add(this.add.text(x + cw / 2, ty, w.name, f(cw > 240 ? 10 : 8, open ? '#ffffff' : '#6b7390', ink)).setOrigin(0.5, 0));
+      ty += 20;
+      this.ui.add(this.add.text(x + cw / 2, ty, w.blurb, f(8, open ? '#c9cde0' : '#4a5070', { align: 'center', wordWrap: { width: cw - 20 }, lineSpacing: 4 })).setOrigin(0.5, 0));
+      ty += 34;
+      if (open) {
+        Object.entries(w.stats).forEach(([k, v], j) => {
+          const sy = ty + j * 14;
+          this.ui.add(this.add.text(x + 14, sy, k, f(8, '#9fa6c2')).setOrigin(0, 0));
+          for (let b = 0; b < 5; b++) g.fillStyle(b < v ? (k === 'POWER' ? 0xff6a3a : k === 'RATE' ? 0xffd23f : k === 'RANGE' ? 0x39c6ff : 0x7dff8a) : 0x2a2f50, 1).fillRect(x + 84 + b * 14, sy, 11, 8);
+        });
+      } else {
+        g.fillStyle(0xc9cde0, 1).fillRect(x + cw / 2 - 9, ty + 8, 18, 14); g.lineStyle(3, 0xc9cde0, 1).strokeRect(x + cw / 2 - 5, ty, 10, 10);   // padlock
+        this.ui.add(this.add.text(x + cw / 2, ty + 30, 'UNLOCKS AT LEVEL ' + w.unlock, f(8, '#ff8a8a', ink)).setOrigin(0.5, 0));
+      }
+      const z = this.add.zone(x, y0, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
+      z.on('pointerup', () => { if (this.sel === i) this.pick(i); else if (open) { this.sel = i; this.pick(i); } else this.pick(i); });
+      this.ui.add(z);
+    });
+    const hint = Pad.state.connected ? 'D-PAD TO CHOOSE   A TO GO   B BACK' : 'TAP A WEAPON   (KEYS: 1/2 OR ARROWS + ENTER, ESC BACK)';
+    this.ui.add(this.add.text(W / 2, H - 12, hint, f(8, '#6b7390')).setOrigin(0.5, 1));
+    const back = this.add.text(12, 12, '< BACK', f(8, '#9fa6c2', ink)).setInteractive({ useHandCursor: true });
+    back.on('pointerup', () => this.back());
+    this.ui.add(back);
+  }
+
+  update(time) {
+    const W = this.scale.width, H = this.scale.height, g = this.bg;
+    g.clear();
+    for (const s of this.stars) g.fillStyle(0xffffff, 0.35 + 0.35 * Math.sin(time / 600 + s.tw)).fillRect(s.x * W, s.y * H, s.s, s.s);
+    this.selG.clear();
+    if (!this.cards) return;
+    this.cards.forEach((c, i) => {
+      const on = i === this.sel;
+      const bob = on ? Math.round(Math.sin(time / 220) * 3) : 0;
+      c.gun.y = c.gy + bob; c.tip.y = c.gy + bob;
+      if (c.w8.tipTex === 'auger') c.tip.setTexture('auger' + (on ? Math.floor(time / 50) % 4 : 0));
+      if (on) this.selG.lineStyle(4, 0xffd23f, 0.6 + 0.4 * Math.sin(time / 150)).strokeRect(c.x - 7, c.y - 7, c.w + 14, c.h + 14);
+    });
+  }
 }

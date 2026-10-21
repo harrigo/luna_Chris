@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.49';
+const BUILD = 'v0.50';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -40,9 +40,11 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot' },
+    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot',
+    blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    interval: 0.24, speed: 980, life: 0.8, ammo: 0.06, dmg: 2, wobble: 1.5, pierce: 4, sfxEvery: 1, sfx: 'zing' }
+    interval: 0.24, speed: 980, life: 0.8, ammo: 0.06, dmg: 2, wobble: 1.5, pierce: 4, sfxEvery: 1, sfx: 'zing',
+    blurb: 'Long noodles that punch through a whole line of rats.', stats: { POWER: 4, RATE: 2, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
 const Progress = {           // remembered on the device: highest level beaten
@@ -1637,7 +1639,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, SelectScene, Level1]
+  scene: [IntroScene, SelectScene, WeaponScene, Level1]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.
