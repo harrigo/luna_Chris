@@ -21,6 +21,8 @@ const LEVELS = {
     id: 1, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
     radius: 420, sky: [0x111a6a, 0x4a2296], bg: '#111a6a', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
+    surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242 },
+    geysers: { n: 7, idle: [3.5, 7], warn: 1.1, erupt: 1.3, height: 175 },
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTex: 'ledge1',
@@ -381,6 +383,14 @@ function makeLevelTextures(scene) {
   });
   mk('lava_glow', 90, 50, g => { for (let i = 0; i < 8; i++) g.fillStyle(0xff9a2a, 0.08).fillEllipse(45, 25, 90 - i * 10, 50 - i * 5.5); });
   mk('lava_drop', 10, 10, g => { g.fillStyle(OUT, 1).fillCircle(5, 5, 5); g.fillStyle(0xff8a1a, 1).fillCircle(5, 5, 3.6); g.fillStyle(0xffe27a, 1).fillCircle(4, 4, 1.6); });
+  // fondue geyser: a crusty vent mound with a glowing crack, and the molten cheese blobs it throws
+  mk('geyser_vent', 54, 20, g => {
+    g.fillStyle(OUT, 1).fillEllipse(27, 14, 54, 16).fillTriangle(8, 14, 20, 2, 30, 14).fillTriangle(24, 14, 36, 0, 48, 14);
+    g.fillStyle(0x9a5a14, 1).fillEllipse(27, 14, 48, 11).fillTriangle(12, 13, 20, 5, 28, 13).fillTriangle(27, 13, 36, 4, 44, 13);
+    g.fillStyle(0xff8a1a, 1).fillRect(22, 9, 12, 3);
+    g.fillStyle(0xffe27a, 1).fillRect(25, 9, 6, 2);
+  });
+  mk('fondue', 12, 12, g => { g.fillStyle(OUT, 1).fillCircle(6, 6, 6); g.fillStyle(0xffc23a, 1).fillCircle(6, 6, 4.6); g.fillStyle(0xfff3a0, 1).fillCircle(5, 4.5, 2.2); });
   // big background gear for the industrial level
   mk('gear', 180, 180, g => {
     g.fillStyle(0xffffff, 1);
@@ -482,4 +492,90 @@ class SelectScene extends Phaser.Scene {
       this.selG.lineStyle(4, 0xffffff, 0.6 + 0.4 * Math.sin(time / 150)).strokeRoundedRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12, 16);
     }
   }
+}
+
+// ---------------------------------------------------------------- pixel-art planet surface
+// Builds a chunky 16-bit planet texture once: dithered cheese tones, a crusty rind round the edge, shaded craters,
+// Gruyere holes, crumbs and debris. Drawn at HALF resolution and shown at 2x with nearest-neighbour filtering,
+// so every texel is a fat pixel. It rotates with the world; lighting/depth is a separate fixed overlay.
+const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
+function makePlanetTexture(scene, key, Rw, pal, seed) {
+  if (scene.textures.exists(key)) return;
+  const S = Math.round(Rw), c = S / 2, r = S / 2;                  // texture is Rw x Rw, shown at 2x = full diameter
+  let sd = seed || 1;
+  const rand = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  const hex = v => [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  const P = pal.map(hex);                                           // tones, dark -> light
+  // smooth value noise
+  const G = 24, grid = []; for (let i = 0; i < (G + 1) * (G + 1); i++) grid.push(rand());
+  const noise = (x, y) => {
+    const fx = x / S * G, fy = y / S * G, ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+    const g = (a, b) => grid[Math.min(G, b) * (G + 1) + Math.min(G, a)];
+    const sx = tx * tx * (3 - 2 * tx), sy = ty * ty * (3 - 2 * ty);
+    return (g(ix, iy) * (1 - sx) + g(ix + 1, iy) * sx) * (1 - sy) + (g(ix, iy + 1) * (1 - sx) + g(ix + 1, iy + 1) * sx) * sy;
+  };
+  // features
+  const craters = [], holes = [];
+  for (let i = 0; i < 70; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.86; craters.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: 3 + rand() * rand() * 16 }); }
+  for (let i = 0; i < 45; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.8; holes.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: 2 + rand() * 7 }); }
+  const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
+  const put = (i, t) => { const col = P[Math.max(0, Math.min(P.length - 1, t))]; D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255; };
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.hypot(dx, dy) / r;
+    const i = (y * S + x) * 4;
+    if (d > 1) continue;
+    const th = BAYER4[(y & 3) * 4 + (x & 3)];
+    // base cheese: noise picks a tone, the Bayer threshold dithers between neighbouring tones
+    let v = 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
+    // rind crust towards the edge
+    if (d > 0.935) v = 1.5 + (noise(x * 2, y * 2) - 0.5) * 1.6 - (d - 0.935) * 8;
+    else if (d > 0.9) v -= (d - 0.9) / 0.035 * 1.2;
+    let t = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
+    // craters: dark bowl, lit lower-right lip, shadowed upper-left
+    for (const k of craters) {
+      const cx2 = x - k.x, cy2 = y - k.y, dd = Math.hypot(cx2, cy2) / k.r;
+      if (dd < 1.25) {
+        if (dd < 1) { const sh = (cx2 + cy2) / k.r; t = (sh > 0.3 ? 2 : 1) + ((0.5 + sh * 0.5) > th ? 0 : -1); }
+        else { const lip = (cx2 + cy2) / k.r; if (lip > 0.2) t = Math.max(t, 4); else if (lip < -0.4) t = Math.min(t, 1); }
+        break;
+      }
+    }
+    // gruyere holes: very dark with a bright lower rim
+    for (const h of holes) {
+      const hx = x - h.x, hy = y - h.y, dd = Math.hypot(hx, hy) / h.r;
+      if (dd < 1) { t = dd > 0.7 && hy > 0 ? 3 : 0; break; }
+    }
+    if (d > 0.985) t = 0;                                             // dark outline pixel ring
+    put(i, t);
+  }
+  // crumbs & debris: scattered 1-2px specks
+  const speck = (x, y, t) => { if (x < 0 || y < 0 || x >= S || y >= S) return; const dd = Math.hypot(x - c, y - c) / r; if (dd > 0.96) return; put((y * S + x) * 4, t); };
+  for (let i = 0; i < S * 3; i++) {
+    const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.95, x = Math.round(c + Math.cos(a) * d), y = Math.round(c + Math.sin(a) * d);
+    const kind = rand();
+    if (kind < 0.55) speck(x, y, P.length - 1);                       // light crumb
+    else if (kind < 0.85) speck(x, y, 0);                             // dark grit
+    else { speck(x, y, 1); speck(x + 1, y, 1); speck(x, y + 1, 0); speck(x + 1, y + 1, 0); }   // little rock chunk
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+
+// fixed (non-rotating) overlay: dithered darkening deeper into the planet + bright dithered rim
+function makePlanetShade(scene, key, Rw) {
+  if (scene.textures.exists(key)) return;
+  const S = Math.round(Rw), c = S / 2, r = S / 2;
+  const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const d = Math.hypot(x + 0.5 - c, y + 0.5 - c) / r;
+    if (d > 1) continue;
+    const th = BAYER4[(y & 3) * 4 + (x & 3)], i = (y * S + x) * 4;
+    const dark = Math.max(0, Math.min(0.7, (0.8 - d) * 1.6));      // deeper = darker
+    if (dark > th) { D[i] = 40; D[i + 1] = 14; D[i + 2] = 60; D[i + 3] = 105; }
+    else if (d > 0.955 && d < 0.985 && th < 0.5) { D[i] = 255; D[i + 1] = 246; D[i + 2] = 190; D[i + 3] = 200; }   // rim light
+  }
+  ctx.putImageData(img, 0, 0);
+  tex.refresh();
+  tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }

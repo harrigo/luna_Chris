@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.30';
+const BUILD = 'v0.31';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -160,12 +160,21 @@ class Level1 extends Phaser.Scene {
 
     // surface decoration: pits on the surface line and cheese holes inside the planet
     this.decor = [];
-    for (let i = 0; i < 28; i++) {
+    this.planetImg = null;
+    if (this.def.surface) {                              // pixel-art planet surface (rotates with the world) + fixed shading
+      const key = 'surf' + this.levelId;
+      makePlanetTexture(this, key, R, this.def.surface.pal, this.def.surface.seed);
+      makePlanetShade(this, 'shade' + this.levelId, R);
+      this.planetImg = this.add.image(0, 0, key).setDepth(1.05);
+      this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
+      this.rimG = this.add.graphics().setDepth(1.12);
+    }
+    if (!this.def.surface) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
       spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -8 });
     }
-    for (let i = 0; i < 60; i++) {
+    if (!this.def.surface) for (let i = 0; i < 60; i++) {
       const spr = this.add.image(0, 0, 'hole').setDepth(2).setTint(this.def.decorTint).setAlpha(rnd(0.5, 1) * this.def.decorAlpha);
       spr.bsx = spr.bsy = rnd(0.5, 2.2);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
@@ -180,6 +189,17 @@ class Level1 extends Phaser.Scene {
       const bub = this.add.image(0, 0, 'lava_drop').setDepth(2.3);
       pool.bsx = glow.bsx = rnd(0.8, 1.4); pool.bsy = glow.bsy = rnd(0.9, 1.3);
       this.lavas.push({ theta, h: -rnd(22, 190), pool, glow, bub, bt: rnd(0, 1), bx: 0, ph: rnd(0, 6) });   // set into the planet at random depths
+    }
+
+    // fondue geysers (level 1): idle -> warn (vent glows, bubbles, rumble) -> erupt (column of molten cheese that hurts)
+    this.geysers = [];
+    const gd = this.def.geysers;
+    if (gd) for (let i = 0; i < gd.n; i++) {
+      const theta = wrap(0.45 + i * (TAU - 0.9) / gd.n + rnd(0, 0.15));          // none right where Chris starts
+      const glow = this.add.image(0, 0, 'lava_glow').setDepth(2.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      const vent = this.add.image(0, 0, 'geyser_vent').setOrigin(0.5, 0.75).setDepth(2.6);
+      glow.bsx = 1.3; glow.bsy = 2;
+      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0 });
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -1158,6 +1178,29 @@ class Level1 extends Phaser.Scene {
   }
 
   updateParticles(dt) {
+    const gd = this.def.geysers, P = this.pl;
+    for (const G of (this.geysers || [])) {
+      const near = Math.abs(angDiff(G.theta, P.theta)) < 1.3;
+      G.cd -= dt;
+      if (G.st === 'idle' && G.cd <= 0) {
+        if (this.state !== 'play') { G.cd = 1; continue; }
+        G.st = 'warn'; G.cd = gd.warn;
+        if (near) Sound.sfx('zing');
+      } else if (G.st === 'warn') {
+        G.emitT -= dt;
+        if (near && G.emitT <= 0) { G.emitT = 0.12; this.parts.push({ theta: G.theta, h: 2, vt: rnd(-40, 40), vh: rnd(80, 160), life: 0.4, spr: this.add.image(0, 0, 'fondue').setDepth(2.7) }); }
+        if (G.cd <= 0) { G.st = 'erupt'; G.cd = gd.erupt; if (near) { this.cameras.main.shake(160, 0.005); Sound.sfx('boom'); buzz(30); } }
+      } else if (G.st === 'erupt') {
+        G.emitT -= dt;
+        if (near && G.emitT <= 0) {
+          G.emitT = 0.035;
+          this.parts.push({ theta: G.theta, h: 2, vt: rnd(-55, 55), vh: rnd(420, 640), life: rnd(0.9, 1.3), spr: (() => { const im = this.add.image(0, 0, 'fondue').setDepth(2.7); im.bsx = im.bsy = rnd(0.9, 1.7); return im; })() });
+        }
+        // standing in the column hurts
+        if (P.invuln <= 0 && this.state === 'play' && Math.abs(angDiff(P.theta, G.theta)) * R < 20 && P.h < gd.height) this.hurt();
+        if (G.cd <= 0) { G.st = 'idle'; G.cd = rnd(gd.idle[0], gd.idle[1]); }
+      }
+    }
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i];
       p.theta = wrap(p.theta + (p.vt / R) * dt);
@@ -1251,13 +1294,27 @@ class Level1 extends Phaser.Scene {
     const pc = this.def.planet;
     pg.fillStyle(pc.glow, 0.08).fillCircle(cx, cy, Rz + 30);
     pg.fillStyle(pc.glow, 0.14).fillCircle(cx, cy, Rz + 14);
-    pg.fillStyle(pc.fill, 1).fillCircle(cx, cy, Rz);
-    pg.fillStyle(pc.inner, 1).fillCircle(cx, cy, Rz - 70 * this.zoom);
-    pg.lineStyle(5, pc.rim, 1).strokeCircle(cx, cy, Rz);
+    if (this.planetImg) {
+      const ps = (2 * Rz) / this.planetImg.width;
+      this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-this.unw);
+      this.planetShade.setPosition(cx, cy).setScale(ps);
+      this.rimG.clear().lineStyle(3, 0x1a1020, 1).strokeCircle(cx, cy, Rz + 1);
+    } else {
+      pg.fillStyle(pc.fill, 1).fillCircle(cx, cy, Rz);
+      pg.fillStyle(pc.inner, 1).fillCircle(cx, cy, Rz - 70 * this.zoom);
+      pg.lineStyle(5, pc.rim, 1).strokeCircle(cx, cy, Rz);
+    }
     if (this.def.conveyor) this.drawGrater(pg);
     for (const zs of this.zoneSprs) { this.place(zs.spr, zs.theta, zs.h + Math.sin(this.t * 0.9 + zs.ph) * 12, 0); zs.spr.setAlpha(0.2 + 0.1 * Math.sin(this.t * 1.3 + zs.ph)); }
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
+    for (const G of this.geysers) {
+      this.place(G.vent, G.theta, -3, 0);
+      const k = G.st === 'warn' ? 0.4 + 0.4 * Math.abs(Math.sin(this.t * 14)) : (G.st === 'erupt' ? 1 : 0);
+      G.glow.setAlpha(k);
+      this.place(G.glow, G.theta, 6, 0);
+      G.vent.sqx = G.st === 'warn' ? 1 + 0.08 * Math.sin(this.t * 40) : 1;
+    }
     for (const L of this.lavas) {
       this.place(L.glow, L.theta, L.h + 4, 0); this.place(L.pool, L.theta, L.h, 0);
       L.glow.setAlpha(0.55 + 0.35 * Math.sin(this.t * 4 + L.ph));
