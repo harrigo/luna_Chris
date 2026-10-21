@@ -141,10 +141,11 @@ function makeChrisTextures(scene) {
     for (let x = 3; x <= 33; x += 5) a.px(x, 4 + Math.round(Math.sin(x / 34 * Math.PI * 3) * 2.4) - 1, 0xfff4b0);
   });
   // the belly: hangs out under the front of the suit (drawn behind the suit, so only the front-bottom shows)
-  pixSprite(scene, 'c_belly', 24, 16, a => {
-    a.ell(12, 7, 11, 7.5, SKIN);
-    a.px(16, 10, 0xb06a4a); a.px(16, 11, 0xc9805e);                                     // navel
-    a.rect(17, 5, 19, 5, 0xffe8dc);                                                     // shine
+  pixSprite(scene, 'c_belly', 22, 9, a => {                                             // just a little overhang peeking out under the hem
+    a.ell(12, 1, 10, 6.5, SKIN);                                                        // the bottom curve of the belly (top hides under the suit)
+    a.rect(4, 0, 20, 1, 0xc9805e);                                                      // shadow crease under the hem
+    a.px(15, 4, 0xb06a4a);                                                              // navel
+    a.rect(17, 3, 18, 3, 0xffe8dc);                                                     // shine
   });
   // gun arm: suit sleeve, red cuff, big white glove
   pixSprite(scene, 'c_arm', 18, 11, a => {
@@ -194,7 +195,7 @@ class ChrisRig {
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
     this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
-    this.belly = img('c_belly', 7, -9, 0.5, 0.35);                  // pokes out under the front of the suit
+    this.belly = img('c_belly', 7, -10, 0.5, 0);                    // a slight overhang under the front of the hem
     this.armB = img('c_arm', -3, -22, 0, 0.5);
     this.apron = img('c_apron', -7, -30, 0.5, 0);
     this.head = img('c_head', 2, -44, 0.5, 0.5);
@@ -283,7 +284,7 @@ class ChrisRig {
     const drive = run * Math.sin(this.wp * 2) * 3;
     this.bv += (-this.bo * 170 - this.bv * 8 + drive * 55) * dt;
     this.bo = Math.max(-1.4, Math.min(1.4, this.bo + this.bv * dt));
-    this.belly.setScale(1 - this.bo * 0.1, 1 + this.bo * 0.16).setPosition(7 + this.bo * 0.6, -9 + this.bo * 1.6);
+    this.belly.setScale(1 - this.bo * 0.05, 1 + this.bo * 0.14).setPosition(7 + this.bo * 0.3, -10 + this.bo * 0.8);
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
