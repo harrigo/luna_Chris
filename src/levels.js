@@ -23,9 +23,14 @@ const LEVELS = {
     radius: 420, sky: [0x0b1020, 0x1b1245], bg: '#0b1020', starTint: 0xffffff, dustAlpha: 1, bgDecor: null,
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
-    gravity: 1, ledgeTint: 0xffe58a,
+    gravity: 1, ledgeTex: 'ledge1',
     ledges: [{ theta: 0.9, half: 0.14, h: 85 }, { theta: 2.0, half: 0.12, h: 165 }, { theta: 3.3, half: 0.14, h: 85 }, { theta: 4.4, half: 0.12, h: 165 }, { theta: 5.5, half: 0.14, h: 85 }],
-    props: [{ tex: 'p_rock', n: 9, sc: [0.8, 1.5] }, { tex: 'p_wedge', n: 7, sc: [0.9, 1.5] }, { tex: 'p_flag', n: 4, sc: [1, 1.3] }, { tex: 'p_tuft1', n: 12, sc: [0.8, 1.4], fg: true }],
+    props: [
+      { tex: 'pile_rind', n: 5, sc: [2.2, 3.2], depth: 1.6, tint: 0x6a5a40, alpha: 0.55, h: -10 },
+      { tex: 'pile_rind', n: 6, sc: [1.1, 1.7], tint: 0xc8b890, alpha: 0.9 },
+      { tex: 'p_skull', n: 3, sc: [1, 1.3], tint: 0xe0d8c0 },
+      { tex: 'p_rock', n: 8, sc: [0.9, 1.5] }, { tex: 'p_wedge', n: 6, sc: [0.9, 1.5] }, { tex: 'p_flag', n: 3, sc: [1, 1.3] },
+      { tex: 'p_tuft1', n: 12, sc: [0.8, 1.4], fg: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1), S('flyer', 2), S('mouse', 2.4), S('mouse', 3.6), S('flyer', 4), S('mouse', 4.8), S('flyer', 6.2), S('mouse', 6.8), S('mouse', 7.6)] },
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
@@ -41,15 +46,14 @@ const LEVELS = {
     radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
     dust: [0x2fbf8f, 0x3ad0c0, 0x6a8cff, 0x9bff6a], decorTint: 0x4fa88f, decorAlpha: 1,
-    gravity: 1, ledgeTint: 0x8fe0c8,
+    gravity: 1, ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
-    props: [{ tex: 'p_shroom', n: 10, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 12, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 7, sc: [0.9, 1.4] }, { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
-    // spore clouds: theta, half-width (rad), gravity multiplier (green = floaty, purple = heavy)
-    zones: [
-      { theta: 0.0, half: 0.5, mult: 0.38 }, { theta: 1.05, half: 0.36, mult: 1.7 },
-      { theta: 2.1, half: 0.5, mult: 0.38 }, { theta: 3.15, half: 0.36, mult: 1.7 },
-      { theta: 4.2, half: 0.5, mult: 0.38 }, { theta: 5.25, half: 0.36, mult: 1.7 }
-    ],
+    props: [
+      { tex: 'pile_tyres', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x40604f, alpha: 0.6, h: -10 },
+      { tex: 'pile_tyres', n: 7, sc: [1.2, 1.9], tint: 0x9fb8a8, alpha: 0.92 },
+      { tex: 'pile_bones', n: 5, sc: [1.1, 1.8], tint: 0xc8c8b0, alpha: 0.9 },
+      { tex: 'p_shroom', n: 6, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 10, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 4, sc: [0.9, 1.4] },
+      { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 1.4), S('frog', 2.6), S('germ', 3.4), S('germ', 4.6), S('frog', 6), S('germ', 6.6), S('germ', 7.8)] },
       { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.8), S('germ', 1.8), S('frog', 3), S('germ', 3.6), S('germ', 4.6), S('frog', 6), S('germ', 6.4), S('germ', 7.4), S('frog', 8.6), S('germ', 9)] },
@@ -65,11 +69,15 @@ const LEVELS = {
     radius: 300, sky: [0x0e0506, 0x56260c], bg: '#0e0506', starTint: 0xffd9a8, dustAlpha: 1.4, bgDecor: 'gears',
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0xd5dde8 },
     dust: [0xff9a3a, 0xff6a3a, 0x8aa0c0, 0xffd23f], decorTint: 0x8a929c, decorAlpha: 0.55,
-    gravity: 1, ledgeTint: 0xaab4c4,
+    gravity: 1, ledgeTex: 'ledge3',
     ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
-    props: [{ tex: 'p_pipe', n: 6, sc: [0.9, 1.4] }, { tex: 'p_whisk', n: 6, sc: [0.9, 1.3] }, { tex: 'p_crate', n: 5, sc: [0.9, 1.3] }, { tex: 'p_cone', n: 9, sc: [0.8, 1.2], fg: true }],
-    conveyor: 90,            // the surface scrolls backwards at this many units/s
-    platforms: { count: 8, half: 0.2 },
+    props: [
+      { tex: 'pile_scrap', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x5a3a34, alpha: 0.6, h: -10 },
+      { tex: 'pile_scrap', n: 6, sc: [1.2, 1.8], tint: 0xb4a8a8, alpha: 0.92 },
+      { tex: 'pile_bones', n: 5, sc: [1.2, 1.8], tint: 0xd8b8a8, alpha: 0.92 },
+      { tex: 'pile_tyres', n: 2, sc: [1.2, 1.7], tint: 0x9a8a8a },
+      { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] }, { tex: 'p_whisk', n: 4, sc: [0.9, 1.3] }, { tex: 'p_skull', n: 4, sc: [1.1, 1.5], tint: 0xe8c8b8 },
+      { tex: 'p_cone', n: 9, sc: [0.8, 1.2], fg: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('slicer', 0), S('drone', 1.4), S('drone', 3), S('slicer', 4.2), S('drone', 5.6), S('drone', 7)] },
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 2.4), S('slicer', 3.6), S('drone', 4.4), S('drone', 6), S('slicer', 7), S('drone', 8)] },
@@ -207,6 +215,79 @@ function makeLevelTextures(scene) {
     g.fillStyle(0x3b4252, 1).fillCircle(12, 12, 3);
   });
   // ---- ledges and scenery props
+  // ---- Earthworm-Jim-ish junk heaps: tyres, bones, scrap (dark, chunky, faded when tinted/alpha'd behind)
+  const tyre = (g, cx, cy, w, h) => {
+    g.fillStyle(OUT, 1).fillEllipse(cx, cy, w + 4, h + 4);
+    g.fillStyle(0x3a5a48, 1).fillEllipse(cx, cy, w, h);
+    g.fillStyle(0x24382e, 1).fillEllipse(cx, cy + 1, w * 0.58, h * 0.5);
+    g.fillStyle(OUT, 1).fillEllipse(cx, cy + 1, w * 0.3, h * 0.26);
+    g.fillStyle(0x6f9a80, 1).fillEllipse(cx - w * 0.22, cy - h * 0.3, w * 0.3, h * 0.13);
+  };
+  mk('pile_tyres', 120, 78, g => {
+    g.fillStyle(OUT, 0.5).fillEllipse(60, 76, 116, 8);
+    const rows = [[18, 66, 44, 22, 4], [18, 78, 44, 22, 3], [60, 66, 44, 22, 3], [102, 66, 40, 22, 2]];
+    for (const [x, y, w, h] of rows) tyre(g, x, y, w, h);
+    tyre(g, 40, 46, 42, 22); tyre(g, 80, 46, 42, 22); tyre(g, 60, 27, 40, 21); tyre(g, 59, 10, 34, 18);
+  });
+  const bone = (g, x1, y1, x2, y2) => {
+    g.lineStyle(7, OUT, 1).lineBetween(x1, y1, x2, y2);
+    g.lineStyle(4, 0xe4dcc4, 1).lineBetween(x1, y1, x2, y2);
+    g.fillStyle(OUT, 1).fillCircle(x1, y1, 5).fillCircle(x2, y2, 5);
+    g.fillStyle(0xe4dcc4, 1).fillCircle(x1, y1, 3.5).fillCircle(x2, y2, 3.5);
+  };
+  const skull = (g, cx, cy, r) => {
+    g.fillStyle(OUT, 1).fillCircle(cx, cy, r + 2).fillRoundedRect(cx - r * 0.6 - 2, cy + r * 0.4, r * 1.2 + 4, r * 0.9 + 2, 3);
+    g.fillStyle(0xe8e0c8, 1).fillCircle(cx, cy, r).fillRoundedRect(cx - r * 0.6, cy + r * 0.45, r * 1.2, r * 0.8, 2);
+    g.fillStyle(OUT, 1).fillCircle(cx - r * 0.38, cy - r * 0.05, r * 0.3).fillCircle(cx + r * 0.38, cy - r * 0.05, r * 0.3);
+    g.fillTriangle(cx - 2, cy + r * 0.25, cx + 2, cy + r * 0.25, cx, cy + r * 0.5);
+    for (let i = -1; i <= 1; i++) g.fillRect(cx + i * r * 0.32 - 1, cy + r * 0.8, 2, r * 0.45);
+    g.fillStyle(0xff3a3a, 1).fillCircle(cx - r * 0.38, cy - r * 0.05, 1.6).fillCircle(cx + r * 0.38, cy - r * 0.05, 1.6);   // glowing eyes
+  };
+  mk('p_skull', 30, 30, g => skull(g, 15, 13, 10));
+  mk('pile_bones', 110, 62, g => {
+    g.fillStyle(OUT, 0.5).fillEllipse(55, 60, 104, 6);
+    bone(g, 8, 56, 70, 40); bone(g, 100, 56, 36, 38); bone(g, 14, 44, 96, 50); bone(g, 30, 56, 84, 30); bone(g, 70, 58, 98, 34);
+    for (let i = 0; i < 5; i++) { g.lineStyle(6, OUT, 1).beginPath().arc(55, 52, 18 + i * 4, Math.PI * 1.08, Math.PI * 1.9).strokePath(); g.lineStyle(3, 0xe4dcc4, 1).beginPath().arc(55, 52, 18 + i * 4, Math.PI * 1.08, Math.PI * 1.9).strokePath(); }
+    skull(g, 55, 22, 11);
+  });
+  mk('pile_rind', 100, 56, g => {
+    g.fillStyle(OUT, 0.5).fillEllipse(50, 54, 96, 6);
+    const tri = (x1, y1, x2, y2, x3, y3, c) => { g.fillStyle(OUT, 1).fillTriangle(x1 - 2, y1 + 2, x2, y2 - 3, x3 + 2, y3 + 2); g.fillStyle(c, 1).fillTriangle(x1, y1, x2, y2, x3, y3); };
+    tri(2, 54, 20, 22, 46, 54, 0xe8c040); tri(30, 54, 52, 10, 78, 54, 0xf0cb52); tri(62, 54, 82, 26, 98, 54, 0xd9a830);
+    g.fillStyle(0xb5851c, 1).fillCircle(24, 44, 3).fillCircle(50, 40, 4).fillCircle(60, 48, 3).fillCircle(84, 46, 3).fillCircle(46, 24, 2);
+    bone(g, 6, 50, 36, 44);
+  });
+  mk('pile_scrap', 120, 80, g => {
+    g.fillStyle(OUT, 0.5).fillEllipse(60, 78, 116, 6);
+    const plate = (pts, c) => { g.fillStyle(OUT, 1).fillPoints(pts.map(p => ({ x: p[0], y: p[1] })).concat(), true); };
+    const poly = (pts, c, hi) => {
+      const P = pts.map(p => ({ x: p[0], y: p[1] }));
+      g.fillStyle(OUT, 1).fillPoints(P.map(p => ({ x: p.x + (p.x < 60 ? -2 : 2), y: p.y + 2 })), true);
+      g.fillStyle(c, 1).fillPoints(P, true);
+      g.lineStyle(2, hi, 1).lineBetween(P[0].x, P[0].y, P[1].x, P[1].y);
+    };
+    poly([[4, 78], [14, 36], [40, 78]], 0x566070, 0x9aa8b8);
+    poly([[30, 78], [58, 6], [82, 78]], 0x6a7482, 0xc0ccd8);
+    poly([[70, 78], [100, 30], [116, 78]], 0x4a525e, 0x8a98a8);
+    poly([[44, 78], [70, 40], [96, 78]], 0x7a4a34, 0xd0825a);                       // rusty plate
+    g.fillStyle(OUT, 1).fillCircle(86, 40, 14); g.fillStyle(0x8a6a50, 1).fillCircle(86, 40, 12); g.fillStyle(OUT, 1).fillCircle(86, 40, 5);   // gear
+    for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.fillStyle(0x8a6a50, 1).fillRect(86 + Math.cos(a) * 13 - 2, 40 + Math.sin(a) * 13 - 2, 4, 4); }
+    g.lineStyle(5, OUT, 1).lineBetween(14, 36, 4, 18); g.lineStyle(3, 0xa8b4c4, 1).lineBetween(14, 36, 4, 18);        // bent pipe
+    g.fillStyle(0xff3a3a, 1).fillCircle(58, 12, 2.4);                                                                  // warning light
+    bone(g, 20, 72, 52, 66);
+  });
+  // ledge slabs: chunky top with a ragged rocky underside, one per level
+  const ledge = (key, top, topHi, under, underHi) => mk(key, 72, 30, g => {
+    const tri = (x, w, d, c) => { g.fillStyle(c, 1).fillTriangle(x, 10, x + w, 10, x + w * 0.5, 10 + d); };
+    for (const [x, w, d] of [[2, 16, 14], [14, 18, 20], [30, 14, 12], [40, 18, 18], [54, 16, 13]]) { tri(x - 1, w + 2, d + 2, OUT); tri(x, w, d, under); }
+    g.fillStyle(underHi, 1).fillTriangle(16, 11, 22, 11, 20, 24).fillTriangle(42, 11, 48, 11, 46, 22);
+    g.fillStyle(OUT, 1).fillRoundedRect(0, 1, 72, 14, 5);
+    g.fillStyle(top, 1).fillRoundedRect(2, 2, 68, 10, 4);
+    g.fillStyle(topHi, 1).fillRoundedRect(4, 3, 64, 3, 2);
+  });
+  ledge('ledge1', 0xd9902a, 0xf5c860, 0x5a3a6a, 0x8a6aa8);
+  ledge('ledge2', 0x7a6a3a, 0xb0a060, 0x2a4a48, 0x4f8a7a);
+  ledge('ledge3', 0x6a6f7a, 0xb8c0cc, 0x4a2a2a, 0x9a4a3a);
   mk('ledge', 64, 16, g => {
     g.fillStyle(OUT, 1).fillRoundedRect(0, 2, 64, 13, 4);
     g.fillStyle(0xffffff, 1).fillRoundedRect(2, 3, 60, 8, 3);

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.20';
+const BUILD = 'v0.21';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -147,17 +147,19 @@ class Level1 extends Phaser.Scene {
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     this.ledgeSprs = [];
     for (const L of (this.def.ledges || [])) {
-      const spr = this.add.image(0, 0, 'ledge').setDepth(3).setTint(this.def.ledgeTint || 0xffffff);
-      spr.bsx = (L.half * 2 * R) / 64; spr.bsy = 1;
+      const spr = this.add.image(0, 0, this.def.ledgeTex || 'ledge1').setOrigin(0.5, 0.1).setDepth(3);
+      spr.bsx = (L.half * 2 * R) / 72; spr.bsy = 1;
       this.ledgeSprs.push({ spr, L });
     }
     this.props = [];
     for (const pr of (this.def.props || [])) {
       for (let i = 0; i < pr.n; i++) {
-        const spr = this.add.image(0, 0, pr.tex).setOrigin(0.5, 1).setDepth(pr.fg ? 8.2 : 2.5);
+        const spr = this.add.image(0, 0, pr.tex).setOrigin(0.5, 1).setDepth(pr.depth || (pr.fg ? 8.2 : 2.5));
+        if (pr.tint) spr.setTint(pr.tint);
+        if (pr.alpha) spr.setAlpha(pr.alpha);
         spr.bsx = spr.bsy = rnd(pr.sc[0], pr.sc[1]) * 1.35;
         if (Math.random() < 0.5) spr.setFlipX(true);
-        this.props.push({ spr, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.fg ? -4 : -2, sway: pr.sway ? rnd(0, 6) : -1 });
+        this.props.push({ spr, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1 });
       }
     }
 
@@ -1165,7 +1167,7 @@ class Level1 extends Phaser.Scene {
     for (const zs of this.zoneSprs) { this.place(zs.spr, zs.theta, zs.h + Math.sin(this.t * 0.9 + zs.ph) * 12, 0); zs.spr.setAlpha(0.2 + 0.1 * Math.sin(this.t * 1.3 + zs.ph)); }
 
     for (const d of this.decor) this.place(d.spr, d.theta, d.h, 0);
-    for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 7, 0);
+    for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 1, 0);
     for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
 
     this.place(P.spr, P.theta, P.h, 0);
