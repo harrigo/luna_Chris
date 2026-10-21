@@ -182,22 +182,11 @@ class IntroScene extends Phaser.Scene {
     const P = (x, y) => [x - 512, y - 286];
     A.add(this.add.image(0, 0, 'titleArt'));
 
-    const beam = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);         // UFO tractor beam
-    beam.fillStyle(0xfff3a0, 1).fillTriangle(...P(870, 110), ...P(770, 420), ...P(975, 420));
-    beam.setAlpha(0.12); A.add(beam);
-    this.tweens.add({ targets: beam, alpha: 0.32, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.easeInOut' });
-
     const steam = this.add.particles(...P(560, 95), 'i_puff', {                     // steam from the hopper
       lifespan: 2600, speedX: { min: 4, max: 22 }, speedY: { min: -38, max: -20 }, scale: { start: 0.25, end: 0.9 },
       alpha: { start: 0.45, end: 0 }, tint: 0xe8dcc8, frequency: 260
     });
     A.add(steam);
-
-    const mac = this.add.particles(...P(770, 205), 'macaroni', {                    // macaroni spraying out of the drill
-      lifespan: 2400, speedX: { min: 160, max: 320 }, speedY: { min: -70, max: 90 }, gravityY: 30,
-      rotate: { start: 0, end: 540 }, scale: { min: 2.4, max: 3.6 }, frequency: 110
-    });
-    A.add(mac);
 
     const sparks = this.add.particles(...P(765, 205), 'spark', {                     // drill sparks
       lifespan: 450, speed: { min: 80, max: 260 }, angle: { min: -60, max: 60 }, scale: { start: 1.6, end: 0 },
@@ -225,17 +214,18 @@ class IntroScene extends Phaser.Scene {
     shade.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.7, 0.7).fillRect(-512, 90, 1024, 196);
     A.add(shade);
 
-    this.artDrift = this.tweens.add({ targets: A, x: '+=10', y: '-=6', duration: 5200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.artZoom = 1;
-    this.tweens.add({ targets: this, artZoom: 1.06, duration: 6000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', onUpdate: () => this.fitArt() });
+    this.stage.setVisible(false);                                                  // hide the ranch scene until the story starts
+    this.time.addEvent({ delay: 16, loop: true, callback: () => this.fitArt() });
   }
 
   fitArt() {
     if (!this.art) return;
-    const W = this.scale.width, H = this.scale.height;
-    const s = Math.max(W / 1024, H / 572) * 1.03 * (this.artZoom || 1);
-    this.art.setScale(s);
-    if (!this.artPlaced) { this.art.setPosition(W / 2, H / 2 + Math.max(0, (572 * s - H) / 2) * 0.85); this.artPlaced = true; }   // keep the top (UFO) in view, crop the moon
+    // cover the whole screen every frame (size can change: fullscreen, rotation, PC window), with a slow drift + zoom
+    const W = this.scale.width, H = this.scale.height, t = this.time.now / 1000;
+    const zoom = 1.04 + 0.03 * Math.sin(t * 0.5);
+    const s = Math.max(W / 1024, H / 572) * zoom;
+    const slackX = (1024 * s - W) / 2, slackY = (572 * s - H) / 2;                 // how far we can move and still cover
+    this.art.setScale(s).setPosition(W / 2 + Math.sin(t * 0.6) * slackX * 0.6, H / 2 + slackY * (0.6 + 0.3 * Math.sin(t * 0.45)));   // favour the top (UFO)
   }
 
   create() {
@@ -314,7 +304,7 @@ class IntroScene extends Phaser.Scene {
     this.capText.setPosition(W / 2, H - BAR_H / 2).setWordWrapWidth(W - 40);
     this.skipText.setOrigin(1, 1).setPosition(W - 10, H - 6);
     if (this.art) {                                                                // title over the key art: bottom centre
-      this.artPlaced = false; this.fitArt();
+      this.fitArt();
       const fs = Math.max(24, Math.min(50, W / 17));
       this.gateTitle.setFontSize(fs).setPosition(W / 2, H * 0.78);
       this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.78 + fs * 0.8);
@@ -405,6 +395,7 @@ class IntroScene extends Phaser.Scene {
     Sound.music('ranch');
     this.skipText.setVisible(true);
     this.tweens.add({ targets: [this.gateTitle, this.gateSub], alpha: 0, duration: 500, onComplete: () => { this.gateTitle.setVisible(false); this.gateSub.setVisible(false); } });
+    this.stage.setVisible(true);
     if (this.art) { this.capText.setStroke('#1a1020', 0); this.tweens.add({ targets: this.art, alpha: 0, duration: 700, onComplete: () => { this.art.destroy(); this.art = null; } }); }
 
     // ---- beat 1: the retired hero
