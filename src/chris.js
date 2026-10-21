@@ -46,8 +46,6 @@ function makeChrisTextures(scene) {
   });
   // suit torso with a slight belly overhang under the hem
   pixSprite(scene, 'c_body', 44, 42, a => {
-    a.ell(22, 34, 14.5, 6.5, SKIN);                                                     // belly
-    a.px(22, 35, 0xb06a4a); a.px(22, 36, 0xc9805e);                                     // navel
     a.rrect(5, 1, 38, 31, 10, SUIT);                                                    // the suit, a size too small
     a.rect(6, 27, 37, 28, 0xd62828); a.rect(7, 29, 36, 30, 0x93a8cc);                   // red hem trim + stretched hem
     a.ell(14, 11, 4, 4, BLUE); a.px(14, 10, 0xffffff); a.px(13, 11, 0xffffff); a.px(15, 11, 0xffffff); a.px(14, 12, 0xffd23f);   // mission patch
@@ -88,6 +86,12 @@ function makeChrisTextures(scene) {
     a.rrect(7, 21, 30, 28, 2, [0xffffff, 0xf1f1f1, 0xc4cede]);
     for (const x of [13, 19, 25]) a.rect(x, 22, x, 27, 0xbcc6d6);                        // pleats
     a.line([[14, 6], [16, 13]], 0xbcc6d6); a.line([[24, 7], [22, 13]], 0xbcc6d6);
+  });
+  // the belly: hangs out under the front of the suit (drawn behind the suit, so only the front-bottom shows)
+  pixSprite(scene, 'c_belly', 24, 16, a => {
+    a.ell(12, 7, 11, 7.5, SKIN);
+    a.px(16, 10, 0xb06a4a); a.px(16, 11, 0xc9805e);                                     // navel
+    a.rect(17, 5, 19, 5, 0xffe8dc);                                                     // shine
   });
   // gun arm: suit sleeve, red cuff, big white glove
   pixSprite(scene, 'c_arm', 18, 11, a => {
@@ -130,11 +134,12 @@ class ChrisRig {
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
     this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
+    this.belly = img('c_belly', 7, -9, 0.5, 0.35);                  // pokes out under the front of the suit
     this.armB = img('c_arm', -3, -22, 0, 0.5);
     this.apron = img('c_apron', -7, -30, 0.5, 0);
     this.head = img('c_head', 2, -44, 0.5, 0.5);
     this.hat = img('c_hat', 3, -54, 0.5, 1);
-    this.torso.add([this.apron, this.body, this.armB, this.head, this.hat]);     // apron hangs BEHIND him so the belly is on show
+    this.torso.add([this.apron, this.belly, this.body, this.armB, this.head, this.hat]);     // apron hangs BEHIND him so the belly is on show
     this.legF = img('c_leg', 7, -16, 0.5, 0);
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
@@ -144,7 +149,7 @@ class ChrisRig {
     this.gunArm.add([this.gArm, this.gun, this.auger]);
     this.root.add([this.cape, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
 
-    this.parts = [this.cape, this.tanks, this.legB, this.bootB, this.body, this.armB, this.apron, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
+    this.parts = [this.cape, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
     this.tinted = false;
     this.wp = 0;          // waddle phase
     this.t = 0;
@@ -171,7 +176,7 @@ class ChrisRig {
 
     // ---- phases
     if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8;
-    if (!this.wasGround && grounded) this.squash = 1;           // landing squash
+    if (!this.wasGround && grounded) { this.squash = 1; this.bv = (this.bv || 0) + 5; }   // landing squash (and a belly wobble)
     if (this.wasGround && !grounded && P.vh > 200) this.squash = -0.8;   // take-off stretch
     this.wasGround = grounded;
     this.squash += (0 - this.squash) * Math.min(1, dt * 9);
@@ -213,6 +218,12 @@ class ChrisRig {
 
     // belly jiggle on every footfall
     this.body.setScale(1, 1 + Math.abs(Math.cos(this.wp)) * 0.05 * run);
+    // belly jiggle: a little spring driven by the waddle and by landings
+    this.bo = this.bo || 0; this.bv = this.bv || 0;
+    const drive = run * Math.sin(this.wp * 2) * 3;
+    this.bv += (-this.bo * 170 - this.bv * 8 + drive * 55) * dt;
+    this.bo = Math.max(-1.4, Math.min(1.4, this.bo + this.bv * dt));
+    this.belly.setScale(1 - this.bo * 0.1, 1 + this.bo * 0.16).setPosition(7 + this.bo * 0.6, -9 + this.bo * 1.6);
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
