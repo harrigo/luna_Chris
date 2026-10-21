@@ -146,6 +146,9 @@ const Sound = (() => {
     },
     // cutscene
     flap:    () => tone({ type: 'triangle', f: 300, f2: 480, dur: 0.06, vol: 0.07 }),
+    blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter
+    alarm:   () => { for (let i = 0; i < 3; i++) tone({ type: 'square', f: 880, f2: 620, dur: 0.18, vol: 0.09, t: ctx.currentTime + i * 0.24 }); },
+    shine:   () => arp([1320, 1760, 2640], 0.05, { type: 'pulse', duty: 0.125, vol: 0.08 }),
     ufoFly:  () => tone({ type: 'sawtooth', f: 1100, f2: 180, dur: 0.85, vol: 0.1 }),
     crash:   () => { noise({ f1: 3200, f2: 90, dur: 0.9, vol: 0.6 }); tone({ type: 'sawtooth', f: 95, f2: 32, dur: 0.7, vol: 0.5 }); },
     squeak:  () => arp([1500, 2200], 0.05, { type: 'square', vol: 0.1 }),

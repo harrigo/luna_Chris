@@ -1,168 +1,206 @@
-// Luna Chris - opening cutscene.
-// Placeholder comic-style art, all drawn with code (thick ink outlines, bright colours).
-// The stage is a fixed 800x360 canvas that is scaled to fit the screen; the caption bar sits underneath.
-// Tap once to start (needed for fullscreen), tap again at any time to skip into Level 1.
-// Add ?skipintro to the URL to jump straight to Level 1 while testing.
+// Luna Chris - title screen + opening cutscene, in the game's own 16-bit pixel style.
+// The title is the painted key art. The story that follows is composed on a 200-pixel-tall grid (VIEW_H) and scaled to
+// fit, using the real in-game sprites: the Chris rig, the rat-ship and its tractor beam, the rats and Bessie.
+// Tap once to start (needed for fullscreen + sound), tap again at any time to skip. ?skipintro jumps straight to Level 1.
 
 const INK = 0x1a1020;
-const FONT = '"Comic Sans MS","Chalkboard SE","Comic Neue",cursive,sans-serif';
-const STAGE_W = 800, STAGE_H = 360, GROUND = 300, BAR_H = 58;
+const VIEW_H = 200;                       // logical height of the cutscene view; (0,0) is the middle of the view
+const GY = 62;                            // ground line
 
-const ell = (g, x, y, w, h, f, lw = 3) => { g.fillStyle(f, 1).fillEllipse(x, y, w, h); g.lineStyle(lw, INK, 1).strokeEllipse(x, y, w, h); };
-const rrect = (g, x, y, w, h, r, f, lw = 3) => { g.fillStyle(f, 1).fillRoundedRect(x, y, w, h, r); g.lineStyle(lw, INK, 1).strokeRoundedRect(x, y, w, h, r); };
-const circ = (g, x, y, r, f, lw = 3) => { g.fillStyle(f, 1).fillCircle(x, y, r); g.lineStyle(lw, INK, 1).strokeCircle(x, y, r); };
-const poly = (g, a, f, lw = 3) => { const p = a.map(([x, y]) => ({ x, y })); g.fillStyle(f, 1).fillPoints(p, true); g.lineStyle(lw, INK, 1).strokePoints(p, true); };
-const line = (g, x1, y1, x2, y2, w, c) => { g.lineStyle(w, c, 1).lineBetween(x1, y1, x2, y2); };
-
+// soft glow + steam puff, used by the painted title art
 function makeIntroTextures(scene) {
-  if (scene.textures.exists('i_chris')) return;
-  const mk = (key, w, h, draw) => {
-    const gg = scene.make.graphics({ x: 0, y: 0, add: false });
-    draw(gg);
-    gg.generateTexture(key, w, h);
-    gg.destroy();
-  };
-
-  // Luna Chris: tired astronaut, bulky suit, "Kiss the Cook" apron. Origin = bottom centre (60,182).
-  mk('i_chris', 150, 182, gg => {
-    rrect(gg, 4, 58, 18, 44, 6, 0xb8c2d3);                                  // backpack
-    rrect(gg, 22, 168, 36, 13, 5, 0x3a3f55); rrect(gg, 62, 168, 36, 13, 5, 0x3a3f55);   // boots
-    rrect(gg, 26, 110, 70, 62, 16, 0xdfe6f0);                               // suit legs
-    rrect(gg, 32, 112, 58, 54, 8, 0xe03030);                                // apron
-    gg.fillStyle(0xffffff, 1).fillRect(40, 126, 42, 5).fillRect(40, 136, 42, 5).fillRect(48, 146, 26, 5);
-    rrect(gg, 18, 50, 86, 70, 24, 0xeef2f8);                                // torso
-    circ(gg, 38, 78, 8, 0x1d4ed8, 2); line(gg, 31, 83, 46, 74, 2, 0xe03030);   // mission patch
-    line(gg, 28, 70, 16, 108, 20, INK); line(gg, 28, 70, 16, 108, 14, 0xeef2f8); circ(gg, 15, 112, 9, 0x555b6e);  // left arm
-    line(gg, 94, 66, 122, 44, 20, INK); line(gg, 94, 66, 122, 44, 14, 0xeef2f8); circ(gg, 124, 42, 9, 0xffffff);   // right arm
-    circ(gg, 60, 36, 32, 0xffffff, 4);                                      // helmet
-    ell(gg, 68, 38, 42, 30, 0x22385e);                                      // visor
-    gg.fillStyle(0x6fa8ff, 0.9).fillEllipse(80, 30, 12, 6);
-    gg.fillStyle(0xffffff, 1).fillCircle(60, 40, 5).fillCircle(77, 40, 5);    // tired eyes
-    gg.fillStyle(0x111111, 1).fillCircle(61, 41, 2.2).fillCircle(78, 41, 2.2);
-    line(gg, 54, 35, 66, 37, 3, 0x22385e); line(gg, 71, 37, 83, 35, 3, 0x22385e);   // heavy lids
-  });
-
-  mk('i_spat', 26, 76, gg => {                                              // spatula, origin (0.5,0.92)
-    line(gg, 13, 72, 13, 30, 9, INK); line(gg, 13, 72, 13, 30, 5, 0x8a5a3a);
-    rrect(gg, 3, 2, 20, 30, 4, 0xc0c8d4);
-  });
-
-  mk('i_pancake', 44, 18, gg => {
-    ell(gg, 22, 10, 40, 14, 0xd9923a); gg.fillStyle(0xf6c460, 1).fillEllipse(22, 8, 30, 8);
-    rrect(gg, 16, 3, 10, 6, 1, 0xfff3a0, 2);
-  });
-
-  // Bessie, the zero-gravity cow. Origin = bottom centre (100,124).
-  mk('i_bessie', 200, 124, gg => {
-    line(gg, 168, 52, 188, 80, 5, INK); circ(gg, 190, 84, 7, 0x2a2a35, 2);   // tail
-    [[62, 98], [86, 102], [124, 98], [148, 102]].forEach(([x, y]) => rrect(gg, x, y, 16, 22, 5, 0xffffff));
-    ell(gg, 118, 104, 34, 20, 0xff9db8);                                    // udder
-    ell(gg, 108, 66, 130, 76, 0xffffff, 4);                                 // body
-    gg.fillStyle(0x2a2a35, 1).fillEllipse(95, 50, 34, 22).fillEllipse(140, 72, 38, 26).fillEllipse(122, 42, 16, 12);
-    poly(gg, [[30, 36], [24, 14], [40, 30]], 0xf3e3b0, 2); poly(gg, [[48, 34], [56, 14], [58, 34]], 0xf3e3b0, 2); // horns
-    ell(gg, 36, 60, 54, 48, 0xffffff, 4);                                   // head
-    ell(gg, 58, 46, 18, 14, 0x2a2a35, 2);                                   // ear/patch
-    ell(gg, 18, 72, 32, 24, 0xffb5c8);                                      // snout
-    gg.fillStyle(0x7a3b4a, 1).fillCircle(12, 72, 2.5).fillCircle(22, 72, 2.5);
-    circ(gg, 34, 52, 7, 0xffffff, 2); gg.fillStyle(0x111111, 1).fillCircle(32, 53, 3);   // eye
-    line(gg, 28, 44, 24, 40, 2, INK); line(gg, 34, 44, 33, 39, 2, INK);        // lashes
-    gg.fillStyle(0xffd23f, 1).fillCircle(116, 118, 3).fillCircle(124, 120, 2.5);       // Mad Cheese drips
-  });
-
-  // Roquefort Rodents' junk UFO
-  mk('i_ufo', 240, 124, gg => {
-    poly(gg, [[214, 70], [240, 60], [232, 78], [240, 92], [214, 86]], 0xff8c1a, 2);
-    gg.fillStyle(0x9fe8ff, 0.95).fillEllipse(120, 44, 84, 70); gg.lineStyle(4, INK, 1).strokeEllipse(120, 44, 84, 70);
-    circ(gg, 120, 50, 14, 0x9aa3b2, 3); circ(gg, 110, 38, 6, 0xff9db8, 2); circ(gg, 130, 38, 6, 0xff9db8, 2);
-    gg.fillStyle(0x111111, 1).fillCircle(115, 50, 2).fillCircle(126, 50, 2);
-    ell(gg, 120, 76, 224, 50, 0x8b93a3, 4);
-    rrect(gg, 40, 62, 40, 22, 4, 0x6b8f5a); rrect(gg, 150, 64, 44, 20, 4, 0xb5523c);       // mismatched junk plates
-    gg.fillStyle(0x6b4a2f, 1).fillEllipse(100, 90, 26, 9);                                  // rust
-    for (let i = 0; i < 9; i++) circ(gg, 28 + i * 23, 80, 4, i % 2 ? 0xffd23f : 0xff6b6b, 2);
-    ell(gg, 120, 104, 64, 18, 0x555b6e);                                                    // beam emitter
-    line(gg, 170, 26, 188, 6, 3, INK); circ(gg, 190, 5, 4, 0xff6b6b, 2);                    // antenna
-  });
-
-  // Roquefort Rodent in junk armour. Origin = bottom centre (35,64).
-  mk('i_rat', 70, 64, gg => {
-    line(gg, 12, 50, 2, 36, 4, 0xd9a5b3);
-    ell(gg, 34, 44, 40, 26, 0x9aa3b2);
-    rrect(gg, 20, 32, 14, 14, 2, 0x4a8f5a, 2);                              // tin-can pauldron
-    circ(gg, 50, 34, 15, 0x9aa3b2); circ(gg, 44, 20, 6, 0xff9db8, 2); circ(gg, 58, 22, 5, 0xff9db8, 2);
-    circ(gg, 64, 36, 3.5, 0xff6b8a, 2);
-    ell(gg, 50, 24, 30, 14, 0x9b7a58); line(gg, 36, 22, 28, 18, 4, INK);    // saucepan helmet
-    circ(gg, 53, 34, 4.5, 0xffffff, 2); gg.fillStyle(0x111111, 1).fillCircle(54, 35, 1.8);
-    rrect(gg, 20, 56, 10, 8, 3, 0x555b6e, 2); rrect(gg, 40, 56, 10, 8, 3, 0x555b6e, 2);
-  });
-
-  mk('i_barn', 250, 160, gg => {
-    rrect(gg, 4, 4, 242, 154, 4, 0xb5372c, 4);
-    for (let x = 28; x < 246; x += 24) line(gg, x, 6, x, 156, 2, 0x8e2a22);
-    rrect(gg, 84, 44, 84, 114, 3, 0xe9dcb5, 4);
-    line(gg, 88, 48, 164, 154, 5, 0x8e7a4a); line(gg, 164, 48, 88, 154, 5, 0x8e7a4a);
-    rrect(gg, 104, 10, 44, 24, 3, 0x2a1a10);
-  });
-  const roof = gg => {
-    poly(gg, [[2, 94], [40, 30], [150, 4], [260, 30], [298, 94]], 0x5a3a2a, 4);
-    for (let i = 1; i < 4; i++) line(gg, 6 + i * 6, 94 - i * 20, 294 - i * 6, 94 - i * 20, 2, 0x3a251a);
-  };
-  mk('i_roof', 300, 96, roof);
-  mk('i_roofX', 300, 96, gg => {
-    roof(gg);
-    poly(gg, [[110, 94], [122, 48], [138, 70], [150, 34], [166, 66], [182, 94]], 0x120a14, 3);
-    poly(gg, [[118, 50], [112, 26], [128, 46]], 0xc9955a, 2); poly(gg, [[160, 40], [170, 18], [176, 44]], 0xc9955a, 2);
-  });
-  mk('i_plank', 46, 10, gg => { rrect(gg, 1, 1, 44, 8, 2, 0x8a5a3a, 2); });
-
-  mk('i_cabin', 200, 140, gg => {
-    rrect(gg, 10, 50, 180, 88, 3, 0x6b4a2f, 4);
-    for (let i = 1; i < 6; i++) line(gg, 12, 50 + i * 14, 188, 50 + i * 14, 2, 0x4a321e);
-    rrect(gg, 150, 12, 18, 38, 2, 0x7b7f8c, 3);
-    poly(gg, [[0, 54], [100, 6], [200, 54]], 0x7a3b2a, 4);
-    rrect(gg, 84, 88, 34, 50, 3, 0x4a2f1a); rrect(gg, 28, 74, 34, 28, 3, 0xffd23f);
-    line(gg, 45, 74, 45, 102, 2, INK); line(gg, 28, 88, 62, 88, 2, INK);
-  });
-
-  mk('i_grinder', 28, 66, gg => {
-    rrect(gg, 4, 20, 20, 44, 8, 0x8a5a3a); rrect(gg, 8, 10, 12, 12, 3, 0x6b4326);
-    circ(gg, 14, 7, 6, 0x5a3a22); rrect(gg, 4, 50, 20, 7, 2, 0x3a2616, 2);
-  });
-
-  // fireplace panel (flips round to reveal the armoury)
-  mk('i_stone', 380, 204, gg => {
-    rrect(gg, 2, 2, 376, 200, 4, 0x7b7f8c, 4);
-    for (let r = 0; r < 8; r++) {
-      const off = r % 2 ? 0 : 30;
-      for (let x = -30 + off; x < 380; x += 60) rrect(gg, Math.max(4, x), 4 + r * 25, 56, 23, 3, r % 2 ? 0x8a8e9b : 0x6f7380, 2);
-    }
-    rrect(gg, 110, 70, 160, 134, 6, 0x1a1210, 4);
-    ell(gg, 190, 190, 90, 26, 0xff6b1a, 2); ell(gg, 190, 192, 50, 14, 0xffd23f, 1);
-  });
-
-  mk('i_armory', 380, 204, gg => {
-    rrect(gg, 2, 2, 376, 200, 6, 0x2b3447, 5);
-    line(gg, 10, 14, 370, 14, 4, 0x39d0c8); line(gg, 10, 190, 370, 190, 4, 0x39d0c8);
-    line(gg, 190, 22, 190, 182, 3, 0x1a2234);
-    // Mac-Grinder 3000
-    rrect(gg, 24, 38, 92, 28, 6, 0xff8c1a); rrect(gg, 58, 28, 22, 48, 3, 0x7a3b00);
-    poly(gg, [[116, 40], [152, 52], [116, 64]], 0xffc36a, 3); poly(gg, [[34, 66], [50, 66], [44, 90]], 0x555b6e, 3);
-    // Swiss-Shot
-    rrect(gg, 214, 40, 100, 26, 6, 0xffd23f); rrect(gg, 314, 46, 38, 14, 3, 0xc99a2a);
-    [236, 262, 288].forEach(x => circ(gg, x, 53, 5, 0xe3a21a, 2));
-    // Fondue Flamethrower
-    rrect(gg, 24, 122, 40, 52, 8, 0xd62828); rrect(gg, 64, 140, 56, 14, 4, 0x555b6e);
-    poly(gg, [[120, 140], [158, 130], [146, 144], [166, 150], [120, 154]], 0xff8c1a, 3);
-    // Gouda Grenade launcher
-    rrect(gg, 214, 126, 112, 36, 10, 0x5b6b3a); rrect(gg, 322, 120, 18, 48, 4, 0x3a3f55);
-    poly(gg, [[214, 172], [240, 172], [240, 150]], 0xffd23f, 3);
-  });
-
-  mk('i_glow', 180, 180, gg => { for (let i = 0; i < 10; i++) gg.fillStyle(0xffb347, 0.07).fillCircle(90, 90, 90 - i * 8.5); });
-  mk('i_puff', 48, 48, gg => { gg.fillStyle(0xf3ead6, 1).fillCircle(24, 24, 22); gg.fillStyle(0xffffff, 0.5).fillCircle(18, 18, 10); });
-  mk('i_glove', 26, 26, gg => { circ(gg, 13, 13, 10, 0xffffff, 3); });
+  if (scene.textures.exists('i_glow')) return;
+  const mk = (key, w, h, draw) => { const g = scene.make.graphics({ x: 0, y: 0, add: false }); draw(g); g.generateTexture(key, w, h); g.destroy(); };
+  mk('i_glow', 180, 180, g => { for (let i = 0; i < 10; i++) g.fillStyle(0xffb347, 0.07).fillCircle(90, 90, 90 - i * 8.5); });
+  mk('i_puff', 48, 48, g => { g.fillStyle(0xf3ead6, 1).fillCircle(24, 24, 22); g.fillStyle(0xffffff, 0.5).fillCircle(18, 18, 10); });
 }
 
-const STARS = (() => { let s = 7; const a = []; for (let i = 0; i < 60; i++) { s = (s * 16807) % 2147483647; const x = s % 800; s = (s * 16807) % 2147483647; const y = s % 200; a.push([x, y, 1 + (s % 3) * 0.6]); } return a; })();
+// ---------------------------------------------------------------- pixel art for the cutscene
+function makeIntroPix(scene) {
+  if (scene.textures.exists('ix_barn')) return;
+  const W = 760;
+
+  // skies: tall, so the camera can start up in the stars and pan down to the ranch
+  const sky = (key, cols, starsTo, seed) => pixTex(scene, key, W, 360, put => {
+    const n = cols.length - 1, r = rng(seed);
+    for (let y = 0; y < 360; y++) {
+      const v = Math.pow(y / 359, 1.3) * n, lo = Math.floor(v), f = v - lo;
+      for (let x = 0; x < W; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
+    }
+    const sc = [0xffffff, 0xbfe4ff, 0xfff1a0, 0xffc0f0];
+    for (let i = 0; i < 300; i++) {
+      const x = r() * W | 0, y = Math.pow(r(), 1.5) * starsTo | 0, c = sc[i % 4];
+      put(x, y, c);
+      if (i % 19 === 0) { put(x - 1, y, c); put(x + 1, y, c); put(x, y - 1, c); put(x, y + 1, c); }
+    }
+  });
+  sky('ix_sky_dusk', [0x0b1020, 0x131838, 0x1e1c4c, 0x2e2060, 0x48267a, 0x6e2e82, 0xa23c7e, 0xd25a6c, 0xee8452, 0xf8b04a], 230, 31);
+  sky('ix_sky_night', [0x05070f, 0x090d1c, 0x0e1530, 0x141c44, 0x1c2456, 0x262c68], 330, 77);
+
+  // horizon hills: a far purple range and a nearer cheesy one, with a lit rim and dithered shading
+  const hills = (key, h, seed, amp, rim, body, low) => pixTex(scene, key, W, h, put => {
+    const r = rng(seed), n = vnoise(r, 14), n2 = vnoise(r, 40);
+    for (let x = 0; x < W; x++) {
+      const top = Math.round(h * 0.15 + (1 - n(x / W, 0.3)) * amp + n2(x / W, 0.7) * 4);
+      for (let y = top; y < h; y++) {
+        const d = (y - top) / (h - top);
+        put(x, y, y === top ? rim : (d > 0.45 + bay(x, y) * 0.5 ? low : body));
+      }
+    }
+  });
+  hills('ix_hills_far', 50, 5, 30, 0x8a4a9a, 0x4a2a6e, 0x34205a);
+  hills('ix_hills_mid', 40, 9, 22, 0xe0a040, 0xa8681c, 0x84501a);
+
+  // the cheese-moon ground: bumpy rim, dithered depth bands, craters and swiss holes
+  pixTex(scene, 'ix_ground', W, 64, put => {
+    const r = rng(13), n = vnoise(r, 60), tones = [0xffd84a, 0xf0bc36, 0xd89a26, 0xb4781c, 0x8a5a14];
+    const top = []; for (let x = 0; x < W; x++) top.push(Math.round(2 + n(x / W, 0.5) * 3));
+    for (let x = 0; x < W; x++) for (let y = top[x]; y < 64; y++) {
+      if (y === top[x]) { put(x, y, 0xfff1a0); continue; }
+      const v = Math.min(tones.length - 1, Math.floor((y - top[x]) / 64 * 4.2 + bay(x, y) * 0.9));
+      put(x, y, tones[v]);
+    }
+    for (let i = 0; i < 26; i++) {                                  // craters: dark bowl, lit lower lip
+      const cx = r() * W, cy = 10 + r() * 46, rx = 5 + r() * 12, ry = rx * 0.32;
+      for (let y = Math.floor(cy - ry - 1); y <= cy + ry + 1; y++) for (let x = Math.floor(cx - rx - 1); x <= cx + rx + 1; x++) {
+        const d = Math.hypot((x - cx) / rx, (y - cy) / ry);
+        if (d < 0.85) put(x, y, (y < cy) ? 0x8a5a14 : 0xb4781c);
+        else if (d < 1.15 && y > cy) put(x, y, 0xfff1a0);
+      }
+    }
+    for (let i = 0; i < 40; i++) { const x = r() * W | 0, y = 8 + r() * 52 | 0; put(x, y, 0x7a4a10); put(x + 1, y, 0x7a4a10); put(x, y + 1, 0xa8701c); }
+  });
+
+  // ---- the ranch
+  const barn = broken => (p => {
+    p.rrect(8, 40, 95, 91, 1, [0xe0503a, 0xc23a2c, 0x8e2a22]);
+    for (let x = 14; x < 92; x += 7) p.line([[x, 44], [x, 90]], 0x8e2a22);
+    const xl = y => (y < 18 ? 52 - 34 * (y - 4) / 14 : 18 - 16 * (y - 18) / 26);
+    p.poly([[2, 44], [18, 18], [52, 4], [86, 18], [102, 44]], [0x8a6a5a, 0x5e4438, 0x3e2a24]);
+    for (let y = 10; y < 44; y += 5) p.line([[Math.ceil(xl(y)) + 1, y], [Math.floor(104 - xl(y)) - 1, y]], 0x3e2a24);
+    p.rect(45, 24, 58, 35, 0x2a1a10); p.rect(46, 25, 57, 34, 0x4a2a1a);
+    p.rrect(30, 54, 73, 91, 1, [0xfff1d0, 0xe9dcb5, 0xb8a880]);
+    p.rect(33, 57, 50, 89, 0xa8302a); p.rect(53, 57, 70, 89, 0xa8302a);
+    for (const [a, b] of [[33, 50], [53, 70]]) { p.line([[a, 57], [b, 89]], 0xe9dcb5, 2); p.line([[b, 57], [a, 89]], 0xe9dcb5, 2); }
+    if (broken) {
+      p.poly([[36, 8], [44, 20], [52, 6], [58, 18], [68, 10], [66, 30], [40, 30]], 0x120a14);
+      for (const [x, y] of [[36, 8], [52, 6], [68, 10], [44, 20], [58, 18], [39, 12], [65, 14]]) { p.px(x, y, 0xc9955a); p.px(x + 1, y - 1, 0xc9955a); }
+    }
+  });
+  pixSprite(scene, 'ix_barn', 104, 92, barn(false));
+  pixSprite(scene, 'ix_barn_x', 104, 92, barn(true));
+
+  pixSprite(scene, 'ix_cabin', 88, 72, p => {
+    p.rrect(60, 2, 71, 26, 1, [0xa0a4b0, 0x7b7f8c, 0x50545f]);
+    for (let y = 6; y < 26; y += 4) p.line([[61, y], [70, y]], 0x50545f);
+    p.poly([[0, 30], [44, 6], [88, 30]], [0xa0503a, 0x7a3b2a, 0x4e2418]);
+    p.rrect(6, 28, 81, 71, 1, [0x8a6040, 0x6b4a2f, 0x4a321e]);
+    for (let y = 33; y < 71; y += 6) p.line([[7, y], [80, y]], 0x4a321e);
+    p.rect(13, 39, 34, 56, 0x2a1a10); p.rect(15, 41, 32, 54, 0xffd23f); p.rect(15, 41, 22, 46, 0xfff1a0);
+    p.line([[23, 41], [23, 54]], 0x2a1a10); p.line([[15, 47], [32, 47]], 0x2a1a10);
+    p.rrect(48, 44, 63, 71, 1, [0x6b4326, 0x4a2f1a, 0x2e1c10]); p.px(60, 58, 0xffd23f);
+  });
+
+  pixSprite(scene, 'ix_fence', 140, 22, p => {
+    for (let x = 2; x < 140; x += 22) p.rrect(x, 2, x + 4, 21, 1, [0xb07a4a, 0x8a5a3a, 0x5e3a22]);
+    p.rect(0, 7, 139, 8, 0x8a5a3a); p.rect(0, 14, 139, 15, 0x8a5a3a);
+    p.line([[0, 7], [139, 7]], 0xb07a4a); p.line([[0, 14], [139, 14]], 0xb07a4a);
+  });
+
+  pixSprite(scene, 'ix_grill', 30, 26, p => {
+    p.line([[7, 14], [3, 25]], 0x50545f, 2); p.line([[23, 14], [27, 25]], 0x50545f, 2); p.line([[15, 16], [15, 25]], 0x50545f, 2);
+    p.poly([[1, 6], [29, 6], [24, 16], [6, 16]], [0x5a5e6c, 0x3a3e4c, 0x24262e]);
+    p.rect(1, 5, 29, 6, 0x2a2a35);
+    for (const x of [6, 11, 17, 22]) { p.px(x, 7, 0xff8a1a); p.px(x + 1, 8, 0xffd23f); }
+  });
+
+  pixSprite(scene, 'ix_pancake', 13, 6, p => { p.ell(6.5, 3, 6, 2.3, [0xf8d070, 0xd9923a, 0xa8601c]); p.px(6, 2, 0xfff3a0); p.px(7, 2, 0xfff3a0); });
+
+  // the spatula sits in the gun slot of the Chris rig (same 34x26 canvas, handle centred on row 15)
+  pixSprite(scene, 'ix_spatula', 34, 26, p => {
+    p.rrect(1, 13, 16, 17, 1, [0x9a6a4a, 0x6b4326, 0x4a2f1a]);
+    p.line([[17, 15], [22, 15]], 0x9aa3b2, 2);
+    p.rrect(22, 7, 32, 21, 1, [0xf0f4fa, 0xb8c0cc, 0x7a8290]);
+    p.line([[25, 10], [25, 18]], 0x5a6270); p.line([[29, 10], [29, 18]], 0x5a6270);
+  });
+
+  pixSprite(scene, 'ix_plank', 14, 5, p => p.rrect(1, 1, 12, 3, 1, [0xd09060, 0xa86a3a, 0x7a4a26]));
+  pixSprite(scene, 'ix_dust', 12, 12, p => p.ell(6, 6, 5, 5, [0xfff6e0, 0xe8d8b0, 0xb8a888]));
+  pixSprite(scene, 'ix_smoke', 12, 12, p => p.ell(6, 6, 5, 5, [0x8a8a9e, 0x5e5e72, 0x40404e]));
+
+  // ---- the cabin interior
+  pixTex(scene, 'ix_wall', W, 210, put => {
+    const r = rng(21), cols = [0x6b4a2f, 0x62432a];
+    for (let y = 0; y < 210; y++) {
+      const row = (y / 13) | 0, seamY = y % 13 === 0, off = (row * 97) % 140;
+      for (let x = 0; x < W; x++) {
+        let c = cols[row % 2];
+        if (seamY || (x + off) % 140 === 0) c = 0x3a2616;
+        else if (((x * 7 + row * 13) % 23 === 0) && r() < 0.6) c = 0x553a24;
+        const d = Math.abs(x - W / 2) / (W / 2);                        // dithered vignette towards the edges
+        if (d > 0.55 && (d - 0.55) * 2.6 > bay(x, y)) c = c === 0x3a2616 ? 0x24160c : 0x3e2a1a;
+        put(x, y, c);
+      }
+    }
+  });
+  pixTex(scene, 'ix_floor', W, 48, put => {
+    for (let y = 0; y < 48; y++) for (let x = 0; x < W; x++) {
+      let c = y === 0 ? 0x2a1a10 : (y < 3 ? 0x7a5236 : ((y / 9 | 0) % 2 ? 0x4a321e : 0x553a24));
+      if (y > 2 && (x + ((y / 9 | 0) * 53)) % 90 === 0) c = 0x2a1a10;
+      if (y > 20 && (y - 20) / 28 > bay(x, y) + 0.2) c = 0x2a1a10;
+      put(x, y, c);
+    }
+  });
+  pixTex(scene, 'ix_rug', 130, 16, put => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 130; x++) {
+      const d = Math.hypot((x - 64.5) / 64, (y - 7.5) / 7.5); if (d > 1) continue;
+      put(x, y, d > 0.86 ? INK : (d > 0.72 ? 0xffd23f : ((x + y) % 6 < 3 && d < 0.5 ? 0xe63946 : 0xb8222e)));
+    }
+  });
+  pixSprite(scene, 'ix_fireplace', 112, 98, p => {
+    p.rrect(4, 26, 107, 97, 2, [0xa0a4b0, 0x7b7f8c, 0x50545f]);
+    for (let y = 30; y < 97; y += 8) { p.line([[5, y], [106, y]], 0x50545f); for (let x = 8 + ((y / 8) % 2) * 9; x < 106; x += 18) p.line([[x, y], [x, y + 7]], 0x50545f); }
+    p.rrect(28, 44, 83, 97, 5, 0x120a0a);
+    p.rrect(36, 86, 74, 92, 2, [0x8a5a3a, 0x6b4326, 0x4a2f1a]);
+    p.rrect(0, 18, 111, 27, 1, [0xa07050, 0x6b4326, 0x4a2f1a]);
+  });
+  pixSprite(scene, 'ix_armory', 112, 98, p => {
+    p.rrect(4, 18, 107, 97, 2, [0x6a7a9a, 0x3e4a66, 0x262e44]);
+    p.rect(10, 24, 101, 91, 0x121828);
+    p.line([[10, 24], [101, 24]], 0x39d0c8); p.line([[10, 91], [101, 91]], 0x39d0c8);
+    for (const y of [50, 78]) { p.rect(12, y, 99, y + 2, 0x8a929c); p.line([[12, y], [99, y]], 0xd8dfe8); }
+    for (let x = 12; x < 100; x += 6) { p.line([[x, 93], [x + 3, 96]], 0xffd23f, 2); }
+    for (const [x, y] of [[8, 22], [103, 22], [8, 93], [103, 93]]) p.px(x, y, 0xd8dfe8);
+  });
+  pixSprite(scene, 'ix_window', 40, 36, p => {
+    p.rrect(1, 1, 38, 34, 1, [0x8a6040, 0x6b4a2f, 0x4a321e]);
+    p.rect(5, 5, 34, 30, 0x10173a);
+    for (const [x, y, c] of [[9, 9, 0xffffff], [27, 8, 0xbfe4ff], [15, 22, 0xfff1a0], [30, 26, 0xffffff], [21, 12, 0xffc0f0]]) p.px(x, y, c);
+    p.ell(26, 15, 4, 4, [0xfff6c0, 0xf0d070, 0xb89a40]);
+    p.line([[19, 5], [19, 30]], 0x4a321e, 2); p.line([[5, 17], [34, 17]], 0x4a321e, 2);
+  });
+  pixSprite(scene, 'ix_frame', 28, 24, p => {
+    p.rrect(1, 1, 26, 22, 1, [0xffe27a, 0xd9aa30, 0x9a7020]);
+    p.rect(4, 4, 23, 19, 0x9fd8ff); p.rect(4, 15, 23, 19, 0x6fcf5a);
+  });
+  pixSprite(scene, 'ix_grinder', 9, 20, p => {
+    p.ell(4.5, 2.5, 2, 2, [0xd8dfe8, 0x9aa3b2, 0x5a6270]);
+    p.rrect(1, 4, 7, 17, 2, [0xa07050, 0x6b4326, 0x4a2f1a]);
+    p.rect(1, 17, 7, 19, 0x9aa3b2);
+  });
+
+  // ---- the comic close-up: speed lines behind Chris's portrait
+  pixTex(scene, 'ix_speed', 150, 104, put => {
+    for (let y = 0; y < 104; y++) for (let x = 0; x < 150; x++) {
+      const edge = x < 2 || y < 2 || x > 147 || y > 101, inner = x < 3 || y < 3 || x > 146 || y > 100;
+      if (edge) { put(x, y, INK); continue; }
+      if (inner) { put(x, y, 0xffffff); continue; }
+      const a = Math.atan2(y - 52, x - 52), d = Math.hypot(x - 52, y - 52) / 90;
+      const band = Math.floor((a + Math.PI) / (Math.PI * 2) * 28) % 2;
+      put(x, y, band ? (d + bay(x, y) * 0.35 > 0.75 ? 0xd0302a : 0xff8a1a) : (d + bay(x, y) * 0.35 > 0.8 ? 0xff8a1a : 0xffd23f));
+    }
+  });
+}
 
 class IntroScene extends Phaser.Scene {
   constructor() { super('intro'); }
@@ -177,45 +215,34 @@ class IntroScene extends Phaser.Scene {
   // Positions are in the art's own pixels (1024 x 572).
   buildTitleArt() {
     if (!this.textures.exists('titleArt')) return;
-    makeTextures(this);
     const A = this.add.container(0, 0).setDepth(9);
     this.art = A;
     const P = (x, y) => [x - 512, y - 286];
     A.add(this.add.image(0, 0, 'titleArt'));
 
-    const steam = this.add.particles(...P(560, 95), 'i_puff', {                     // steam from the hopper
+    A.add(this.add.particles(...P(560, 95), 'i_puff', {                               // steam from the hopper
       lifespan: 2600, speedX: { min: 4, max: 22 }, speedY: { min: -38, max: -20 }, scale: { start: 0.25, end: 0.9 },
       alpha: { start: 0.45, end: 0 }, tint: 0xe8dcc8, frequency: 260
-    });
-    A.add(steam);
-
-    const sparks = this.add.particles(...P(765, 205), 'spark', {                     // drill sparks
+    }));
+    A.add(this.add.particles(...P(765, 205), 'spark', {                               // drill sparks
       lifespan: 450, speed: { min: 80, max: 260 }, angle: { min: -60, max: 60 }, scale: { start: 1.6, end: 0 },
       blendMode: 'ADD', frequency: 45
-    });
-    A.add(sparks);
+    }));
     const flash = this.add.image(...P(752, 205), 'i_glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd27a);
     A.add(flash);
     this.time.addEvent({ delay: 70, loop: true, callback: () => flash.setScale(Phaser.Math.FloatBetween(0.7, 1.5)).setAlpha(Phaser.Math.FloatBetween(0.5, 1)) });
-
-    const boots = this.add.particles(...P(505, 425), 'flame', {                     // jet boots
+    A.add(this.add.particles(...P(505, 425), 'flame', {                               // jet boots
       lifespan: 380, speedX: { min: -30, max: 30 }, speedY: { min: 60, max: 140 }, scale: { start: 2.2, end: 0 },
       blendMode: 'ADD', frequency: 50
-    });
-    A.add(boots);
-
-    for (let i = 0; i < 14; i++) {                                                 // twinkling stars in the sky
-      const x = Phaser.Math.Between(20, 1000), y = Phaser.Math.Between(10, 170);
-      const st = this.add.image(...P(x, y), 'spark').setBlendMode(Phaser.BlendModes.ADD).setScale(0).setTint(0xffffff);
+    }));
+    for (let i = 0; i < 14; i++) {                                                   // twinkling stars in the sky
+      const st = this.add.image(...P(Phaser.Math.Between(20, 1000), Phaser.Math.Between(10, 170)), 'spark').setBlendMode(Phaser.BlendModes.ADD).setScale(0);
       A.add(st);
       this.tweens.add({ targets: st, scale: Phaser.Math.FloatBetween(1.2, 2.4), yoyo: true, repeat: -1, duration: Phaser.Math.Between(500, 1100), delay: Phaser.Math.Between(0, 3000), repeatDelay: Phaser.Math.Between(400, 2500) });
     }
-
-    const shade = this.add.graphics();                                             // darken the bottom so the title reads
+    const shade = this.add.graphics();                                               // darken the bottom so the title reads
     shade.fillGradientStyle(0x000000, 0x000000, 0x000000, 0x000000, 0, 0, 0.7, 0.7).fillRect(-512, 90, 1024, 196);
     A.add(shade);
-
-    this.stage.setVisible(false);                                                  // hide the ranch scene until the story starts
     this.time.addEvent({ delay: 16, loop: true, callback: () => this.fitArt() });
   }
 
@@ -223,59 +250,64 @@ class IntroScene extends Phaser.Scene {
     if (!this.art) return;
     // cover the whole screen every frame (size can change: fullscreen, rotation, PC window), with a slow drift + zoom
     const W = this.scale.width, H = this.scale.height, t = this.time.now / 1000;
-    const zoom = 1.04 + 0.03 * Math.sin(t * 0.5);
-    const s = Math.max(W / 1024, H / 572) * zoom;
-    const slackX = (1024 * s - W) / 2, slackY = (572 * s - H) / 2;                 // how far we can move and still cover
-    this.art.setScale(s).setPosition(W / 2 + Math.sin(t * 0.6) * slackX * 0.6, H / 2 + slackY * (0.6 + 0.3 * Math.sin(t * 0.45)));   // favour the top (UFO)
+    const s = Math.max(W / 1024, H / 572) * (1.04 + 0.03 * Math.sin(t * 0.5));
+    const slackX = (1024 * s - W) / 2, slackY = (572 * s - H) / 2;
+    this.art.setScale(s).setPosition(W / 2 + Math.sin(t * 0.6) * slackX * 0.6, H / 2 + slackY * (0.6 + 0.3 * Math.sin(t * 0.45)));
   }
 
   create() {
     if (/[?&]skipintro/.test(window.location.search)) { this.scene.start('level1'); return; }
     makeIntroTextures(this);
+    makeTextures(this); makeLevelTextures(this); makeChrisTextures(this); makeDebris(this); makeBeam(this); makePixStar(this); makeIntroPix(this);
     this.cameras.main.setBackgroundColor('#000000');
-    this.phase = 'gate';            // gate (waiting for first tap) -> play -> leaving
+    this.phase = 'gate';            // gate (waiting for first tap) -> title -> play -> leaving
     this.wantFs = false;
     this.leaving = false;
+    this.rig = null; this.shot = null; this.acts = [];
 
-    this.stage = this.add.container(0, 0).setDepth(1);
-    this.buildRanch();
+    this.stage = this.add.container(0, 0).setDepth(1).setVisible(false);
     this.buildTitleArt();
 
-    this.letterbox = this.add.graphics().setDepth(8);
-    this.capText = this.add.text(0, 0, 'TAP TO START', { fontFamily: PIXEL, fontSize: '13px', color: '#ffffff', align: 'center' }).setOrigin(0.5).setDepth(10);
-    this.skipText = this.add.text(0, 0, 'tap to skip', { fontFamily: FONT, fontSize: '12px', color: '#c9cde0' }).setOrigin(1, 0).setDepth(10).setVisible(false);
+    // cinematic bars + caption box (screen space, drawn over the stage)
+    this.bars = this.add.graphics().setDepth(8).setVisible(false);
+    this.caption = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '11px', color: '#ffffff', lineSpacing: 7 }).setDepth(10).setVisible(false);
+    this.chapter = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffd23f' }).setDepth(10).setVisible(false);
+    this.skipText = this.add.text(0, 0, 'SKIP >>', { fontFamily: PIXEL, fontSize: '8px', color: '#9fa6c2' }).setOrigin(1, 0.5).setDepth(10).setVisible(false);
+    this.flashRect = this.add.rectangle(0, 0, 10, 10, 0xffffff, 0).setOrigin(0).setDepth(9);
+
+    // title gate
+    this.capText = this.add.text(0, 0, 'TAP TO START', { fontFamily: PIXEL, fontSize: '13px', color: '#ffffff', align: 'center', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(12);
     this.gateTitle = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '46px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 10 }).setOrigin(0.5).setDepth(12);
     this.gateSub = this.add.text(0, 0, 'SPACE-RANCH HERO', { fontFamily: PIXEL, fontSize: '11px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(12);
-    if (this.art) {
-      this.capText.setDepth(12).setStroke('#1a1020', 4);
-      this.gateTitle.setShadow(4, 5, '#000000', 0, true, true);
-      this.gateTitle.setScale(0);                                                   // logo slams in
-      this.tweens.add({ targets: this.gateTitle, scale: 1, duration: 650, delay: 350, ease: 'Back.easeOut' });
-      this.tweens.add({ targets: this.gateTitle, angle: { from: -2, to: 2 }, yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.easeInOut', delay: 1000 });
-    }
+    this.gateTitle.setShadow(4, 5, '#000000', 0, true, true).setScale(0);
+    this.tweens.add({ targets: this.gateTitle, scale: 1, duration: 650, delay: 350, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: this.gateTitle, angle: { from: -2, to: 2 }, yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.easeInOut', delay: 1000 });
     this.pulse = this.tweens.add({ targets: this.capText, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
 
     this.fit();
     this.scale.on('resize', this.fit, this);
-    const lockLandscape = () => {
-      try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* not supported */ }
-    };
+    const lockLandscape = () => { try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* not supported */ } };
     this.scale.on('enterfullscreen', lockLandscape);
     this.events.once('shutdown', () => {
       this.scale.off('resize', this.fit, this);
       this.scale.off('enterfullscreen', lockLandscape);
+      Sound.jet(false);
     });
 
     const padOff = Pad.on(b => {                       // controller: any face button / Start
       if (!['a', 'b', 'x', 'y', 'start'].includes(b)) return;
       Sound.init();
-      if (this.phase === 'gate') this.startShow();
-      else this.leave();                              // skip the story
+      if (this.phase === 'gate') this.startShow(); else this.leave();
     });
     this.events.once('shutdown', padOff);
+    if (this.input.keyboard) this.input.keyboard.on('keydown', e => {
+      if (!['Enter', ' ', 'Escape', 'x', 'X', 'z', 'Z'].includes(e.key)) return;
+      Sound.init();
+      if (this.phase === 'gate') this.startShow(); else this.leave();
+    });
     this.input.on('pointerdown', () => {
       if (this.phase === 'gate') this.wantFs = true;
-      else if (this.phase === 'play') this.leave();
+      else if (this.phase === 'play' || this.phase === 'title') this.leave();
     });
     // Fullscreen needs a tap *release* (user activation), so it is requested on pointerup.
     this.input.on('pointerup', () => {
@@ -290,97 +322,73 @@ class IntroScene extends Phaser.Scene {
   // ------------------------------------------------------------- layout
   fit() {
     const W = this.scale.width, H = this.scale.height;
-    const s = Math.min(W / STAGE_W, (H - BAR_H) / STAGE_H);
-    const w = STAGE_W * s, h = STAGE_H * s;
-    const x0 = (W - w) / 2, y0 = Math.max(0, (H - BAR_H - h) / 2);
-    this.stage.setScale(s).setPosition(x0, y0);
+    this.W = W; this.H = H;
+    const top = Math.max(18, Math.round(H * 0.07)), bot = Math.max(58, Math.round(H * 0.2));
+    const vh = H - top - bot;
+    const s = Math.max(vh / VIEW_H, W / 720);
+    this.s = s;
+    this.stage.setScale(s).setPosition(Math.round(W / 2), Math.round(top + vh / 2));
+    this.flashRect.setSize(W, H);
 
-    const lb = this.letterbox;
-    lb.clear().fillStyle(0x000000, 1);
-    lb.fillRect(0, 0, W, y0);                       // top
-    lb.fillRect(0, y0, x0, h);                      // left
-    lb.fillRect(x0 + w, y0, W - x0 - w, h);         // right
-    lb.fillRect(0, y0 + h, W, H - y0 - h);          // bottom + caption bar
+    const g = this.bars; g.clear();
+    g.fillStyle(0x000000, 1).fillRect(0, 0, W, top).fillRect(0, H - bot, W, bot);
+    const px = 10, py = H - bot + 8, pw = W - 20, ph = bot - 16;                   // caption panel: dark, full pixel outline
+    g.fillStyle(INK, 1).fillRect(px - 3, py - 3, pw + 6, ph + 6);
+    g.fillStyle(0xc9cde0, 1).fillRect(px - 1, py - 1, pw + 2, ph + 2);
+    g.fillStyle(0x151b40, 1).fillRect(px, py, pw, ph);
+    g.fillStyle(0x222a5a, 1).fillRect(px, py, pw, 2);
+    const fs = Math.max(9, Math.min(15, Math.round(W / 62)));
+    this.caption.setFontSize(fs).setLineSpacing(Math.round(fs * 0.7)).setPosition(px + 14, py + 12).setWordWrapWidth(pw - 28);
+    this.chapter.setPosition(12, Math.round(top / 2 - 4));
+    this.skipText.setOrigin(1, 1).setPosition(px + pw - 10, py + ph - 8);
 
-    this.capText.setPosition(W / 2, H - BAR_H / 2).setWordWrapWidth(W - 40);
-    this.skipText.setOrigin(1, 1).setPosition(W - 10, H - 6);
-    if (this.art) {                                                                // title over the key art: bottom centre
-      this.fitArt();
-      const fs = Math.max(24, Math.min(50, W / 17));
-      this.gateTitle.setFontSize(fs).setPosition(W / 2, H * 0.78);
-      this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.78 + fs * 0.8);
-    } else {
-      this.gateTitle.setFontSize(Math.max(24, Math.min(46, 46 * s))).setPosition(W / 2, y0 + 62 * s);
-      this.gateSub.setFontSize(Math.max(9, 11 * s)).setPosition(W / 2, y0 + 108 * s);
-    }
+    this.capText.setPosition(W / 2, H - 34).setWordWrapWidth(W - 40);
+    this.fitArt();
+    const tfs = Math.max(24, Math.min(50, W / 17));
+    this.gateTitle.setFontSize(tfs).setPosition(W / 2, H * 0.74);
+    this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.74 + tfs * 0.8);
   }
 
-  add2(o) { this.stage.add(o); return o; }       // add an object to the stage container
   at(ms, fn) { return this.time.delayedCall(ms, () => { if (!this.leaving) fn(); }); }
+  shake(d, i) { if (typeof Settings === 'undefined' || Settings.shake) this.cameras.main.shake(d, i); }
+  flash(a, ms) { this.flashRect.setAlpha(a); this.tweens.add({ targets: this.flashRect, alpha: 0, duration: ms || 300 }); }
+  add2(o) { this.shot.add(o); return o; }
+  img(x, y, key, ox = 0.5, oy = 1) { return this.add2(this.add.image(x, y, key).setOrigin(ox, oy)); }
 
+  // typewriter caption with a little blip
   say(text) {
     if (this.typer) this.typer.remove();
-    this.capText.setText('');
+    this.caption.setText('');
     let i = 0;
-    this.typer = this.time.addEvent({ delay: 26, repeat: text.length - 1, callback: () => { i++; this.capText.setText(text.slice(0, i)); } });
+    this.typer = this.time.addEvent({ delay: 28, repeat: text.length - 1, callback: () => {
+      i++; this.caption.setText(text.slice(0, i));
+      if (i % 2 === 0 && text[i - 1] !== ' ') Sound.sfx('blip');
+    } });
   }
 
-  bubble(x, y, txt, life = 1500) {
-    const t = this.add.text(0, 0, txt, { fontFamily: FONT, fontSize: '22px', color: '#111111', fontStyle: 'bold' }).setOrigin(0.5);
-    const w = t.width + 28, h = t.height + 14;
+  // pixel speech bubble, in shot coordinates
+  bubble(x, y, txt, life = 1500, col = '#1a1020') {
+    const t = this.add.text(0, -1, txt, { fontFamily: PIXEL, fontSize: '8px', color: col }).setOrigin(0.5).setResolution(Math.max(2, Math.ceil(this.s * 1.5)));
+    const w = Math.ceil(t.width / 2) * 2 + 12, h = 16, L = -w / 2, T = -h / 2;
     const g = this.add.graphics();
-    g.fillStyle(0xffffff, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 12);
-    g.lineStyle(3, INK, 1).strokeRoundedRect(-w / 2, -h / 2, w, h, 12);
-    g.fillStyle(0xffffff, 1).fillTriangle(-10, h / 2 - 2, 10, h / 2 - 2, -2, h / 2 + 16);
-    g.lineStyle(3, INK, 1).lineBetween(-10, h / 2 - 1, -2, h / 2 + 16).lineBetween(10, h / 2 - 1, -2, h / 2 + 16);
-    const c = this.add.container(x, y, [g, t]);
-    this.add2(c).setScale(0);
-    this.tweens.add({ targets: c, scale: 1, duration: 200, ease: 'Back.easeOut' });
-    this.at(life, () => this.tweens.add({ targets: c, alpha: 0, duration: 250, onComplete: () => c.destroy() }));
+    g.fillStyle(INK, 1).fillRect(L + 1, T, w - 2, h).fillRect(L, T + 1, w, h - 2).fillRect(-5, T + h - 1, 8, 3).fillRect(-4, T + h + 2, 5, 2).fillRect(-3, T + h + 4, 2, 2);
+    g.fillStyle(0xffffff, 1).fillRect(L + 2, T + 1, w - 4, h - 2).fillRect(L + 1, T + 2, w - 2, h - 4).fillRect(-4, T + h - 2, 6, 3).fillRect(-3, T + h + 1, 3, 2);
+    g.fillStyle(0xdde3f0, 1).fillRect(L + 2, T + h - 3, w - 4, 1);
+    const c = this.add2(this.add.container(Math.round(x), Math.round(y), [g, t])).setScale(0);
+    this.tweens.add({ targets: c, scale: 1, duration: 180, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: c, y: c.y - 3, yoyo: true, repeat: -1, duration: 500, ease: 'Sine.easeInOut' });
+    this.at(life, () => this.tweens.add({ targets: c, scale: 0, duration: 140, onComplete: () => c.destroy() }));
     return c;
   }
 
-  puffs(x, y, n, spread = 60, tint = 0xffffff) {
+  dust(x, y, n, key = 'ix_dust', spread = 30, up = 30) {
     for (let i = 0; i < n; i++) {
-      const p = this.add2(this.add.image(x + Phaser.Math.Between(-spread, spread), y + Phaser.Math.Between(-20, 10), 'i_puff').setScale(0.3).setTint(tint).setAlpha(0.9));
-      this.tweens.add({
-        targets: p, scale: Phaser.Math.FloatBetween(0.8, 1.6), alpha: 0, y: p.y - Phaser.Math.Between(20, 60),
-        x: p.x + Phaser.Math.Between(-30, 30), duration: Phaser.Math.Between(500, 900), onComplete: () => p.destroy()
-      });
+      const p = this.img(x + Phaser.Math.Between(-spread, spread), y + Phaser.Math.Between(-6, 2), key, 0.5, 0.5).setScale(Phaser.Math.FloatBetween(0.6, 1.2));
+      this.tweens.add({ targets: p, x: p.x + Phaser.Math.Between(-20, 20), y: p.y - Phaser.Math.Between(up * 0.4, up), scale: 0, duration: Phaser.Math.Between(500, 900), ease: 'Quad.easeOut', onComplete: () => p.destroy() });
     }
   }
 
-  // ------------------------------------------------------------- scenes
-  buildRanch() {
-    const g = this.add2(this.add.graphics());
-    const bands = [0x2a1a4a, 0x3c2260, 0x55307a, 0x7a3d86, 0xa34a85, 0xcf5a7a, 0xe8795f, 0xf29a52, 0xf7b957];
-    const bh = 220 / bands.length;
-    bands.forEach((c, i) => g.fillStyle(c, 1).fillRect(0, i * bh, STAGE_W, bh + 1));
-    STARS.forEach(([x, y, r]) => g.fillStyle(0xffffff, y < 120 ? 0.85 : 0.35).fillCircle(x, y, r));
-    circ(g, 640, 76, 46, 0x8a63c9);                                              // ringed planet
-    g.lineStyle(6, 0xf3d27a, 0.95).strokeEllipse(640, 80, 160, 26);
-    g.fillStyle(0xc98a4b, 1).fillRect(0, 262, STAGE_W, 100);                      // dusty ground
-    g.fillStyle(0xb2763c, 1).fillEllipse(120, 268, 340, 40).fillEllipse(560, 266, 420, 34);
-    g.fillStyle(0xd9a05f, 1).fillRect(0, GROUND, STAGE_W, 60);
-    for (let i = 0; i < 40; i++) g.fillStyle(0xa96b34, 1).fillCircle((i * 97) % 800, 310 + (i * 31) % 45, 2 + (i % 3));
-    for (let x = 270; x < 520; x += 46) { rrect(g, x, 262, 10, 40, 2, 0x8a5a3a, 2); }   // fence
-    line(g, 262, 274, 526, 274, 5, INK); line(g, 262, 274, 526, 274, 3, 0x8a5a3a);
-    line(g, 262, 290, 526, 290, 5, INK); line(g, 262, 290, 526, 290, 3, 0x8a5a3a);
-
-    this.add2(this.add.image(78, GROUND + 4, 'i_cabin').setOrigin(0.5, 1));
-    this.barn = this.add2(this.add.image(660, GROUND, 'i_barn').setOrigin(0.5, 1));
-    this.roof = this.add2(this.add.image(660, GROUND - 154, 'i_roof').setOrigin(0.5, 1));
-
-    this.bessie = this.add2(this.add.image(470, GROUND, 'i_bessie').setOrigin(0.5, 1));
-    this.chris = this.add2(this.add.image(200, GROUND, 'i_chris').setOrigin(60 / 150, 1));
-    this.spat = this.add2(this.add.image(200 + 64, GROUND - 140, 'i_spat').setOrigin(0.5, 0.92));
-    this.pancake = this.add2(this.add.image(264, GROUND - 212, 'i_pancake'));
-
-    this.tweens.add({ targets: this.bessie, y: GROUND - 5, yoyo: true, repeat: -1, duration: 1100, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: this.spat, angle: { from: -12, to: 10 }, yoyo: true, repeat: -1, duration: 380, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: this.pancake, y: GROUND - 275, angle: 360, yoyo: true, repeat: -1, duration: 650, ease: 'Sine.easeOut' });
-  }
-
+  // ------------------------------------------------------------- the show
   // The first tap lands here: the title fanfare starts (browsers only allow sound after a tap) and the logo gets its moment.
   startShow() {
     this.phase = 'title';
@@ -388,184 +396,431 @@ class IntroScene extends Phaser.Scene {
     this.pulse.stop();
     this.capText.setText('').setAlpha(1);
     this.tweens.add({ targets: [this.gateTitle, this.gateSub], scale: 1.12, yoyo: true, repeat: 3, duration: 330, ease: 'Sine.easeInOut' });
-    this.at(this.art ? 4600 : 3200, () => this.story());
+    this.at(this.art ? 4400 : 1500, () => this.story());
   }
 
   story() {
     this.phase = 'play';
     Sound.music('ranch');
-    this.skipText.setVisible(true);
-    this.tweens.add({ targets: [this.gateTitle, this.gateSub], alpha: 0, duration: 500, onComplete: () => { this.gateTitle.setVisible(false); this.gateSub.setVisible(false); } });
-    this.stage.setVisible(true);
-    if (this.art) { this.capText.setStroke('#1a1020', 0); this.tweens.add({ targets: this.art, alpha: 0, duration: 700, onComplete: () => { this.art.destroy(); this.art = null; } }); }
-
-    // ---- beat 1: the retired hero
-    this.say('Luna Chris. The galaxy\'s most decorated astronaut.');
-    this.at(1300, () => Sound.sfx('flap'));
-    this.at(2700, () => this.say('The space race burned him out. Now he flips flapjacks and looks after Bessie.'));
-
-    // ---- beat 2: the Roquefort Rodents
-    this.at(6200, () => { this.say('Then the Roquefort Rodents came calling...'); Sound.music('tense'); this.ufoCrash(); });
-    this.at(10600, () => this.say('Their world is rotting. Bessie\'s Mad Cheese is the only cure.'));
-
-    // ---- beat 3: the armoury
-    this.at(14000, () => this.cabin());
-  }
-
-  ufoCrash() {
-    Sound.sfx('ufoFly');
-    const ufo = this.add2(this.add.image(-170, -90, 'i_ufo')).setAngle(20);
-    this.ufo = ufo;
-    this.time.addEvent({ delay: 55, repeat: 14, callback: () => { if (ufo.active) this.puffs(ufo.x - 70, ufo.y + 10, 1, 8, 0x555566); } });
-    this.tweens.add({ targets: ufo, x: 660, y: 96, angle: 5, duration: 850, ease: 'Quad.easeIn', onComplete: () => this.impact(ufo) });
-  }
-
-  impact(ufo) {
-    Sound.sfx('crash');
-    this.cameras.main.shake(380, 0.014);
-    this.roof.setTexture('i_roofX');
-    for (let i = 0; i < 8; i++) {
-      const p = this.add2(this.add.image(650 + Phaser.Math.Between(-40, 40), 90, 'i_plank'));
-      this.tweens.add({
-        targets: p, x: p.x + Phaser.Math.Between(-220, 220), y: p.y - Phaser.Math.Between(60, 150), angle: Phaser.Math.Between(-400, 400),
-        duration: 450, ease: 'Quad.easeOut', yoyo: true, onComplete: () => p.destroy()
-      });
-    }
-    this.puffs(660, 130, 10, 90);
-    this.tweens.add({ targets: this.chris, x: this.chris.x - 6, yoyo: true, repeat: 3, duration: 50 });
-
-    // the rodents spill out
-    const spots = [560, 610, 700];
-    this.rats = spots.map((x, i) => {
-      const r = this.add2(this.add.image(650, 110, 'i_rat').setOrigin(0.5, 1).setScale(0.2).setAlpha(0));
-      this.at(250 + i * 220, () => {
-        Sound.sfx('squeak');
-        r.setAlpha(1);
-        this.tweens.add({ targets: r, x, scale: 1, duration: 600, ease: 'Quad.easeOut' });
-        this.tweens.add({ targets: r, y: GROUND, duration: 600, ease: 'Bounce.easeOut' });
-      });
-      return r;
-    });
-
-    // up and away to Bessie
-    this.at(1900, () => {
-      this.tweens.add({ targets: ufo, x: 470, y: 60, angle: 0, duration: 800, ease: 'Sine.easeInOut', onComplete: () => this.abduct(ufo) });
+    this.tweens.add({ targets: [this.gateTitle, this.gateSub, this.capText], alpha: 0, duration: 400 });
+    this.cameras.main.fadeOut(350, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      if (this.leaving) return;
+      if (this.art) { this.art.destroy(); this.art = null; }
+      [this.gateTitle, this.gateSub, this.capText].forEach(o => o.setVisible(false));
+      this.stage.setVisible(true);
+      [this.bars, this.caption, this.chapter, this.skipText].forEach(o => o.setVisible(true));
+      this.shotRanch();
+      this.cameras.main.fadeIn(500, 0, 0, 0);
     });
   }
 
-  abduct(ufo) {
-    Sound.sfx('beam'); this.at(300, () => Sound.sfx('moo'));
-    const bx = 470;
-    const beam = this.add2(this.add.graphics());
-    beam.fillStyle(0xfff3a0, 0.38).fillPoints([{ x: bx - 34, y: 96 }, { x: bx + 34, y: 96 }, { x: bx + 120, y: GROUND + 4 }, { x: bx - 120, y: GROUND + 4 }], true);
-    beam.fillStyle(0xffffff, 0.22).fillPoints([{ x: bx - 18, y: 96 }, { x: bx + 18, y: 96 }, { x: bx + 60, y: GROUND + 4 }, { x: bx - 60, y: GROUND + 4 }], true);
-    this.tweens.add({ targets: beam, alpha: 0.6, yoyo: true, repeat: 5, duration: 160 });
-    this.tweens.killTweensOf(this.bessie);
-    this.tweens.add({ targets: this.bessie, y: 130, scale: 0.55, angle: 18, duration: 1100, ease: 'Sine.easeInOut' });
-    this.bubble(bx + 70, 170, 'MOOOO!', 1300);
-    this.at(1300, () => this.bubble(this.chris.x + 20, 90, '...', 1100));
-    this.at(1500, () => {
-      this.bessie.setAlpha(0);
-      Sound.sfx('whoosh');
-      this.rats.forEach(r => this.tweens.add({ targets: r, alpha: 0, scale: 0.2, y: r.y - 80, duration: 300 }));
-      this.tweens.add({ targets: beam, alpha: 0, duration: 250 });
-      this.tweens.add({ targets: ufo, x: 900, y: -60, angle: -12, duration: 700, ease: 'Quad.easeIn' });
-    });
-  }
-
-  cabin() {
-    this.tweens.killAll();
+  // swap to a new shot with a quick fade through black
+  cut(build) {
     this.cameras.main.fadeOut(220, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       if (this.leaving) return;
-      this.stage.removeAll(true);
-      this.buildCabin();
-      this.cameras.main.fadeIn(260, 0, 0, 0);
+      this.clearShot();
+      build.call(this);
+      this.cameras.main.fadeIn(280, 0, 0, 0);
     });
   }
 
-  buildCabin() {
-    Sound.music('sneak');
-    const g = this.add2(this.add.graphics());
-    g.fillStyle(0x6b4a2f, 1).fillRect(0, 0, STAGE_W, STAGE_H);
-    for (let y = 0; y < GROUND; y += 36) line(g, 0, y, STAGE_W, y, 3, 0x553a24);
-    g.fillStyle(0x3b2a1e, 1).fillRect(0, GROUND, STAGE_W, 60);
-    rrect(g, 110, 66, 600, 26, 4, 0x8a5a3a, 4);                                   // mantle shelf
-    rrect(g, 150, 24, 54, 62, 3, 0x2a1a10, 4); circ(g, 177, 56, 18, 0xffffff, 2); // framed photo of Bessie
-    g.fillStyle(0x2a2a35, 1).fillCircle(172, 52, 6);
-    rrect(g, 735, 110, 50, 70, 3, 0x2a1a10, 4); rrect(g, 741, 116, 38, 58, 2, 0x39d0c8, 2);   // little window
-
-    this.grinder = this.add2(this.add.image(470, 66, 'i_grinder').setOrigin(0.5, 1));
-
-    this.stone = this.add2(this.add.image(500, 96, 'i_stone').setOrigin(0.5, 0));
-    this.armory = this.add2(this.add.image(500, 96, 'i_armory').setOrigin(0.5, 0)).setScale(0, 1);
-
-    this.armG = this.add2(this.add.graphics());
-    this.chris2 = this.add2(this.add.image(-90, GROUND + 4, 'i_chris').setOrigin(60 / 150, 1));
-    this.spat2 = this.add2(this.add.image(-90 + 64, GROUND + 4 - 140, 'i_spat').setOrigin(0.5, 0.92));
-    this.glove = this.add2(this.add.image(0, 0, 'i_glove')).setVisible(false);
-
-    const walk = { x: 170 };
-    this.tweens.add({
-      targets: this.chris2, x: walk.x, duration: 1000, ease: 'Sine.easeOut',
-      onUpdate: () => this.spat2.setPosition(this.chris2.x + 64, this.chris2.y - 140)
-    });
-    this.say('Chris sighs...');
-    this.at(1100, () => { Sound.sfx('sigh'); this.bubble(this.chris2.x + 40, 96, '*sigh*', 1100); });
-    this.at(1500, () => {
-      Sound.sfx('clang');                           // lets go of the spatula, wipes his hands
-      this.tweens.add({ targets: this.spat2, y: GROUND + 4, angle: 80, duration: 350, ease: 'Bounce.easeOut' });
-    });
-    this.at(2300, () => { this.say('...wipes his hands, and twists the pepper grinder.'); this.reach(); });
-    this.at(4300, () => this.flipWall());
-    this.at(6600, () => this.say('Time to get Bessie back.'));
-    this.at(8300, () => this.leave());
+  clearShot() {
+    this.acts = []; this.hop = false; this.thrustAcc = 0; this.walkTo = null;
+    if (this.rig) { this.rig.root.destroy(); this.rig = null; }
+    if (this.shot) this.shot.destroy();
+    this.shot = this.add.container(0, 0);
+    this.stage.add(this.shot);
+    this.camY = 0;
   }
 
-  reach() {
-    Sound.sfx('stretch');
-    const c = this.chris2;
-    const sx = c.x + 34, sy = c.y - 120;               // shoulder
-    const hx0 = c.x + 64, hy0 = c.y - 140;             // hand rest position
-    this.glove.setPosition(hx0, hy0).setVisible(true);
-    const draw = () => {
-      const a = this.armG; a.clear();
-      line(a, sx, sy, this.glove.x, this.glove.y, 20, INK);
-      line(a, sx, sy, this.glove.x, this.glove.y, 14, 0xeef2f8);
-    };
-    draw();
-    this.tweens.add({
-      targets: this.glove, x: 470, y: 34, duration: 700, ease: 'Sine.easeInOut', onUpdate: draw,
-      onComplete: () => {
-        const grinder = this.grinder;
-        Sound.sfx('grind');
-        this.tweens.add({ targets: grinder, angle: { from: -22, to: 22 }, yoyo: true, repeat: 5, duration: 130 });
-        this.at(900, () => this.tweens.add({ targets: this.glove, x: hx0, y: hy0, duration: 500, ease: 'Sine.easeInOut', onUpdate: draw }));
+  // the real in-game Chris, driven by a fake player state
+  makeChris(x, facing, tool) {
+    this.rig = new ChrisRig(this);
+    this.shot.add(this.rig.root);
+    this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing };
+    this.cx = x; this.walkTo = null;
+    if (tool === 'spatula') { this.rig.gun.setTexture('ix_spatula'); this.rig.auger.setVisible(false); }
+    else this.rig.setWeapon(WEAPONS[0]);
+    this.rigUpdate(0.016);
+  }
+
+  rigUpdate(dt) {
+    const P = this.P, r = this.rig;
+    if (this.walkTo !== null) {                                   // simple walk-to
+      const d = this.walkTo - this.cx, sp = this.walkSpeed || 70;
+      if (Math.abs(d) < 1) { this.cx = this.walkTo; this.walkTo = null; P.vx = 0; }
+      else { P.vx = Math.sign(d) * sp * 2; P.facing = Math.sign(d); this.cx += Math.sign(d) * Math.min(Math.abs(d), sp * dt); }
+    }
+    if (this.hop) {                                               // little ballistic hop / jet climb
+      P.vh -= (P.thrusting ? -(this.thrustAcc || 260) : 520) * dt;
+      P.h += P.vh * dt;
+      if (P.h <= 0 && !P.thrusting) { P.h = 0; P.vh = 0; this.hop = false; this.dust(this.cx, GY, 3, 'ix_dust', 8, 10); }
+    }
+    this.augF = ((this.augF || 0) + dt * 30) % 4;
+    r.update(P, dt, Math.round(this.cx), Math.round(GY - P.h), 1, 1, this.augF | 0);
+    P.firing = Math.max(0, P.firing - dt);
+  }
+
+  // a point on the tool in Chris's hand (gun-arm local coordinates) -> shot coordinates
+  handPoint(lx, ly) {
+    const ga = this.rig.gunArm, root = this.rig.root, r = ga.rotation;
+    const x = ga.x + lx * ga.scaleX * Math.cos(r) - ly * ga.scaleY * Math.sin(r);
+    const y = ga.y + lx * ga.scaleX * Math.sin(r) + ly * ga.scaleY * Math.cos(r);
+    return { x: root.x + x * root.scaleX, y: root.y + y * root.scaleY };
+  }
+  headPoint() { const root = this.rig.root, t = this.rig.torso, h = this.rig.hat; return { x: root.x + (t.x + h.x) * root.scaleX, y: root.y + (t.y + h.y - 15) * root.scaleY }; }
+
+  update(time, delta) {
+    if (this.phase !== 'play' || !this.shot) return;
+    const dt = Math.min(0.05, delta / 1000);
+    if (this.rig) this.rigUpdate(dt);
+    for (const a of this.acts) a(dt);
+    this.shot.y = Math.round(this.camY);
+  }
+
+  sky(key, tint) {
+    this.img(0, GY + 12, key).setTint(tint || 0xffffff);
+  }
+
+  // ============================================================= SHOT 1: the ranch at dusk
+  shotRanch() {
+    this.clearShot();
+    this.bessieTaken = false; this.flipping = false;
+    this.chapter.setText('THE GRUYERE GLOBE  -  SPACE RANCH 9');
+    const T = (ms, fn) => this.at(ms, fn);
+
+    // parallax backdrop
+    this.sky('ix_sky_dusk');
+    const neb = this.img(-170, -150, 'c_galaxy', 0.5, 0.5).setScale(0.55).setAlpha(0.8);
+    const planet = this.img(150, -46, 'c_ringed', 0.5, 0.5).setScale(0.75);
+    const far = this.img(0, GY + 2, 'ix_hills_far');
+    const mid = this.img(0, GY + 4, 'ix_hills_mid');
+    this.twinkles(-360, 360, -280, 0);
+
+    // the ranch
+    const cabin = this.img(-178, GY + 3, 'ix_cabin');
+    const glowW = this.img(-198, GY - 26, 'puff', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: glowW, alpha: 0.2, yoyo: true, repeat: -1, duration: 900 });
+    const chimney = this.add2(this.add.particles(-152, GY - 70, 'ix_smoke', { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 }));
+    this.img(70, GY + 2, 'ix_fence');
+    this.barn = this.img(178, GY + 2, 'ix_barn');
+    this.img(0, GY - 1, 'ix_ground', 0.5, 0);
+    for (const [x, k] of [[-260, 'p_tuft1'], [-110, 'p_tuft2'], [-14, 'p_tuft1'], [118, 'p_tuft2'], [252, 'p_tuft1'], [300, 'p_tuft2']]) this.img(x, GY + 2, k);
+
+    // Chris at the griddle, Bessie grazing
+    this.img(-38, GY + 1, 'ix_grill');
+    const coals = this.add2(this.add.particles(-38, GY - 20, 'spark', { lifespan: 500, speedY: { min: -30, max: -12 }, speedX: { min: -6, max: 6 }, scale: { start: 0.8, end: 0 }, blendMode: 'ADD', frequency: 160, tint: 0xff8a1a }));
+    this.bessie = this.img(52, GY + 1, 'bessie').setFlipX(true);
+    this.makeChris(-74, 1, 'spatula');
+    this.pancake = this.img(0, 0, 'ix_pancake', 0.5, 0.5);
+    const pc = this.pcake = { mode: 'held', x: 0, y: 0, vx: 0, vy: 0, rot: 0 };
+    this.flipT = 0.8;
+    this.acts.push(dt => {                                         // pancake flipping + Bessie chewing
+      const P = this.P;
+      if (pc.mode === 'held') {
+        const b = this.handPoint(37, -8); pc.x = b.x; pc.y = b.y - 3; pc.rot *= 0.8;
+        this.flipT -= dt;
+        if (this.flipT <= 0 && this.flipping) {
+          this.flipT = 1.6; P.aimA = 0.9; this.at(120, () => { if (this.P) this.P.aimA = 0; });
+          pc.mode = 'air'; pc.vy = -150; pc.vx = 0; Sound.sfx('flap');
+        }
+      } else if (pc.mode === 'air') {
+        pc.vy += 420 * dt; pc.x += pc.vx * dt; pc.y += pc.vy * dt; pc.rot += dt * 14;
+        const b = this.handPoint(37, -8);
+        if (pc.vy > 0 && pc.y >= b.y - 3) { pc.mode = 'held'; pc.rot = 0; Sound.sfx('cube'); }
+      } else if (pc.mode === 'head') {
+        const h = this.headPoint(); pc.x = h.x; pc.y = h.y; pc.rot = 0.15;
+      }
+      this.pancake.setPosition(Math.round(pc.x), Math.round(pc.y)).setRotation(pc.rot);
+      if (this.bessie.active && !this.bessieTaken) {
+        const k = Math.sin(this.time.now / 260);
+        this.bessie.setScale(1, 1 + Math.max(0, k) * 0.03);
       }
     });
+    this.flipping = true;
+
+    // the camera starts up in the stars and drifts down to the ranch
+    this.camY = 170;
+    this.tweens.add({ targets: this, camY: 0, duration: 3000, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: [neb, planet], y: '+=30', duration: 3000, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: far, y: GY - 2, duration: 3000, ease: 'Sine.easeInOut' });
+
+    this.say('THE GRUYERE GLOBE. A QUIET LITTLE CHEESE MOON ON THE EDGE OF THE GALAXY...');
+    T(3400, () => this.say('HOME OF LUNA CHRIS: ONCE THE GALAXY\'S MOST DECORATED ASTRONAUT.'));
+    T(4600, () => this.bubble(this.cx + 4, GY - 104, 'ANOTHER STACK!', 1500));
+    T(6600, () => this.say('RETIRED NOW. HE FLIPS FLAPJACKS AND MINDS HIS BEST PAL, BESSIE THE COW.'));
+    T(7600, () => { Sound.sfx('moo'); this.bubble(66, GY - 60, 'MOO <3', 1400); });
+
+    // ---- the rats arrive
+    T(10000, () => {
+      this.say('THEN THE ROQUEFORT RODENTS CAME CALLING...');
+      Sound.music('tense'); Sound.sfx('alarm');
+      this.flipping = false;
+      this.tweens.add({ targets: this.flashRect.setFillStyle(0xff2030, 1), alpha: { from: 0, to: 0.25 }, yoyo: true, repeat: 2, duration: 160, onComplete: () => this.flashRect.setFillStyle(0xffffff, 1).setAlpha(0) });
+    });
+    T(10500, () => this.shipCrash());
+  }
+
+  twinkles(x0, x1, y0, y1) {
+    for (let i = 0; i < 26; i++) {
+      const st = this.img(Phaser.Math.Between(x0, x1), Phaser.Math.Between(y0, y1), 'spark', 0.5, 0.5).setBlendMode(Phaser.BlendModes.ADD).setScale(0).setTint([0xffffff, 0xbfe4ff, 0xfff1a0][i % 3]);
+      this.tweens.add({ targets: st, scale: Phaser.Math.FloatBetween(0.6, 1.3), yoyo: true, repeat: -1, duration: Phaser.Math.Between(400, 900), delay: Phaser.Math.Between(0, 2500), repeatDelay: Phaser.Math.Between(300, 2200) });
+    }
+  }
+
+  shipCrash() {
+    Sound.sfx('ufoFly');
+    const ship = this.ship = this.img(-430, -190, 'ratship', 0.5, 0.5).setScale(1.1).setRotation(0.5);
+    const smoke = this.add2(this.add.particles(0, 0, 'ix_smoke', { lifespan: 900, speed: { min: 6, max: 20 }, scale: { start: 0.7, end: 1.4 }, alpha: { start: 0.9, end: 0 }, frequency: 30 }));
+    const fire = this.add2(this.add.particles(0, 0, 'flame', { lifespan: 300, speed: { min: 10, max: 40 }, scale: { start: 1.6, end: 0 }, blendMode: 'ADD', frequency: 25 }));
+    smoke.startFollow(ship, -30, 0); fire.startFollow(ship, -34, 2);
+    this.shipFx = [smoke, fire];
+    this.tweens.add({ targets: ship, x: 186, y: GY - 70, rotation: 0.25, duration: 950, ease: 'Quad.easeIn', onComplete: () => this.impact() });
+    this.at(500, () => { if (this.rig) { this.P.facing = 1; this.bubble(this.cx + 2, GY - 104, '!', 1800, '#d0302a'); } });
+  }
+
+  impact() {
+    const ship = this.ship;
+    Sound.sfx('crash');
+    this.shake(420, 0.016); this.flash(0.8, 380);
+    this.barn.setTexture('ix_barn_x');
+    ship.setVisible(false); this.shipFx.forEach(e => e.stop());
+    for (let i = 0; i < 12; i++) {                                    // planks and bolts everywhere
+      const p = this.img(178 + Phaser.Math.Between(-16, 16), GY - 76, i % 3 ? 'ix_plank' : 'db_bolt', 0.5, 0.5);
+      const tx = p.x + Phaser.Math.Between(-150, 120), peak = p.y - Phaser.Math.Between(30, 90);
+      this.tweens.add({ targets: p, x: tx, duration: 900, ease: 'Linear' });
+      this.tweens.add({ targets: p, y: peak, duration: 380, ease: 'Quad.easeOut', onComplete: () => this.tweens.add({ targets: p, y: GY, duration: 520, ease: 'Quad.easeIn', onComplete: () => this.tweens.add({ targets: p, alpha: 0, delay: 1400, duration: 300 }) }) });
+      this.tweens.add({ targets: p, rotation: Phaser.Math.FloatBetween(-12, 12), duration: 900 });
+    }
+    this.dust(178, GY - 70, 10, 'ix_dust', 30, 40);
+    this.dust(178, GY, 8, 'ix_dust', 50, 20);
+    this.barnSmoke = this.add2(this.add.particles(178, GY - 80, 'ix_smoke', { lifespan: 2000, speedX: { min: -6, max: 8 }, speedY: { min: -26, max: -12 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.85, end: 0 }, frequency: 140 }));
+    // the pancake goes flying... and lands on his helmet
+    const pc = this.pcake; pc.mode = 'air2';
+    const h = this.headPoint();
+    this.tweens.add({ targets: pc, x: h.x, duration: 700, ease: 'Linear' });
+    this.tweens.add({ targets: pc, y: pc.y - 50, duration: 330, ease: 'Quad.easeOut', yoyo: true, onUpdate: () => { pc.rot += 0.35; },
+      onComplete: () => { pc.mode = 'head'; Sound.sfx('flap'); } });
+
+    // rats spill out of the barn door
+    this.rats = [];
+    [[96, -1], [128, -1], [232, 1], [262, 1]].forEach(([x, dir], i) => this.at(450 + i * 230, () => {
+      Sound.sfx('squeak');
+      const r = this.img(178, GY + 1, 'mouse').setScale(0.2).setFlipX(dir < 0);
+      this.rats.push(r);
+      this.tweens.add({ targets: r, x, scale: 1, duration: 520, ease: 'Quad.easeOut' });
+      this.tweens.add({ targets: r, y: GY - 22, duration: 260, yoyo: true, ease: 'Quad.easeOut', onComplete: () => {
+        this.tweens.add({ targets: r, y: GY - 6, duration: 160, yoyo: true, repeat: -1, ease: 'Quad.easeOut', delay: i * 70 });
+      } });
+    }));
+    this.at(1500, () => this.bubble(250, GY - 40, 'SQUEAK!', 1200));
+    this.at(2300, () => this.abduct());
+  }
+
+  abduct() {
+    const ship = this.ship, bx = this.bessie.x;
+    Sound.sfx('beam'); this.say('THEIR HOME WORLD IS ROTTING. ONLY BESSIE\'S MAD CHEESE CAN SAVE IT.');
+    ship.setVisible(true).setPosition(178, GY - 82).setRotation(0);
+    this.shipFx.forEach(e => e.start());
+    this.shipFx[1].stop();
+    this.tweens.add({ targets: ship, x: bx, y: GY - 112, duration: 900, ease: 'Sine.easeInOut', onComplete: () => this.shipFx[0].stop() });
+    this.tweens.add({ targets: ship, rotation: { from: -0.08, to: 0.08 }, yoyo: true, repeat: -1, duration: 420, ease: 'Sine.easeInOut' });
+    const beam = this.img(bx, GY - 100, 'beam0', 0.5, 0).setAlpha(0).setScale(1.6, (GY + 2 - (GY - 100)) / 84);
+    let bf = 0, bt = 0;
+    this.acts.push(dt => {
+      bt += dt; if (bt > 0.08) { bt = 0; bf = (bf + 1) % 4; beam.setTexture('beam' + bf); }
+      beam.setPosition(ship.x, ship.y + 12).setScale(1.6, Math.max(0.1, (GY + 2 - ship.y - 12) / 84));
+    });
+    this.at(900, () => {
+      this.tweens.add({ targets: beam, alpha: 0.9, duration: 250 });
+      this.bessieTaken = true;
+      Sound.sfx('moo'); this.bubble(bx + 24, GY - 66, 'MOOOOO!', 1500);
+      this.tweens.add({ targets: this.bessie, y: GY - 76, duration: 1600, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: this.bessie, angle: { from: -14, to: 14 }, yoyo: true, repeat: 5, duration: 260, ease: 'Sine.easeInOut' });
+      this.rats.forEach((r, i) => this.at(300 + i * 180, () => {               // the rats hop into the beam and float up
+        this.tweens.killTweensOf(r);
+        Sound.sfx('squeak');
+        this.tweens.add({ targets: r, x: ship.x + (i - 1.5) * 4, y: ship.y + 20, scale: 0.3, alpha: 0, angle: 360, duration: 900, ease: 'Quad.easeIn' });
+      }));
+      // Chris drops everything and runs for her
+      this.walkSpeed = 80; this.walkTo = this.cx + 46;
+    });
+    this.at(2700, () => {                                         // ...and they're off
+      Sound.sfx('whoosh');
+      this.tweens.add({ targets: beam, alpha: 0, duration: 200 });
+      this.tweens.killTweensOf(ship);
+      this.shipFx[1].start();
+      const B = this.bessie;
+      this.acts.push(() => { B.setPosition(ship.x, ship.y + 50); });
+      this.tweens.add({ targets: ship, x: 520, y: -260, rotation: -0.3, duration: 1000, ease: 'Quad.easeIn' });
+      this.tweens.add({ targets: B, angle: -40, duration: 1000 });
+    });
+    this.at(3200, () => { this.shake(160, 0.004); this.bubble(this.cx + 2, GY - 104, 'BESSIE!!!', 1500, '#d0302a'); });
+    this.at(4700, () => this.closeUp());
+  }
+
+  // comic-book close-up: Chris's face on a burst of speed lines
+  closeUp() {
+    Sound.sfx('clang'); this.shake(200, 0.008);
+    const panel = this.add2(this.add.container(-60, -8)).setScale(0).setAngle(-4);
+    panel.add(this.add.image(0, 0, 'ix_speed'));
+    const face = this.add.image(-22, 4, 'portrait').setScale(3.6);
+    panel.add(face);
+    const pcake = this.add.image(-24, -42, 'ix_pancake').setScale(3).setAngle(10);       // the pancake is still on his head
+    panel.add(pcake);
+    this.tweens.add({ targets: panel, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: face, x: -20, yoyo: true, repeat: -1, duration: 45 });
+    this.at(400, () => this.bubble(-6, -72, 'NOBODY TAKES MY COW.', 2200));
+    this.say('CHRIS SWORE HE\'D NEVER FLY AGAIN. BUT NOBODY... NOBODY... TAKES HIS COW.');
+    this.at(1700, () => { Sound.sfx('flap'); this.tweens.add({ targets: pcake, y: 70, angle: 90, duration: 600, ease: 'Quad.easeIn' }); });
+    this.at(3400, () => this.cut(this.shotCabin));
+  }
+
+  // ============================================================= SHOT 2: the cabin, and the armoury behind the fireplace
+  shotCabin() {
+    Sound.music('sneak');
+    this.chapter.setText('CHRIS\'S CABIN');
+    this.img(0, GY + 4, 'ix_wall');
+    this.img(0, GY, 'ix_floor', 0.5, 0);
+    this.img(-150, -34, 'ix_window', 0.5, 0.5);
+    this.img(-14, GY + 9, 'ix_rug');
+    const FX = 64;                                                       // the fireplace
+    const glow = this.img(FX, GY - 22, 'puff', 0.5, 0.5).setScale(1.6).setTint(0xff7a2a).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: glow, alpha: 0.22, scale: 1.4, yoyo: true, repeat: -1, duration: 160 });
+    this.fire = this.add2(this.add.particles(FX, GY - 10, 'flame', { lifespan: 520, speedY: { min: -46, max: -20 }, speedX: { min: -8, max: 8 }, x: { min: -14, max: 14 }, scale: { start: 2, end: 0 }, blendMode: 'ADD', frequency: 22 }));
+    this.embers = this.add2(this.add.particles(FX, GY - 20, 'spark', { lifespan: 800, speedY: { min: -40, max: -20 }, speedX: { min: -12, max: 12 }, scale: { start: 0.7, end: 0 }, blendMode: 'ADD', frequency: 180, tint: 0xffb347 }));
+    this.fireplace = this.img(FX, GY + 1, 'ix_fireplace');
+    this.armory = this.img(FX, GY + 1, 'ix_armory').setScale(0, 1);
+    const mantleY = GY + 1 - 98 + 18;
+    this.grinder = this.img(FX + 46, mantleY, 'ix_grinder');
+    for (let i = 0; i < 3; i++) this.img(FX - 40 + i * 12, mantleY, 'c_star', 0.5, 1).setScale(0.36).setTint(0xffd23f);     // his old medals
+    const frame = this.img(FX, mantleY - 30, 'ix_frame', 0.5, 0.5);
+    this.img(FX, mantleY - 25, 'bessie', 0.5, 1).setScale(0.28);
+    this.tweens.add({ targets: frame, angle: { from: -1, to: 1 }, yoyo: true, repeat: -1, duration: 1500 });
+
+    // the guns behind the wall
+    this.guns = [['c_gun', FX - 24, GY - 36], ['c_gun2', FX + 24, GY - 36], ['c_gun3', FX, GY - 8]].map(([k, x, y]) => {
+      const g = this.img(x, y, k, 0.5, 1).setScale(0, 1).setVisible(false);
+      return g;
+    });
+
+    this.makeChris(-300, 1, 'spatula');
+    this.walkSpeed = 90; this.walkTo = FX + 72;
+    this.say('BACK AT THE CABIN, CHRIS STARES AT THE PHOTO OF HIS BEST FRIEND...');
+    this.at(2300, () => { this.P.facing = -1; Sound.sfx('sigh'); this.bubble(this.cx, GY - 96, '*SIGH*', 1300); });
+    this.at(3600, () => { this.say('...THEN GIVES THE OLD PEPPER GRINDER A TWIST.'); this.hop = true; this.P.vh = 210; Sound.sfx('jump'); });
+    this.at(3950, () => {
+      Sound.sfx('grind');
+      this.tweens.add({ targets: this.grinder, angle: { from: -28, to: 28 }, yoyo: true, repeat: 4, duration: 110, onComplete: () => this.grinder.setAngle(0) });
+    });
+    this.at(5000, () => this.flipWall());
+    this.at(7200, () => this.grabGun());
+    this.at(10400, () => this.cut(this.shotLaunch));
   }
 
   flipWall() {
+    const FX = this.fireplace.x;
     Sound.sfx('hiss'); this.at(250, () => Sound.sfx('clunk')); this.at(520, () => Sound.sfx('reveal'));
-    this.cameras.main.shake(260, 0.006);
-    this.puffs(320, 280, 6, 20); this.puffs(680, 280, 6, 20);
-    this.tweens.add({
-      targets: this.stone, scaleX: 0, duration: 260, ease: 'Cubic.easeIn',
-      onComplete: () => {
-        this.tweens.add({ targets: this.armory, scaleX: 1, duration: 280, ease: 'Cubic.easeOut' });
-        const flash = this.add2(this.add.rectangle(0, 0, STAGE_W, STAGE_H, 0xffffff, 0.8).setOrigin(0));
-        this.tweens.add({ targets: flash, alpha: 0, duration: 450, onComplete: () => flash.destroy() });
-        const glow = this.add2(this.add.image(310 + 88, 96 + 52, 'i_glow').setScale(1.1).setAlpha(0.7));
-        this.tweens.add({ targets: glow, scale: 1.5, alpha: 0.25, yoyo: true, repeat: -1, duration: 600, ease: 'Sine.easeInOut' });
-        this.say('...and reaches for the Mac-Grinder 3000.');
-      }
+    this.shake(300, 0.007);
+    this.dust(FX - 50, GY, 5, 'ix_dust', 6, 26); this.dust(FX + 50, GY, 5, 'ix_dust', 6, 26);
+    this.say('THE FIREPLACE SPINS ROUND... TO REVEAL HIS OLD ARMOURY!');
+    this.tweens.add({ targets: [this.fireplace, this.grinder], scaleX: 0, duration: 260, ease: 'Cubic.easeIn', onComplete: () => {
+      this.fire.stop(); this.embers.stop();
+      this.tweens.add({ targets: this.armory, scaleX: 1, duration: 300, ease: 'Cubic.easeOut' });
+      this.guns.forEach((g, i) => { g.setVisible(true); this.tweens.add({ targets: g, scaleX: 1, duration: 300, delay: 60 + i * 40, ease: 'Cubic.easeOut' }); });
+      this.flash(0.85, 450);
+      const shine = this.img(FX, GY - 40, 'puff', 0.5, 0.5).setScale(2).setTint(0x39d0c8).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: shine, alpha: 0.12, scale: 2.4, yoyo: true, repeat: -1, duration: 700 });
+      this.add2(this.add.particles(FX, GY - 40, 'spark', { lifespan: 900, speed: { min: 20, max: 60 }, x: { min: -46, max: 46 }, y: { min: -30, max: 30 }, scale: { start: 1, end: 0 }, blendMode: 'ADD', frequency: 90, tint: [0xffd23f, 0x39d0c8, 0xffffff] }));
+    } });
+  }
+
+  grabGun() {
+    const g = this.guns[0], to = this.handPoint(20, 0);
+    this.say('TIME TO DUST OFF THE MAC-GRINDER 3000.');
+    Sound.sfx('stretch');
+    this.tweens.add({ targets: g, x: to.x, duration: 600, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: g, y: g.y - 26, duration: 300, yoyo: true, ease: 'Quad.easeOut', onComplete: () => {
+      g.setVisible(false);
+      this.rig.setWeapon(WEAPONS[0]); this.rig.auger.setVisible(true);
+      this.P.power = 1; this.flash(0.6, 300);
+      Sound.sfx('power'); this.shake(150, 0.005);
+      this.dust(this.cx, GY - 40, 6, 'ix_dust', 16, 20);
+      this.hop = true; this.P.vh = 240;                              // a triumphant little hop: the cape flicks out
+      this.at(700, () => { this.P.power = 0; });
+      this.at(900, () => {
+        this.P.facing = 1;
+        this.bubble(this.cx + 6, GY - 104, 'LET\'S GET MOOOVING!', 1800);
+        for (let i = 0; i < 4; i++) this.at(i * 110, () => {                         // a quick test burst
+          this.P.firing = 0.12; Sound.sfx('shoot');
+          const m = this.handPoint(58, 0);
+          const b = this.img(m.x, m.y, 'macaroni', 0.5, 0.5).setRotation(Math.random() * 6);
+          this.tweens.add({ targets: b, x: m.x + 260, rotation: '+=8', duration: 500, onComplete: () => b.destroy() });
+        });
+      });
+    } });
+  }
+
+  // ============================================================= SHOT 3: night launch
+  shotLaunch() {
+    Sound.music('stinger', 'title');
+    this.chapter.setText('THAT NIGHT...');
+    this.sky('ix_sky_night');
+    this.twinkles(-360, 360, -300, 0);
+    this.img(-150, -150, 'c_galaxy', 0.5, 0.5).setScale(0.6).setAlpha(0.7);
+    const shipFar = this.img(240, -70, 'ratship', 0.5, 0.5).setScale(0.3);
+    const beamFar = this.img(240, -66, 'beam0', 0.5, 0).setScale(0.3, 0.25).setAlpha(0.8);
+    this.tweens.add({ targets: [shipFar, beamFar], x: 300, y: '-=30', duration: 6000 });
+    this.tweens.add({ targets: shipFar, alpha: 0.4, yoyo: true, repeat: -1, duration: 300 });
+    this.img(0, GY + 2, 'ix_hills_far').setTint(0x6a6aa0);
+    this.img(0, GY + 4, 'ix_hills_mid').setTint(0x5a5a8a);
+    this.img(-178, GY + 3, 'ix_cabin').setTint(0x8080b0);
+    this.img(70, GY + 2, 'ix_fence').setTint(0x7070a0);
+    this.img(178, GY + 2, 'ix_barn_x').setTint(0x8080b0);
+    this.add2(this.add.particles(178, GY - 80, 'ix_smoke', { lifespan: 2400, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.6, end: 0 }, frequency: 220, tint: 0x9090c0 }));
+    this.img(0, GY - 1, 'ix_ground', 0.5, 0).setTint(0x8a90c8);
+
+    this.makeChris(-20, 1, 'gun');
+    this.say('SO LUNA CHRIS STRAPS ON HIS JET BOOTS FOR ONE LAST MISSION...');
+    const jets = [0, 1].map(() => this.add2(this.add.particles(0, 0, 'flame', { lifespan: 320, speedY: { min: 60, max: 140 }, speedX: { min: -16, max: 16 }, scale: { start: 2.2, end: 0 }, blendMode: 'ADD', frequency: 22, emitting: false })));
+    this.acts.push(() => {
+      if (!this.rig) return;
+      const root = this.rig.root, sx = root.scaleX, sy = root.scaleY;
+      jets[0].setPosition(root.x + (this.rig.bootF.x) * sx, root.y + 2 * sy);
+      jets[1].setPosition(root.x + (this.rig.bootB.x) * sx, root.y + 2 * sy);
+      if (this.P.h > 40) this.camY = Math.min(180, this.P.h - 40);          // follow him up into the stars
     });
+    this.at(1300, () => { this.P.duck = true; Sound.sfx('stretch'); });
+    this.at(1700, () => {
+      this.P.duck = false; this.P.thrusting = true; this.hop = true; this.P.vh = 40; this.thrustAcc = 44;
+      jets.forEach(j => j.start()); Sound.jet(true);
+      this.dust(this.cx, GY, 10, 'ix_dust', 26, 14); this.shake(300, 0.006);
+      this.walkSpeed = 24; this.walkTo = this.cx + 120;
+    });
+    this.at(3000, () => this.say('TIME TO GET BESSIE BACK!'));
+    this.at(5200, () => {
+      Sound.jet(false); Sound.sfx('shine');
+      jets.forEach(j => j.stop());
+      const p = this.rig ? { x: this.rig.root.x, y: Math.max(this.rig.root.y - 30, -84 - this.camY) } : { x: 0, y: -100 };
+      if (this.rig) this.rig.root.setVisible(false);
+      const st = this.img(p.x, p.y, 'c_star', 0.5, 0.5).setScale(0).setTint(0xfff1a0);
+      this.tweens.add({ targets: st, scale: 0.8, angle: 180, yoyo: true, duration: 300 });
+      const t = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '26px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setResolution(Math.max(2, Math.ceil(this.s))).setScale(0);
+      const sub = this.add.text(0, 22, 'MISSION: RESCUE BESSIE', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setResolution(Math.max(2, Math.ceil(this.s))).setAlpha(0);
+      const logo = this.add.container(0, -20, [t, sub]);
+      this.stage.add(logo);
+      this.tweens.add({ targets: t, scale: 1, duration: 500, delay: 250, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: sub, alpha: 1, duration: 400, delay: 700 });
+    });
+    this.at(8200, () => this.leave());
   }
 
   leave() {
     if (this.leaving) return;
     this.leaving = true;
-    Sound.music(null);
+    Sound.jet(false); Sound.music(null);
     this.cameras.main.fadeOut(350, 0, 0, 0);
     this.time.delayedCall(380, () => this.scene.start('menu'));
   }

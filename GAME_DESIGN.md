@@ -242,3 +242,14 @@ planet surface tiles/props, then cutscene backgrounds.
   - Then a rat-ship dives out of the sky, tractor-beams her up and races off round the planet.
   - The banner reads "THEY'VE GOT BESSIE AGAIN!" and the level-clear text sets up the chase.
 - Only on level 9 does the rescue stick.
+
+### v0.65 — Intro rebuilt in the 16-bit style
+- The painted title screen stays. The story after it is now pixel art on a 200px-tall grid, scaled to fit.
+- It uses the real game sprites: the Chris rig, the rat-ship, the tractor beam, the rats and Bessie.
+- Shots:
+  1. Dusk on the Gruyère Globe. The camera pans down from the stars to the ranch, where Chris flips pancakes with a spatula and Bessie grazes.
+  2. Alarm. The rat-ship crashes through the barn, rats pour out and the ship beams Bessie away. A pancake lands on Chris's helmet.
+  3. A comic close-up panel with speed lines: "NOBODY TAKES MY COW."
+  4. The cabin. A pepper-grinder twist spins the fireplace round to reveal the armoury, and the Mac-Grinder flies into his hand.
+  5. Night. He jet-boots up into the stars and the LUNA CHRIS logo appears.
+- Typewriter captions in a pixel panel, pixel speech bubbles, cinematic bars. Skip with tap, A or Enter.
