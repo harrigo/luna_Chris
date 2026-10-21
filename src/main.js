@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.59';
+const BUILD = 'v0.60';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -792,7 +792,8 @@ class Level1 extends Phaser.Scene {
         S.move = { ox, oy, vx, vy };
         if (vx < -0.3) d.left = true; else if (vx > 0.3) d.right = true;
         if (vy > 0.55 && Math.abs(vy) > Math.abs(vx) * 0.8) d.down = true;            // pull down: duck / drop fast
-        if (vy < -0.6 && Math.abs(vy) > Math.abs(vx) * 0.7) d.jump = true;           // push up: jump (hold for the jetpack)
+        if (vy < -0.45) d.jump = true;                                    // push up: jump...
+        if (vy < -0.85) d.jetNow = true;                                  // ...push right to the top (~90%): jetpack fires straight away (works on diagonals too)
       } else {                                                           // AIM+FIRE stick: touching fires, dragging aims
         S.aim = { ox, oy, vx, vy };
         d.fire = true;
@@ -864,7 +865,7 @@ class Level1 extends Phaser.Scene {
     P.floor = this.floorAt(P.theta, P.h);
     const grounded = P.h <= P.floor && P.vh <= 0;
     if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; P.holdT = 0; Sound.sfx('jump'); }
-    if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
+    if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay || inp.jetNow) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
     else if (!inp.jump) P.holdT = CFG.jetHoldDelay + 1;                                                                                // (a fresh press in mid-air lights it at once)
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
