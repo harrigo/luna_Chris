@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.44';
+const BUILD = 'v0.45';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -641,6 +641,7 @@ class Level1 extends Phaser.Scene {
   // floating ledges (one-way: jump up through them, land on top). Returns the height of the highest ledge you could be standing on, else 0.
   floorAt(theta, h) {
     let f = 0;
+    if (this.pl && this.pl.dropT > 0) return 0;          // dropping through a ledge
     for (const L of (this.def.ledges || [])) if (L.h > f && L.h <= h + 4 && Math.abs(angDiff(theta, L.theta)) < L.half) f = L.h;
     return f;
   }
@@ -731,6 +732,17 @@ class Level1 extends Phaser.Scene {
 
   updatePlayer(dt, inp) {
     const P = this.pl;
+    // jump vs down: the most recent press wins while both are held (no fighting / bouncing)
+    if (inp.jump && !this.prevJ) P.jumpAt = this.t;
+    if (inp.down && !this.prevD) P.downAt = this.t;
+    this.prevJ = inp.jump; this.prevD = inp.down;
+    P.dropT = Math.max(0, (P.dropT || 0) - dt);
+    if (!inp.jump) P.jumpEaten = false;
+    if (inp.jump && inp.down) {
+      const onLedge = (P.floor || 0) > 0 && P.h <= P.floor + 0.5 && P.vh <= 0;
+      if (P.jumpAt >= P.downAt && onLedge && !P.jumpEaten) { P.dropT = 0.35; P.floor = 0; P.h -= 1; P.jumpEaten = true; }   // down + jump on a ledge = drop through it
+      inp = Object.assign({}, inp, (P.downAt > P.jumpAt || P.jumpEaten) ? { jump: false } : { down: false });
+    } else if (P.jumpEaten) inp = Object.assign({}, inp, { jump: false });
     P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
