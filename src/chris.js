@@ -87,6 +87,31 @@ function makeChrisTextures(scene) {
     for (const x of [13, 19, 25]) a.rect(x, 22, x, 27, 0xbcc6d6);                        // pleats
     a.line([[14, 6], [16, 13]], 0xbcc6d6); a.line([[24, 7], [22, 13]], 0xbcc6d6);
   });
+  // The Spaghetti Spinner (pixel art): teal body, a big reel of spaghetti on top, loose strand, red nozzle
+  pixSprite(scene, 'c_gun2', 34, 26, a => {
+    const TL = [0x7af0e0, 0x2fa89a, 0x1a6a62], SP = [0xfff4b0, 0xffd23f, 0xc99a1a];
+    a.rrect(10, 18, 16, 25, 2, [0xb07a40, 0x7a4a1a, 0x4a2a0a]);                                      // grip
+    a.line([[17, 19], [20, 23], [16, 24]], 0x3b4252);
+    a.rrect(3, 10, 28, 20, 4, TL);                                                                     // body
+    a.rect(5, 17, 26, 18, 0x1a6a62); a.rect(6, 11, 22, 11, 0xb8fff4);                                   // under-shade + shine
+    a.rrect(26, 12, 33, 18, 1, [0xdfe6f0, 0x9aa4b4, 0x5a6272]);                                        // barrel
+    a.ell(13, 6, 7, 6.5, SP);                                                                          // the reel of spaghetti
+    for (const r of [5, 3]) for (let k = 0; k < 16; k++) { const t = k / 16 * Math.PI * 2; a.px(13 + Math.cos(t) * r, 6 + Math.sin(t) * r * 0.9, 0xc99a1a); }   // coils
+    a.ell(13, 6, 1.6, 1.6, 0x5a6272);                                                                  // hub
+    a.line([[19, 9], [22, 7], [24, 9], [26, 7]], 0xffd23f);                                             // loose strand
+    a.px(9, 2, 0xffffff); a.px(10, 2, 0xffffff);
+  });
+  pixSprite(scene, 'c_nozzle', 14, 12, a => {
+    a.rrect(0, 2, 5, 9, 1, [0xdfe6f0, 0x9aa4b4, 0x5a6272]);
+    a.poly([[5, 1], [13, 3], [13, 8], [5, 10]], [0xff8a8a, 0xe03030, 0x901818]);                        // flared red nozzle
+    a.rect(12, 4, 13, 7, 0x1a1020);
+  });
+  // the projectile: a long wavy strand of spaghetti
+  pixSprite(scene, 'spaghetti', 36, 9, a => {
+    const pts = []; for (let x = 1; x <= 34; x++) pts.push([x, 4 + Math.round(Math.sin(x / 34 * Math.PI * 3) * 2.4)]);
+    a.line(pts, 0xffd23f, 2);
+    for (let x = 3; x <= 33; x += 5) a.px(x, 4 + Math.round(Math.sin(x / 34 * Math.PI * 3) * 2.4) - 1, 0xfff4b0);
+  });
   // the belly: hangs out under the front of the suit (drawn behind the suit, so only the front-bottom shows)
   pixSprite(scene, 'c_belly', 24, 16, a => {
     a.ell(12, 7, 11, 7.5, SKIN);
@@ -123,6 +148,13 @@ function makeChrisTextures(scene) {
 }
 
 class ChrisRig {
+  // swap the gun model: the Mac-Grinder has a spinning drill, the Spaghetti Spinner a fixed nozzle
+  setWeapon(w) {
+    this.gun.setTexture(w.gunTex);
+    this.tipSpins = w.tipTex === 'auger';
+    this.auger.setTexture(this.tipSpins ? 'auger0' : w.tipTex);
+  }
+
   constructor(scene) {
     makeChrisTextures(scene);
     const img = (key, x, y, ox, oy) => scene.add.image(x, y, key).setOrigin(ox, oy);
@@ -238,7 +270,7 @@ class ChrisRig {
     this.recoil = Math.max(0, this.recoil - dt * 9);
     this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3, this.torso.y - 26 + sw * 0.6 * run);
     this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4);
-    this.auger.setTexture('auger' + augerFrame);
+    if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
 
     this.setPowered(P.power > 0);

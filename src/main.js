@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.47';
+const BUILD = 'v0.48';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -35,6 +35,21 @@ const CFG = {
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
 };
+
+// ---- weapons. `unlock` = the level you must have reached to own it (the progression system).
+// For now CFG.allWeapons = true unlocks everything on every level.
+const WEAPONS = [
+  { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
+    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot' },
+  { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
+    interval: 0.24, speed: 980, life: 0.8, ammo: 0.06, dmg: 2, wobble: 1.5, pierce: 4, sfxEvery: 1, sfx: 'zing' }
+];
+CFG.allWeapons = true;
+const Progress = {           // remembered on the device: highest level beaten
+  get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
+  beat(n) { try { if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } }
+};
+const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock;
 
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble
@@ -263,7 +278,10 @@ class Level1 extends Phaser.Scene {
     this.convPhase = 0; this.bladeT = 0;
 
     this.augerPhase = 0;
-    this.rig = new ChrisRig(this);        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
+    this.rig = new ChrisRig(this);
+    { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
+      if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
+      this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
       hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, power: 0, fuel: 1, jetArmed: false, thrusting: false,
@@ -288,11 +306,13 @@ class Level1 extends Phaser.Scene {
 
     // on-screen buttons only on touch devices (a PC uses keyboard / controller); they appear if a touch ever happens
     this.touchUI = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
+    if (this.input.keyboard) ['Q', 'C'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (!this.paused && (this.state === 'play' || this.state === 'rescue')) this.switchWeapon(1); }));
     if (this.input.keyboard) ['P', 'ESC'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (this.state === 'play' || this.state === 'rescue' || this.paused) this.togglePause(); }));
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
       if (this.paused) { this.togglePause(); return; }
       if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
+      if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
@@ -304,6 +324,7 @@ class Level1 extends Phaser.Scene {
       if (b === 'back') { this.scene.start('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
       if (this.paused) { if (b === 'a') this.togglePause(); return; }
+      if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
@@ -397,6 +418,9 @@ class Level1 extends Phaser.Scene {
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(10, 66);
     this.cheatText.setPosition(10, 76);
+    this.weaponIcon.setPosition(266, 56);
+    this.swapText.setPosition(266, 72);
+    if (this.weapon) { this.weaponIcon.setTexture(this.weapon.gunTex); this.macText.setText(this.weapon.short); }
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
     this.ovBody.setFontSize(this.landscape ? '9px' : '10px').setPosition(W / 2, H * (this.landscape ? 0.3 : 0.4)).setWordWrapWidth(W - 40);
@@ -417,6 +441,8 @@ class Level1 extends Phaser.Scene {
     this.cheeseIcons = []; for (let i = 0; i < CFG.maxHp; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
     this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
+    this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
+    this.swapText = this.add.text(0, 0, 'SWAP', f(8, '#9fa6c2', ink)).setOrigin(0.5, 0).setDepth(20);
     this.cheatText = this.add.text(0, 0, 'CHEAT', f(8, '#ff4d8d', ink)).setDepth(20).setVisible(Cheat.on);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
     this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
@@ -602,6 +628,7 @@ class Level1 extends Phaser.Scene {
   win() { this.startRescue(); }
 
   finishWin() {
+    Progress.beat(this.levelId);
     this.state = 'won';
     this.endT = this.t;
     this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\nTap for level select');
@@ -701,6 +728,24 @@ class Level1 extends Phaser.Scene {
     if (this.fpsT > 0.5) { this.fpsT = 0; this.fpsText.setText(Math.round(this.game.loop.actualFps) + ' fps'); }
 
     this.render(inp);
+  }
+
+  switchWeapon(dirn) {
+    const n = WEAPONS.length;
+    for (let k = 1; k <= n; k++) {
+      const i = ((this.weaponIdx + (dirn || 1) * k) % n + n) % n;
+      if (!weaponUnlocked(WEAPONS[i], this.levelId)) continue;
+      if (i === this.weaponIdx) return;
+      this.weaponIdx = i; this.weapon = WEAPONS[i];
+      try { localStorage.setItem('lc_weapon', String(i)); } catch (e) { /* ignore */ }
+      this.rig.setWeapon(this.weapon);
+      this.pl.fireCd = Math.max(this.pl.fireCd, 0.15);
+      this.banner(this.weapon.name);
+      this.macText.setText(this.weapon.short);
+      this.weaponIcon.setTexture(this.weapon.gunTex);
+      Sound.sfx('power'); buzz(20);
+      return;
+    }
   }
 
   togglePause() {
@@ -820,9 +865,9 @@ class Level1 extends Phaser.Scene {
     const want = (CFG.autoFire && tgt) || inp.fire;
     if (P.fireCd <= 0 && want && !P.overheat) {
       this.fire(tgt);
-      P.fireCd = CFG.fireInterval;
+      P.fireCd = this.weapon.interval;
       if (P.power <= 0) {
-        P.ammo = Math.max(0, P.ammo - CFG.ammoPerShot);
+        P.ammo = Math.max(0, P.ammo - this.weapon.ammo);
         P.ammoHold = CFG.ammoDelay;
         if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
       }
@@ -848,13 +893,14 @@ class Level1 extends Phaser.Scene {
   // The Mac-Grinder 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
   fire(tgt) {
     const P = this.pl;
-    if ((this.shotN = (this.shotN || 0) + 1) % 2 === 0) Sound.sfx('shoot');
+    const W = this.weapon;
+    if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
     let dx = P.facing, dy = 0;
     const gh = P.h + (P.duck ? 22 : 40);   // muzzle height: chest height, or low when ducking
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
-      const t0 = Math.hypot(ex, ey) / CFG.bulletSpeed;       // lead the target
+      const t0 = Math.hypot(ex, ey) / W.speed;              // lead the target
       ex += tgt.vx * t0;
       ey += Math.max(-150, Math.min(150, tgt.dh * t0));
       const len = Math.hypot(ex, ey) || 1;
@@ -870,9 +916,10 @@ class Level1 extends Phaser.Scene {
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
       this.pBullets.push({
         bt, bh: gh, theta: bt, h: gh,
-        vt: ux * CFG.bulletSpeed, vh: uy * CFG.bulletSpeed,
+        vt: ux * W.speed, vh: uy * W.speed,
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
-        spr: this.add.image(0, 0, 'macaroni').setDepth(8)
+        life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null,
+        spr: this.add.image(0, 0, W.shot).setDepth(8)
       });
     }
   }
@@ -1208,20 +1255,21 @@ class Level1 extends Phaser.Scene {
       b.age += dt;
       b.bt = wrap(b.bt + (b.vt / R) * dt);
       b.bh += b.vh * dt;
-      const w = Math.sin(b.age * 38 + b.ph) * 5;      // slow corkscrew: pasta twisting out of the extruder
+      const w = Math.sin(b.age * 38 + b.ph) * (b.wob === undefined ? 5 : b.wob);      // corkscrew: pasta twisting out of the extruder
       b.theta = wrap(b.bt + (b.px * w) / R);
       b.h = b.bh + b.py * w;
 
-      let dead = b.age > CFG.bulletLife || b.h < 0;
+      let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
       if (!dead) {
         for (const e of this.enemies) {
+          if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
-            e.hp -= 1;
+            e.hp -= b.dmg || 1;
             Sound.sfx('hit');
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTint(0xffb4b4); }      // limited blink rate, not constant flicker
-            dead = true;
-            break;
+            if (b.hits) { b.hits.push(e); this.burst(b.theta, b.h, 'spark', 3, 0.4); if (b.hits.length >= b.pierce) { dead = true; break; } }
+            else { dead = true; break; }
           }
         }
       }
@@ -1540,6 +1588,7 @@ class Level1 extends Phaser.Scene {
       hg.fillStyle(fill, 1).fillRect(x, y, w, h);
     };
     if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);
+    pix(244, 42, 44, 28, 0x2a1f5a);                                              // weapon box (tap / Q / Y to swap)
     const flash = Math.floor(this.t * 8) % 2;
     const gx = 96, gy = 46, gw = 136, gh = 8;
     pix(gx, gy, gw, gh, 0x0c0a24);
