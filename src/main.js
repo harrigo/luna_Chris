@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.21';
+const BUILD = 'v0.22';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -205,6 +205,15 @@ class Level1 extends Phaser.Scene {
       else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
     });
+    // controller: A/Start = start / retry / continue, View (back) = level menu
+    const padOff = Pad.on(b => {
+      if (b === 'back') { this.scene.start('select'); return; }
+      if (b !== 'a' && b !== 'start') return;
+      if (this.state === 'intro') this.startGame();
+      else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
+      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
+    });
+    this.events.once('shutdown', padOff);
     // Fullscreen needs a real tap *release* (user activation), so ask for it on pointerup.
     this.input.on('pointerup', () => { if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); } });
 
@@ -567,6 +576,13 @@ class Level1 extends Phaser.Scene {
       if (k.right.isDown || k.d.isDown) d.right = true;
       if (k.space.isDown || k.up.isDown || k.w.isDown) d.jump = true;
       if (k.z.isDown || k.x.isDown) d.fire = true;
+    }
+    const g = Pad.state;
+    if (g.connected) {
+      if (g.left) d.left = true;
+      if (g.right) d.right = true;
+      if (g.jump) d.jump = true;
+      if (g.fire) d.fire = true;
     }
     return d;
   }

@@ -196,6 +196,13 @@ class IntroScene extends Phaser.Scene {
       this.scale.off('enterfullscreen', lockLandscape);
     });
 
+    const padOff = Pad.on(b => {                       // controller: any face button / Start
+      if (!['a', 'b', 'x', 'y', 'start'].includes(b)) return;
+      Sound.init();
+      if (this.phase === 'gate') this.startShow();
+      else this.leave();                              // skip the story
+    });
+    this.events.once('shutdown', padOff);
     this.input.on('pointerdown', () => {
       if (this.phase === 'gate') this.wantFs = true;
       else if (this.phase === 'play') this.leave();
@@ -481,6 +488,6 @@ class IntroScene extends Phaser.Scene {
     this.leaving = true;
     Sound.music(null);
     this.cameras.main.fadeOut(350, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('select'));
+    this.time.delayedCall(380, () => this.scene.start('select'));
   }
 }

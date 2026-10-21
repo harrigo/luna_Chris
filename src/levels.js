@@ -375,6 +375,15 @@ class SelectScene extends Phaser.Scene {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
     if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => this.go(i + 1)));
+    // controller: left/right picks a card, A or Start plays it
+    this.sel = this.sel || 1;
+    this.selG = this.add.graphics().setDepth(2);
+    const padOff = Pad.on(b => {
+      if (b === 'left' || b === 'right') { this.sel = Phaser.Math.Wrap(this.sel + (b === 'left' ? -1 : 1), 1, 4); this.showSel = true; Sound.sfx('jump'); }
+      else if (b === 'a' || b === 'start') this.go(this.sel);
+      else this.showSel = true;
+    });
+    this.events.once('shutdown', padOff);
   }
 
   go(n) {
@@ -413,12 +422,19 @@ class SelectScene extends Phaser.Scene {
       z.on('pointerup', () => this.go(i));
       this.ui.add(z);
     }
-    this.ui.add(this.add.text(W / 2, H - 16, 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
+    this.cardRects = [];
+    for (let i = 1; i <= 3; i++) this.cardRects[i] = { x: x0 + (i - 1) * (cw + gap), y: y0, w: cw, h: ch };
+    this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
   }
 
   update(time) {
     const W = this.scale.width, H = this.scale.height, g = this.bg;
     g.clear();
     for (const s of this.stars) { g.fillStyle(0xffffff, 0.35 + 0.35 * Math.sin(time / 600 + s.tw)).fillRect(s.x * W, s.y * H, s.s, s.s); }
+    this.selG.clear();
+    if ((this.showSel || Pad.state.connected) && this.cardRects && this.cardRects[this.sel]) {
+      const r = this.cardRects[this.sel];
+      this.selG.lineStyle(4, 0xffffff, 0.6 + 0.4 * Math.sin(time / 150)).strokeRoundedRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12, 16);
+    }
   }
 }

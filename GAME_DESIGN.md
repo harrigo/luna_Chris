@@ -122,3 +122,8 @@ planet surface tiles/props, then cutscene backgrounds.
 - Big dark piles of junk standing on each planet, in two layers: a huge faded/tinted far layer (depth 1.6) and a nearer layer. Props now accept `depth`, `tint`, `alpha`, `h`.
 - Gets nastier per level: L1 cheese-rind heaps + a few skulls, L2 tyre heaps + bone piles, L3 scrap metal + bone piles + tyres + skulls with glowing red eyes.
 - Ledges restyled as chunky slabs with a ragged rocky underside, one texture per level (`def.ledgeTex`).
+
+## v0.22 controller support
+- Xbox / standard gamepads via the browser Gamepad API (`src/pad.js`, loaded first). Left stick or D-pad = move, A (or LB) = jump / hold for jetpack, X / B / RT / RB = fire, Start or A = start / retry / continue, View = level menu.
+- Level select: left/right highlights a card, A or Start plays it. Intro: any face button or Start skips.
+- Browsers only expose a controller after one of its buttons is pressed while the page has focus.
