@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.52';
+const BUILD = 'v0.53';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -940,8 +940,9 @@ class Level1 extends Phaser.Scene {
 
   // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
   beamGeom(W) {
-    const P = this.pl, dir = P.facing || 1, gh = P.h + (P.duck ? 22 : 40);
-    const t0 = wrap(P.theta + dir * (70 / R)), span = W.range / (R + gh);
+    const P = this.pl, dir = P.facing || 1, M = this.muzzle;
+    const gh = M ? M.h : P.h + (P.duck ? 22 : 40);
+    const t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), span = W.range / (R + gh);
     return { dir, gh, t0, span, band: P.power > 0 ? 20 : 11 };
   }
   beamHit(W) {
@@ -968,9 +969,10 @@ class Level1 extends Phaser.Scene {
     const n = 40, thick = P.power > 0 ? 1.6 : 1;
     for (let i = 0; i <= n; i++) {
       const f = i / n, th = wrap(B.t0 + B.dir * B.span * f);
-      const wv = Math.sin(this.t * 34 - f * 22) * (3 + f * 5) + Math.sin(this.t * 11 + f * 7) * 2;   // wobbly noodle, looser towards the end
+      const wv = (Math.sin(this.t * 34 - f * 22) * (3 + f * 5) + Math.sin(this.t * 11 + f * 7) * 2) * Math.min(1, f * 6);   // wobbly noodle, pinned at the nozzle, looser towards the end
       pts.push(this.screenPos(th, B.gh + wv));
     }
+    if (this.muzzle) { pts[0] = { x: this.muzzle.x, y: this.muzzle.y }; }
     const line = (w, c, a) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, a); g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath(); };
     line(9, 0x1a1020, 1); line(6, 0xffb52a, 1); line(3, 0xffe27a, 1);
     for (let i = 3; i < n; i += 6) { const p = pts[i]; g.fillStyle(0xfff4c4, 1).fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2); }   // glints
@@ -1594,6 +1596,12 @@ class Level1 extends Phaser.Scene {
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    { // where the gun's muzzle actually is this frame (after recoil, crouch and facing), in world terms
+      const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();
+      const tp = m.transformPoint(tipImg.width * (1 - tipImg.originX) - 1, 0);
+      const dx = tp.x - this.cx, dy = this.cy - tp.y;
+      this.muzzle = { theta: wrap(P.theta + Math.atan2(dx, dy)), h: Math.hypot(dx, dy) / this.zoom - R, x: tp.x, y: tp.y };
+    }
 
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : (e.roll !== undefined ? e.roll : 0));
