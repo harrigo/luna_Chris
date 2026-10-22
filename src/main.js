@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.98';
+const BUILD = 'v0.99';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -278,6 +278,19 @@ class Level1 extends Phaser.Scene {
         const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
         this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 0.95), k: 0.22, tw: rnd(0, 6), ta: 0.6 });
       }
+    } else if (this.def.bgDecor === 'oven') {           // level 4: inside a cosmic oven - greasy black smoke drifting in layers,
+      makeOvenTextures(this);                            // glowing embers rising, and the rat UFO with Bessie far off in the smoke
+      for (let i = 0; i < 12; i++) {
+        const s = this.add.image(0, 0, 'smokecloud' + (i % 3)).setDepth(0.3 + (i % 3) * 0.02).setScale(rnd(2.5, 4.5)).setAlpha(rnd(0.45, 0.8)).setFlipX(i % 2 === 1);
+        this.bgStars.push({ s, a: i * TAU / 12 + rnd(-0.2, 0.2), r: rnd(0.05, 0.85), k: [0.06, 0.12, 0.2][i % 3], rv: rnd(-0.01, 0.01) });
+      }
+      const ufo = this.add.image(0, 0, 'ratship').setDepth(0.25).setScale(0.45).setAlpha(0.75).setTint(0xffb08a);
+      const ubeam = this.add.image(0, 0, 'beam0').setDepth(0.24).setOrigin(0.5, 0).setScale(0.3, 0.32).setAlpha(0.6);
+      const ucow = this.add.image(0, 0, 'bessie').setDepth(0.25).setScale(0.16).setAlpha(0.8);
+      this.bgUfo = { ufo, ubeam, ucow };
+      this.bgStars.push({ s: ufo, a: 2.4, r: 0.55, k: 0.16, radial: true });
+      this.embers = this.add.particles(0, 0, 'spark', { x: { min: 0, max: this.scale.width }, y: this.scale.height + 10, lifespan: 4500, speedY: { min: -60, max: -20 }, speedX: { min: -14, max: 14 }, scale: { start: 0.9, end: 0.2 },
+        alpha: { start: 1, end: 0 }, tint: [0xff8a2a, 0xffd23f, 0xff4a1a], blendMode: 'ADD', frequency: 70 }).setDepth(0.45).setScrollFactor(0);
     } else if (this.def.bgDecor === 'factory') {        // level 3: the cheese factory. Rusty cogs turning in the dark, meshing in pairs,
       makeFactoryTextures(this);                         // and the great claw holding a block of cheese that sheds gratings
       const cogs = [['cog_big', 2.6, 0x8a5a3a, 0.55, 0.12], ['cog_mid', 2.4, 0x6a7488, 0.6, 0.13], ['cog_big', 3.2, 0x5a3a2a, 0.4, 0.08], ['cog_small', 2.6, 0x9a6a3a, 0.7, 0.16],
@@ -353,13 +366,13 @@ class Level1 extends Phaser.Scene {
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     // L2: green quicksand goop pools (drawn IN FRONT of Chris, so he visibly sinks into them)
     this.goops = (this.def.goop || []).map(g => {
-      const spr = this.add.image(0, 0, 'goop').setOrigin(0.5, 0.12).setDepth(7.6);   // surface sits flush with the ground
+      const spr = this.add.image(0, 0, this.def.goopTex || 'goop').setOrigin(0.5, this.def.goopMode === 'string' ? 0.14 : 0.12).setDepth(7.6);   // surface sits flush with the ground
       let halo = null;
-      if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(0xb05aff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
+      if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(this.def.goopGlow || 0xb05aff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
       spr.bsx = (2 * g.half * R) / 64 * 1.1; spr.bsy = 1.7;
       return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
     });
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.clawT = undefined; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1225,7 +1238,7 @@ class Level1 extends Phaser.Scene {
       g.bubT -= dt;
       if (g.bubT <= 0) {
         g.bubT = rnd(0.25, 0.7);
-        const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.6, 1.2);
+        const im = this.add.image(0, 0, this.def.goopBub || 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.6, 1.2);
         this.parts.push({ theta: wrap(g.theta + rnd(-g.half, g.half) * 0.85), h: 4, vt: 0, vh: rnd(60, 120), life: rnd(0.25, 0.4), spr: im });
       }
     }
@@ -1450,7 +1463,7 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : 1)) * (P.grabbed ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : 1)) * (P.grabbed || P.cheese ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1478,15 +1491,29 @@ class Level1 extends Phaser.Scene {
     const grounded = P.h <= P.floor && P.vh <= 0;
     // quicksand goop: sink in, crawl along, and the first couple of jumps only squelch you up a little (or hop then jet out)
     const pool = (this.goops && this.goops.length && P.floor === 0 && P.h <= 1 && this.state === 'play') ? this.goops.find(g => Math.abs(angDiff(P.theta, g.theta)) < g.half) : null;
+    const stringy = this.def.goopMode === 'string';
+    P.cheeseFree = Math.max(0, (P.cheeseFree || 0) - dt);
     if (pool && !P.goop) {
       P.stuck = 2; Sound.sfx('squelch'); this.goopSplash(P.theta); buzz(30);
-      if (!this.goopTip) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nJUMP JUMP - OR JET OUT!'); }
+      if (stringy && P.cheeseFree <= 0) {                // molten mozzarella: stretchy strands GRAB you. Mash jump x3 before it burns.
+        P.cheese = { pool, burnT: 1.3, ph: rnd(0, 6) }; P.mash = 0; Sound.sfx('stretch');
+        if (!this.goopTip) { this.goopTip = true; this.banner('STRING CHEESE! MASH JUMP\nBEFORE YOU BURN!'); }
+      } else if (!this.goopTip && !stringy) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nJUMP JUMP - OR JET OUT!'); }
+    }
+    if (P.cheese) {
+      P.vx = 0; P.vh = Math.min(P.vh, 0);
+      P.cheese.burnT -= dt;
+      if (P.cheese.burnT <= 0) { P.cheese.burnT = 1.3; this.hurt(); Sound.sfx('hiss'); this.burst(P.theta, 10, 'flame', 6, 0.6); }
+      if (P.mash >= 3 || !pool) {                        // TORE FREE: the strands snap and fling him up
+        P.cheese = null; P.mash = 0; P.cheeseFree = 0.7; P.vh = 480; P.h = Math.max(P.h, 1); P.jetArmed = true; P.holdT = CFG.jetHoldDelay + 1;
+        Sound.sfx('stretch'); Sound.sfx('jump'); buzz(30); for (let k = 0; k < 10; k++) this.burst(P.theta, 12, this.def.goopBub || 'goopbub', 1, 1.2);
+      }
     }
     P.goop = !!pool;
     const edgeK = pool ? Math.max(0, Math.min(1, (1 - Math.abs(angDiff(P.theta, pool.theta)) / pool.half) * 4)) : 0;   // shallower at the very edges, so feet never poke out below
     P.sink = pool ? Math.min(18 * edgeK, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
-    if (inp.jump && !P.jumpWas) { if (P.grabbed) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
+    if (inp.jump && !P.jumpWas) { if (P.grabbed || P.cheese) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
     if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
       if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
@@ -1504,10 +1531,10 @@ class Level1 extends Phaser.Scene {
     P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     // goop suction: just above a pool the muck clings to the jet boots - weak thrust, slow climb, and it drags you back down
-    const suck = (this.goops && this.goops.length && P.h < 46 && P.floor === 0) ? this.goops.some(g => Math.abs(angDiff(P.theta, g.theta)) < g.half * 1.05) : false;
+    const suck = (this.goops && this.goops.length && P.h < 46 && P.floor === 0 && !this.def.goopMode) ? this.goops.some(g => Math.abs(angDiff(P.theta, g.theta)) < g.half * 1.05) : false;
     if (suck && P.thrusting && Math.random() < dt * 14) { const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); this.parts.push({ theta: P.theta + rnd(-0.02, 0.02), h: P.h, vt: rnd(-40, 40), vh: rnd(-60, 20), life: 0.4, spr: im }); }
     P.suck = suck;
-    if (suck) P.vh -= 320 * dt;
+    if (suck && !this.def.goopMode) P.vh -= 320 * dt;
     if (P.thrusting) {
       const rb = this.buffOn('boots');
       P.vh = Math.max(P.vh, Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt));   // (never slows a bounce down)
@@ -1715,6 +1742,11 @@ class Level1 extends Phaser.Scene {
 
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
   hitK(e) {
+    if (e.type === 'mgolem') {                          // charred crust armour: half damage, chips flying, until it cracks open
+      if (!e.hot && e.hp < e.maxHp * 0.5) { e.hot = true; e.spr.setTexture('mgolem_hot'); bakedGlow(e.spr, 0xff8a2a, 2, 6); this.burst(e.theta, e.h + 30, 'crumb', 14, 1.2); Sound.sfx('crash'); this.banner('ARMOUR CRACKED!'); }
+      if (!e.hot && Math.random() < 0.5) { const im = this.add.image(0, 0, 'db_rock').setDepth(6).setTint(0x2a1a10); im.bsx = im.bsy = rnd(0.8, 1.4); this.parts.push({ theta: e.theta, h: e.h + rnd(15, 50), vt: rnd(-140, 140), vh: rnd(120, 260), life: 0.6, spr: im, rot: 0, rv: rnd(-8, 8) }); }
+      return e.hot ? 1.3 : 0.5;
+    }
     if (e.kind === 'welder') return (Math.sign(angDiff(this.pl.theta, e.theta)) || 1) === e.face && e.state !== 'flame' ? 0 : 1;   // riot shield faces you (it drops its guard while torching)
     if (e.kind === 'drone') return e.state === 'stuck' ? 2 : 1;
     if (e.kind !== 'frog') return 1;
@@ -2035,6 +2067,20 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // molten mozzarella strands holding Chris (thinner with every mash)
+  drawCheeseStrings() {
+    const P = this.pl; if (!P.cheese) { if (this.strG) this.strG.clear(); return; }
+    if (!this.strG) this.strG = this.add.graphics().setDepth(7.65);
+    const g = this.strG, z = this.zoom, th = Math.max(1, 3.4 - (P.mash || 0)) * z; g.clear();
+    for (let k = 0; k < 5; k++) {
+      const off = (k - 2) * 14, bh = 8 + (k % 3) * 7, a = this.screenPos(wrap(P.theta + off / R), 2), b = this.screenPos(P.theta, P.h + bh);
+      const mx = (a.x + b.x) / 2 + Math.sin(this.t * 9 + k + P.cheese.ph) * 4 * z, my = (a.y + b.y) / 2 + 4 * z;
+      g.lineStyle(th + 2 * z, 0x8a5a2a, 0.8).beginPath(); g.moveTo(a.x, a.y); g.lineTo(mx, my); g.lineTo(b.x, b.y); g.strokePath();
+      g.lineStyle(th, 0xfff6e0, 1).beginPath(); g.moveTo(a.x, a.y); g.lineTo(mx, my); g.lineTo(b.x, b.y); g.strokePath();
+    }
+    if (P.cheese.burnT < 0.5 && Math.floor(this.t * 12) % 2) { const s = this.screenPos(P.theta, P.h + 20); g.fillStyle(0xff6a1a, 0.35).fillCircle(s.x, s.y, 26 * z); }   // about to burn
+  }
+
   // tongues + throat sacs (drawn along the curve of the planet)
   drawTongues() {
     if (!this.tongueG) this.tongueG = this.add.graphics().setDepth(5.5);
@@ -2079,7 +2125,7 @@ class Level1 extends Phaser.Scene {
 
   goopSplash(theta) {
     for (let k = 0; k < 7; k++) {
-      const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.8, 1.5);
+      const im = this.add.image(0, 0, this.def.goopBub || 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.8, 1.5);
       this.parts.push({ theta, h: 6, vt: rnd(-120, 120), vh: rnd(150, 300), life: rnd(0.35, 0.6), spr: im });
     }
   }
@@ -2500,13 +2546,16 @@ class Level1 extends Phaser.Scene {
       } else if (ai === 'flyer') {
         const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
         e.h += (want - e.h) * Math.min(1, dt * 3);
-        const hold = 90 + Math.sin(e.t * 0.7 + e.seed) * 70;
+        const hold = e.type === 'rocketrat' ? 18 + Math.sin(e.t * 0.9 + e.seed) * 30 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70;   // rocket rats park right over you
         const mv = distP > hold ? dirP : -dirP * 0.6;
         e.theta = wrap(e.theta + (mv * 105 / R) * dt);
         e.dir = dirP;
         e.bombCd -= dt;
         if (e.bombCd <= 0 && distP < 230) {
-          if (e.type === 'stinkfly') {                   // spore bomb: a lob that leads Chris, and a stink puff either side
+          if (e.type === 'rocketrat') {                  // a sizzling pepperoni bomb: blinks as it falls, bursts into greasy shrapnel on the crust
+            const bb = this.addEBullet('pepbomb', e.theta, e.h - 10, (P.vx || 0) * 0.25, -40, 9, 4); bb.grav = 420; bb.bomb = true; bb.spinV = 6;
+            e.bombCd = rnd(1.8, 2.6); Sound.sfx('cube');
+          } else if (e.type === 'stinkfly') {            // spore bomb: a lob that leads Chris, and a stink puff either side
             this.addEBullet('spore', e.theta, e.h, dirP * 70 + (P.vx || 0) * 0.35, -150, 11, 3).grav = 120;
             e.bombCd = rnd(2.0, 3.0);
           } else {
@@ -2526,7 +2575,8 @@ class Level1 extends Phaser.Scene {
           const n = (e.volley++ % 3 === 2) ? 5 : 3;
           Sound.sfx('cube');
           for (let k = 0; k < n; k++) {
-            this.addEBullet('cube', e.theta + dirP * (32 / R), e.h + 30, dirP * 185, (k - (n - 1) / 2) * 45, 9, 3.5);
+            if (e.type === 'mgolem') { const b = this.addEBullet('crumb', e.theta + dirP * (32 / R), e.h + 40, dirP * (150 + k * 35), 260 + k * 30, 9, 3.5); b.grav = 500; }   // lobs molten cheese
+            else this.addEBullet('cube', e.theta + dirP * (32 / R), e.h + 30, dirP * 185, (k - (n - 1) / 2) * 45, 9, 3.5);
           }
           e.shootCd = rnd(1.8, 2.4);
         }
@@ -2858,7 +2908,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, rocketrat: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -2994,6 +3044,14 @@ class Level1 extends Phaser.Scene {
         if (dd < 110 && dd > 1) { b.vt += ex / dd * 420 * dt; b.vh += ey / dd * 420 * dt; }
       }
       b.spin += b.spinV * dt;
+      if (b.bomb) {
+        b.spr.setTint(Math.floor(this.t * 14) % 2 ? 0xffffff : 0xffd0a0);
+        if (b.h <= 4) {                                  // KA-BLAM: greasy shrapnel fans up and out
+          this.bang(b.theta, 6, 24); this.burst(b.theta, 6, 'flame', 6, 0.8); Sound.sfx('kill'); this.cameras.main.shake(70, 0.004);
+          for (let k = 0; k < 6; k++) { const a = -1.2 + k * 0.48, sh = this.addEBullet('pepper', b.theta, 8, Math.sin(a) * 210, Math.cos(a) * 240, 6, 1.4); sh.grav = 520; sh.spr.bsx = sh.spr.bsy = 0.6; }
+          b.life = 0;
+        }
+      }
       let dead = b.life <= 0 || b.h < -2;
       if (!dead && P.invuln <= 0) {
         const rr = b.r + (P.duck ? 8 : 12);
@@ -3310,7 +3368,7 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
     this.drawBlastFx();
     this.drawHazards();
-    this.drawTongues(); this.drawFactory();
+    this.drawTongues(); this.drawFactory(); this.drawCheeseStrings();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
@@ -3320,6 +3378,11 @@ class Level1 extends Phaser.Scene {
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
       if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
       if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
+      if (b.s === (this.bgUfo && this.bgUfo.ufo)) {      // the distant UFO: its beam and Bessie hang underneath, towards the planet
+        const U = this.bgUfo, dn = 14 * b.s.scaleY / 0.45;
+        U.ubeam.setPosition(b.s.x - Math.sin(a) * 4, b.s.y + Math.cos(a) * 4).setRotation(a);
+        U.ucow.setPosition(b.s.x - Math.sin(a) * dn * 3.2, b.s.y + Math.cos(a) * dn * 3.2).setRotation(a + Math.sin(this.t * 3) * 0.3);
+      }
       if (b.radial) {                                    // hangs "down" towards the planet (the claw), swaying a touch
         b.s.setRotation(a + Math.sin(this.t * 0.8) * 0.05);
         if (b.emit) { const d = 40 * b.s.scaleY; b.emit.setPosition(b.s.x - Math.sin(a) * d * 0.5, b.s.y + Math.cos(a) * d * 0.5); b.emit.gravityX = -Math.sin(a) * 180; b.emit.gravityY = Math.cos(a) * 180; }

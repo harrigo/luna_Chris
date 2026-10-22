@@ -724,3 +724,31 @@ Every new threat has a tell and a counter you can learn:
 - **Claw drops:** every 3.5–5.5s, up to 4 blocks.
 - **Steam vents:** 7 vents, erupting every 2.5–5s.
 - **A new WAVE 4:** 17 spawns, a dense mix of welders, drones and saw-bots.
+
+### v0.99 — Mount Mozzarella: the cosmic pizza oven (first pass)
+Built from the "How to build Mount Mozzarella" brief (`makeOvenTextures`):
+- **Terrain:**
+  - a wood-fired pizza planet: a white mozzarella surface over a thick, ragged, charred crust band (new `rimD` option for crust depth);
+  - burnt black patches and molten-cheese craters glowing orange;
+  - an orange neon rim and a hot orange atmosphere glow.
+- **String-cheese pits** (`goopMode: 'string'`, reusing the goop system with its own texture, bubbles and glow):
+  - a crater of boiling mozzarella with a charred lip, dithering into the planet's cheese;
+  - fall in and **stretchy strands grab Chris**: he can't move, and the strands are drawn and wobbling, thinner with every mash;
+  - **mash jump ×3 to tear free** (the strands snap and fling him up with the jet armed);
+  - every 1.3s stuck **burns** for a hit, with an orange flash as warning;
+  - a brief grace after escaping so you don't re-stick.
+
+  This is deliberately different from L2's goop, which slows you rather than grabbing.
+- **Mozzarella Magma-Golem** (`mgolem`, replacing the gouda golem on L4):
+  - a lumbering melting-mozzarella brute in crusty charred armour plates with glowing cracks;
+  - the armour takes **half damage** and chips fly off;
+  - below half health it cracks open ("ARMOUR CRACKED!", crash) into a molten form (`mgolem_hot`) with glowing veins that takes ×1.3;
+  - it lobs arcing molten-cheese blobs.
+- **Rocket rats** (`rocketrat`, replacing flyers on L4): amber blast goggles, oven mitts and a rocket pack. They park **right above Chris** and drop **sizzling pepperoni bombs** that blink as they fall, then burst on the crust into 6 arcs of greasy shrapnel.
+- **Sky (`bgDecor: 'oven'`):**
+  - deep oven-red to black;
+  - 12 parallax layers of thick greasy black smoke (dithered `smokecloud` textures);
+  - glowing embers rising across the whole screen;
+  - the **rat UFO with Bessie in its beam** far off in the smoke, a constant reminder of the chase.
+- **Unchanged:** the string-cheese whips (now every 2.6–4.5s) and the Pizza Oven boss.
+- **Decided against:** a mechanical pizza-slicer mini-boss, since it would repeat L3's blades (Mega-Mandoline, saw-bots, pizza-cutter drones).
