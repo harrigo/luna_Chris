@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.99';
+const BUILD = 'v1.00';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -278,6 +278,16 @@ class Level1 extends Phaser.Scene {
         const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
         this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 0.95), k: 0.22, tw: rnd(0, 6), ta: 0.6 });
       }
+    } else if (this.def.bgDecor === 'haze') {           // level 5: a purple haze, drifting fog and glowing geometric anomalies
+      makeBrieTextures(this);
+      for (let i = 0; i < 8; i++) {
+        const s = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(0.3).setScale(rnd(3, 5)).setAlpha(rnd(0.12, 0.22)).setTint(0xb8a0f0).setFlipX(i % 2 === 1);
+        this.bgStars.push({ s, a: i * TAU / 8 + rnd(-0.3, 0.3), r: rnd(0.05, 0.8), k: rnd(0.05, 0.12) });
+      }
+      for (let i = 0; i < 34; i++) {
+        const s = this.add.image(0, 0, ['tri_p', 'tri_c', 'tri_k'][i % 3]).setDepth(0.35).setScale(rnd(0.4, 1.3)).setRotation(rnd(0, TAU)).setBlendMode(Phaser.BlendModes.ADD);
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: rnd(0.15, 0.5), rv: rnd(-0.4, 0.4), tw: rnd(0, 6), ta: rnd(0.4, 0.9) });
+      }
     } else if (this.def.bgDecor === 'oven') {           // level 4: inside a cosmic oven - greasy black smoke drifting in layers,
       makeOvenTextures(this);                            // glowing embers rising, and the rat UFO with Bessie far off in the smoke
       for (let i = 0; i < 12; i++) {
@@ -372,6 +382,13 @@ class Level1 extends Phaser.Scene {
       spr.bsx = (2 * g.half * R) / 64 * 1.1; spr.bsy = 1.7;
       return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
     });
+    this.specLights = []; this.fogFg = [];
+    if (this.def.bgDecor === 'haze' && Settings.lights) {   // eerie coloured light from the anomalies, sweeping slowly over the pale ground
+      for (let i = 0; i < 7; i++) { const hl = this.add.image(0, 0, 'halo').setDepth(2.45).setTint([0xd070ff, 0x5ce1ff, 0xff7ad8][i % 3]).setBlendMode(Phaser.BlendModes.ADD); hl.bsx = rnd(1.6, 2.6); hl.bsy = hl.bsx * 0.45; this.specLights.push({ spr: hl, theta: i * TAU / 7, v: rnd(-0.05, 0.05), ph: rnd(0, 6) }); }
+    }
+    if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
+      for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
+    }
     this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
@@ -1463,7 +1480,8 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : 1)) * (P.grabbed || P.cheese ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
+    P.vx += (ax * CFG.runSpeed * (squishy ? 0.82 : 1) * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : 1)) * (P.grabbed || P.cheese ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1512,6 +1530,11 @@ class Level1 extends Phaser.Scene {
     P.goop = !!pool;
     const edgeK = pool ? Math.max(0, Math.min(1, (1 - Math.abs(angDiff(P.theta, pool.theta)) / pool.half) * 4)) : 0;   // shallower at the very edges, so feet never poke out below
     P.sink = pool ? Math.min(18 * edgeK, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
+    if (this.def.squish && !pool) {                     // sink into the fuzz a little when standing on the rind
+      const onRind = grounded && !(P.floor > 0);
+      if (onRind && !P.wasOnRind) { for (let k = 0; k < 6; k++) { const im = this.add.image(0, 0, 'blob').setDepth(7.7).setTint(0xf4f0ff).setAlpha(0.8); im.bsx = im.bsy = rnd(0.3, 0.6); this.parts.push({ theta: P.theta, h: 2, vt: rnd(-90, 90), vh: rnd(40, 110), life: 0.4, spr: im }); } }
+      P.wasOnRind = onRind; P.sink = onRind ? Math.min(5, (P.sink || 0) + dt * 30) : Math.max(0, (P.sink || 0) - dt * 60);
+    }
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
     if (inp.jump && !P.jumpWas) { if (P.grabbed || P.cheese) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
@@ -2341,6 +2364,7 @@ class Level1 extends Phaser.Scene {
   swissBlast(theta, h, rad, dmg, bossDmg) {
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
+      if (e.phased) continue;
       const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
@@ -2375,7 +2399,7 @@ class Level1 extends Phaser.Scene {
     const B = this.beamGeom(W);
     let hitAny = false;
     for (const e of this.enemies) {
-      if (e.hp <= 0) continue;
+      if (e.hp <= 0 || e.phased) continue;
       const a = angDiff(e.theta, B.t0) * B.dir;
       if (a < -e.r / R || a > B.span) continue;
       const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
@@ -2546,13 +2570,17 @@ class Level1 extends Phaser.Scene {
       } else if (ai === 'flyer') {
         const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
         e.h += (want - e.h) * Math.min(1, dt * 3);
-        const hold = e.type === 'rocketrat' ? 18 + Math.sin(e.t * 0.9 + e.seed) * 30 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70;   // rocket rats park right over you
+        const hold = e.type === 'rocketrat' ? 18 + Math.sin(e.t * 0.9 + e.seed) * 30 : (e.type === 'ghostpirate' ? 150 + Math.sin(e.t * 0.7 + e.seed) * 60 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70);   // rocket rats park right over you
         const mv = distP > hold ? dirP : -dirP * 0.6;
         e.theta = wrap(e.theta + (mv * 105 / R) * dt);
         e.dir = dirP;
         e.bombCd -= dt;
         if (e.bombCd <= 0 && distP < 230) {
-          if (e.type === 'rocketrat') {                  // a sizzling pepperoni bomb: blinks as it falls, bursts into greasy shrapnel on the crust
+          if (e.type === 'ghostpirate') {                // a bolt that zig-zags towards Chris in sharp triangular turns
+            const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 22 - e.h, len = Math.hypot(ex, ey) || 1;
+            const bb = this.addEBullet('tribolt', e.theta, e.h, ex / len * 110, ey / len * 110, 8, 4.5); bb.tri = { t: 0, s: 1, bx: ex / len * 110, by: ey / len * 110, per: rnd(0.28, 0.4) }; bb.spinV = 5;
+            e.bombCd = rnd(1.8, 2.6); Sound.sfx('psy');
+          } else if (e.type === 'rocketrat') {                  // a sizzling pepperoni bomb: blinks as it falls, bursts into greasy shrapnel on the crust
             const bb = this.addEBullet('pepbomb', e.theta, e.h - 10, (P.vx || 0) * 0.25, -40, 9, 4); bb.grav = 420; bb.bomb = true; bb.spinV = 6;
             e.bombCd = rnd(1.8, 2.6); Sound.sfx('cube');
           } else if (e.type === 'stinkfly') {            // spore bomb: a lob that leads Chris, and a stink puff either side
@@ -2608,6 +2636,23 @@ class Level1 extends Phaser.Scene {
 
       } else if (ai === 'frog') {
         this.frogAI(e, dt, toP, distP, dirP, fooled);
+
+      } else if (ai === 'polter') {
+        // poltergeist wedge: drifts, see-through and UNTOUCHABLE (shots pass through) ... flickers (the tell) ... turns SOLID
+        // and swoops at you for a moment - that's when you can hit it (and when it can hit you)
+        e.phT = (e.phT === undefined ? rnd(0.5, 1.6) : e.phT) - dt;
+        if (e.phase === undefined) e.phase = 'ghost';
+        if (e.phT <= 0) {
+          if (e.phase === 'ghost') { e.phase = 'flicker'; e.phT = 0.4; }
+          else if (e.phase === 'flicker') { e.phase = 'solid'; e.phT = 1.3; Sound.sfx('swish'); }
+          else { e.phase = 'ghost'; e.phT = rnd(1.4, 2); }
+        }
+        e.phased = e.phase !== 'solid';
+        const solid = e.phase === 'solid', want = solid ? P.h + 26 : 90 + Math.sin(e.t * 1.7 + e.seed) * 40;
+        e.h += (want - e.h) * Math.min(1, dt * (solid ? 3 : 1.5));
+        e.theta = wrap(e.theta + (dirP * (solid ? 175 : 70) / R) * dt); e.dir = dirP;
+        e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
+        e.roll = Math.sin(e.t * 3) * 0.25;
 
       } else if (ai === 'welder') {
         this.welderAI(e, dt, toP, distP, fooled);
@@ -2894,7 +2939,7 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (!fooled && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (!fooled && !e.phased && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
@@ -2908,7 +2953,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, rocketrat: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -2985,7 +3030,7 @@ class Level1 extends Phaser.Scene {
       if (!dead && b.plough) {                            // Swiss-Shot: ploughs THROUGH enemies, shrinking (and losing blast) with every one
         if (!b.hits) b.hits = [];
         for (const e of this.enemies) {
-          if (e.hp <= 0 || b.hits.includes(e)) continue;
+          if (e.hp <= 0 || e.phased || b.hits.includes(e)) continue;
           const rr = e.r + 9 * b.spr.bsx;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) >= rr * rr) continue;
           if (e.type === 'boss') { dead = true; break; }  // too big to plough through: burst on it
@@ -3002,6 +3047,7 @@ class Level1 extends Phaser.Scene {
         }
       } else if (!dead) {
         for (const e of this.enemies) {
+          if (e.phased) continue;                                // a poltergeist out of phase: shots pass right through
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
@@ -3044,6 +3090,11 @@ class Level1 extends Phaser.Scene {
         if (dd < 110 && dd > 1) { b.vt += ex / dd * 420 * dt; b.vh += ey / dd * 420 * dt; }
       }
       b.spin += b.spinV * dt;
+      if (b.tri) {                                       // triangular zig-zag: the sideways push flips every fraction of a second
+        b.tri.t += dt; if (b.tri.t > b.tri.per) { b.tri.t = 0; b.tri.s = -b.tri.s; b.tri.per = rnd(0.25, 0.42); }
+        const L = Math.hypot(b.tri.bx, b.tri.by) || 1, px = -b.tri.by / L, py = b.tri.bx / L;
+        b.vt = b.tri.bx + px * 170 * b.tri.s; b.vh = b.tri.by + py * 170 * b.tri.s;
+      }
       if (b.bomb) {
         b.spr.setTint(Math.floor(this.t * 14) % 2 ? 0xffffff : 0xffd0a0);
         if (b.h <= 4) {                                  // KA-BLAM: greasy shrapnel fans up and out
@@ -3603,6 +3654,8 @@ class Level1 extends Phaser.Scene {
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
+    for (const L of (this.specLights || [])) { L.theta = wrap(L.theta + L.v * this.lastDt); this.place(L.spr, L.theta, 10, 0); L.spr.setAlpha(0.18 + 0.12 * Math.sin(this.t * 1.3 + L.ph)); }
+    for (const F of (this.fogFg || [])) { F.theta = wrap(F.theta + F.v * this.lastDt); this.place(F.spr, F.theta, F.h + Math.sin(this.t * 0.4 + F.ph) * 14, 0); F.spr.setAlpha(0.32 + 0.12 * Math.sin(this.t * 0.5 + F.ph)); }
     for (const g of this.goops) { if (g.halo) this.place(g.halo, g.theta, 4, 0); this.place(g.spr, g.theta, 0, 0); g.spr.setScale(g.spr.scaleX * (1 + 0.015 * Math.sin(this.t * 3 + g.theta * 5)), g.spr.scaleY); }
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }

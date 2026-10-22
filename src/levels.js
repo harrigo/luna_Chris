@@ -13,6 +13,8 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
   frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
+  ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer' },             // L5 phantom pirate: triangle-zigzag bolts
+  polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
   rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },               // L4 rocket rat: hovers over you, drops pepperoni bombs
   gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'welder' },         // L3 welder rat: riot shield + blowtorch
@@ -143,21 +145,29 @@ const LEVELS = {
   },
 
   5: {
-    id: 5, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A spectral pocket dimension of powdery rind.\nGhostly dairy-maids and very odd bullets.',
-    music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'GHOSTLY MILKMAIDS RAM YOU - KEEP MOVING!',
-    radius: 500, sky: [0x2a2a4a, 0x9a9ac4], skyCols: [0x2a2a4a, 0x40406a, 0x5a5a8a, 0x7a7aa8, 0x9a9ac4, 0xbcbce0], bg: '#2a2a4a', starTint: 0xe0e8ff, dustAlpha: 1.4, bgDecor: 'motes',
-    surface: { pal: [0x8a8aa0, 0xb8b8c8, 0xd8d8e4, 0xececf4, 0xf8f8fc, 0xffffff], seed: 5151 },
-    planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xd0e0ff },
-    dust: [0xc8d8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
-    gravity: 1, ledgeTypes: ['crystal', 'carnival', 'energy', 'crystal', 'carnival', 'energy'], ledgeTex: 'ledge1',
+    id: 5, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
+    music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
+    radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
+    // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
+    surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
+    rimGlow: 0xb07aff, squish: true,
+    planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xa070ff },
+    dust: [0xc8a8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
+    gravity: 1, ledgeTypes: ['bone', 'bone', 'bone', 'bone', 'bone', 'bone'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.6, half: 0.1, h: 95 }, { theta: 1.5, half: 0.09, h: 180 }, { theta: 2.6, half: 0.1, h: 95 }, { theta: 3.6, half: 0.09, h: 180 }, { theta: 4.6, half: 0.1, h: 95 }, { theta: 5.5, half: 0.09, h: 180 }],
-    props: [{ tex: 'pile_bones', n: 5, sc: [1.1, 1.6], tint: 0xe8ecff, alpha: 0.75 }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xd8e4ff, alpha: 0.85 }, { tex: 'p_shroom', n: 5, sc: [0.9, 1.4], tint: 0xf0e8ff }, { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xe0e8ff }],
+    props: [
+      // the graveyard: huge ribcages and skulls of ancient space-livestock, half-swallowed by the brie
+      { tex: 'bone_ribcage', at: [[0.25, 1.0], [1.95, 1.15, 1], [3.15, 0.95], [4.15, 1.1, 1], [5.85, 1.0]], depth: 2.4, h: -30 },
+      { tex: 'bone_skull', at: [[1.1, 0.95, 1], [2.3, 0.85], [3.9, 0.9, 1], [5.2, 0.85]], depth: 2.42, h: -12 },
+      { tex: 'pile_bones', at: [[0.8, 1.2], [2.9, 1.1, 1], [4.9, 1.2]], tint: 0xf0ead8, alpha: 0.95 },
+      { tex: 'p_skull', at: [[1.7, 1.1], [3.4, 1.0, 1], [5.6, 1.2]], tint: 0xf0ead8 },
+      { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xd8d0f0 }],
     // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5.
     warp: { to: 5.5, theta: 2.1, h: 238, relics: [{ theta: 1.45, h: 240 }, { theta: 3.55, h: 244 }, { theta: 5.45, h: 236 }] },
     waves: [
-      { name: 'WAVE 1', spawns: [S('phantom', 0), S('germ', 1), S('phantom', 2), S('germ', 3), S('phantom', 4), S('germ', 5), S('phantom', 6), S('phantom', 7)] },
-      { name: 'WAVE 2', spawns: [S('phantom', 0), S('frog', 0.8), S('phantom', 1.8), S('germ', 2.6), S('phantom', 3.4), S('frog', 4.4), S('phantom', 5.2), S('germ', 6), S('phantom', 7), S('phantom', 7.8)] },
-      { name: 'WAVE 3', spawns: [S('phantom', 0), S('phantom', 0.6), S('frog', 1.6), S('germ', 2.2), S('phantom', 3), S('phantom', 3.6), S('frog', 4.6), S('germ', 5.4), S('phantom', 6.2), S('phantom', 6.8), S('frog', 8)] }
+      { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
+      { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
+      { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
     ],
     boss: { tex: 'milkmaid', hp: 160, ai: 'phantom' },
     win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a tiny cheddar moon.'
@@ -1113,8 +1123,8 @@ function makeRoadmapTextures(scene) {
   pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
   pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
   // ---- L2 skyline: giant beast skeletons and tall glowing mushrooms
-  const BONE = [0xe0f4e8, 0xa8d4c0, 0x5e8e7e];
-  pixSprite(scene, 'bg_ribcage', 140, 80, p => {                 // a long-dead space beast: arched spine, ribs hanging to the ground
+  const BONE_SAGE = [0xe0f4e8, 0xa8d4c0, 0x5e8e7e], BONE_WHITE = [0xfffcf2, 0xe4dac2, 0x9a8e74];
+  for (const [rk, BONE] of [['bg_ribcage', BONE_SAGE], ['bone_ribcage', BONE_WHITE]]) pixSprite(scene, rk, 140, 80, p => {                 // a long-dead space beast: arched spine, ribs hanging to the ground
     const spine = []; for (let i = 0; i <= 16; i++) { const t = i / 16; spine.push([8 + t * 126, 64 - Math.sin(Math.min(1, t * 1.15) * Math.PI) * 50 - t * 6]); }
     for (let i = 3; i <= 14; i++) {                                // ribs (biggest in the middle)
       const [x, y] = spine[i], k = Math.sin((i / 16) * Math.PI), drop = 76 - y, sw = 10 + 10 * k;
@@ -1125,7 +1135,7 @@ function makeRoadmapTextures(scene) {
     for (let i = 0; i < spine.length; i++) { const [x, y] = spine[i]; p.ell(x, y, 4.2 - i * 0.12, 3.4, BONE); p.px(x, y - 4, BONE[1]); p.px(x, y - 5, BONE[2]); }   // vertebrae + spines
     p.ell(10, 66, 6, 5, BONE); p.ell(132, 34, 3, 3, BONE);         // hip / tail tip
   });
-  pixSprite(scene, 'bg_skull', 76, 46, p => {                      // horned beast skull, half sunk in the moss
+  for (const [rk, BONE] of [['bg_skull', BONE_SAGE], ['bone_skull', BONE_WHITE]]) pixSprite(scene, rk, 76, 46, p => {   // horned beast skull, half sunk
     p.poly([[4, 40], [8, 22], [22, 10], [44, 8], [60, 14], [72, 26], [74, 38], [62, 42], [40, 44], [16, 44]], BONE);
     p.poly([[42, 12], [52, 2], [66, 0], [58, 6], [52, 14]], BONE);   // horn
     p.poly([[16, 14], [10, 4], [2, 2], [8, 10], [12, 18]], BONE);
@@ -1317,7 +1327,8 @@ const PLATFORMS = {
   girder:   { key: 'pl_girder', top: 4 },
   panini:   { key: 'pl_panini', top: 3 },
   crystal:  { key: 'pl_crystal', top: 14 },
-  carnival: { key: 'pl_carnival', top: 4 }
+  carnival: { key: 'pl_carnival', top: 4 },
+  bone:     { key: 'pl_bone', top: 5 }
 };
 function makePlatformTextures(scene) {
   if (scene.textures.exists('pl_girder')) return;
@@ -1389,6 +1400,48 @@ function makePlatformTextures(scene) {
     p.line([[6, 5], [117, 5]], 0xfffbe0);
     for (let x = 14; x < 112; x += 12) { p.ell(x, 9, 1.6, 1.6, [0xffffff, 0xc8a040, 0x7a5a1a]); }
     for (const x0 of [0, 113]) p.ell(x0 + 5, 8.5, 5, 6, GOLD);                          // scroll ends
+  });
+}
+
+// L5 "The Brie-muda Triangle": powdery rind, a graveyard of lost ships and cows, purple haze and glowing triangles
+function makeBrieTextures(scene) {
+  if (scene.textures.exists('ghostpirate')) return;
+  const BONE = [0xfffbf0, 0xe0d8c4, 0x9a907a], GH = [0xc8ffd8, 0x5ae890, 0x1e8a4a];
+  pixSprite(scene, 'pl_bone', 124, 24, p => {                       // a giant femur from some ancient space-cow, as a platform
+    p.rrect(14, 6, 110, 16, 4, BONE);
+    for (const x of [8, 116]) { p.ell(x, 6, 8, 6, BONE); p.ell(x, 16, 8, 6, BONE); }   // knobbly ends
+    p.line([[18, 7], [106, 7]], 0xffffff); p.line([[30, 14], [90, 14]], 0xc8bca0);
+    for (const [x, y] of [[40, 10], [64, 12], [86, 9]]) p.px(x, y, 0xb8ae96);       // pits
+  });
+  pixSprite(scene, 'ghostpirate', 44, 44, p => {                    // the ghost of a crashed space-rat pirate: tricorn, tattered coat, cutlass
+    p.poly([[10, 20], [30, 18], [36, 34], [32, 42], [27, 37], [22, 43], [17, 37], [12, 42], [8, 34]], GH);   // tattered ghostly coat
+    p.ell(24, 16, 10, 9, GH); p.poly([[30, 13], [40, 17], [38, 20], [30, 21]], GH);                          // head + snout
+    p.ell(16, 8, 3.5, 4, GH); p.ell(16, 8, 1.6, 2, 0xa0ffc0);                                               // ear
+    p.ell(26, 14, 3, 3, 0xffffff); p.ell(33, 14, 2.4, 2.6, 0xffffff); p.px(27, 14, 0x0a3a1a); p.px(33, 14, 0x0a3a1a);   // glowing eyes
+    p.poly([[11, 6], [24, 1], [37, 6], [33, 9], [24, 7], [15, 9]], [0x3a3a48, 0x24242e, 0x101016]);           // tricorn hat
+    p.px(24, 4, 0xffffff); p.px(23, 5, 0xffffff); p.px(25, 5, 0xffffff);                                    // skull badge
+    p.line([[30, 26], [42, 20]], 0xd8e4ec, 2); p.rect(29, 25, 31, 28, 0xffd23f);                            // cutlass
+    p.line([[14, 28], [10, 24]], GH[2], 2);
+  });
+  pixSprite(scene, 'polterwedge', 34, 28, p => {                    // a poltergeist wedge of cheese: hollow eyes, wispy tail
+    p.poly([[2, 22], [30, 22], [30, 6]], [0xfff4b0, 0xffd23f, 0xc09a20]); p.poly([[2, 22], [30, 6], [30, 3], [2, 18]], [0xffe890, 0xe0b830, 0xa07a10]);
+    for (const [x, y, r] of [[22, 16, 2.2], [14, 19, 1.6], [26, 10, 1.4]]) p.ell(x, y, r, r, 0xa07a10);
+    p.ell(17, 14, 2, 2.6, 0x1a0a2a); p.ell(24, 13, 1.8, 2.4, 0x1a0a2a);                                      // hollow eyes
+    p.poly([[2, 22], [8, 24], [4, 27], [10, 27]], [0xfff8d0, 0xffe890, 0xd0b050]);                           // wisp
+  });
+  pixSprite(scene, 'tribolt', 14, 14, p => { p.poly([[7, 1], [13, 12], [1, 12]], [0xe0ffe8, 0x5ae890, 0x1e8a4a]); p.poly([[7, 5], [10, 10], [4, 10]], 0xffffff); });
+  for (const [k, c] of [['tri_p', 0xd070ff], ['tri_c', 0x5ce1ff], ['tri_k', 0xff7ad8]]) pixTex(scene, k, 40, 36, put => {   // glowing triangle anomalies (outlines)
+    const A = [20, 2], B = [38, 34], C = [2, 34];
+    const edge = (P0, P1) => { for (let t = 0; t <= 1; t += 0.01) { const x = Math.round(P0[0] + (P1[0] - P0[0]) * t), y = Math.round(P0[1] + (P1[1] - P0[1]) * t); put(x, y, 0xffffff); put(x + 1, y, c); put(x, y + 1, c); } };
+    edge(A, B); edge(B, C); edge(C, A);
+  });
+  for (let i = 0; i < 2; i++) pixTex(scene, 'fogbank' + i, 160, 48, (put, w, h) => {   // a bank of pixel fog (alpha set in game)
+    const r = rng(800 + i * 17), n1 = vnoise(r, 6), n2 = vnoise(r, 14);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const u = x / w - 0.5, v = y / h - 0.5, den = n1(x / w, y / h) * 0.7 + n2(x / w, y / h) * 0.4 - Math.hypot(u * 1.1, v * 2.2) * 1.6 + 0.3;
+      if (den < 0.12 + bay(x, y) * 0.2) continue;
+      put(x, y, den > 0.4 ? 0xf0e8ff : 0xc8b8f0, 255);
+    }
   });
 }
 

@@ -752,3 +752,25 @@ Built from the "How to build Mount Mozzarella" brief (`makeOvenTextures`):
   - the **rat UFO with Bessie in its beam** far off in the smoke, a constant reminder of the chase.
 - **Unchanged:** the string-cheese whips (now every 2.6–4.5s) and the Pizza Oven boss.
 - **Decided against:** a mechanical pizza-slicer mini-boss, since it would repeat L3's blades (Mega-Mandoline, saw-bots, pizza-cutter drones).
+
+### v1.00 — The Brie-muda Triangle: graveyard of lost ships and cows (first pass)
+Built from the brief (`makeBrieTextures`):
+- **Terrain:**
+  - a wheel of Brie: a powdery white rind crust (`rimD` 0.93) over a creamy paste, with a lilac neon rim;
+  - **squishy ground (`squish`):** on the rind Chris is slidey and sluggish (run ×0.82, grip 2.4 instead of 12, so he slides on after letting go), sinks 5px into the fuzz and kicks up powder puffs when he lands. In the air and with the jet he moves normally, and ledges are firm.
+- **Graveyard:**
+  - huge bone-white ribcages and horned skulls of ancient space-livestock, half-swallowed by the Brie (new white variants `bone_ribcage` and `bone_skull`);
+  - bone piles and skulls;
+  - **giant femur platforms**: a new platform type, `bone`.
+- **Atmosphere (`bgDecor: 'haze'`):**
+  - a deep purple sky;
+  - drifting background fog;
+  - 34 glowing geometric **triangle anomalies** (`tri_p`, `tri_c`, `tri_k`) in purple, cyan and pink, spinning and twinkling;
+  - **spectral lights**: coloured halos that sweep slowly over the pale ground;
+  - **foreground fog banks** drifting IN FRONT of everything, sometimes hiding incoming hazards.
+- **Phantom pirates** (`ghostpirate`, flyer AI): glowing green ghost rats in tricorn hats and tattered coats, with cutlasses. Their bolts (`tribolt`) **zig-zag in sharp triangular turns**, with the sideways push flipping every 0.25–0.42s while drifting at Chris.
+- **Poltergeist wedges** (`polterwedge`, `polter` AI), spectral cheese slices with hollow eyes, in a cycle:
+  1. **ghost** (faint, drifting): shots, blasts and the beam pass straight through, and it can't hurt you;
+  2. **flicker** (0.4s tell);
+  3. **solid** for 1.3s, swooping at you: hit it then.
+- Waves are rebuilt around pirates and wedges, with some ghost milkmaids. The boss is still the Phantom Milkmaid for now.
