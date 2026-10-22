@@ -5,7 +5,7 @@
 ## Story
 Luna Chris was the galaxy's most decorated astronaut until the space race burned him out. Now he flips
 intergalactic flapjacks on a dusty space-ranch in a "Kiss the Cook" apron slapped over his NASA suit, with his
-best friend Bessie, a zero-gravity cow whose udders produce "Mad Cheese". The Roquefort Rodents (alien rats in
+best friend Bessie, a zero-gravity cow whose udders produce "Mad Cheese". The Parmesan Pirates (alien rats in
 junk armour) crash through the barn roof and tractor-beam Bessie away, because she is the only cow who can
 re-cheese their dying home world. Chris twists the pepper grinder on the mantle, the wall flips round, and he
 grabs the Mac-Laster 3000.
@@ -31,7 +31,7 @@ Keyboard for desktop testing: A/D or arrows, Space/W/Up = jump + jet, Z/X = manu
 
 ## Intro cutscene (`src/intro.js`)
 Tap to start (this first tap also goes fullscreen + landscape) -> logo + title fanfare (~3s) -> ~20s comic-style cutscene -> Level 1. Tap any time to skip.
-Beats: retired hero flipping flapjacks with Bessie -> the Roquefort Rodents' junk UFO crashes through the barn roof and
+Beats: retired hero flipping flapjacks with Bessie -> the Parmesan Pirates' junk UFO crashes through the barn roof and
 tractor-beams Bessie -> Chris sighs, stretches an arm to twist the pepper grinder -> wall flips to reveal the armoury
 (Mac-Laster, Swiss-Shot, Fondue Flamethrower, Gouda Grenade). Art is placeholder, drawn with code in `makeIntroTextures()`.
 Add `?skipintro` to the URL to go straight to Level 1 while testing.
@@ -353,3 +353,17 @@ Bessie is snatched back at the end of every level until Level 9.
   3. **Flip back:** it keeps spinning the same way to complete a full turn into firing position.
 - Motion-blur trails follow the barrel tip (white) and the butt (gold) through the spin.
 - On a hit: a spinning pixel-star flash plus a comic word (BONK! / THWACK! / BOP! / WHAM!) that pops and drifts off, on top of the sparks, freeze, kick, sound and rumble.
+
+### v0.74 — Livelier ranch intro, Parmesan Pirates, snappier bash
+- The rat villains are now **the Parmesan Pirates** (previously the Roquefort Rodents).
+- **Intro ranch, now busier:**
+  - **The Mad Cheese stockpile:** an overflowing wooden water tower full of cheese, with heaped cheese, drips, a puddle, a "MAD CHEESE" sign and a constant bulge. Plus milk churns oozing cheese, one tipped over and spilling.
+  - **The ranch folk:**
+    - a robot farmhand trundling a churn back and forth;
+    - a space dog in a bubble helmet bounding round Chris ("ARF!");
+    - two helmeted space chickens pecking;
+    - the alien kid from next door on a hay bale, who waves "HI CHRIS!".
+  - A new caption pans to the tower: "HER MAD CHEESE IS SO GOOD THE WHOLE RANCH IS OVERFLOWING WITH IT."
+  - **On the alarm:** the dog barks and hides behind Chris shivering, the chickens bolt off in a puff of feathers, the robot spins out and drops its churn, and the kid ducks behind the hay.
+  - The barn moved to x 205 (`BX`) and the layout was spread out to fit everyone. The night launch shot shows the tower too.
+- **Bash, revised:** a quick ~120° anticlockwise swing round the grip (barrel up and back, butt forward into the enemy) with a lunge and lean, a short beat at the hit, then a snap back to normal. 0.3s total, 0.45s cooldown. The trails and BONK pops stay.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.73';
+const BUILD = 'v0.74';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -33,8 +33,8 @@ const CFG = {
   ammoPerShot: 0.022, // Mac-Grinder gauge: full tank is about 45 shots
   ammoRegen: 0.5,     // refill per second once you stop shooting
   ammoDelay: 0.35,    // pause after the last shot before it refills
-  bashTime: 0.42,     // melee: whole move (flip the gun butt-first, strike, flip back)
-  bashCd: 0.55,        // melee: time between bashes
+  bashTime: 0.3,      // melee: whole move (120-degree butt swing, a beat at the hit, snap back)
+  bashCd: 0.45,        // melee: time between bashes
   bashRange: 64,      // melee: reach in front of Chris
   bashDmg: 4,         // melee: one-shots small fry, two hits for the bigger ones
   ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
@@ -1173,18 +1173,18 @@ class Level1 extends Phaser.Scene {
     if (P.bashT > 0) {
       P.bashT = Math.max(0, P.bashT - dt);
       const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
-      // 1) FLIP: the gun spins anticlockwise round the grip until the butt faces forward, arm drawn back
-      // 2) STRIKE: drive the butt forward with a lunge and a lean (the hit lands here)
-      // 3) FLIP BACK: keep spinning the same way to finish a full turn, back into firing position
-      const PI = Math.PI;
-      if (k < 0.32) { const q = k / 0.32, e = 1 - Math.pow(1 - q, 3);
-        P.bashSpin = -(PI + 0.3) * e; P.bashX = -5 * q; P.bashY = -2 * q; P.bashA = -0.14 * q; P.bashLean = -0.07 * q; }   // overshoots a touch...
-      else if (k < 0.52) { const q = (k - 0.32) / 0.2, e = 1 - (1 - q) * (1 - q);
-        P.bashSpin = -(PI + 0.3) + 0.3 * e; P.bashX = -5 + 29 * e; P.bashY = -2 + 5 * e; P.bashA = -0.14 + 0.26 * e; P.bashLean = -0.07 + 0.26 * e;   // ...then snaps level as the butt drives in
+      // 1) SWING: the gun whips ~120 degrees anticlockwise round the grip - barrel up and back, butt swinging
+      //    forward into whatever's in front - with a lunge and a lean (the hit lands at the end of the swing)
+      // 2) a split-second hold at the hit, 3) SNAP back to normal
+      const SW = -2.1;                                                     // about 120 degrees
+      if (k < 0.36) { const q = k / 0.36, e = 1 - Math.pow(1 - q, 3);
+        P.bashSpin = SW * e; P.bashX = 10 * e; P.bashY = 2 * e; P.bashA = 0.1 * e; P.bashLean = 0.16 * e;
         P.theta = wrap(P.theta + (P.facing || 1) * 230 / R * dt); }         // lunge into it
-      else { const q = (k - 0.52) / 0.48, e = q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2;
-        P.bashSpin = -PI - PI * e; P.bashX = 24 * (1 - e); P.bashY = 3 * (1 - e); P.bashA = 0.12 * (1 - e); P.bashLean = 0.19 * (1 - e); }
-      if (!P.bashHit && k >= 0.44) { P.bashHit = true; this.bashHit(); }
+      else if (k < 0.48) { P.bashSpin = SW - 0.06; P.bashX = 10; P.bashY = 2; P.bashA = 0.1; P.bashLean = 0.16; }
+      else if (k < 0.82) { const q = (k - 0.48) / 0.34, e = q * q * (3 - 2 * q);
+        P.bashSpin = (SW - 0.06) * (1 - e); P.bashX = 10 * (1 - e); P.bashY = 2 * (1 - e); P.bashA = 0.1 * (1 - e); P.bashLean = 0.16 * (1 - e); }
+      else { P.bashSpin = 0; P.bashX = 0; P.bashY = 0; P.bashA = 0; P.bashLean = 0; }
+      if (!P.bashHit && k >= 0.33) { P.bashHit = true; this.bashHit(); }
     } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; }
     P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots

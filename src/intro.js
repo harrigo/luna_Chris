@@ -6,6 +6,7 @@
 const INK = 0x1a1020;
 const VIEW_H = 200;                       // logical height of the cutscene view; (0,0) is the middle of the view
 const GY = 62;                            // ground line
+const BX = 205;                           // the barn (the rat-ship crashes into it)
 
 // soft glow + steam puff, used by the painted title art
 function makeIntroTextures(scene) {
@@ -188,6 +189,65 @@ function makeIntroPix(scene) {
     p.rrect(1, 4, 7, 17, 2, [0xa07050, 0x6b4326, 0x4a2f1a]);
     p.rect(1, 17, 7, 19, 0x9aa3b2);
   });
+
+  // ---- the Mad Cheese stockpile: an overflowing wooden water tower full of cheese, and milk churns oozing it
+  const CH = [0xffe27a, 0xf0bc36, 0xb8801c], WOOD = [0xb07a4a, 0x8a5a3a, 0x5e3a22], TIN = [0xf0f4fa, 0xb8c0cc, 0x7a8290];
+  pixSprite(scene, 'ix_tower', 68, 112, p => {
+    for (const [a, b] of [[[16, 62], [9, 110]], [[52, 62], [59, 110]], [[27, 64], [25, 110]], [[41, 64], [43, 110]]]) p.line([a, b], 0x6e4a32, 3);   // stilts
+    p.line([[12, 86], [56, 86]], 0x6e4a32, 2); p.line([[14, 72], [54, 100]], 0x5e3a22, 1); p.line([[54, 72], [14, 100]], 0x5e3a22, 1);              // braces
+    p.rrect(6, 24, 61, 64, 5, WOOD);                                                                                 // the barrel tank
+    for (let x = 12; x < 60; x += 7) p.line([[x, 27], [x, 62]], 0x6e4a32);
+    for (const y of [32, 46, 58]) { p.rect(6, y, 61, y + 1, 0x7a8290); p.line([[7, y], [60, y]], 0xb8c0cc); }        // iron hoops
+    p.ell(34, 22, 31, 9, CH);                                                                                        // heaped cheese bulging over the rim
+    p.ell(26, 15, 12, 6, CH); p.ell(43, 16, 10, 5, CH);
+    for (const [x, len] of [[8, 22], [17, 30], [29, 14], [47, 26], [58, 18]]) p.rrect(x - 2, 24, x + 2, 24 + len, 2, CH);   // drips down the sides
+    for (const [x, y] of [[24, 13], [40, 18], [33, 22], [14, 22], [52, 21]]) { p.px(x, y, 0xb8801c); p.px(x + 1, y, 0xb8801c); }   // holes
+    p.rrect(18, 40, 50, 52, 2, [0xf6e8c8, 0xe9dcb5, 0xb8a880]);                                                      // the sign...
+    for (let x = 22; x < 48; x += 4) p.rect(x, 44, x + 2, 48, x % 8 ? 0xe63946 : 0x1a1020);                          // ...squiggly "MAD CHEESE" lettering
+  });
+  pixSprite(scene, 'ix_churn', 16, 26, p => {
+    p.rrect(2, 9, 13, 25, 3, TIN); p.rect(5, 4, 10, 9, TIN[1]); p.rrect(3, 2, 12, 5, 1, TIN);
+    p.line([[2, 14], [13, 14]], 0x7a8290); p.line([[2, 21], [13, 21]], 0x7a8290);
+    p.ell(8, 2, 5, 2, CH); p.rrect(3, 2, 5, 10, 1, CH); p.rrect(10, 2, 12, 7, 1, CH);                                // cheese oozing out under the lid
+  });
+  pixSprite(scene, 'ix_spill', 34, 8, p => { p.ell(17, 4, 16, 3, CH); p.ell(9, 3, 5, 2, CH); });
+  pixSprite(scene, 'ix_hay', 30, 16, p => {
+    p.rrect(1, 2, 28, 15, 3, [0xffe6a0, 0xe8c060, 0xb08a30]);
+    for (let x = 5; x < 27; x += 4) p.line([[x, 4], [x + 1, 13]], 0xb08a30);
+    p.line([[1, 7], [28, 7]], 0x8a5a3a);
+  });
+  // ---- the ranch folk
+  pixSprite(scene, 'ix_bot', 24, 30, p => {                       // ranch robot: boxy, one red eye, little wheels
+    p.line([[12, 1], [12, 5]], 0x7a8290); p.ell(12, 1, 1.5, 1.5, 0xff4040);
+    p.rrect(6, 5, 18, 13, 2, [0xd8dfe8, 0x9aa3b2, 0x5a6270]); p.rect(9, 8, 15, 10, 0x1a1020); p.rect(11, 8, 13, 10, 0xff4040);
+    p.rrect(4, 13, 20, 24, 3, [0xffb060, 0xff8a1a, 0xb8501a]); p.rect(8, 16, 16, 18, 0xffe27a);
+    p.ell(7, 26, 3, 3, [0x5a6270, 0x3a3e4c, 0x24262e]); p.ell(17, 26, 3, 3, [0x5a6270, 0x3a3e4c, 0x24262e]);
+  });
+  pixSprite(scene, 'ix_dog', 30, 22, p => {                       // space dog in a bubble helmet
+    const FUR = [0xf0c080, 0xc08a4a, 0x7a4a20];
+    p.line([[5, 10], [1, 4]], 0xc08a4a, 2);                       // tail up
+    for (const x of [7, 11, 16, 19]) p.rect(x, 15, x + 1, 20, 0x7a4a20);
+    p.ell(12, 12, 8, 5, FUR); p.ell(10, 11, 3, 2, 0xffe6c0);
+    p.ell(22, 8, 7, 6, [0xeaf8ff, 0xcfeeff, 0x8ac0e0]);          // helmet
+    p.ell(22, 9, 4.5, 3.5, FUR); p.ell(25, 10, 2, 1.5, 0xffe6c0); p.px(27, 9, 0x1a1020);
+    p.ell(20, 6, 1.5, 2.5, 0x7a4a20); p.px(22, 8, 0x1a1020); p.px(21, 3, 0xffffff);
+  });
+  pixSprite(scene, 'ix_chick', 16, 16, p => {                     // space chicken (also in a helmet)
+    p.line([[6, 12], [5, 15]], 0xff8a1a); p.line([[9, 12], [10, 15]], 0xff8a1a);
+    p.ell(7, 9, 5, 4, [0xffffff, 0xe0e4ee, 0xa0a8b8]); p.ell(4, 8, 2, 2, [0xe0e4ee, 0xa0a8b8, 0x707888]);
+    p.ell(11, 5, 4, 4, [0xeaf8ff, 0xcfeeff, 0x8ac0e0]); p.ell(11, 5, 2.5, 2.5, [0xffffff, 0xe0e4ee, 0xa0a8b8]);
+    p.px(11, 2, 0xe63946); p.px(12, 2, 0xe63946); p.px(13, 5, 0xffa21a); p.px(14, 5, 0xffa21a); p.px(11, 5, 0x1a1020);
+  });
+  pixSprite(scene, 'ix_kid', 18, 28, p => {                       // little alien neighbour in dungarees
+    p.line([[6, 3], [4, 0]], 0x2f8a1a); p.line([[12, 3], [14, 0]], 0x2f8a1a); p.px(4, 0, 0xffd23f); p.px(14, 0, 0xffd23f);
+    p.ell(9, 8, 6, 5.5, [0xb4ff8a, 0x6fd84a, 0x2f8a1a]);
+    p.ell(6.5, 8, 1.6, 2.2, 0x1a1020); p.ell(11.5, 8, 1.6, 2.2, 0x1a1020); p.px(6, 7, 0xffffff); p.px(11, 7, 0xffffff);
+    p.line([[7, 11], [11, 11]], 0x2f8a1a);
+    p.rrect(5, 14, 13, 23, 2, [0x7a9cff, 0x4a6ae0, 0x24348a]); p.rect(6, 14, 7, 16, 0xffd23f); p.rect(11, 14, 12, 16, 0xffd23f);
+    p.line([[5, 15], [2, 20]], 0x6fd84a, 2);
+    p.rect(6, 23, 7, 27, 0x2f8a1a); p.rect(11, 23, 12, 27, 0x2f8a1a);
+  });
+  pixSprite(scene, 'ix_kidarm', 6, 10, p => { p.line([[1, 9], [4, 1]], 0x6fd84a, 2); p.ell(4, 1, 1.5, 1.5, 0x6fd84a); });
 
   // ---- the comic close-up: speed lines behind Chris's portrait
   pixTex(scene, 'ix_speed', 150, 104, put => {
@@ -443,7 +503,7 @@ class IntroScene extends Phaser.Scene {
     if (this.shot) this.shot.destroy();
     this.shot = this.add.container(0, 0);
     this.stage.add(this.shot);
-    this.camY = 0;
+    this.camY = 0; this.camX = 0;
   }
 
   // the real in-game Chris, driven by a fake player state
@@ -488,7 +548,7 @@ class IntroScene extends Phaser.Scene {
     const dt = Math.min(0.05, delta / 1000);
     if (this.rig) this.rigUpdate(dt);
     for (const a of this.acts) a(dt);
-    this.shot.y = Math.round(this.camY);
+    this.shot.y = Math.round(this.camY); this.shot.x = -Math.round(this.camX || 0);
   }
 
   sky(key, tint) {
@@ -511,20 +571,22 @@ class IntroScene extends Phaser.Scene {
     this.twinkles(-360, 360, -280, 0);
 
     // the ranch
-    const cabin = this.img(-178, GY + 3, 'ix_cabin');
-    const glowW = this.img(-198, GY - 26, 'puff', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const cabin = this.img(-190, GY + 3, 'ix_cabin');
+    const glowW = this.img(-210, GY - 26, 'puff', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glowW, alpha: 0.2, yoyo: true, repeat: -1, duration: 900 });
-    const chimney = this.add2(this.add.particles(-152, GY - 70, 'ix_smoke', { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 }));
-    this.img(70, GY + 2, 'ix_fence');
-    this.barn = this.img(178, GY + 2, 'ix_barn');
+    const chimney = this.add2(this.add.particles(-164, GY - 70, 'ix_smoke', { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 }));
+    this.barn = this.img(BX, GY + 2, 'ix_barn');
+    this.buildStockpile();
+    this.img(112, GY + 2, 'ix_fence');
     this.img(0, GY - 1, 'ix_ground', 0.5, 0);
     for (const [x, k] of [[-260, 'p_tuft1'], [-110, 'p_tuft2'], [-14, 'p_tuft1'], [118, 'p_tuft2'], [252, 'p_tuft1'], [300, 'p_tuft2']]) this.img(x, GY + 2, k);
 
     // Chris at the griddle, Bessie grazing
-    this.img(-38, GY + 1, 'ix_grill');
-    const coals = this.add2(this.add.particles(-38, GY - 20, 'spark', { lifespan: 500, speedY: { min: -30, max: -12 }, speedX: { min: -6, max: 6 }, scale: { start: 0.8, end: 0 }, blendMode: 'ADD', frequency: 160, tint: 0xff8a1a }));
-    this.bessie = this.img(52, GY + 1, 'bessie').setFlipX(true);
-    this.makeChris(-74, 1, 'spatula');
+    this.img(-50, GY + 1, 'ix_grill');
+    const coals = this.add2(this.add.particles(-50, GY - 20, 'spark', { lifespan: 500, speedY: { min: -30, max: -12 }, speedX: { min: -6, max: 6 }, scale: { start: 0.8, end: 0 }, blendMode: 'ADD', frequency: 160, tint: 0xff8a1a }));
+    this.bessie = this.img(26, GY + 1, 'bessie').setFlipX(true);
+    this.buildRanchFolk();
+    this.makeChris(-86, 1, 'spatula');
     this.pancake = this.img(0, 0, 'ix_pancake', 0.5, 0.5);
     const pc = this.pcake = { mode: 'held', x: 0, y: 0, vx: 0, vy: 0, rot: 0 };
     this.flipT = 0.8;
@@ -562,16 +624,84 @@ class IntroScene extends Phaser.Scene {
     T(3400, () => this.say('HOME OF LUNA CHRIS: ONCE THE GALAXY\'S MOST DECORATED ASTRONAUT.'));
     T(4600, () => this.bubble(this.cx + 4, GY - 104, 'ANOTHER STACK!', 1500));
     T(6600, () => this.say('RETIRED NOW. HE FLIPS FLAPJACKS AND MINDS HIS BEST PAL, BESSIE THE COW.'));
-    T(7600, () => { Sound.sfx('moo'); this.bubble(66, GY - 60, 'MOO <3', 1400); });
+    T(7600, () => { Sound.sfx('moo'); this.bubble(40, GY - 60, 'MOO <3', 1400); });
+    T(9200, () => { this.say('HER MAD CHEESE IS SO GOOD THE WHOLE RANCH IS OVERFLOWING WITH IT.'); this.tweens.add({ targets: this, camX: 60, duration: 1400, yoyo: true, hold: 600, ease: 'Sine.easeInOut' }); });
 
     // ---- the rats arrive
-    T(10000, () => {
-      this.say('THEN THE ROQUEFORT RODENTS CAME CALLING...');
+    T(12400, () => {
+      this.say('THEN THE PARMESAN PIRATES CAME CALLING...');
+      this.folkPanic();
       Sound.music('tense'); Sound.sfx('alarm');
       this.flipping = false;
       this.tweens.add({ targets: this.flashRect.setFillStyle(0xff2030, 1), alpha: { from: 0, to: 0.25 }, yoyo: true, repeat: 2, duration: 160, onComplete: () => this.flashRect.setFillStyle(0xffffff, 1).setAlpha(0) });
     });
-    T(10500, () => this.shipCrash());
+    T(12900, () => this.shipCrash());
+  }
+
+  // the Mad Cheese stockpile: an overflowing cheese water tower (behind the fence), dripping into a puddle
+  buildStockpile() {
+    this.img(120, GY + 4, 'ix_spill').setScale(1.5, 1.2);
+    this.tower = this.img(120, GY + 2, 'ix_tower');
+    this.tweens.add({ targets: this.tower, scaleY: 1.02, scaleX: 0.99, yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut' });   // it's so full it bulges
+    this.add2(this.add.particles(120, GY - 86, 'fondue', { x: { min: -30, max: 30 }, lifespan: 800, speedY: { min: 10, max: 40 }, gravityY: 260, scale: { start: 0.55, end: 0.3 }, frequency: 180 }));
+  }
+
+  // the ranch folk: a robot farmhand rolling churns, a space dog, two space chickens and the alien kid from next door
+  buildRanchFolk() {
+    const F = this.folk = { panic: false };
+    F.kid = this.img(-128, GY - 9, 'ix_kid');
+    F.arm = this.img(-123, GY - 23, 'ix_kidarm', 0.2, 0.9);
+    this.img(-128, GY + 2, 'ix_hay');
+    this.tweens.add({ targets: F.kid, y: F.kid.y - 1, yoyo: true, repeat: -1, duration: 500 });
+    this.img(92, GY + 4, 'ix_spill');
+    this.img(94, GY - 3, 'ix_churn', 0.5, 0.5).setAngle(78);                            // one's tipped over, oozing
+    F.churns = [this.img(160, GY + 2, 'ix_churn'), this.img(174, GY + 3, 'ix_churn')];
+    F.bot = this.img(70, GY + 2, 'ix_bot'); F.botChurn = this.img(70, GY - 26, 'ix_churn').setScale(0.85); F.botDir = 1;
+    F.dog = this.img(-30, GY + 1, 'ix_dog'); F.dogDir = 1; F.dogX = -30;
+    F.chicks = [-6, 52].map((x, i) => {
+      const c = this.img(x, GY + 1, 'ix_chick').setFlipX(i === 0);
+      this.tweens.add({ targets: c, angle: { from: 0, to: c.flipX ? -28 : 28 }, yoyo: true, repeat: -1, duration: 140, repeatDelay: 600 + i * 450, delay: i * 300 });   // peck peck
+      return c;
+    });
+    this.acts.push(dt => {
+      const t = this.time.now / 1000;
+      if (!F.panic) {                                                                // robot trundles to and fro with a churn
+        F.bot.x += F.botDir * 26 * dt;
+        if (F.bot.x > 150) F.botDir = -1; else if (F.bot.x < 62) F.botDir = 1;
+        F.bot.setFlipX(F.botDir < 0).y = GY + 2 - Math.abs(Math.sin(t * 12)) * 1;
+        F.botChurn.setPosition(F.bot.x, F.bot.y - 27);
+        F.dogX += F.dogDir * 60 * dt;                                                 // dog bounds about by Chris
+        if (F.dogX > 4) F.dogDir = -1; else if (F.dogX < -66) F.dogDir = 1;
+        F.dog.setFlipX(F.dogDir < 0).setPosition(Math.round(F.dogX), GY + 1 - Math.abs(Math.sin(t * 9)) * 5);
+      }
+    });
+    this.at(2600, () => {                                                            // the kid waves hello
+      if (F.panic) return;
+      this.bubble(-124, GY - 50, 'HI CHRIS!', 1500);
+      this.tweens.add({ targets: F.arm, angle: { from: -30, to: 30 }, yoyo: true, repeat: 5, duration: 140 });
+    });
+    this.at(5400, () => { if (!F.panic) { Sound.sfx('flap'); this.bubble(F.dog.x + 4, GY - 32, 'ARF!', 900); } });
+  }
+
+  // everyone reacts when the alarm goes off
+  folkPanic() {
+    const F = this.folk; if (!F) return;
+    F.panic = true;
+    this.bubble(F.dog.x + 4, GY - 32, 'WOOF! WOOF!', 1600);
+    this.tweens.add({ targets: F.dog, x: this.cx - 34, duration: 500, ease: 'Quad.easeOut', onComplete: () => this.tweens.add({ targets: F.dog, x: F.dog.x + 1.5, yoyo: true, repeat: -1, duration: 40 }) });   // hides behind Chris, shivering
+    F.dog.setFlipX(true);
+    F.chicks.forEach((c, i) => {                                                     // chickens bolt off, feathers everywhere
+      this.tweens.killTweensOf(c);
+      c.setFlipX(true);
+      this.dust(c.x, GY - 4, 4, 'ix_dust', 6, 14);
+      this.tweens.add({ targets: c, x: -330, duration: 1300 + i * 200, ease: 'Quad.easeIn' });
+      this.tweens.add({ targets: c, y: GY - 10, yoyo: true, repeat: 8, duration: 80 });
+    });
+    this.bubble(F.bot.x, GY - 44, '!?', 1400, '#d0302a');                           // robot spins out and drops its churn
+    this.tweens.add({ targets: F.bot, angle: 720, duration: 900, ease: 'Quad.easeOut' });
+    this.tweens.add({ targets: F.botChurn, y: GY - 2, angle: 95, x: F.botChurn.x + 14, duration: 450, ease: 'Bounce.easeOut' });
+    this.tweens.killTweensOf([F.arm, F.kid]);                                        // the kid ducks behind the hay bale
+    this.tweens.add({ targets: [F.kid, F.arm], y: '+=30', duration: 260, delay: 200, ease: 'Quad.easeIn' });
   }
 
   twinkles(x0, x1, y0, y1) {
@@ -588,7 +718,7 @@ class IntroScene extends Phaser.Scene {
     const fire = this.add2(this.add.particles(0, 0, 'flame', { lifespan: 300, speed: { min: 10, max: 40 }, scale: { start: 1.6, end: 0 }, blendMode: 'ADD', frequency: 25 }));
     smoke.startFollow(ship, -30, 0); fire.startFollow(ship, -34, 2);
     this.shipFx = [smoke, fire];
-    this.tweens.add({ targets: ship, x: 186, y: GY - 70, rotation: 0.25, duration: 950, ease: 'Quad.easeIn', onComplete: () => this.impact() });
+    this.tweens.add({ targets: ship, x: BX + 8, y: GY - 70, rotation: 0.25, duration: 950, ease: 'Quad.easeIn', onComplete: () => this.impact() });
     this.at(500, () => { if (this.rig) { this.P.facing = 1; this.bubble(this.cx + 2, GY - 104, '!', 1800, '#d0302a'); } });
   }
 
@@ -599,15 +729,15 @@ class IntroScene extends Phaser.Scene {
     this.barn.setTexture('ix_barn_x');
     ship.setVisible(false); this.shipFx.forEach(e => e.stop());
     for (let i = 0; i < 12; i++) {                                    // planks and bolts everywhere
-      const p = this.img(178 + Phaser.Math.Between(-16, 16), GY - 76, i % 3 ? 'ix_plank' : 'db_bolt', 0.5, 0.5);
+      const p = this.img(BX + Phaser.Math.Between(-16, 16), GY - 76, i % 3 ? 'ix_plank' : 'db_bolt', 0.5, 0.5);
       const tx = p.x + Phaser.Math.Between(-150, 120), peak = p.y - Phaser.Math.Between(30, 90);
       this.tweens.add({ targets: p, x: tx, duration: 900, ease: 'Linear' });
       this.tweens.add({ targets: p, y: peak, duration: 380, ease: 'Quad.easeOut', onComplete: () => this.tweens.add({ targets: p, y: GY, duration: 520, ease: 'Quad.easeIn', onComplete: () => this.tweens.add({ targets: p, alpha: 0, delay: 1400, duration: 300 }) }) });
       this.tweens.add({ targets: p, rotation: Phaser.Math.FloatBetween(-12, 12), duration: 900 });
     }
-    this.dust(178, GY - 70, 10, 'ix_dust', 30, 40);
-    this.dust(178, GY, 8, 'ix_dust', 50, 20);
-    this.barnSmoke = this.add2(this.add.particles(178, GY - 80, 'ix_smoke', { lifespan: 2000, speedX: { min: -6, max: 8 }, speedY: { min: -26, max: -12 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.85, end: 0 }, frequency: 140 }));
+    this.dust(BX, GY - 70, 10, 'ix_dust', 30, 40);
+    this.dust(BX, GY, 8, 'ix_dust', 50, 20);
+    this.barnSmoke = this.add2(this.add.particles(BX, GY - 80, 'ix_smoke', { lifespan: 2000, speedX: { min: -6, max: 8 }, speedY: { min: -26, max: -12 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.85, end: 0 }, frequency: 140 }));
     // the pancake goes flying... and lands on his helmet
     const pc = this.pcake; pc.mode = 'air2';
     const h = this.headPoint();
@@ -617,23 +747,23 @@ class IntroScene extends Phaser.Scene {
 
     // rats spill out of the barn door
     this.rats = [];
-    [[96, -1], [128, -1], [232, 1], [262, 1]].forEach(([x, dir], i) => this.at(450 + i * 230, () => {
+    [[150, -1], [176, -1], [226, 1], [240, 1]].forEach(([x, dir], i) => this.at(450 + i * 230, () => {
       Sound.sfx('squeak');
-      const r = this.img(178, GY + 1, 'mouse').setScale(0.2).setFlipX(dir < 0);
+      const r = this.img(BX, GY + 1, 'mouse').setScale(0.2).setFlipX(dir < 0);
       this.rats.push(r);
       this.tweens.add({ targets: r, x, scale: 1, duration: 520, ease: 'Quad.easeOut' });
       this.tweens.add({ targets: r, y: GY - 22, duration: 260, yoyo: true, ease: 'Quad.easeOut', onComplete: () => {
         this.tweens.add({ targets: r, y: GY - 6, duration: 160, yoyo: true, repeat: -1, ease: 'Quad.easeOut', delay: i * 70 });
       } });
     }));
-    this.at(1500, () => this.bubble(250, GY - 40, 'SQUEAK!', 1200));
+    this.at(1500, () => this.bubble(222, GY - 40, 'SQUEAK!', 1200));
     this.at(2300, () => this.abduct());
   }
 
   abduct() {
     const ship = this.ship, bx = this.bessie.x;
     Sound.sfx('beam'); this.say('THEIR HOME WORLD IS ROTTING. ONLY BESSIE\'S MAD CHEESE CAN SAVE IT.');
-    ship.setVisible(true).setPosition(178, GY - 82).setRotation(0);
+    ship.setVisible(true).setPosition(BX, GY - 82).setRotation(0);
     this.shipFx.forEach(e => e.start());
     this.shipFx[1].stop();
     this.tweens.add({ targets: ship, x: bx, y: GY - 112, duration: 900, ease: 'Sine.easeInOut', onComplete: () => this.shipFx[0].stop() });
@@ -787,10 +917,11 @@ class IntroScene extends Phaser.Scene {
     this.tweens.add({ targets: shipFar, alpha: 0.4, yoyo: true, repeat: -1, duration: 300 });
     this.img(0, GY + 2, 'ix_hills_far').setTint(0x6a6aa0);
     this.img(0, GY + 4, 'ix_hills_mid').setTint(0x5a5a8a);
-    this.img(-178, GY + 3, 'ix_cabin').setTint(0x8080b0);
-    this.img(70, GY + 2, 'ix_fence').setTint(0x7070a0);
-    this.img(178, GY + 2, 'ix_barn_x').setTint(0x8080b0);
-    this.add2(this.add.particles(178, GY - 80, 'ix_smoke', { lifespan: 2400, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.6, end: 0 }, frequency: 220, tint: 0x9090c0 }));
+    this.img(-190, GY + 3, 'ix_cabin').setTint(0x8080b0);
+    this.img(BX, GY + 2, 'ix_barn_x').setTint(0x8080b0);
+    this.img(120, GY + 2, 'ix_tower').setTint(0x8080b0);
+    this.img(112, GY + 2, 'ix_fence').setTint(0x7070a0);
+    this.add2(this.add.particles(BX, GY - 80, 'ix_smoke', { lifespan: 2400, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.6, end: 0 }, frequency: 220, tint: 0x9090c0 }));
     this.img(0, GY - 1, 'ix_ground', 0.5, 0).setTint(0x8a90c8);
 
     this.makeChris(-20, 1, 'gun');
