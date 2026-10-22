@@ -13,7 +13,10 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
   frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
-  slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true }
+  slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
+  // roadmap enemies (ai = which existing behaviour they use)
+  phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone' },          // ghostly dairy-maid: hovers, then rams
+  paladin:  { hp: 8,  r: 17, ch: 12, tex: 'paladin',  oy: 0.92,    drop: 0.5,  big: true, ai: 'mouse' } // armoured Rat-Paladin
 };
 
 const LEVELS = {
@@ -83,10 +86,129 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 1.8), S('slicer', 3), S('drone', 4), S('drone', 5), S('slicer', 6.4), S('drone', 7), S('drone', 8), S('slicer', 9.4)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
-    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5.
-    // (Temporary home: per the roadmap the warp to 5.5 belongs on level 5 once that level exists.)
-    warp: { to: 5.5, theta: 2.55, h: 238, relics: [{ theta: 1.72, h: 236 }, { theta: 4.4, h: 242 }, { theta: 0.42, h: 214 }] },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
+  },
+
+  4: {
+    id: 4, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'A volatile volcano planet.\nBoiling string cheese whips across the sky.',
+    music: 'level1', bossName: 'THE PIZZA OVEN OF DOOM', tip: 'WATCH FOR THE STRING CHEESE - IT SNAPS!',
+    radius: 440, sky: [0x14040a, 0x8e2418], skyCols: [0x14040a, 0x2a0810, 0x480c14, 0x6a1418, 0x8e2418, 0xb43a18], bg: '#14040a', starTint: 0xffc0a0, dustAlpha: 1.2, bgDecor: 'cosmic', lava: 12,
+    surface: { pal: [0x6a4a3a, 0xb08a6a, 0xe8d4b8, 0xf6ecdc, 0xfff8f0, 0xffffff], seed: 4444 },
+    geysers: { n: 5, idle: [4, 8], warn: 1, erupt: 1.2, height: 150 },
+    planet: { fill: 0xf6ecdc, inner: 0xe8d4b8, rim: 0xffffff, glow: 0xffd8b0 },
+    dust: [0xff6a3a, 0xffb03a, 0xff3a3a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
+    gravity: 1, ledgeTypes: ['panini', 'girder', 'crystal', 'panini', 'energy'], ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.9, half: 0.14, h: 90 }, { theta: 2.0, half: 0.12, h: 170 }, { theta: 3.2, half: 0.14, h: 90 }, { theta: 4.3, half: 0.12, h: 170 }, { theta: 5.4, half: 0.14, h: 90 }],
+    props: [{ tex: 'pile_rind', n: 5, sc: [1.1, 1.6], tint: 0xfff6ea }, { tex: 'p_skull', n: 3, sc: [1, 1.3], tint: 0xffd0b0 }, { tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true, tint: 0xff9a5a }],
+    strands: { every: [2.2, 4] },
+    waves: [
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('flyer', 1), S('mouse', 1.8), S('mouse', 2.8), S('flyer', 3.6), S('golem', 4.6), S('mouse', 5.4), S('flyer', 6.4), S('mouse', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('frog', 0), S('mouse', 0.8), S('flyer', 1.6), S('golem', 2.6), S('mouse', 3.2), S('frog', 4.2), S('flyer', 5), S('mouse', 5.8), S('golem', 7), S('flyer', 7.8)] },
+      { name: 'WAVE 3', spawns: [S('golem', 0), S('frog', 1), S('flyer', 1.8), S('mouse', 2.4), S('golem', 3.6), S('flyer', 4.2), S('frog', 5.2), S('mouse', 6), S('flyer', 6.8), S('golem', 8), S('mouse', 8.6)] }
+    ],
+    boss: { tex: 'oven', hp: 150, ai: 'oven', armouredTop: true },
+    win: 'The Pizza Oven of Doom has gone cold!\nBessie popped out of the dough... and into a rat-ship. AGAIN.\nThe trail leads into a strange pale triangle of space...'
+  },
+
+  5: {
+    id: 5, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A spectral pocket dimension of powdery rind.\nGhostly dairy-maids and very odd bullets.',
+    music: 'level2', bossName: 'THE PHANTOM MILKMAID', tip: 'GHOSTLY MILKMAIDS RAM YOU - KEEP MOVING!',
+    radius: 500, sky: [0x2a2a4a, 0x9a9ac4], skyCols: [0x2a2a4a, 0x40406a, 0x5a5a8a, 0x7a7aa8, 0x9a9ac4, 0xbcbce0], bg: '#2a2a4a', starTint: 0xe0e8ff, dustAlpha: 1.4, bgDecor: 'motes',
+    surface: { pal: [0x8a8aa0, 0xb8b8c8, 0xd8d8e4, 0xececf4, 0xf8f8fc, 0xffffff], seed: 5151 },
+    planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xd0e0ff },
+    dust: [0xc8d8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
+    gravity: 1, ledgeTypes: ['crystal', 'carnival', 'energy', 'crystal', 'carnival', 'energy'], ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.6, half: 0.1, h: 95 }, { theta: 1.5, half: 0.09, h: 180 }, { theta: 2.6, half: 0.1, h: 95 }, { theta: 3.6, half: 0.09, h: 180 }, { theta: 4.6, half: 0.1, h: 95 }, { theta: 5.5, half: 0.09, h: 180 }],
+    props: [{ tex: 'pile_bones', n: 5, sc: [1.1, 1.6], tint: 0xe8ecff, alpha: 0.75 }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xd8e4ff, alpha: 0.85 }, { tex: 'p_shroom', n: 5, sc: [0.9, 1.4], tint: 0xf0e8ff }, { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xe0e8ff }],
+    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5.
+    warp: { to: 5.5, theta: 2.1, h: 238, relics: [{ theta: 1.45, h: 240 }, { theta: 3.55, h: 244 }, { theta: 5.45, h: 236 }] },
+    waves: [
+      { name: 'WAVE 1', spawns: [S('phantom', 0), S('germ', 1), S('phantom', 2), S('germ', 3), S('phantom', 4), S('germ', 5), S('phantom', 6), S('phantom', 7)] },
+      { name: 'WAVE 2', spawns: [S('phantom', 0), S('frog', 0.8), S('phantom', 1.8), S('germ', 2.6), S('phantom', 3.4), S('frog', 4.4), S('phantom', 5.2), S('germ', 6), S('phantom', 7), S('phantom', 7.8)] },
+      { name: 'WAVE 3', spawns: [S('phantom', 0), S('phantom', 0.6), S('frog', 1.6), S('germ', 2.2), S('phantom', 3), S('phantom', 3.6), S('frog', 4.6), S('germ', 5.4), S('phantom', 6.2), S('phantom', 6.8), S('frog', 8)] }
+    ],
+    boss: { tex: 'milkmaid', hp: 160, ai: 'phantom' },
+    win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a tiny cheddar moon.'
+  },
+
+  6: {
+    id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A tiny, high-speed cheddar planetoid.\nA giant wheel of Pepper Jack is chasing you.',
+    music: 'level3', bossName: 'THE GREAT PEPPER JACK', tip: 'THE PEPPER JACK IS ROLLING - KEEP RUNNING!',
+    radius: 270, sky: [0x1a0a20, 0xd86a20], skyCols: [0x1a0a20, 0x3a1430, 0x6a2030, 0xa03a28, 0xd86a20, 0xf0a030], bg: '#1a0a20', starTint: 0xffd8a0, dustAlpha: 1.2, bgDecor: 'cosmic',
+    surface: { pal: [0x6a2a0a, 0xa84a10, 0xe07a1a, 0xf6a02a, 0xffc85a, 0xffe8a0], seed: 6262 },
+    planet: { fill: 0xf6a02a, inner: 0xe07a1a, rim: 0xffe8a0, glow: 0xffb050 },
+    dust: [0xff9a3a, 0xffd23f, 0xff6a3a, 0xffb0a0], decorTint: 0xffffff, decorAlpha: 1,
+    gravity: 1, ledgeTypes: ['panini', 'girder', 'panini', 'girder'], ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.8, half: 0.2, h: 90 }, { theta: 2.4, half: 0.18, h: 165 }, { theta: 4.0, half: 0.2, h: 90 }, { theta: 5.5, half: 0.18, h: 165 }],
+    props: [{ tex: 'pile_rind', n: 3, sc: [1, 1.4], tint: 0xffc070 }, { tex: 'p_cone', n: 5, sc: [0.8, 1.1], fg: true }, { tex: 'p_tuft1', n: 8, sc: [0.8, 1.2], fg: true, tint: 0xffb050 }],
+    chaser: { speed: 170 },
+    waves: [
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1.2), S('slicer', 2.4), S('mouse', 3.4), S('drone', 4.4), S('mouse', 5.4), S('slicer', 6.6)] },
+      { name: 'WAVE 2', spawns: [S('slicer', 0), S('mouse', 1), S('drone', 2), S('mouse', 3), S('slicer', 4), S('drone', 5), S('mouse', 6), S('mouse', 7)] },
+      { name: 'WAVE 3', spawns: [S('drone', 0), S('slicer', 1), S('mouse', 1.8), S('drone', 2.8), S('slicer', 3.8), S('mouse', 4.6), S('drone', 5.6), S('slicer', 6.6), S('mouse', 7.4)] }
+    ],
+    boss: { tex: 'wheel', hp: 160, ai: 'wheel' },
+    win: 'The Great Pepper Jack has crumbled!\nBessie rolled clear... into the hold of the rat armada.\nTime to board their fleet.'
+  },
+
+  7: {
+    id: 7, name: 'The Astro-Rat Armada', short: 'ASTRO-RAT ARMADA', blurb: 'A fleet of rusty spherical rat ships.\nThe flagship sweeps the decks with lasers.',
+    music: 'level1', bossName: 'THE RAT FLAGSHIP', tip: 'DODGE THE FLAGSHIP LASERS!',
+    radius: 380, sky: [0x02040c, 0x18265a], skyCols: [0x02040c, 0x060c1c, 0x0a1430, 0x101c44, 0x18265a, 0x22306a], bg: '#02040c', starTint: 0xffffff, dustAlpha: 1.2, bgDecor: 'cosmic',
+    surface: { pal: [0x3a1a10, 0x6a3a24, 0x9a5a32, 0xc0804a, 0xd8a070, 0xf0c8a0], seed: 7373 },
+    planet: { fill: 0x9a5a32, inner: 0x6a3a24, rim: 0xf0c8a0, glow: 0xff9a5a },
+    dust: [0x5ce1ff, 0x6a8cff, 0xff9a5a, 0xffffff], decorTint: 0xffffff, decorAlpha: 1,
+    gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
+    ledges: [{ theta: 0.5, half: 0.12, h: 85 }, { theta: 1.3, half: 0.1, h: 165 }, { theta: 2.1, half: 0.1, h: 240 }, { theta: 3.0, half: 0.12, h: 85 }, { theta: 3.9, half: 0.1, h: 165 }, { theta: 4.8, half: 0.1, h: 240 }, { theta: 5.6, half: 0.12, h: 110 }],
+    props: [{ tex: 'pile_scrap', n: 6, sc: [1.1, 1.6], tint: 0xc08060 }, { tex: 'p_pipe', n: 4, sc: [0.9, 1.3] }, { tex: 'p_crate', n: 4, sc: [0.9, 1.2] }, { tex: 'p_cone', n: 6, sc: [0.8, 1.1], fg: true }],
+    sweep: { every: [3.5, 6] },
+    waves: [
+      { name: 'WAVE 1', spawns: [S('drone', 0), S('flyer', 1), S('drone', 2), S('slicer', 3), S('flyer', 4), S('drone', 5), S('flyer', 6), S('drone', 7)] },
+      { name: 'WAVE 2', spawns: [S('golem', 0), S('drone', 0.8), S('flyer', 1.8), S('slicer', 2.6), S('drone', 3.4), S('golem', 4.6), S('flyer', 5.4), S('drone', 6.2), S('slicer', 7.2)] },
+      { name: 'WAVE 3', spawns: [S('drone', 0), S('drone', 0.6), S('golem', 1.6), S('flyer', 2.2), S('slicer', 3), S('drone', 3.8), S('golem', 5), S('flyer', 5.6), S('drone', 6.4), S('slicer', 7.4), S('drone', 8)] }
+    ],
+    boss: { tex: 'flagship', hp: 170, ai: 'flagship', armouredTop: true },
+    win: 'The flagship is going down in flames!\nBessie was bundled into an escape pod...\n...that crashed straight into a giant block of Swiss.'
+  },
+
+  8: {
+    id: 8, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
+    music: 'level2', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
+    radius: 360, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
+    surface: { pal: [0x6a4a10, 0xa87a1a, 0xe0b02a, 0xf6d04a, 0xffe27a, 0xfff4c4], seed: 8484 },
+    planet: { fill: 0xf6d04a, inner: 0xe0b02a, rim: 0xfff4c4, glow: 0xffd23f },
+    dust: [0xffd23f, 0xffb03a, 0xfff4c4, 0xe0b02a], decorTint: 0xffe8a0, decorAlpha: 0.8,
+    gravity: 1, ledgeTypes: ['crystal', 'panini', 'crystal', 'girder', 'panini', 'crystal'], ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.6, half: 0.13, h: 80 }, { theta: 1.5, half: 0.12, h: 160 }, { theta: 2.5, half: 0.13, h: 80 }, { theta: 3.5, half: 0.12, h: 160 }, { theta: 4.5, half: 0.13, h: 80 }, { theta: 5.5, half: 0.12, h: 160 }],
+    props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xffe27a }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffe0a0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0xd8b040 }],
+    ricochet: true,
+    waves: [
+      { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 1), S('germ', 2), S('mouse', 3), S('paladin', 4), S('germ', 5), S('mouse', 6)] },
+      { name: 'WAVE 2', spawns: [S('paladin', 0), S('frog', 1), S('mouse', 2), S('paladin', 3), S('germ', 4), S('frog', 5), S('paladin', 6), S('mouse', 7)] },
+      { name: 'WAVE 3', spawns: [S('paladin', 0), S('paladin', 1), S('frog', 2), S('germ', 2.8), S('paladin', 3.8), S('mouse', 4.6), S('frog', 5.6), S('paladin', 6.4), S('paladin', 7.4)] }
+    ],
+    boss: { tex: 'grandpaladin', hp: 180, ai: 'paladin', armouredTop: true },
+    win: 'The Grand Paladin is out for the count!\nBessie squeezed out through a hole... onto the rat homeworld itself.\nOne last push, Chris.'
+  },
+
+  9: {
+    id: 9, name: 'Parmesan Prime', short: 'PARMESAN PRIME', blurb: 'The collapsing rat homeworld.\nThe Grand Rat-King waits at the core.',
+    music: 'level3', bossName: 'THE GRAND RAT-KING', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY!',
+    radius: 520, sky: [0x100204, 0x8a2010], skyCols: [0x100204, 0x2a0408, 0x4a080c, 0x6a1010, 0x8a2010, 0xaa3a10], bg: '#100204', starTint: 0xffb0a0, dustAlpha: 1.4, bgDecor: 'gears', lava: 10,
+    surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595 },
+    planet: { fill: 0xdcd0a0, inner: 0xc0b07a, rim: 0xfff8e0, glow: 0xffb070 },
+    dust: [0xff6a3a, 0xffb03a, 0xd8c8a0, 0xff3a3a], decorTint: 0xc8a8a0, decorAlpha: 0.6,
+    gravity: 1, ledgeTypes: ['girder', 'energy', 'crystal', 'girder', 'energy', 'crystal'], ledgeTex: 'ledge3',
+    ledges: [{ theta: 0.6, half: 0.09, h: 90 }, { theta: 1.5, half: 0.08, h: 170 }, { theta: 2.6, half: 0.09, h: 90 }, { theta: 3.6, half: 0.08, h: 170 }, { theta: 4.6, half: 0.09, h: 90 }, { theta: 5.5, half: 0.08, h: 170 }],
+    props: [{ tex: 'pile_scrap', n: 6, sc: [1.2, 1.8], tint: 0xa08070 }, { tex: 'pile_bones', n: 5, sc: [1.1, 1.6], tint: 0xd8c8a0 }, { tex: 'p_skull', n: 4, sc: [1.1, 1.5], tint: 0xffd0c0 }, { tex: 'p_pipe', n: 3, sc: [0.9, 1.3] }],
+    debris: { every: [0.9, 1.8] },
+    waves: [
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('paladin', 1), S('flyer', 1.8), S('phantom', 2.8), S('mouse', 3.6), S('drone', 4.6), S('paladin', 5.6), S('flyer', 6.4), S('mouse', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('golem', 0), S('phantom', 1), S('slicer', 2), S('paladin', 3), S('drone', 3.8), S('frog', 4.8), S('phantom', 5.6), S('slicer', 6.6), S('paladin', 7.6)] },
+      { name: 'WAVE 3', spawns: [S('paladin', 0), S('golem', 0.8), S('phantom', 1.6), S('drone', 2.4), S('slicer', 3.2), S('paladin', 4), S('frog', 5), S('phantom', 5.8), S('golem', 6.8), S('drone', 7.6), S('paladin', 8.4)] }
+    ],
+    boss: { tex: 'ratking', hp: 240, ai: 'king', armouredTop: true },
+    win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
   },
 
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
@@ -453,14 +575,15 @@ class SelectScene extends Phaser.Scene {
     this.input.on('pointerup', () => {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
-    if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => this.go(i + 1)));
-    if (this.input.keyboard) this.input.keyboard.on('keydown-FIVE', () => { if (Progress.found(5.5)) this.go(5.5); });
+    if (this.input.keyboard) ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => { if (LEVELS[i + 1]) this.go(i + 1); }));
+    if (this.input.keyboard) ['LEFT', 'RIGHT', 'UP', 'DOWN'].forEach(k => this.input.keyboard.on('keydown-' + k, () => this.nav(k.toLowerCase())));
+    if (this.input.keyboard) this.input.keyboard.on('keydown-ENTER', () => this.go(this.sel));
     if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
     this.selG = this.add.graphics().setDepth(2);
     const padOff = Pad.on(b => {
-      if (b === 'left' || b === 'right') { this.sel = Phaser.Math.Wrap(this.sel + (b === 'left' ? -1 : 1), 1, 4); this.showSel = true; Sound.sfx('jump'); }
+      if (b === 'left' || b === 'right' || b === 'up' || b === 'down') this.nav(b);
       else if (b === 'a' || b === 'start') this.go(this.sel);
       else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
       else if (b === 'y' && Progress.found(5.5)) this.go(5.5);
@@ -469,8 +592,15 @@ class SelectScene extends Phaser.Scene {
     this.events.once('shutdown', padOff);
   }
 
+  // grid navigation (3 across)
+  nav(d) {
+    const n = this.ids.length, i = Math.max(0, this.ids.indexOf(this.sel));
+    const j = d === 'left' ? i - 1 : d === 'right' ? i + 1 : d === 'up' ? i - 3 : i + 3;
+    this.sel = this.ids[(j + n) % n]; this.showSel = true; Sound.sfx('jump');
+  }
+
   go(n) {
-    if (this.going) return;
+    if (this.going || !LEVELS[n]) return;
     this.going = true;
     Sound.sfx('wave');
     this.cameras.main.fadeOut(200, 0, 0, 0);
@@ -482,37 +612,42 @@ class SelectScene extends Phaser.Scene {
     this.ui.removeAll(true);
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
     this.ui.add(this.add.text(W / 2, Math.max(22, H * 0.09), 'SELECT LEVEL', f(Math.min(26, W / 28), '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5));
-    const gap = 16, cw = Math.min(250, (W - gap * 4) / 3), ch = Math.min(260, H * 0.68);
-    const x0 = (W - (cw * 3 + gap * 2)) / 2, y0 = Math.max(48, H * 0.18);
-    for (let i = 1; i <= 3; i++) {
-      const L = LEVELS[i], x = x0 + (i - 1) * (cw + gap);
+    // 3 x 3 grid of level cards (levels 1-9); the secret 5.5 shows up underneath once found
+    this.ids = Object.keys(LEVELS).map(Number).filter(n => !LEVELS[n].secret).sort((a, b) => a - b);
+    const cols = 3, rows = Math.ceil(this.ids.length / cols), gap = 10;
+    const top = Math.max(44, H * 0.15), bottom = Progress.found(5.5) ? 52 : 30;
+    const cw = Math.min(260, (W - gap * (cols + 1)) / cols), ch = Math.min(96, (H - top - bottom - gap * (rows - 1)) / rows);
+    const x0 = (W - (cw * cols + gap * (cols - 1))) / 2;
+    this.cardRects = {};
+    this.ids.forEach((i, k) => {
+      const L = LEVELS[i], x = Math.round(x0 + (k % cols) * (cw + gap)), y = Math.round(top + Math.floor(k / cols) * (ch + gap));
       const g = this.add.graphics();
-      g.fillStyle(0x151b33, 1).fillRoundedRect(x, y0, cw, ch, 12);
-      g.lineStyle(4, L.planet.rim, 1).strokeRoundedRect(x, y0, cw, ch, 12);
-      const pr = Math.max(cw * 0.16, Math.min(cw * 0.25, cw * 0.2 * Math.pow(L.radius / 420, 0.6))), pcx = x + cw / 2, pcy = y0 + ch * 0.4;     // little planet
-      g.fillStyle(L.planet.glow, 0.15).fillCircle(pcx, pcy, pr + 8);
+      g.fillStyle(0x151b33, 1).fillRoundedRect(x, y, cw, ch, 10);
+      g.lineStyle(3, L.planet.rim, 0.9).strokeRoundedRect(x, y, cw, ch, 10);
+      const pr = Math.min(ch * 0.34, 34) * Math.pow(L.radius / 440, 0.35), pcx = x + 12 + Math.min(ch * 0.34, 34), pcy = y + ch / 2;   // little planet
+      g.fillStyle(L.planet.glow, 0.18).fillCircle(pcx, pcy, pr + 6);
       g.fillStyle(L.planet.fill, 1).fillCircle(pcx, pcy, pr);
       g.fillStyle(L.planet.inner, 1).fillCircle(pcx - pr * 0.25, pcy + pr * 0.2, pr * 0.55);
-      g.lineStyle(3, L.planet.rim, 1).strokeCircle(pcx, pcy, pr);
-      if (L.zones) { g.fillStyle(0x9bff6a, 0.35).fillCircle(pcx + pr * 0.6, pcy - pr * 0.7, 10).fillCircle(pcx - pr * 0.7, pcy - pr * 0.5, 7); }
-      if (L.conveyor) { g.fillStyle(0xd5dde8, 1); for (let k = 0; k < 9; k++) { const a = -2.2 + k * 0.55; g.fillTriangle(pcx + Math.cos(a - 0.12) * pr, pcy + Math.sin(a - 0.12) * pr, pcx + Math.cos(a + 0.12) * pr, pcy + Math.sin(a + 0.12) * pr, pcx + Math.cos(a) * (pr + 9), pcy + Math.sin(a) * (pr + 9)); } }
+      g.lineStyle(2, L.planet.rim, 1).strokeCircle(pcx, pcy, pr);
       this.ui.add(g);
-      this.ui.add(this.add.text(x + cw / 2, y0 + 14, 'LEVEL ' + i, f(11, '#9fd8ff')).setOrigin(0.5, 0));
-      this.ui.add(this.add.text(x + cw / 2, y0 + ch * 0.64, L.short, f(10, '#ffffff', { align: 'center', wordWrap: { width: cw - 16 }, lineSpacing: 6 })).setOrigin(0.5, 0));
-      this.ui.add(this.add.text(x + cw / 2, y0 + ch * 0.82, L.blurb, f(7, '#c9cde0', { align: 'center', wordWrap: { width: cw - 16 }, lineSpacing: 5 })).setOrigin(0.5, 0));
-      const z = this.add.zone(x, y0, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
+      const tx = pcx + Math.min(ch * 0.34, 34) + 10, tw = x + cw - tx - 8;
+      this.ui.add(this.add.text(tx, y + ch * 0.2, 'LEVEL ' + i, f(cw > 200 ? 9 : 8, '#9fd8ff')).setOrigin(0, 0));
+      this.ui.add(this.add.text(tx, y + ch * 0.2 + 16, L.short, f(cw > 200 ? 9 : 7, '#ffffff', { wordWrap: { width: tw }, lineSpacing: 5 })).setOrigin(0, 0));
+      if (Progress.best >= i) this.ui.add(this.add.text(x + cw - 8, y + 6, '*', f(10, '#ffd23f')).setOrigin(1, 0));     // beaten
+      const z = this.add.zone(x, y, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
       z.on('pointerup', () => this.go(i));
       this.ui.add(z);
-    }
-    this.cardRects = [];
-    for (let i = 1; i <= 3; i++) this.cardRects[i] = { x: x0 + (i - 1) * (cw + gap), y: y0, w: cw, h: ch };
+      this.cardRects[i] = { x, y, w: cw, h: ch };
+    });
+    if (!this.ids.includes(this.sel)) this.sel = this.ids[0];
+    this.gridBottom = top + rows * ch + (rows - 1) * gap;
     const back = this.add.text(12, 12, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
     this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
     if (Progress.found(5.5)) {                                       // found the warp: the secret level shows up
-      const s = this.add.text(W / 2, Math.min(H - 34, y0 + ch + 18), '* WARP: LEVEL 5.5 FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      const s = this.add.text(W / 2, Math.min(H - 34, this.gridBottom + 8), '* WARP: LEVEL 5.5 FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
       s.on('pointerup', () => this.go(5.5));
       this.tweens.add({ targets: s, alpha: 0.55, yoyo: true, repeat: -1, duration: 600 });
       this.ui.add(s);
@@ -526,7 +661,7 @@ class SelectScene extends Phaser.Scene {
     this.selG.clear();
     if ((this.showSel || Pad.state.connected) && this.cardRects && this.cardRects[this.sel]) {
       const r = this.cardRects[this.sel];
-      this.selG.lineStyle(4, 0xffffff, 0.6 + 0.4 * Math.sin(time / 150)).strokeRoundedRect(r.x - 6, r.y - 6, r.w + 12, r.h + 12, 16);
+      this.selG.lineStyle(3, 0xffffff, 0.6 + 0.4 * Math.sin(time / 150)).strokeRoundedRect(r.x - 4, r.y - 4, r.w + 8, r.h + 8, 12);
     }
   }
 }
@@ -774,6 +909,98 @@ function makeSkyDither(scene, key, w, h, cols) {
       const lo = Math.floor(v), f = v - lo;
       for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
     }
+  });
+}
+
+// ---------------------------------------------------------------- roadmap art: new enemies, bosses and shots (levels 4-9)
+// Bosses are 96px tall (the boss gun maths assumes it); cannon positions are given relative to the sprite centre in each AI.
+function makeRoadmapTextures(scene) {
+  if (scene.textures.exists('oven')) return;
+  const STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272], RUST = [0xd08a5a, 0x9a5a32, 0x5e3020], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a];
+  // ---- shots
+  pixSprite(scene, 'pepper', 16, 16, p => { p.ell(8, 8, 7, 7, [0xff7a6a, 0xd0301a, 0x8a1a10]); for (const [x, y] of [[5, 5], [10, 6], [7, 10], [11, 10], [4, 9]]) { p.px(x, y, 0x7a1010); p.px(x + 1, y, 0xff9a8a); } });
+  pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
+  pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
+  // ---- enemies
+  pixSprite(scene, 'phantom', 36, 40, p => {                    // ghostly dairy-maid
+    const GH = [0xffffff, 0xd8ecff, 0x8ab0e0];
+    p.poly([[8, 18], [28, 18], [32, 34], [27, 30], [22, 38], [17, 31], [12, 38], [8, 31], [4, 35]], GH);   // wispy skirt
+    p.ell(18, 14, 9, 9, GH);
+    p.ell(18, 7, 12, 5, [0xffffff, 0xf0f4ff, 0xb8c8e8]); p.rect(7, 7, 29, 8, 0xe8b8d8);                   // frilly bonnet
+    p.ell(14, 14, 2, 2.5, 0x1a2a4a); p.ell(22, 14, 2, 2.5, 0x1a2a4a); p.ell(18, 19, 1.5, 2, 0x1a2a4a);      // hollow eyes, "oooh" mouth
+    p.line([[9, 20], [2, 24]], 0xd8ecff, 2); p.line([[27, 20], [34, 24]], 0xd8ecff, 2);                   // arms out to ram
+    p.rrect(29, 22, 35, 29, 1, STEEL);                                                                      // milk pail
+  });
+  pixSprite(scene, 'paladin', 38, 32, p => {                    // armoured Rat-Paladin
+    p.line([[3, 22], [0, 14], [3, 9]], 0xd9a5b3, 2);             // tail
+    p.ell(17, 20, 12, 8, STEEL); p.rect(9, 18, 25, 19, 0x5a6272);
+    p.ell(28, 14, 7, 7, STEEL); p.rect(28, 13, 35, 14, 0x1a1020); p.px(31, 13, 0xff4040);                 // helmet + visor slit
+    p.poly([[25, 7], [29, 1], [33, 2], [30, 8]], [0xff6a6a, 0xe02a2a, 0x8a1010]);                         // plume
+    p.ell(24, 6, 2, 3, 0xffb5c8);                                                                           // ear poking out
+    p.rrect(29, 18, 37, 28, 2, GOLD); p.px(33, 22, 0xe63946); p.px(33, 23, 0xe63946);                    // shield
+    for (const x of [11, 21]) p.rect(x, 27, x + 3, 31, 0x5a6272);
+  });
+  // ---- bosses
+  pixSprite(scene, 'oven', 150, 96, p => {                      // L4: the giant pizza oven
+    const BR = [0xe0845a, 0xb0502e, 0x6e2a18];
+    p.rrect(100, 0, 116, 34, 2, [0xa0a4b0, 0x7b7f8c, 0x50545f]);                                         // chimney
+    p.ell(75, 60, 68, 40, BR); p.rect(8, 60, 142, 95, BR[1]);
+    for (let y = 30; y < 95; y += 8) { const hw = y < 60 ? Math.sqrt(Math.max(0, 1 - Math.pow((y - 60) / 40, 2))) * 66 : 66; p.line([[75 - hw, y], [75 + hw, y]], 0x6e2a18);
+      for (let x = 75 - hw + ((y / 8) % 2) * 8; x < 75 + hw; x += 16) p.line([[x, y], [x, y + 7]], 0x6e2a18); }
+    p.ell(75, 80, 36, 22, 0x1a0a08); p.rect(39, 80, 111, 95, 0x1a0a08);                                    // the mouth
+    p.ell(75, 88, 28, 8, [0xffe27a, 0xff8a1a, 0xd0301a]);                                                    // fire
+    p.poly([[46, 46], [66, 52], [64, 58], [46, 54]], [0xffe27a, 0xffb020, 0xd06a10]); p.poly([[104, 46], [84, 52], [86, 58], [104, 54]], [0xffe27a, 0xffb020, 0xd06a10]);   // glowing angry eyes
+    p.rrect(0, 60, 14, 74, 3, STEEL); p.rrect(136, 60, 150, 74, 3, STEEL);                                 // pepperoni chutes
+    p.ell(75, 22, 20, 6, [0xfff0b0, 0xf0c050, 0xc08020]); for (const x of [64, 74, 84]) p.ell(x, 21, 3, 2, [0xff7a6a, 0xd0301a, 0x8a1a10]);   // a pizza cooking on top
+  });
+  pixSprite(scene, 'milkmaid', 124, 96, p => {                  // L5: the phantom milkmaid
+    const GH = [0xffffff, 0xd8ecff, 0x8ab0e0];
+    p.poly([[34, 44], [90, 44], [104, 88], [92, 78], [82, 95], [70, 80], [58, 95], [46, 80], [34, 94], [26, 80], [18, 90]], GH);
+    p.ell(62, 32, 18, 17, GH);
+    p.ell(62, 18, 26, 10, [0xffffff, 0xf0f4ff, 0xb8c8e8]); p.rect(36, 20, 88, 22, 0xe8b8d8);
+    p.ell(55, 32, 4, 5, 0x1a2a4a); p.ell(69, 32, 4, 5, 0x1a2a4a); p.px(54, 30, 0x9fd8ff); p.px(68, 30, 0x9fd8ff);
+    p.ell(62, 42, 4, 5, 0x1a2a4a);
+    p.line([[38, 48], [16, 60]], 0xd8ecff, 3); p.line([[86, 48], [108, 60]], 0xd8ecff, 3);
+    p.rrect(4, 56, 22, 74, 2, STEEL); p.rrect(102, 56, 120, 74, 2, STEEL);                                 // two milk pails (the guns)
+    p.ell(13, 57, 8, 2, 0xffffff); p.ell(111, 57, 8, 2, 0xffffff);
+  });
+  pixSprite(scene, 'wheel', 96, 96, p => {                      // L6: the gargantuan Spicy Pepper Jack
+    p.ell(48, 48, 46, 46, [0xf0d890, 0xd8b050, 0x9a7020]);
+    p.ell(48, 48, 39, 39, [0xfff8d0, 0xf6e6a0, 0xd8c070]);
+    const r = rng(9);
+    for (let k = 0; k < 40; k++) { const a = r() * 6.28, d = Math.sqrt(r()) * 34, x = 48 + Math.cos(a) * d | 0, y = 48 + Math.sin(a) * d | 0, c = k % 3 ? 0xe02a1a : 0x2a9a2a; p.px(x, y, c); p.px(x + 1, y, c); p.px(x, y + 1, c); }
+    p.poly([[26, 34], [42, 40], [40, 46], [26, 42]], 0x1a1020); p.poly([[70, 34], [54, 40], [56, 46], [70, 42]], 0x1a1020);   // angry brows/eyes
+    p.px(34, 41, 0xffffff); p.px(62, 41, 0xffffff);
+    p.ell(48, 64, 16, 7, 0x6a1010); for (let x = 36; x < 62; x += 5) p.rect(x, 58, x + 2, 61, 0xffffff);   // snarling mouth
+  });
+  pixSprite(scene, 'flagship', 160, 96, p => {                  // L7: the rat armada flagship
+    p.ell(54, 10, 8, 10, [0xffc8d8, 0xff9db8, 0xc06a88]); p.ell(106, 10, 8, 10, [0xffc8d8, 0xff9db8, 0xc06a88]);   // rat ears
+    p.ell(80, 48, 64, 40, RUST);
+    for (const y of [30, 48, 66]) p.line([[20, y], [140, y]], 0x5e3020);
+    for (let x = 30; x < 135; x += 18) p.px(x, 40, 0xffd8a8);
+    for (const x of [52, 80, 108]) { p.ell(x, 40, 8, 8, STEEL); p.ell(x, 40, 5, 5, [0x9ff4ff, 0x5ce1ff, 0x1a8ab0]); }   // portholes
+    p.ell(80, 40, 3, 2, 0xff9db8);                                                                           // a rat peering out
+    p.rrect(0, 42, 18, 54, 3, STEEL); p.rrect(142, 42, 160, 54, 3, STEEL);                                  // side cannons
+    p.ell(80, 88, 16, 8, [0xff9a9a, 0xe03030, 0x901818]); p.rect(74, 80, 86, 84, 0x5a6272);                // the big laser emitter
+  });
+  pixSprite(scene, 'grandpaladin', 120, 96, p => {              // L8: the Grand Paladin
+    p.line([[8, 80], [2, 60], [10, 44]], 0xd9a5b3, 3);
+    p.ell(56, 62, 36, 28, STEEL); p.rect(26, 60, 86, 62, 0x5a6272); for (const x of [40, 56, 72]) p.px(x, 52, 0xffffff);
+    p.ell(80, 34, 22, 22, STEEL); p.rect(80, 30, 102, 34, 0x1a1020); p.rect(92, 31, 96, 33, 0xff4040);    // great helm
+    p.poly([[70, 14], [80, 0], [92, 2], [84, 16]], [0xff6a6a, 0xe02a2a, 0x8a1010]);
+    p.rrect(88, 44, 118, 90, 6, GOLD); p.ell(103, 66, 7, 7, [0xffe27a, 0xf0bc36, 0xb8801c]);                 // tower shield with a cheese crest
+    p.line([[20, 40], [28, 6]], 0xdfe6f0, 4); p.rect(14, 38, 30, 42, 0xc8a040);                              // sword
+    for (const x of [36, 66]) p.rect(x, 86, x + 8, 95, 0x5a6272);
+  });
+  pixSprite(scene, 'ratking', 150, 96, p => {                   // L9: the Grand Rat-King in his cheese-powered mech
+    for (const x of [44, 96]) p.rrect(x, 70, x + 12, 95, 3, RUST);                                        // legs
+    p.rrect(28, 34, 122, 76, 8, RUST); for (let x = 36; x < 120; x += 14) p.px(x, 40, 0xffd8a8);
+    p.ell(75, 56, 14, 12, [0xfff6b0, 0xffd23f, 0xd09a10]); p.ell(75, 56, 6, 5, 0xffffff);                  // glowing cheese reactor
+    p.rrect(0, 42, 30, 56, 4, STEEL); p.rrect(120, 42, 150, 56, 4, STEEL);                                  // arm cannons
+    p.ell(75, 22, 26, 18, [0xeaf8ff, 0xcfeeff, 0x8ac0e0]);                                                    // cockpit dome
+    p.ell(75, 26, 12, 10, [0xc0c8d4, 0x9aa3b2, 0x6a7280]); p.ell(66, 18, 4, 5, [0xffc8d8, 0xff9db8, 0xc06a88]); p.ell(84, 18, 4, 5, [0xffc8d8, 0xff9db8, 0xc06a88]);
+    p.px(71, 25, 0xff2020); p.px(79, 25, 0xff2020);
+    p.poly([[64, 10], [68, 2], [72, 8], [75, 0], [78, 8], [82, 2], [86, 10]], GOLD);                         // the crown
   });
 }
 

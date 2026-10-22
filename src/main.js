@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.76';
+const BUILD = 'v0.77';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -170,6 +170,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
+    this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
     this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -305,7 +306,7 @@ class Level1 extends Phaser.Scene {
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     this.ledgeSprs = [];
-    makePlatformTextures(this);
+    makePlatformTextures(this); makeRoadmapTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
       const types = this.def.ledgeTypes, type = L.type || (types ? types[i % types.length] : null), T = type && PLATFORMS[type];
       if (!T) {                                                      // old-style slab (fallback)
@@ -967,6 +968,7 @@ class Level1 extends Phaser.Scene {
     this.t += dt;
 
     if (this.state === 'play') {
+      this.updateHazards(dt);
       this.updateWorld(dt);
       this.updatePlayer(dt, inp);
       this.updateWaves(dt);
@@ -1538,20 +1540,23 @@ class Level1 extends Phaser.Scene {
       t: 0, seed: rnd(0, 6), flash: 0, vx: 0, dh: 0, dir: -(side || 1)
     };
     e.spr.bsx = e.spr.bsy = k;
+    e.kind = type === 'boss' ? 'boss' : ((ENEMY[type] && ENEMY[type].ai) || type);   // which behaviour it uses (new enemies reuse old ones)
+    const kind = e.kind;
     if (type === 'boss') {
       e.ai = this.def.boss.ai; e.rainCd = 1.5; e.fanCd = 3; e.sumCd = 5; e.dir = 1;
+      if (e.ai === 'wheel') { e.h = 54; e.roll = 0; e.v = 0; }
       if (this.def.boss.tint) { e.baseTint = this.def.boss.tint; e.spr.setTint(e.baseTint); }
-    } else if (type === 'flyer') {
+    } else if (kind === 'flyer') {
       e.h = e.baseH = rnd(110, 270); e.bombCd = rnd(0.8, 1.8);
-    } else if (type === 'mouse' || type === 'germ' || type === 'minigerm') {
+    } else if (kind === 'mouse' || kind === 'germ' || kind === 'minigerm') {
       e.hopCd = rnd(0.2, 1);
-    } else if (type === 'golem') {
+    } else if (kind === 'golem') {
       e.shootCd = rnd(0.8, 1.6); e.volley = 0;
-    } else if (type === 'frog') {
+    } else if (kind === 'frog') {
       e.state = 'idle'; e.cd = rnd(0.6, 1.4); e.leapV = 0;
-    } else if (type === 'drone') {
+    } else if (kind === 'drone') {
       e.h = e.baseH = rnd(100, 210); e.state = 'hover'; e.cd = rnd(1.4, 2.4); e.tx = 0; e.ty = 0;
-    } else if (type === 'slicer') {
+    } else if (kind === 'slicer') {
       e.shootCd = rnd(1.4, 2.4); e.roll = 0; e.flipCd = rnd(3, 6);
     }
     return e;
@@ -1566,8 +1571,10 @@ class Level1 extends Phaser.Scene {
       const distP = Math.abs(toP) * R;
       if (e.fdir === undefined || distP > 16) e.fdir = toP >= 0 ? 1 : -1;      // keep facing when right next to Chris: no flip flicker
       const dirP = e.fdir;
+      const ai = e.kind || e.type;
+      if (e.type === 'phantom') e.spr.setAlpha(0.6 + 0.3 * Math.sin(e.t * 5 + e.seed));     // ghostly flicker
 
-      if (e.type === 'mouse') {
+      if (ai === 'mouse') {
         const grounded = e.h <= 0 && e.vh <= 0;
         const sp = 85 + 35 * Math.sin(e.t * 7 + e.seed);
         e.theta = wrap(e.theta + (dirP * sp / R) * dt);
@@ -1578,7 +1585,7 @@ class Level1 extends Phaser.Scene {
         e.h += e.vh * dt;
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
 
-      } else if (e.type === 'flyer') {
+      } else if (ai === 'flyer') {
         const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
         e.h += (want - e.h) * Math.min(1, dt * 3);
         const hold = 90 + Math.sin(e.t * 0.7 + e.seed) * 70;
@@ -1592,7 +1599,7 @@ class Level1 extends Phaser.Scene {
           Sound.sfx('cube');
         }
 
-      } else if (e.type === 'golem') {
+      } else if (ai === 'golem') {
         let mv = 0;
         if (distP > 270) mv = dirP; else if (distP < 160) mv = -dirP;
         e.theta = wrap(e.theta + (mv * 42 / R) * dt);
@@ -1607,7 +1614,7 @@ class Level1 extends Phaser.Scene {
           e.shootCd = rnd(1.8, 2.4);
         }
 
-      } else if (e.type === 'germ' || e.type === 'minigerm') {
+      } else if (ai === 'germ' || ai === 'minigerm') {
         // fuzzy bacteria: slow squelchy hops (floaty in the green spore clouds)
         const grounded = e.h <= 0 && e.vh <= 0;
         const mini = e.type === 'minigerm';
@@ -1620,7 +1627,7 @@ class Level1 extends Phaser.Scene {
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
         e.spr.sqx = 1 + Math.sin(e.t * 9) * 0.05; e.spr.sqy = 1 - Math.sin(e.t * 9) * 0.05;
 
-      } else if (e.type === 'frog') {
+      } else if (ai === 'frog') {
         // rat-frog: crouches, then makes a big leap straight at Chris
         const grounded = e.h <= 0 && e.vh <= 0;
         if (grounded) {
@@ -1635,7 +1642,7 @@ class Level1 extends Phaser.Scene {
         const crouch = e.state === 'idle' && e.cd < 0.35;
         e.spr.sqx = crouch ? 1.14 : 1; e.spr.sqy = crouch ? 0.8 : 1 + Math.max(0, Math.min(0.15, e.vh / 3500));
 
-      } else if (e.type === 'drone') {
+      } else if (ai === 'drone') {
         // cheese-slicing drone: hovers, flashes red, then dives at where Chris was
         if (e.state === 'hover') {
           const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 14;
@@ -1662,7 +1669,7 @@ class Level1 extends Phaser.Scene {
           if (e.cd <= 0) { e.state = 'hover'; e.cd = rnd(1.8, 3); }
         }
 
-      } else if (e.type === 'slicer') {
+      } else if (ai === 'slicer') {
         // rolling saw-blade bot: fast, low, throws flat discs you have to jump
         const conv = this.def.conveyor || 0;
         e.theta = wrap(e.theta + ((dirP * 125 - conv) / R) * dt);
@@ -1679,11 +1686,13 @@ class Level1 extends Phaser.Scene {
 
       } else if (e.type === 'boss') {
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
-        const target = P.theta + Math.sin(e.t * 0.5) * 0.3;
-        const maxV = e.hp < e.maxHp * 0.5 ? 0.3 : 0.24;          // radians per second (about 100-125 units/s)
-        const step = Math.max(-maxV, Math.min(maxV, angDiff(target, e.theta) * 0.9));
-        e.theta = wrap(e.theta + step * dt);
-        e.h = 175 + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
+        if (e.ai !== 'wheel') {
+          const target = P.theta + Math.sin(e.t * 0.5) * 0.3;
+          const maxV = e.hp < e.maxHp * 0.5 ? 0.3 : 0.24;          // radians per second (about 100-125 units/s)
+          const step = Math.max(-maxV, Math.min(maxV, angDiff(target, e.theta) * 0.9));
+          if (!(e.charge > 0)) e.theta = wrap(e.theta + step * dt);
+          if (!(e.charge > 0)) e.h = (e.ai === 'paladin' ? 130 : 175) + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
+        }
         const phase2 = e.hp < e.maxHp * 0.5;
 
         if (phase2 && !e.healed) {          // halfway: a cheese wedge drops in to help
@@ -1739,6 +1748,85 @@ class Level1 extends Phaser.Scene {
             for (const hh of (phase2 ? [14, 70, 125] : [14, 95])) this.addEBullet('blade', e.theta, hh, dirP * 250, 0, 11, 3);
           }
           if (e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = phase2 ? 7 : 10; this.spawnEnemy('drone'); }
+        } else if (e.ai === 'oven') {                    // L4: homing pepperoni from the side chutes, and a fan of molten cheese from the mouth
+          if (e.rainCd <= 0) {
+            e.rainCd = phase2 ? 1.2 : 1.7;
+            for (const side of (phase2 ? [-1, 1] : [toP >= 0 ? 1 : -1])) {
+              const c = this.bossGun(e, side * 68, 66), b = this.addEBullet('pepper', c.theta, c.h, side * 150, 80, 9, 4.5);
+              b.home = 2.4; b.homeV = phase2 ? 200 : 165; this.muzzleFlash(c.theta, c.h);
+            }
+            Sound.sfx('cube');
+          }
+          if (e.fanCd <= 0) {
+            e.fanCd = phase2 ? 3.2 : 4.6; Sound.sfx('fan');
+            const c = this.bossGun(e, 0, 84), n = phase2 ? 7 : 5;
+            for (let k = 0; k < n; k++) { const a = (k - (n - 1) / 2) * 0.32; this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5); }
+            this.muzzleFlash(c.theta, c.h);
+          }
+        } else if (e.ai === 'phantom') {                 // L5: spinning geometric pinwheel patterns, and she vanishes and reappears
+          if (!e.blinking) e.spr.setAlpha(0.7 + 0.25 * Math.sin(e.t * 4));
+          e.spinA = (e.spinA || 0) + dt * (phase2 ? 1.6 : 1.1);
+          if (e.rainCd <= 0) {
+            e.rainCd = phase2 ? 0.12 : 0.17;
+            const arms = phase2 ? 4 : 3;
+            for (let k = 0; k < arms; k++) { const a = e.spinA + k * TAU / arms; this.addEBullet('ghostorb', e.theta, e.h, 150 * Math.sin(a), 150 * Math.cos(a), 8, 3.2); }
+          }
+          if (e.fanCd <= 0) {
+            e.fanCd = phase2 ? 4 : 5.5; e.rainCd = 1.1;                 // a breather while she blinks across the sky
+            Sound.sfx('whoosh'); e.blinking = true;
+            this.tweens.add({ targets: e.spr, alpha: 0, duration: 250, yoyo: true, onYoyo: () => { e.theta = wrap(P.theta + (Math.random() < 0.5 ? -1 : 1) * rnd(0.3, 0.5)); }, onComplete: () => { e.blinking = false; } });
+          }
+          if (phase2 && e.sumCd <= 0 && this.enemies.length < 5) { e.sumCd = 6; this.spawnEnemy('phantom'); }
+        } else if (e.ai === 'wheel') {                   // L6: the giant Pepper Jack rolls at Chris, overshoots, turns and comes again
+          const top = phase2 ? 290 : 240;
+          const want = (Math.abs(toP) * R > 30 || Math.abs(e.v) < 60) ? dirP * top : e.v;
+          e.v += (want - e.v) * Math.min(1, dt * (Math.sign(want) !== Math.sign(e.v) ? 0.9 : 1.6));   // slow to turn round: jump it as it passes
+          e.theta = wrap(e.theta + (e.v / R) * dt); e.roll += (e.v / 54) * dt; e.h = 54;
+          if (e.rainCd <= 0) {                                         // spits chilli flakes up out of the rind
+            e.rainCd = phase2 ? 0.9 : 1.4;
+            for (let k = 0; k < (phase2 ? 3 : 2); k++) { const b = this.addEBullet('chili', e.theta, 100, rnd(-140, 140), rnd(260, 360), 7, 3); b.grav = 420; }
+            Sound.sfx('cube');
+          }
+          if (e.fanCd <= 0) { e.fanCd = phase2 ? 3 : 4.5; this.cameras.main.shake(160, 0.006); Sound.sfx('clunk'); }
+        } else if (e.ai === 'flagship') {                // L7: sweeping laser from the belly, side cannons, launches drones
+          if (e.rainCd <= 0) {
+            e.rainCd = phase2 ? 0.9 : 1.3;
+            const side = toP >= 0 ? 1 : -1, c = this.bossGun(e, side * 74, 48);
+            const ex = angDiff(P.theta, c.theta) * R, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 270 : 230;
+            this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3); this.muzzleFlash(c.theta, c.h); Sound.sfx('cube');
+          }
+          if (e.fanCd <= 0 && !this.bossLaser) {
+            e.fanCd = phase2 ? 4 : 5.5;
+            const d = Math.random() < 0.5 ? -1 : 1;
+            this.bossLaser = { boss: e, from: wrap(P.theta - d * 0.45), to: wrap(P.theta + d * 0.45), t: 0, warn: 0.75, dur: phase2 ? 1.4 : 1.8 };
+            Sound.sfx('alarm');
+          }
+          if (e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = phase2 ? 6 : 9; this.spawnEnemy('drone'); }
+        } else if (e.ai === 'paladin') {                 // L8: sword waves at different heights, shield-first charges
+          if (e.rainCd <= 0) {
+            e.rainCd = phase2 ? 1.5 : 2.2;
+            for (const hh of (phase2 ? [14, 80] : [14])) this.addEBullet('blade', e.theta, hh, dirP * (phase2 ? 300 : 260), 0, 11, 3);
+            Sound.sfx('zing');
+          }
+          if (e.fanCd <= 0) {                                         // CHARGE: a quick dash across at Chris's height
+            e.fanCd = phase2 ? 3.5 : 5; e.charge = 0.9; e.chargeDir = dirP; e.spr.setTint(0xff8080); Sound.sfx('whoosh');
+          }
+          if (e.charge > 0) { e.charge -= dt; e.theta = wrap(e.theta + e.chargeDir * 420 / R * dt); e.h += (Math.max(40, P.h + 30) - e.h) * Math.min(1, dt * 6); if (e.charge <= 0) e.spr.clearTint(); }
+          if (phase2 && e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = 8; this.spawnEnemy('paladin'); }
+        } else if (e.ai === 'king') {                    // L9: the Rat-King's mech throws everything at you
+          if (e.rainCd <= 0) {
+            e.rainCd = phase2 ? 0.7 : 1.0;
+            const side = toP >= 0 ? 1 : -1, c = this.bossGun(e, side * 70, 49);
+            const ex = angDiff(P.theta, c.theta) * R, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 290 : 240;
+            this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3); this.muzzleFlash(c.theta, c.h); Sound.sfx('cube');
+          }
+          if (e.fanCd <= 0) {
+            e.fanCd = phase2 ? 3.2 : 4.6; Sound.sfx('fan');
+            const c = this.bossGun(e, 0, 56), n = phase2 ? 14 : 10;      // a ring from the cheese reactor
+            for (let k = 0; k < n; k++) { const a = (k / n) * TAU + e.t; this.addEBullet('ghostorb', c.theta, c.h, 170 * Math.sin(a), 170 * Math.cos(a), 8, 2.6); }
+            if (phase2) for (const sd of [-1, 1]) { const g = this.bossGun(e, sd * 70, 49), b = this.addEBullet('pepper', g.theta, g.h, sd * 140, 60, 9, 4); b.home = 2; b.homeV = 190; }
+          }
+          if (e.sumCd <= 0 && this.enemies.length < 5) { e.sumCd = phase2 ? 6 : 9; this.spawnEnemy(Math.random() < 0.5 ? 'paladin' : 'phantom'); }
         }
       }
 
@@ -1781,7 +1869,7 @@ class Level1 extends Phaser.Scene {
       }
       if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
-        if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone') e.hp = 0;     // small fry go out in a blaze
+        if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
     }
     this.reapEnemies();
@@ -1816,11 +1904,14 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    this.eBullets.push({
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a }[kind] || 0xffc040;
+    const b = {
       kind, theta: wrap(theta), h, vt, vh, r, life,
-      spin: 0, spinV: (kind === 'cube' || kind === 'meatball') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : 0)),
-      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); bakedGlow(im, kind === 'spore' ? 0x7dff8a : (kind === 'blade' ? 0xdfe6f0 : 0xffc040), 2, 6); return im; })()
-    });
+      spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
+      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); bakedGlow(im, glow, 2, 6); return im; })()
+    };
+    this.eBullets.push(b);
+    return b;
   }
 
   clearEBullets() {
@@ -1839,7 +1930,15 @@ class Level1 extends Phaser.Scene {
       b.theta = wrap(b.bt + (b.px * w) / R);
       b.h = b.bh + b.py * w;
 
+      if (this.def.ricochet && !b.grav && (b.bnc || 0) < 2 && (b.bh < 0 || b.bh > CFG.jetCeiling + 30)) {   // L8: shots bounce off floor and ceiling
+        b.bh = b.bh < 0 ? -b.bh : 2 * (CFG.jetCeiling + 30) - b.bh; b.vh = -b.vh; b.bnc = (b.bnc || 0) + 1; b.age = Math.max(0, b.age - 0.2);
+        b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
+      }
       let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
+      if (!dead && this.chaser) {                         // shooting the rolling Pepper Jack slows it a touch
+        const C = this.chaser;
+        if (dist2(b.theta, b.h, C.theta, C.r) < (C.r + 6) * (C.r + 6)) { dead = true; C.v *= 0.9; this.burst(b.theta, b.h, 'crumb', 3, 0.6); }
+      }
       if (!dead && b.plough) {                            // Swiss-Shot: ploughs THROUGH enemies, shrinking (and losing blast) with every one
         if (!b.hits) b.hits = [];
         for (const e of this.enemies) {
@@ -1881,6 +1980,12 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     for (let i = this.eBullets.length - 1; i >= 0; i--) {
       const b = this.eBullets[i];
+      if (b.home > 0) {                                  // homing (pepperoni): steer towards Chris for a while
+        b.home -= dt;
+        const ex = angDiff(P.theta, b.theta) * R, ey = P.h + 22 - b.h, len = Math.hypot(ex, ey) || 1, v = b.homeV || 160;
+        b.vt += (ex / len * v - b.vt) * Math.min(1, dt * 2.2); b.vh += (ey / len * v - b.vh) * Math.min(1, dt * 2.2);
+      }
+      if (b.grav) b.vh -= b.grav * dt;
       b.theta = wrap(b.theta + (b.vt / R) * dt);
       b.h += b.vh * dt;
       b.life -= dt;
@@ -2014,6 +2119,124 @@ class Level1 extends Phaser.Scene {
     o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (1 - 0.22 * hq));
   }
 
+  // ================================================================= level hazards (roadmap levels)
+  //  strands  (L4): boiling string cheese stretches between two points, then SNAPS taut and whips - don't be on it
+  //  chaser   (L6): a gargantuan Pepper Jack wheel rolls after Chris all level
+  //  sweep    (L7): the flagship's lasers sweep the deck from the sky
+  //  debris   (L9): chunks of the collapsing planet rain down (a shadow warns where)
+  //  + the L7 boss's own belly laser (bossLaser)
+  updateHazards(dt) {
+    const d = this.def, P = this.pl, ph = P.h + (P.duck ? 10 : 22);
+    const hit = () => { if (P.invuln <= 0) this.hurt(); };
+    const bossUp = this.enemies.some(e => e.type === 'boss');
+    if (d.strands) {
+      this.strandT -= dt;
+      if (this.strandT <= 0) {
+        this.strandT = rnd(d.strands.every[0], d.strands.every[1]) * (bossUp ? 1.5 : 1);
+        const span = rnd(0.25, 0.45), off = rnd(-0.2, 0.2);
+        this.strands.push({ a: wrap(P.theta + off - span), b: wrap(P.theta + off + span), ha: rnd(10, 150), hb: rnd(10, 150), t: 0, warn: 1.0, snap: 0.55, ph: rnd(0, 6) });
+        Sound.sfx('stretch');
+      }
+      for (let i = this.strands.length - 1; i >= 0; i--) {
+        const S = this.strands[i]; S.t += dt;
+        if (S.t > S.warn && !S.snapped) { S.snapped = true; Sound.sfx('zing'); this.camKick(0, 3); buzz(20); }
+        if (S.t > S.warn && S.t < S.warn + S.snap) {               // live: distance from Chris to the strand
+          const ax = angDiff(S.a, P.theta) * R, bx = angDiff(S.b, P.theta) * R, dx = bx - ax, dy = S.hb - S.ha;
+          const u = Math.max(0, Math.min(1, ((0 - ax) * dx + (ph - S.ha) * dy) / (dx * dx + dy * dy || 1)));
+          if (Math.hypot(ax + dx * u, S.ha + dy * u - ph) < 13) hit();
+        }
+        if (S.t > S.warn + S.snap + 0.4) this.strands.splice(i, 1);
+      }
+    }
+    if (d.chaser) {
+      if (bossUp) { if (this.chaser) { this.chaser.spr.destroy(); this.chaser = null; } }
+      else {
+        if (!this.chaser) {
+          const r = 72, spr = this.add.image(0, 0, 'wheel').setDepth(5.5); spr.bsx = spr.bsy = 1.5;
+          this.chaser = { theta: wrap(P.theta - (P.facing || 1) * 420 / R), v: 0, r, roll: 0, spr };
+          this.banner('THE PEPPER JACK IS COMING - RUN!'); Sound.sfx('bossIn');
+        }
+        const C = this.chaser, to = angDiff(P.theta, C.theta), dir = Math.sign(to) || 1;
+        const sp = d.chaser.speed + 15 * Math.max(0, this.waveIdx);
+        C.v += (dir * sp - C.v) * Math.min(1, dt * 1.2);
+        C.theta = wrap(C.theta + (C.v / R) * dt); C.roll += (C.v / C.r) * dt;
+        if (Math.abs(to) * R < C.r * 0.8 && P.h < C.r * 1.6) {        // flattened! bounced up and over
+          if (P.invuln <= 0) { this.hurt(); P.vh = 520; P.theta = wrap(P.theta + dir * 0.05); }
+        }
+        this.rumbleT = (this.rumbleT || 0) - dt;
+        if (this.rumbleT <= 0 && Math.abs(to) * R < 260) { this.rumbleT = 0.45; this.cameras.main.shake(120, 0.003); }
+      }
+    }
+    if (d.sweep) {
+      this.sweepT -= dt;
+      if (this.sweepT <= 0 && !bossUp) {
+        this.sweepT = rnd(d.sweep.every[0], d.sweep.every[1]);
+        const dd = Math.random() < 0.5 ? -1 : 1;
+        this.sweeps.push({ from: wrap(P.theta - dd * 0.5), to: wrap(P.theta + dd * 0.5), t: 0, warn: 0.8, dur: 1.6 });
+        Sound.sfx('alarm');
+      }
+    }
+    const lasers = this.sweeps.slice(); if (this.bossLaser) lasers.push(this.bossLaser);
+    for (const L of lasers) {
+      L.t += dt;
+      const k = Math.max(0, Math.min(1, (L.t - L.warn) / L.dur));
+      L.at = wrap(L.from + angDiff(L.to, L.from) * k);
+      if (L.t > L.warn && L.t < L.warn + L.dur && Math.abs(angDiff(P.theta, L.at)) * R < 14) hit();
+      if (L.t > L.warn && !L.zap) { L.zap = true; Sound.sfx('beam'); }
+    }
+    this.sweeps = this.sweeps.filter(L => L.t < L.warn + L.dur + 0.2);
+    if (this.bossLaser && (this.bossLaser.t >= this.bossLaser.warn + this.bossLaser.dur + 0.2 || !this.enemies.includes(this.bossLaser.boss))) this.bossLaser = null;
+    if (d.debris) {
+      this.rockT -= dt;
+      if (this.rockT <= 0) {
+        this.rockT = rnd(d.debris.every[0], d.debris.every[1]) * (bossUp ? 1.4 : 1);
+        const spr = this.add.image(0, 0, 'db_rock').setDepth(7); spr.bsx = spr.bsy = rnd(2, 3);
+        this.rocks.push({ theta: wrap(P.theta + rnd(-0.45, 0.45) + P.vx / R * 0.8), h: 460, vh: -200, spr, rot: 0, rv: rnd(-6, 6) });
+      }
+      for (let i = this.rocks.length - 1; i >= 0; i--) {
+        const K = this.rocks[i]; K.vh -= 600 * dt; K.h += K.vh * dt; K.rot += K.rv * dt;
+        if (K.h <= 0) {
+          this.burst(K.theta, 4, 'crumb', 10, 1); this.bang(K.theta, 6, 20); this.cameras.main.shake(90, 0.004); Sound.sfx('clunk');
+          if (Math.abs(angDiff(P.theta, K.theta)) * R < 30 && P.h < 40) hit();
+          K.spr.destroy(); this.rocks.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  drawHazards() {
+    if (!this.hazG) this.hazG = this.add.graphics().setDepth(7.6);
+    const g = this.hazG, z = this.zoom; g.clear();
+    const at = (th, h) => this.screenPos(th, h);
+    for (const S of this.strands) {                                 // string cheese: a faint stretch, then a thick whipping strand
+      const live = S.t > S.warn, pts = [], n = 18, dA = angDiff(S.b, S.a);
+      for (let k = 0; k <= n; k++) {
+        const u = k / n, wob = live ? Math.sin(u * Math.PI) * Math.sin(S.t * 38 + S.ph) * 16 * Math.max(0, 1 - (S.t - S.warn) * 1.6) : Math.sin(u * Math.PI) * 6;
+        pts.push(at(wrap(S.a + dA * u), S.ha + (S.hb - S.ha) * u + wob));
+      }
+      const draw = (w, col, a) => { g.lineStyle(w, col, a); g.beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const q of pts) g.lineTo(q.x, q.y); g.strokePath(); };
+      if (!live) draw(2 * z, 0xfff6d0, 0.35 + 0.3 * Math.abs(Math.sin(S.t * 20)));
+      else { const f = Math.max(0, 1 - Math.max(0, S.t - S.warn - S.snap) / 0.4); draw(8 * z, 0x1a1020, 0.9 * f); draw(5 * z, 0xfff6e0, f); draw(2 * z, 0xffffff, f); }
+      for (const [th, h] of [[S.a, S.ha], [S.b, S.hb]]) { const q = at(th, h); g.fillStyle(0xfff6e0, 0.9).fillCircle(q.x, q.y, 4 * z); }
+    }
+    const lasers = this.sweeps.slice(); if (this.bossLaser) lasers.push(this.bossLaser);
+    for (const L of lasers) {                                       // lasers from the sky (or the flagship's belly)
+      const top = L.boss ? Math.max(40, L.boss.h - 40) : 520, live = L.t > L.warn;
+      if (!live) { const q0 = at(L.from, 0), q1 = at(L.from, top); g.lineStyle(2 * z, 0xff3030, 0.4 + 0.4 * Math.abs(Math.sin(L.t * 24))).lineBetween(q0.x, q0.y, q1.x, q1.y); continue; }
+      const q0 = at(L.at, 0), q1 = at(L.at, top);
+      g.lineStyle(14 * z, 0xff2020, 0.35).lineBetween(q0.x, q0.y, q1.x, q1.y);
+      g.lineStyle(6 * z, 0xff6060, 0.9).lineBetween(q0.x, q0.y, q1.x, q1.y);
+      g.lineStyle(2 * z, 0xffffff, 1).lineBetween(q0.x, q0.y, q1.x, q1.y);
+      g.fillStyle(0xffd0d0, 0.8).fillCircle(q0.x, q0.y, 8 * z);
+    }
+    for (const K of this.rocks) {                                   // falling debris + its shadow warning on the ground
+      this.place(K.spr, K.theta, K.h, K.rot);
+      const q = at(K.theta, 1), k = Math.max(0, 1 - K.h / 460);
+      g.fillStyle(0xff3020, 0.15 + 0.35 * k).fillEllipse(q.x, q.y, (14 + 26 * k) * z, (5 + 6 * k) * z);
+    }
+    if (this.chaser) { const C = this.chaser; this.place(C.spr, C.theta, C.r, C.roll); }
+  }
+
   // Swiss blasts, drawn every frame in the planet's own (curved) coordinates:
   //  - a shockwave dome/ring that bends with the surface and is cut off at the ground
   //  - a ripple that runs along the ground either side of the impact
@@ -2066,6 +2289,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     const { cx, cy } = this;
     this.drawBlastFx();
+    this.drawHazards();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
@@ -2249,7 +2473,7 @@ class Level1 extends Phaser.Scene {
     }
 
     for (const e of this.enemies) {
-      this.place(e.spr, e.theta, e.h, e.type === 'boss' ? Math.sin(e.t * 1.5) * 0.08 : (e.roll !== undefined ? e.roll : 0));
+      this.place(e.spr, e.theta, e.h, e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
       if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
         if (!e.jet) e.jet = this.add.image(0, 0, 'ratjet0').setOrigin(0.5, 0).setDepth(4.9);

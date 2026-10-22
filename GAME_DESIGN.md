@@ -281,15 +281,15 @@ Bessie is snatched back at the end of every level until Level 9.
 
 - **Level 1: The Gruyère Globe** *(built)*
 - **Level 2: Gorgonzola Gulch** *(built)*
-- **Level 3: The Great Grater** *(built; currently also hosts the warp hole to 5.5 until Level 5 exists)*
-- **Level 4: Mount Mozzarella** — A highly volatile volcanic planet. Instead of lava, elastic strands of boiling string cheese snap and whip across the screen. Boss: a giant pizza oven spitting homing pepperoni discs.
-- **Level 5: The Brie-muda Triangle** — A spectral, pale pocket dimension covered in powdery rind. Enemy bullets move in bizarre geometric patterns while ghostly dairy-maid phantoms try to ram you off the planet's curve.
+- **Level 3: The Great Grater** *(built)*
+- **Level 4: Mount Mozzarella** *(first pass built v0.77)* — A highly volatile volcanic planet. Instead of lava, elastic strands of boiling string cheese snap and whip across the screen. Boss: a giant pizza oven spitting homing pepperoni discs.
+- **Level 5: The Brie-muda Triangle** *(first pass built v0.77; hosts the warp hole to 5.5)* — A spectral, pale pocket dimension covered in powdery rind. Enemy bullets move in bizarre geometric patterns while ghostly dairy-maid phantoms try to ram you off the planet's curve.
 - **Level 5.5 (Secret Detour): The Forbidden Fondue Fountain** *(first version built as the warp level)* — A luxurious, multi-tiered party planet made of spinning metallic rings pumping cascades of scalding Alpine cheese. Enemies: Kamikaze Croutons and rats pole-vaulting on giant fondue forks. Boss: the Triple-Tiered Terror, a colossal fountain engine acting as a bullet-hell sprinkler system.
   - *Still to do:* spinning ring scenery, croutons, fork-vault rats and the Triple-Tiered Terror boss. Its current boss is a placeholder (a tinted Croque).
-- **Level 6: Cheddar Gorge** — A high-speed pursuit on a tiny planetoid. You're constantly arcing forward, chased by a gargantuan rolling wheel of Spicy Pepper Jack that takes up half the screen.
-- **Level 7: The Astro-Rat Armada** — Platforming across a fleet of rusted, spherical rat spaceships locked in orbit. Destroy their engines to make them crash into each other while dodging the flagship's sweeping lasers.
-- **Level 8: Lactose Labyrinth** — A claustrophobic puzzle-shooter inside a hollowed-out block of Swiss cheese. Tight spherical chambers full of ricocheting Mac-Laster bullets and heavily armoured Rat-Paladins.
-- **Level 9: Parmesan Prime** — The collapsing rat homeworld. Fight to the core to rescue Bessie from a massive dairy-extraction machine, then the final showdown with the Grand Rat-King in his rusty, cheese-powered mech suit. (The only level where the rescue sticks.)
+- **Level 6: Cheddar Gorge** *(first pass built v0.77)* — A high-speed pursuit on a tiny planetoid. You're constantly arcing forward, chased by a gargantuan rolling wheel of Spicy Pepper Jack that takes up half the screen.
+- **Level 7: The Astro-Rat Armada** *(first pass built v0.77)* — Platforming across a fleet of rusted, spherical rat spaceships locked in orbit. Destroy their engines to make them crash into each other while dodging the flagship's sweeping lasers.
+- **Level 8: Lactose Labyrinth** *(first pass built v0.77)* — A claustrophobic puzzle-shooter inside a hollowed-out block of Swiss cheese. Tight spherical chambers full of ricocheting Mac-Laster bullets and heavily armoured Rat-Paladins.
+- **Level 9: Parmesan Prime** *(first pass built v0.77)* — The collapsing rat homeworld. Fight to the core to rescue Bessie from a massive dairy-extraction machine, then the final showdown with the Grand Rat-King in his rusty, cheese-powered mech suit. (The only level where the rescue sticks.)
 
 ### v0.68 — Intro fix, single sprite sheet, Fondue Fountain → Level 5.5
 - **Intro fix:** pressing during the title logo used to skip the whole story. Now:
@@ -391,3 +391,35 @@ Bessie is snatched back at the end of every level until Level 9.
   - L3: girder / energy.
   - L5.5: carnival / panini / energy.
 - A ledge can also force `type`. Without types, the old slab is used.
+
+### v0.77 — First pass of levels 4-9 (the whole campaign is now playable)
+- **Level select** is now a 3×3 grid of cards: a planet icon, the number and name, and a star once beaten. It works with touch, arrows + Enter, the d-pad, and keys 1–9. The 5.5 warp link sits underneath once found.
+- **New enemies** (they reuse existing behaviours via `ENEMY[type].ai`):
+  - **phantom:** a ghostly dairy-maid with drone AI (hovers, then rams) and an alpha flicker;
+  - **paladin:** an armoured Rat-Paladin with mouse AI, 8 HP, counted as big.
+- **New shots:**
+  - **pepper:** a pepperoni disc that homes on Chris (`b.home` / `b.homeV`);
+  - **ghostorb:** pale orbs used in geometric patterns;
+  - **chili:** arcing flakes that fall back down (`b.grav`).
+- **Hazards** (`updateHazards` / `drawHazards`):
+  - **strands (L4):** string cheese stretches faintly for 1s, then SNAPS taut and whips for 0.55s. Touching it hurts.
+  - **chaser (L6):** a 1.5× Pepper Jack wheel rolls after Chris all level, getting faster each wave. It flattens and bounces him, rumbles when near, and shooting it slows it a little. It's removed for the boss.
+  - **sweep (L7):** red warning lines, then sky lasers sweep across the deck.
+  - **ricochet (L8):** player shots bounce off the floor and ceiling up to twice.
+  - **debris (L9):** rocks fall from the sky, with a growing red shadow showing where they'll land.
+- **Bosses** (all 96px tall so `bossGun` works):
+  - **L4 Pizza Oven of Doom:** homing pepperoni from its side chutes, plus a fan of molten cheese from its mouth. Armoured top.
+  - **L5 Phantom Milkmaid:** spinning 3-arm (later 4-arm) pinwheel orb patterns; she blinks across the sky and summons phantoms.
+  - **L6 Great Pepper Jack:** a giant wheel that rolls at Chris, overshoots, turns slowly (jump it) and spits arcing chilli flakes.
+  - **L7 Rat Flagship:** aimed side cannons, a belly laser that sweeps the ground, and launches drones.
+  - **L8 Grand Paladin:** sword waves at two heights, and shield-first charges at Chris's height. Summons paladins.
+  - **L9 Grand Rat-King mech:** arm cannons, reactor orb rings and homing pepperoni in phase 2. Summons paladins and phantoms. Beating it is the real rescue: no snatch.
+- The 5.5 warp hole moved from Level 3 to Level 5, per the roadmap.
+- **Still to refine per level:**
+  - unique enemy art (e.g. L4 lava rats, L7 ship rats);
+  - level-specific music;
+  - L6 forced forward momentum;
+  - L7 destroyable rat ships that crash into each other;
+  - L8 tight chambers / ceiling;
+  - L9 dairy-extraction machine and finale cutscene;
+  - L5.5 rings, croutons, fork-vault rats and the Triple-Tiered Terror.
