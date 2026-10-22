@@ -303,3 +303,15 @@ Bessie is snatched back at the end of every level until Level 9.
   - **Rule:** any new sprite generator must be called from `buildAllTextures()`.
   - Kept off the sheet: the smooth light halo, the title photo, and the resize-dependent sky gradients.
 - **Renumbering:** Fondue Fountain is now Level 5.5, the secret detour, per the roadmap. Its warp still lives on Level 3 until Level 5 exists. Earlier "found" saves carry over.
+
+### v0.69 — Melee bash (Halo style)
+- Chris clubs enemies with the gun: wind back, swing forward and down with a short lunge, recover. About 0.32s, 0.5s cooldown.
+- **Triggers:**
+  - Keep holding FIRE when the gun is out of pasta (overheated). This works on touch, keys and pad.
+  - Bash any time with **B** on a controller (B is no longer a fire button; X/RT/RB still fire) or **F / V** on the keyboard.
+- **Hit:** reaches about 64 units in front.
+  - Does 4 damage, which one-shots mice, flyers, germs and drones and takes two hits on frogs and slicers. Bosses take 3.
+  - Knocks enemies back, with sparks, a short impact freeze, a camera kick, a "bonk" sound and rumble.
+  - Also smashes the warp-hole junk.
+- The first time you run dry in a level: "OUT OF PASTA - BASH 'EM!".
+- The rig gets `P.bashA/bashX/bashY` offsets on the gun arm. Tune them in `CFG.bash*`.

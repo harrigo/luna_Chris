@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.68';
+const BUILD = 'v0.69';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -31,6 +31,10 @@ const CFG = {
   ammoPerShot: 0.022, // Mac-Grinder gauge: full tank is about 45 shots
   ammoRegen: 0.5,     // refill per second once you stop shooting
   ammoDelay: 0.35,    // pause after the last shot before it refills
+  bashTime: 0.32,     // melee: whole swing (wind-up, slam, recover)
+  bashCd: 0.5,        // melee: time between bashes
+  bashRange: 64,      // melee: reach in front of Chris
+  bashDmg: 4,         // melee: one-shots small fry, two hits for the bigger ones
   ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
   // Parmesan Power-Up (triple shot + unlimited pasta) lasts until Chris is hit: it soaks up that hit instead of a heart
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
@@ -164,6 +168,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
+    this.bashTipShown = false;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
@@ -349,7 +354,7 @@ class Level1 extends Phaser.Scene {
       this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, power: 0, fuel: 1, jetArmed: false, thrusting: false,
+      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, power: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'blank').setOrigin(0.5, 1).setDepth(7)
     };
 
@@ -365,7 +370,7 @@ class Level1 extends Phaser.Scene {
     this.buildOverlay();
 
     this.keys = this.input.keyboard
-      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X', down: 'DOWN', s: 'S' })
+      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X', down: 'DOWN', s: 'S', f: 'F', v: 'V' })
       : null;
 
     if (this.wantFs === undefined) this.wantFs = false;
@@ -429,7 +434,7 @@ class Level1 extends Phaser.Scene {
     } else {
       this.showOverlay(
         'LEVEL ' + this.levelId,
-        this.def.name + '\n\n◀ ▶ run   JUMP to hop   hold FIRE to blast\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Shots fly straight.\n\nTap to start'
+        this.def.name + '\n\n◀ ▶ run   JUMP to hop   hold FIRE to blast\nOut of pasta? Keep FIRING to bash (or B / F)\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Shots fly straight.\n\nTap to start'
       );
     }
   }
@@ -1016,6 +1021,7 @@ class Level1 extends Phaser.Scene {
       if (k.space.isDown || k.up.isDown || k.w.isDown) d.jump = true;
       if (k.z.isDown || k.x.isDown) d.fire = true;
       if (k.down.isDown || k.s.isDown) d.down = true;
+      if (k.f.isDown || k.v.isDown) d.melee = true;
     }
     const g = Pad.state;
     if (g.connected) {
@@ -1024,6 +1030,7 @@ class Level1 extends Phaser.Scene {
       if (g.jump) d.jump = true;
       if (g.fire) d.fire = true;
       if (g.down) d.down = true;
+      if (g.melee) d.melee = true;
       if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; }   // twin-stick: aiming fires
     }
     return d;
@@ -1110,7 +1117,19 @@ class Level1 extends Phaser.Scene {
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = (CFG.autoFire && tgt) || inp.fire;
     const W = this.weapon;
-    P.beamOn = !!(W.beam && want && !P.overheat && this.state === 'play');
+    // ---- MELEE: gun-butt bash (Halo style). B / F / V any time, or just keep holding FIRE when the gun is out of pasta.
+    P.bashCd = Math.max(0, P.bashCd - dt);
+    if ((inp.melee || (want && P.overheat)) && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
+    if (P.bashT > 0) {
+      P.bashT = Math.max(0, P.bashT - dt);
+      const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
+      if (k < 0.3) { const q = k / 0.3; P.bashA = -0.42 * q; P.bashX = -5 * q; P.bashY = -2 * q; }                // wind up: pull the gun back and up
+      else if (k < 0.55) { const q = (k - 0.3) / 0.25; P.bashA = -0.42 + 0.77 * q; P.bashX = -5 + 15 * q; P.bashY = -2 + 5 * q;   // SMACK: thrust forward, swiping down
+        P.theta = wrap(P.theta + (P.facing || 1) * 210 / R * dt); }         // a little lunge
+      else { const q = (k - 0.55) / 0.45, e = 1 - q * q; P.bashA = 0.35 * e; P.bashX = 10 * e; P.bashY = 3 * e; }
+      if (!P.bashHit && k >= 0.45) { P.bashHit = true; this.bashHit(); }
+    } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; }
+    P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
       if (P.beamOn) {
         P.firing = 0.12;
@@ -1121,7 +1140,7 @@ class Level1 extends Phaser.Scene {
         P.beamT = (P.beamT || 0) - dt;
         if (P.beamT <= 0) { P.beamT = W.tick; this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
       }
-    } else if (P.fireCd <= 0 && want && !P.overheat) {
+    } else if (P.fireCd <= 0 && want && !P.overheat && P.bashT <= 0) {
       this.fire(tgt);
       P.fireCd = this.weapon.interval;
       if (P.power <= 0) {
@@ -1131,6 +1150,37 @@ class Level1 extends Phaser.Scene {
       }
     }
     if (P.ammoHold <= 0) P.ammo = Math.min(1, P.ammo + CFG.ammoRegen * dt);
+  }
+
+  startBash() {
+    const P = this.pl;
+    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false;
+    Sound.sfx('swish');
+    if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
+  }
+
+  bashHit() {
+    const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 22 : 34);
+    const reachT = CFG.bashRange / R;
+    let hit = 0;
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      const a = angDiff(e.theta, P.theta) * dir;                           // how far in front (radians)
+      if (a < -14 / R || a > reachT + e.r / R) continue;
+      if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
+      e.hp -= e.type === 'boss' ? 3 : CFG.bashDmg; hit++;
+      e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
+      if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 34 / R); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
+      this.burst(e.theta, e.h + e.ch, 'spark', 8, 0.9);
+      this.bang(e.theta, e.h + e.ch, 16);
+    }
+    if (this.relics && this.relics.length) hit += this.relicHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
+    if (hit) {
+      Sound.sfx('bonk'); buzz([30, 20, 50]);
+      this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camKick(dir * 6, 2); this.camPunch(0.02);
+      this.addLight(wrap(P.theta + dir * reachT * 0.5), cy, 70, 0xffe0a0, 0.8, 0.25);
+    }
+    this.reapEnemies();
   }
 
   pickTarget() {
