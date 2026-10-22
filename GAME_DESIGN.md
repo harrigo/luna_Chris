@@ -626,3 +626,12 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
 - **Neon rim:** `rimGlow` draws a pulsing green glow ring and a bright highlight line round the planet's edge.
 - **Sky:** darker. `nebula` adds 4 big swirling turquoise pixel nebulae (`neb2_0..3`, made at boot onto the sheet) drifting slowly overhead, plus 26 four-point sparkle stars in white, mint and cyan.
 - **Glow:** props can now take `glow`/`glowA` for a soft pulsing additive halo. Mushrooms (cyan-tinted), the big background mushrooms and crystal spikes glow. Goop pools get a green glow underneath. All glows are off on LOW graphics.
+
+### v0.92 — L2 skyline
+- New pixel art:
+  - `bg_ribcage`: a dead space-beast's arched spine with ribs hanging to the ground, near and far ribs shaded;
+  - `bg_skull`: a horned beast skull with teeth and a faint glow deep in the eye socket;
+  - `bg_shroom`: a tall curvy bioluminescent mushroom with gills and glowing spots;
+  - `bg_shroom2`: a smaller pair of mushrooms.
+- They stand on L2's skyline at depth 0.95, below the planet surface (1.05), and sunk 18–30px. They rise from **behind** the curve of the horizon, tinted and faded into the haze so they read as distant. The mushrooms carry the soft cyan glow halos.
+- The cartoon bone piles are cut from 5 to 2.

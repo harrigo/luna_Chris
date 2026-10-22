@@ -55,8 +55,12 @@ const LEVELS = {
     gravity: 1, ledgeTypes: ['crystal', 'girder', 'panini', 'crystal', 'girder', 'panini'], ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
     props: [
-      { tex: 'p_shroom', n: 6, sc: [2.4, 3.4], depth: 1.6, tint: 0x2a5a6a, alpha: 0.75, h: -6, glow: 0x2ad0ff, glowA: 0.35 },   // giant glowing mushrooms looming behind
-      { tex: 'pile_bones', n: 5, sc: [1.1, 1.8], tint: 0xc8c8b0, alpha: 0.9 },
+      // the skyline: huge beast skeletons and towering glowing mushrooms, hazy with distance
+      { tex: 'bg_ribcage', n: 4, sc: [1.9, 2.4], depth: 0.95, tint: 0x84bcac, alpha: 0.72, h: -22 },     // (depth < planet: they stand BEHIND the horizon)
+      { tex: 'bg_skull', n: 3, sc: [1.3, 1.7], depth: 0.95, tint: 0x78ae9e, alpha: 0.65, h: -22 },
+      { tex: 'bg_shroom', n: 7, sc: [1.4, 2.0], depth: 0.96, tint: 0x8ac8cc, alpha: 0.72, h: -30, glow: 0x3ae8ff, glowA: 0.4 },
+      { tex: 'bg_shroom2', n: 6, sc: [1.2, 1.6], depth: 0.97, tint: 0x9ad8d8, alpha: 0.8, h: -18, glow: 0x3ae8ff, glowA: 0.45 },
+      { tex: 'pile_bones', n: 2, sc: [1.1, 1.5], tint: 0xc8d8c8, alpha: 0.85 },
       { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0x9ff0ff, glow: 0x5ce1ff }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
@@ -980,6 +984,44 @@ function makeRoadmapTextures(scene) {
   pixSprite(scene, 'goopbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xe0ffc0, 0x8ae86a, 0x3a9a3a]); p.px(3, 2, 0xffffff); });
   pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
   pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
+  // ---- L2 skyline: giant beast skeletons and tall glowing mushrooms
+  const BONE = [0xe0f4e8, 0xa8d4c0, 0x5e8e7e];
+  pixSprite(scene, 'bg_ribcage', 140, 80, p => {                 // a long-dead space beast: arched spine, ribs hanging to the ground
+    const spine = []; for (let i = 0; i <= 16; i++) { const t = i / 16; spine.push([8 + t * 126, 64 - Math.sin(Math.min(1, t * 1.15) * Math.PI) * 50 - t * 6]); }
+    for (let i = 3; i <= 14; i++) {                                // ribs (biggest in the middle)
+      const [x, y] = spine[i], k = Math.sin((i / 16) * Math.PI), drop = 76 - y, sw = 10 + 10 * k;
+      p.line([[x, y], [x + sw * 0.5, y + drop * 0.25], [x + sw * 0.7, y + drop * 0.6], [x + sw * 0.3, y + drop * 0.92]], BONE[1], 3);
+      p.line([[x - 1, y + 1], [x + sw * 0.5 - 1, y + drop * 0.25], [x + sw * 0.7 - 1, y + drop * 0.55]], BONE[0]);
+      p.line([[x, y], [x - sw * 0.35, y + drop * 0.3], [x - sw * 0.45, y + drop * 0.7]], BONE[2], 2);     // the far-side ribs, in shadow
+    }
+    for (let i = 0; i < spine.length; i++) { const [x, y] = spine[i]; p.ell(x, y, 4.2 - i * 0.12, 3.4, BONE); p.px(x, y - 4, BONE[1]); p.px(x, y - 5, BONE[2]); }   // vertebrae + spines
+    p.ell(10, 66, 6, 5, BONE); p.ell(132, 34, 3, 3, BONE);         // hip / tail tip
+  });
+  pixSprite(scene, 'bg_skull', 76, 46, p => {                      // horned beast skull, half sunk in the moss
+    p.poly([[4, 40], [8, 22], [22, 10], [44, 8], [60, 14], [72, 26], [74, 38], [62, 42], [40, 44], [16, 44]], BONE);
+    p.poly([[42, 12], [52, 2], [66, 0], [58, 6], [52, 14]], BONE);   // horn
+    p.poly([[16, 14], [10, 4], [2, 2], [8, 10], [12, 18]], BONE);
+    p.ell(26, 24, 7, 6, 0x0e1e22); p.ell(25, 23, 3, 2.5, 0x2ad0c0);  // eye socket (faint glow deep inside)
+    p.ell(56, 30, 4, 3, 0x0e1e22); p.ell(66, 33, 2, 2, 0x0e1e22);   // nasal holes
+    for (let x = 40; x < 72; x += 5) p.poly([[x, 40], [x + 3, 40], [x + 1.5, 45]], BONE);          // teeth
+    p.line([[14, 32], [34, 34], [50, 36]], BONE[2]);
+  });
+  pixSprite(scene, 'bg_shroom', 56, 92, p => {                     // a tall bioluminescent mushroom
+    const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
+    p.poly([[25, 92], [24, 70], [22, 50], [24, 34], [30, 26], [34, 34], [33, 52], [34, 72], [36, 92]], STEM);   // a curvy stem
+    p.line([[27, 88], [26, 60], [26, 40]], 0xf0fffa);
+    p.poly([[22, 50], [16, 52], [22, 56]], STEM); p.poly([[34, 70], [42, 68], [36, 74]], STEM);   // little frills
+    p.ell(28, 22, 27, 16, CAP);                                     // the cap
+    p.poly([[2, 24], [54, 24], [48, 30], [8, 30]], [0x6af0e0, 0x2aa8a8, 0x16686e]);               // underside rim
+    for (let x = 8; x < 50; x += 4) p.line([[x, 25], [28 + (x - 28) * 0.4, 29]], 0x0e5a60);       // gills
+    for (const [x, y, r] of [[14, 16, 3], [28, 10, 3.5], [40, 15, 2.6], [21, 22, 2], [36, 21, 2], [48, 20, 1.6]]) p.ell(x, y, r, r * 0.8, 0xd8fff8);   // glowing spots
+  });
+  pixSprite(scene, 'bg_shroom2', 40, 52, p => {                    // a smaller pair
+    const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
+    p.poly([[11, 52], [12, 30], [16, 30], [16, 52]], STEM); p.ell(14, 26, 12, 8, CAP); for (const [x, y] of [[9, 23], [17, 21], [20, 27]]) p.ell(x, y, 1.6, 1.3, 0xd8fff8);
+    p.poly([[28, 52], [28, 40], [31, 40], [32, 52]], STEM); p.ell(30, 37, 8, 5.5, CAP); p.px(28, 35, 0xd8fff8); p.px(33, 36, 0xd8fff8);
+  });
+
   // ---- enemies
   pixSprite(scene, 'stinkfly', 34, 28, p => {                   // bloated blue-cheese swamp fly
     const WING = [0xe8fff8, 0xb8e8f0, 0x7ab0c8], BODY = [0x9ad8b8, 0x4a9a80, 0x1e5a4a], VEIN = 0x2a6a8a;
