@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.95';
+const BUILD = 'v0.96';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -278,6 +278,22 @@ class Level1 extends Phaser.Scene {
         const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
         this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 0.95), k: 0.22, tw: rnd(0, 6), ta: 0.6 });
       }
+    } else if (this.def.bgDecor === 'factory') {        // level 3: the cheese factory. Rusty cogs turning in the dark, meshing in pairs,
+      makeFactoryTextures(this);                         // and the great claw holding a block of cheese that sheds gratings
+      const cogs = [['cog_big', 2.6, 0x8a5a3a, 0.55, 0.12], ['cog_mid', 2.4, 0x6a7488, 0.6, 0.13], ['cog_big', 3.2, 0x5a3a2a, 0.4, 0.08], ['cog_small', 2.6, 0x9a6a3a, 0.7, 0.16],
+                    ['cog_mid', 3, 0x4a5262, 0.45, 0.1], ['cog_big', 2.2, 0x7a4a2a, 0.6, 0.14], ['cog_small', 2.4, 0x6a7488, 0.65, 0.15], ['cog_mid', 2.8, 0x8a5a3a, 0.5, 0.11]];
+      cogs.forEach(([k, sc, tint, al, kk], i) => {
+        const s = this.add.image(0, 0, k).setDepth(0.2).setScale(sc).setTint(tint).setAlpha(Math.min(0.85, al + 0.15)), a = i * TAU / cogs.length + rnd(-0.2, 0.2), r = rnd(0.06, 0.4);
+        const spin = (k === 'cog_small' ? 0.5 : k === 'cog_mid' ? 0.3 : 0.18) * (i % 2 ? 1 : -1);
+        this.bgStars.push({ s, a, r, k: kk, rv: spin });
+        if (k === 'cog_big') {                           // a little partner cog meshing with it, turning the other way
+          const s2 = this.add.image(0, 0, 'cog_small').setDepth(0.21).setScale(sc * 0.9).setTint(tint).setAlpha(al);
+          this.bgStars.push({ s: s2, a: a + 0.13, r: r + 0.05, k: kk, rv: -spin * 2.4 });
+        }
+      });
+      const claw = this.add.image(0, 0, 'claw').setDepth(0.5).setScale(1.3).setOrigin(0.5, 0.75);
+      const crumbs = this.add.particles(0, 0, 'crumb', { lifespan: 1400, speed: { min: 5, max: 30 }, scale: { start: 0.9, end: 0.5 }, alpha: { start: 1, end: 0 }, frequency: 60, quantity: 2, gravityY: 180 }).setDepth(0.49);
+      this.bgStars.push({ s: claw, a: 0.6, r: 0.26, k: 0.3, radial: true, emit: crumbs });
     } else if (this.def.bgDecor === 'gears') {          // level 3: huge slow gears in the haze
       for (let i = 0; i < 9; i++) {
         const s = this.add.image(0, 0, 'gear').setDepth(0).setTint(i % 2 ? 0x7a3a1c : 0x4a4f5a).setAlpha(rnd(0.16, 0.3)).setScale(rnd(0.7, 2.0));
@@ -375,7 +391,7 @@ class Level1 extends Phaser.Scene {
         let halo = null;
         if (pr.glow && Settings.lights) {                // a soft pulsing glow behind it (bioluminescent mushrooms, crystals)
           halo = this.add.image(0, 0, 'halo').setDepth((pr.depth || (pr.fg ? 8.2 : 2.5)) - 0.01).setTint(pr.glow).setBlendMode(Phaser.BlendModes.ADD);
-          halo.bsx = halo.bsy = spr.bsx * (spr.width / 128) * 2.6; halo.baseA = pr.glowA || 0.75;
+          halo.bsx = halo.bsy = spr.bsx * (spr.width / 128) * 2.6; halo.baseA = pr.glowA || 0.75; halo.blink = pr.blink || 0; halo.blinkOff = pr.blinkOff || 0;
         }
         this.props.push({ spr, halo, theta: spot ? spot[0] : wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1, ph: rnd(0, 6) });
       }
@@ -2703,7 +2719,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 150, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -2940,16 +2956,21 @@ class Level1 extends Phaser.Scene {
     for (let k = kmin; k <= kmax; k++) {
       const a = k * step - this.convPhase, d = angDiff(a, P.theta);
       if (this.onPlatform(wrap(a))) continue;
-      const b1 = pol(d - step * 0.5, 0), b2 = pol(d + step * 0.5, 0), tip = pol(d, 11);
-      pg.fillStyle(k % 2 ? 0xe3eaf4 : 0xaeb9ca, 1).fillTriangle(b1.x, b1.y, b2.x, b2.y, tip.x, tip.y);
+      const b1 = pol(d - step * 0.5, 0), b2 = pol(d + step * 0.5, 0), tip = pol(d + step * 0.2, 12), mid = pol(d - step * 0.1, 5);
+      pg.fillStyle(0x3a4252, 1).fillTriangle(b1.x, b1.y, b2.x, b2.y, tip.x, tip.y);             // dark steel tooth...
+      pg.fillStyle(0xeef4fc, 1).fillTriangle(mid.x, mid.y, b2.x, b2.y, tip.x, tip.y);           // ...with a bright honed edge
     }
     for (let i = 0; i < pf.count; i++) {
       const c = wrap(i * TAU / pf.count - this.convPhase), d = angDiff(c, P.theta);
       if (Math.abs(d) > vis + pf.half) continue;
       const top = [], bot = [];
       for (let j = 0; j <= 8; j++) { const a = d - pf.half + (j / 8) * pf.half * 2; top.push(pol(a, 4)); bot.unshift(pol(a, -9)); }
-      pg.fillStyle(0x8396b0, 1).fillPoints(top.concat(bot), true);
-      pg.lineStyle(3, 0xffd23f, 1).strokePoints(top, false);
+      pg.fillStyle(0x4a5568, 1).fillPoints(top.concat(bot), true);
+      for (let j = 0; j < 8; j++) if (j % 2 === 0) {                                           // hazard stripes along the top
+        const a0 = d - pf.half + (j / 8) * pf.half * 2, a1 = a0 + pf.half * 2 / 8, q1 = pol(a0, 4), q2 = pol(a1, 4), q3 = pol(a1 - pf.half * 0.08, -3), q4 = pol(a0 - pf.half * 0.08, -3);
+        pg.fillStyle(0xffd23f, 1).fillPoints([q1, q2, q3, q4], true);
+      }
+      pg.lineStyle(3, 0x1a1020, 1).strokePoints(top, false);
       const e1 = pol(d - pf.half, 4), e2 = pol(d + pf.half, 4), f1 = pol(d - pf.half, 14), f2 = pol(d + pf.half, 14);
       pg.lineStyle(3, 0xffd23f, 1).lineBetween(e1.x, e1.y, f1.x, f1.y).lineBetween(e2.x, e2.y, f2.x, f2.y);    // little end posts
     }
@@ -3158,6 +3179,10 @@ class Level1 extends Phaser.Scene {
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
       if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
       if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
+      if (b.radial) {                                    // hangs "down" towards the planet (the claw), swaying a touch
+        b.s.setRotation(a + Math.sin(this.t * 0.8) * 0.05);
+        if (b.emit) { const d = 40 * b.s.scaleY; b.emit.setPosition(b.s.x - Math.sin(a) * d * 0.5, b.s.y + Math.cos(a) * d * 0.5); b.emit.gravityX = -Math.sin(a) * 180; b.emit.gravityY = Math.cos(a) * 180; }
+      }
       if (b.tws !== undefined) b.s.setScale(b.bsc * (0.75 + 0.3 * Math.sin(this.t * 2.2 + b.tws)));
       if (b.pulse !== undefined) b.s.setScale(b.bsc * (1 + 0.08 * Math.sin(this.t * 3 + b.pulse)));
     }
@@ -3280,7 +3305,13 @@ class Level1 extends Phaser.Scene {
     }
     for (const q of this.props) {
       this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
-      if (q.halo) { this.place(q.halo, q.theta, q.h + q.spr.height * q.spr.bsy * 0.5, 0); q.halo.setAlpha(q.halo.baseA * (0.75 + 0.25 * Math.sin(this.t * 1.8 + q.ph))); }
+      if (q.halo) {
+        if (q.halo.blink) {                              // warning beacon: the light flashes on and off
+          const on = ((this.t * q.halo.blink / 2 + q.halo.blinkOff) % 1) < 0.5;
+          this.place(q.halo, q.theta, q.h + q.spr.height * q.spr.bsy * 0.82, 0); q.halo.setAlpha(on ? q.halo.baseA : 0.04);
+          q.spr.setTint(on ? 0xffffff : 0x8a8a9a);
+        } else { this.place(q.halo, q.theta, q.h + q.spr.height * q.spr.bsy * 0.5, 0); q.halo.setAlpha(q.halo.baseA * (0.75 + 0.25 * Math.sin(this.t * 1.8 + q.ph))); }
+      }
     }
 
     this.place(P.spr, P.theta, P.h, 0);

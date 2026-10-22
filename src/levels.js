@@ -13,6 +13,7 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
   frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
+  gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'mouse' },          // L3 factory rat in goggles
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
   phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone' },          // ghostly dairy-maid: hovers, then rams
@@ -82,22 +83,26 @@ const LEVELS = {
   3: {
     id: 3, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
     music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'THE FLOOR IS A GRATER! USE THE PLATFORMS!',
-    radius: 300, sky: [0x0e0506, 0x56260c], bg: '#0e0506', starTint: 0xffd9a8, dustAlpha: 1.4, bgDecor: 'gears',
-    planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0xd5dde8 },
-    dust: [0xff9a3a, 0xff6a3a, 0x8aa0c0, 0xffd23f], decorTint: 0x8a929c, decorAlpha: 0.55,
+    radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
+    surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
+    planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
+    dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
     ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
     props: [
-      { tex: 'pile_scrap', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x5a3a34, alpha: 0.6, h: -10 },
-      { tex: 'pile_scrap', n: 6, sc: [1.2, 1.8], tint: 0xb4a8a8, alpha: 0.92 },
-      { tex: 'pile_bones', n: 5, sc: [1.2, 1.8], tint: 0xd8b8a8, alpha: 0.92 },
-      { tex: 'pile_tyres', n: 2, sc: [1.2, 1.7], tint: 0x9a8a8a },
-      { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] }, { tex: 'p_whisk', n: 4, sc: [0.9, 1.3] }, { tex: 'p_skull', n: 4, sc: [1.1, 1.5], tint: 0xe8c8b8 },
-      { tex: 'p_cone', n: 9, sc: [0.8, 1.2], fg: true }],
+      // the factory skyline behind the horizon: scaffold towers, crate stacks, barrels
+      { tex: 'scaffold', at: [[0.2, 1.0], [1.35, 1.15, 1], [2.55, 0.9], [3.75, 1.1, 1], [5.0, 1.0]], depth: 0.95, tint: 0x6a7488, alpha: 0.8, h: -24 },
+      { tex: 'crates', at: [[0.8, 1.05], [2.1, 0.95, 1], [3.3, 1.1], [4.6, 1.0, 1], [5.75, 1.05]], depth: 0.96, tint: 0x9a8a7a, alpha: 0.9, h: -10 },
+      // on the deck: beacons flashing red/blue, barrels, pipes, cones
+      { tex: 'beacon_r', at: [[0.35, 1.0], [2.0, 1.0], [3.6, 1.0], [5.2, 1.0]], h: -2, glow: 0xff3030, glowA: 0.6, blink: 3 },
+      { tex: 'beacon_b', at: [[1.15, 1.0], [2.8, 1.0], [4.4, 1.0], [6.0, 1.0]], h: -2, glow: 0x3a8aff, glowA: 0.6, blink: 3, blinkOff: 0.5 },
+      { tex: 'barrel', at: [[0.65, 1.0], [1.6, 0.9, 1], [3.0, 1.05], [4.0, 1.0, 1], [5.45, 0.9]], h: -2 },
+      { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] },
+      { tex: 'p_cone', n: 7, sc: [0.8, 1.1], fg: true }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('slicer', 0), S('drone', 1.4), S('drone', 3), S('slicer', 4.2), S('drone', 5.6), S('drone', 7)] },
-      { name: 'WAVE 2', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 2.4), S('slicer', 3.6), S('drone', 4.4), S('drone', 6), S('slicer', 7), S('drone', 8)] },
-      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('drone', 1.8), S('slicer', 3), S('drone', 4), S('drone', 5), S('slicer', 6.4), S('drone', 7), S('drone', 8), S('slicer', 9.4)] }
+      { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
+      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
@@ -764,6 +769,7 @@ class SelectScene extends Phaser.Scene {
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
 function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   opts = opts || {};
+  if (opts.grater) return makeMetalPlanet(scene, key, Rw, pal, seed);
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, r = S / 2;                  // texture is Rw x Rw, shown at 2x = full diameter
   let sd = seed || 1;
@@ -840,6 +846,51 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   ctx.putImageData(img, 0, 0);
   tex.refresh();
   tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+
+// L3: a polished steel dome. Concentric riveted panels, radial seams, and rings of almond-shaped grater holes with a
+// sharp bright cutting lip near the surface (which is the part you actually see).
+function makeMetalPlanet(scene, key, Rw, pal, seed) {
+  if (scene.textures.exists(key)) return;
+  const S = Math.round(Rw), c = S / 2, r = S / 2;
+  const hex = v => [(v >> 16) & 255, (v >> 8) & 255, v & 255], P = pal.map(hex), N = P.length - 1;
+  const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
+  const T = new Int8Array(S * S).fill(-1);
+  const rings = [0.62, 0.71, 0.8, 0.89], holeL = 7, holeW = 2.2;
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.sqrt(dx * dx + dy * dy) / r;
+    if (d > 1) continue;
+    const th = BAYER4[(y & 3) * 4 + (x & 3)], ang = Math.atan2(dy, dx);
+    // brushed steel: lit from the top-left, with banded panels
+    let v = 2.6 + (-dx - dy) / S * 1.6 + Math.sin(d * 60) * 0.25 + Math.sin(ang * 3 + d * 9) * 0.2;
+    const band = d * 11, fb = band - Math.floor(band);
+    if (fb < 0.07) v = 1.2;                                            // concentric panel seams
+    else if (fb > 0.93) v += 1.1;                                      // lit edge just above each seam
+    const radial = (ang / (Math.PI * 2) * 24 + 24) % 1;
+    if ((radial < 0.025 || radial > 0.975) && d < 0.97) v = 1.3;        // radial seams
+    T[y * S + x] = Math.max(0, Math.min(N, Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0)));
+    if (d > 0.97) T[y * S + x] = d > 0.988 ? 0 : N;                    // polished rim
+  }
+  // rivets along the seams
+  for (let b = 2; b < 11; b++) { const rr = (b / 11) * r + 2, n = Math.floor(rr * 0.35); for (let k = 0; k < n; k++) { const a = k / n * Math.PI * 2, x = Math.round(c + Math.cos(a) * rr), y = Math.round(c + Math.sin(a) * rr); if (x > 0 && y > 0 && x < S - 1 && y < S - 1) { T[y * S + x] = N; T[(y + 1) * S + x] = 1; } } }
+  // grater holes
+  rings.forEach((rd, ri) => {
+    const rr = rd * r, n = Math.floor(Math.PI * 2 * rr / 13);
+    for (let k = 0; k < n; k++) {
+      const a = (k + (ri % 2) * 0.5) / n * Math.PI * 2, hx = c + Math.cos(a) * rr, hy = c + Math.sin(a) * rr;
+      const tx = -Math.sin(a), ty = Math.cos(a), nx = Math.cos(a), ny = Math.sin(a);   // tangent / outward
+      for (let y = Math.floor(hy - holeL); y <= Math.ceil(hy + holeL); y++) for (let x = Math.floor(hx - holeL); x <= Math.ceil(hx + holeL); x++) {
+        if (x < 0 || y < 0 || x >= S || y >= S) continue;
+        const px = x + 0.5 - hx, py = y + 0.5 - hy, u = (px * tx + py * ty) / holeL, w = (px * nx + py * ny) / holeW;
+        const e = u * u + w * w;
+        if (e < 1) T[y * S + x] = w > 0.35 ? 1 : 0;                    // dark slot (a touch lighter at the far wall)
+        else if (e < 1.7 && w < -0.2) T[y * S + x] = N;                // the bright cutting lip on the inner edge
+        else if (e < 1.5 && w > 0.4) T[y * S + x] = 1;                 // raised shadow on the outer edge
+      }
+    }
+  });
+  for (let j = 0; j < S * S; j++) { const t = T[j]; if (t < 0) continue; const col = P[t]; D[j * 4] = col[0]; D[j * 4 + 1] = col[1]; D[j * 4 + 2] = col[2]; D[j * 4 + 3] = 255; }
+  ctx.putImageData(img, 0, 0); tex.refresh(); tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }
 
 // fixed (non-rotating) overlay: dithered darkening deeper into the planet + bright dithered rim
@@ -1325,6 +1376,85 @@ function makePlatformTextures(scene) {
     p.line([[6, 5], [117, 5]], 0xfffbe0);
     for (let x = 14; x < 112; x += 12) { p.ell(x, 9, 1.6, 1.6, [0xffffff, 0xc8a040, 0x7a5a1a]); }
     for (const x0 of [0, 113]) p.ell(x0 + 5, 8.5, 5, 6, GOLD);                          // scroll ends
+  });
+}
+
+// L3 "Planet Grat'o-Cheese": the cheese factory. Rusty cogs, scaffolds, the cheese claw, crates, barrels, beacons, goggle-rats
+function makeFactoryTextures(scene) {
+  if (scene.textures.exists('cog_big')) return;
+  const RUST = [0xd08a50, 0x9a5a2a, 0x5e3218], IRON = [0x9aa4b4, 0x5e6878, 0x323a48], STEEL = [0xe8eef8, 0xa8b2c2, 0x5a6272];
+  const cog = (key, R, teeth, cols, spokes) => pixSprite(scene, key, R * 2 + 4, R * 2 + 4, p => {
+    const cx = R + 2, cy = R + 2;
+    for (let k = 0; k < teeth; k++) { const a = k / teeth * Math.PI * 2, w = Math.PI / teeth * 0.55, ri = R * 0.82;
+      p.poly([[cx + Math.cos(a - w) * ri, cy + Math.sin(a - w) * ri], [cx + Math.cos(a - w * 0.7) * R, cy + Math.sin(a - w * 0.7) * R], [cx + Math.cos(a + w * 0.7) * R, cy + Math.sin(a + w * 0.7) * R], [cx + Math.cos(a + w) * ri, cy + Math.sin(a + w) * ri]], cols); }
+    p.ell(cx, cy, R * 0.84, R * 0.84, cols);
+    p.ell(cx, cy, R * 0.66, R * 0.66, -1);                             // open wheel...
+    for (let k = 0; k < spokes; k++) { const a = k / spokes * Math.PI * 2 + 0.3; p.line([[cx + Math.cos(a) * R * 0.2, cy + Math.sin(a) * R * 0.2], [cx + Math.cos(a) * R * 0.68, cy + Math.sin(a) * R * 0.68]], cols[1], Math.max(3, Math.round(R * 0.13))); }   // ...with spokes
+    p.ell(cx, cy, R * 0.24, R * 0.24, cols); p.ell(cx, cy, R * 0.09, R * 0.09, 0x1a1020);   // hub
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; p.ell(cx + Math.cos(a) * R * 0.75, cy + Math.sin(a) * R * 0.75, 1.3, 1.3, STEEL); }   // bolts
+    for (let k = 0; k < Math.round(R / 3); k++) { const a = k * 2.4, d = R * (0.68 + (k % 3) * 0.05); p.px(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0x6a3a1a); }   // rust spots
+  });
+  cog('cog_big', 46, 18, RUST, 6); cog('cog_mid', 30, 13, IRON, 5); cog('cog_small', 18, 10, RUST, 4);
+  // the claw: a hydraulic arm coming down from the dark, three prongs gripping a great block of cheese
+  pixSprite(scene, 'claw', 84, 132, p => {
+    p.rrect(36, 0, 48, 50, 2, IRON); p.rect(38, 0, 40, 50, 0xc8d0dc);                   // the arm
+    p.rrect(32, 22, 52, 30, 2, [0xffd23f, 0xd0a020, 0x8a6a10]); for (let x = 34; x < 50; x += 6) p.poly([[x, 22], [x + 3, 22], [x, 30]], 0x1a1020);   // hazard collar
+    p.rrect(24, 48, 60, 62, 4, STEEL); p.ell(42, 55, 4, 4, IRON);    // knuckle housing
+    p.poly([[26, 58], [8, 74], [6, 100], [14, 104], [16, 80], [30, 66]], RUST);   // left prong
+    p.poly([[58, 58], [76, 74], [78, 100], [70, 104], [68, 80], [54, 66]], RUST); // right prong
+    p.poly([[38, 60], [46, 60], [46, 82], [42, 88], [38, 82]], RUST);             // middle prong
+    // the cheese block it's holding (swiss, holey)
+    p.poly([[10, 84], [62, 76], [80, 92], [80, 124], [26, 132], [8, 116]], [0xfff09a, 0xffcf3a, 0xc9901a]);
+    p.poly([[10, 84], [62, 76], [80, 92], [28, 98]], [0xfff6c0, 0xffe27a, 0xd8a83a]);   // top face
+    for (const [x, y, rr] of [[22, 108, 4], [40, 116, 5], [62, 104, 4], [70, 118, 3], [32, 92, 2.5], [54, 88, 3]]) { p.ell(x, y, rr, rr * 0.8, 0xa8701a); p.px(x + 1, y + 1, 0xffe27a); }
+    p.poly([[6, 100], [14, 104], [12, 112], [4, 108]], RUST); p.poly([[78, 100], [70, 104], [72, 112], [80, 108]], RUST);   // prong tips biting in
+  });
+  pixSprite(scene, 'scaffold', 60, 120, p => {                     // a steel scaffold tower with a walkway, crates and a warning light
+    for (const x of [6, 52]) p.rect(x, 10, x + 3, 119, IRON[1]);
+    for (let y = 18; y < 116; y += 22) { p.line([[8, y], [53, y + 20]], IRON[2], 2); p.line([[53, y], [8, y + 20]], IRON[2], 2); p.rect(6, y, 55, y + 2, IRON[0]); }
+    p.rrect(0, 40, 60, 46, 1, STEEL); for (let x = 2; x < 58; x += 8) p.rect(x, 41, x + 3, 45, 0xffd23f);   // walkway with hazard paint
+    p.rrect(10, 26, 26, 40, 1, [0xc08a50, 0x8a5a2a, 0x5a3418]); p.line([[10, 26], [26, 40]], 0x5a3418); p.line([[26, 26], [10, 40]], 0x5a3418);   // crate
+    p.rect(40, 2, 43, 10, IRON[1]); p.ell(41.5, 2, 4, 3, [0xff8a8a, 0xff3030, 0xa01010]);             // beacon on top
+  });
+  pixSprite(scene, 'crates', 54, 44, p => {                        // stacked wooden crates
+    const W = [0xd09a5a, 0x9a6a34, 0x5e3a18];
+    for (const [x, y, w, h] of [[2, 20, 26, 23], [26, 18, 26, 25], [12, 1, 24, 20]]) {
+      p.rrect(x, y, x + w, y + h, 1, W); p.rect(x + 2, y + 2, x + w - 2, y + 3, W[0]);
+      p.line([[x + 2, y + 2], [x + w - 2, y + h - 2]], W[2], 2); p.line([[x + w - 2, y + 2], [x + 2, y + h - 2]], W[2], 2);
+    }
+    p.rect(16, 8, 30, 12, 0xffd23f); p.px(18, 10, 0x1a1020); p.px(22, 10, 0x1a1020); p.px(26, 10, 0x1a1020);   // a stencilled label
+  });
+  pixSprite(scene, 'barrel', 22, 30, p => {                        // steel drum with a hazard band
+    p.rrect(1, 2, 21, 29, 3, [0x7ab0d8, 0x3a6a9a, 0x1e3a5a]);
+    p.rect(1, 8, 21, 13, 0xffd23f); for (let x = 2; x < 21; x += 5) p.poly([[x, 8], [x + 2, 8], [x, 13]], 0x1a1020);
+    p.rect(1, 22, 21, 23, 0x1e3a5a); p.rect(4, 3, 6, 28, 0xa8d0f0);
+  });
+  for (const [k, col] of [['beacon_r', [0xff9a9a, 0xff3030, 0x9a1010]], ['beacon_b', [0x9ad8ff, 0x3a8aff, 0x1a3a9a]]]) pixSprite(scene, k, 16, 34, p => {   // warning beacon on a post
+    p.rect(6, 12, 9, 33, IRON[1]); p.rrect(3, 30, 13, 33, 1, IRON);
+    p.rrect(2, 9, 14, 14, 1, STEEL); p.ell(8, 6, 5, 5.5, col); p.rect(6, 2, 7, 6, 0xffffff);
+  });
+  // goggle-rat: a factory rat in a boiler suit and green welding goggles
+  pixSprite(scene, 'gogglerat', 40, 32, p => {
+    const FUR = [0xb8a08a, 0x8a705a, 0x54402e], SUIT = [0x9aa4b4, 0x5e6878, 0x323a48];
+    p.line([[6, 24], [2, 18], [3, 11], [7, 8]], 0xe9a8b8, 2);                                   // tail
+    p.ell(16, 21, 11, 9, SUIT); p.rect(10, 18, 22, 20, 0xffd23f);                               // boiler suit + hazard belt
+    p.rrect(8, 26, 15, 31, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]); p.rrect(18, 26, 25, 31, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]);   // boots
+    p.ell(26, 12, 9, 8, FUR); p.poly([[30, 9], [39, 13], [37, 16], [30, 17]], FUR);             // head + snout
+    p.ell(38, 13, 1.6, 1.6, [0xffb0c0, 0xe0607a, 0x9a3048]); p.rect(33, 16, 35, 19, 0xfff6e0);  // nose + teeth
+    p.ell(20, 5, 4, 4.5, FUR); p.ell(20, 5, 2, 2.5, 0xe9a8b8);                                  // ear
+    p.rect(19, 9, 34, 11, 0x2a2a2a);                                                            // goggle strap
+    p.ell(27, 10, 4, 4, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.ell(33, 10, 3, 3.5, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.px(26, 8, 0xffffff); p.px(32, 8, 0xffffff);   // green lenses
+    p.line([[22, 22], [28, 18], [32, 20]], SUIT[1], 3); p.ell(33, 20, 2.2, 2.2, [0xc0a890, 0x8a705a, 0x54402e]);   // arm + fist
+  });
+  // the flying pizza cutter: a steel cutting wheel on a handle, pushed along by a little rocket
+  pixSprite(scene, 'drone', 50, 38, p => {
+    p.poly([[2, 18], [10, 14], [10, 24]], [0xfff6a0, 0xffa21a, 0xd04a10]);                       // (rocket flame drawn as part of the sprite)
+    p.rrect(8, 13, 22, 25, 3, [0xff8a8a, 0xe03030, 0x901818]); p.rect(10, 15, 20, 16, 0xffb0b0); // rocket
+    p.rrect(20, 16, 30, 22, 1, [0xd09a5a, 0x9a6a34, 0x5e3a18]);                                  // wooden handle
+    p.rect(28, 17, 33, 21, STEEL[1]);                                                            // ferrule
+    p.ell(37, 19, 12, 12, STEEL); p.ell(37, 19, 9, 9, [0xf4f8ff, 0xc8d0dc, 0x8a96aa]);          // the cutting wheel
+    p.ell(37, 19, 3, 3, [0xff8a8a, 0xff3030, 0xa01010]); p.px(36, 18, 0xffffff);               // angry red hub-eye
+    for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; p.px(37 + Math.cos(a) * 11, 19 + Math.sin(a) * 11, 0xffffff); }   // glinting edge
   });
 }
 

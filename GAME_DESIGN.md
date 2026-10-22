@@ -668,3 +668,24 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
   - tell, lash and grab: mouth open (crouched for a low tongue);
   - stunned: eyes shut;
   - idle: blinks every ~3s.
+
+### v0.96 — The Great Grater becomes a cheese factory (first pass)
+After the "Planet Grat'o-Cheese" concept art, in our 16-bit style (`makeFactoryTextures` in src/levels.js):
+- **Planet:** a polished steel dome (`makeMetalPlanet`, via `surface.grater`):
+  - brushed steel lit from the top-left;
+  - concentric riveted panels and radial seams;
+  - rings of almond-shaped grater holes, each with a sharp bright cutting lip;
+  - a polished rim.
+- **The grater floor** (the conveyor mechanic is unchanged): dark steel teeth with bright honed edges. Platforms are steel with yellow-and-black hazard stripes.
+- **Sky (`bgDecor: 'factory'`):**
+  - near-black, with big rusty and iron cogs (`cog_big`, `cog_mid`, `cog_small`, spoked, with bolts and rust) turning slowly in the dark at different depths;
+  - the big cogs mesh with a smaller partner spinning the other way;
+  - **the Claw:** a hydraulic arm with a hazard collar and three rusty prongs gripping a big block of Swiss. It hangs down towards the planet, sways, and sheds a stream of grated cheese that falls towards the planet (`radial` and `emit` support in the sky loop).
+- **Skyline:** steel scaffold towers with hazard walkways, crates and beacons, plus stacked crates, standing behind the horizon.
+- **On the deck:**
+  - red and blue warning beacons flash alternately with real glow (new prop options `blink` and `blinkOff`);
+  - steel drums with hazard bands, pipes, cones.
+- **Gone:** the old scrap piles, bones, tyres, whisks, skulls and faint gears.
+- **Enemies:**
+  - **goggle-rats**, new: factory rats in boiler suits with hazard belts and green welding goggles (hp 3, run-and-hop rat AI). They join all three waves.
+  - The **drone is now a flying pizza cutter:** a steel cutting wheel with an angry red hub-eye on a wooden handle, pushed along by a red rocket. It's used wherever drones appear.
