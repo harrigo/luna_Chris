@@ -620,3 +620,9 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
   - roar-telegraphed aimed spore triple from the mouth (every 3.4s, 2.4s angry);
   - a spore ring every 6.5s (5s angry);
   - germ and stink-fly pals only in phase 2.
+
+### v0.91 — Gorgonzola Gulch's new look
+- **Planet:** a pixel surface (`surface`) in dark slate-blue tones with green moss spots in place of holes, and a ragged mossy-green crust round the edge. This uses the new `makePlanetTexture` options `rim` and `spot`; the shading overlay takes `rimLight` and `dark` colours.
+- **Neon rim:** `rimGlow` draws a pulsing green glow ring and a bright highlight line round the planet's edge.
+- **Sky:** darker. `nebula` adds 4 big swirling turquoise pixel nebulae (`neb2_0..3`, made at boot onto the sheet) drifting slowly overhead, plus 26 four-point sparkle stars in white, mint and cyan.
+- **Glow:** props can now take `glow`/`glowA` for a soft pulsing additive halo. Mushrooms (cyan-tinted), the big background mushrooms and crystal spikes glow. Goop pools get a green glow underneath. All glows are off on LOW graphics.

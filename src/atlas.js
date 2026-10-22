@@ -80,7 +80,8 @@ function buildAllTextures(scene) {
   makeCosmicTextures(scene); makeWarpTextures(scene); makePlatformTextures(scene); makeRoadmapTextures(scene); makePowerupTextures(scene); makeIntroPix(scene); makeEndingPix(scene); makeHalo(scene);
   for (const id of Object.keys(LEVELS)) {                                            // the pixel planets
     const d = LEVELS[id];
-    if (d.surface) { makePlanetTexture(scene, 'surf' + id, d.radius || 420, d.surface.pal, d.surface.seed); makePlanetShade(scene, 'shade' + id, d.radius || 420); }
+    if (d.surface) { makePlanetTexture(scene, 'surf' + id, d.radius || 420, d.surface.pal, d.surface.seed, d.surface); makePlanetShade(scene, 'shade' + id, d.radius || 420, d.surface.rimLight, d.surface.dark); }
+    if (d.nebula) for (let i = 0; i < d.nebula.n; i++) if (!scene.textures.exists('neb' + id + '_' + i)) makeNebula(scene, 'neb' + id + '_' + i, 900 + i * 41, d.nebula.pal);
   }
   // pre-made glow versions (see bakedGlow in main.js) so they live on the sheet too
   for (const [k, c, s, d] of [['lava_pool', 0xff7a1a, 3, 6], ['swissball', 0xffe27a, 2, 6], ['power', 0xfff3a0, 3, 8], ['ratship', 0x9fd8ff, 1, 6],

@@ -46,15 +46,18 @@ const LEVELS = {
   2: {
     id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Quicksand goop.\nGerms, tongue-lashing rat-frogs, stink-flies.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
-    radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
-    planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
+    radius: 580, sky: [0x010608, 0x04261f], bg: '#010608', starTint: 0xd8fff0, dustAlpha: 0.9, bgDecor: 'motes',
+    surface: { pal: [0x0a121c, 0x121f2e, 0x1b2c40, 0x253b52, 0x304a62, 0x46627a], seed: 2121, rim: [0x1d5a2a, 0x3a9a3a, 0x7ee05a], spot: [0x163a26, 0x2f7a3a], rimLight: [150, 255, 120], dark: [4, 12, 22] },
+    rimGlow: 0x6aff6a,
+    nebula: { pal: [0x021614, 0x053a36, 0x0b5e52, 0x1f9a7e, 0x7ae8c8], n: 4, sparkles: [0xffffff, 0x8af5d2, 0x5ce1ff, 0xc8ffd0] },
+    planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x3aff8a },
     dust: [0x2fbf8f, 0x3ad0c0, 0x6a8cff, 0x9bff6a], decorTint: 0x4fa88f, decorAlpha: 1,
     gravity: 1, ledgeTypes: ['crystal', 'girder', 'panini', 'crystal', 'girder', 'panini'], ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
     props: [
-      { tex: 'p_shroom', n: 6, sc: [2.4, 3.4], depth: 1.6, tint: 0x3f6a5c, alpha: 0.7, h: -6 },          // giant mushrooms looming behind
+      { tex: 'p_shroom', n: 6, sc: [2.4, 3.4], depth: 1.6, tint: 0x2a5a6a, alpha: 0.75, h: -6, glow: 0x2ad0ff, glowA: 0.35 },   // giant glowing mushrooms looming behind
       { tex: 'pile_bones', n: 5, sc: [1.1, 1.8], tint: 0xc8c8b0, alpha: 0.9 },
-      { tex: 'p_shroom', n: 9, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4] },
+      { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0x9ff0ff, glow: 0x5ce1ff }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
@@ -708,13 +711,15 @@ class SelectScene extends Phaser.Scene {
 // Gruyere holes, crumbs and debris. Drawn at HALF resolution and shown at 2x with nearest-neighbour filtering,
 // so every texel is a fat pixel. It rotates with the world; lighting/depth is a separate fixed overlay.
 const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + 0.5) / 16);
-function makePlanetTexture(scene, key, Rw, pal, seed) {
+function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
+  opts = opts || {};
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, r = S / 2;                  // texture is Rw x Rw, shown at 2x = full diameter
   let sd = seed || 1;
   const rand = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
   const hex = v => [(v >> 16) & 255, (v >> 8) & 255, v & 255];
-  const P = pal.map(hex);                                           // tones, dark -> light
+  const P = pal.concat(opts.rim || [], opts.spot || []).map(hex);   // tones, dark -> light (+ optional moss crust and spot tones)
+  const nP = pal.length, RIM = opts.rim ? nP : -1, SPOT = opts.spot ? nP + (opts.rim ? opts.rim.length : 0) : -1;
   // smooth value noise
   const G = 24, grid = []; for (let i = 0; i < (G + 1) * (G + 1); i++) grid.push(rand());
   const noise = (x, y) => {
@@ -740,6 +745,10 @@ function makePlanetTexture(scene, key, Rw, pal, seed) {
     // base cheese: noise picks a tone, the Bayer threshold dithers between neighbouring tones
     let v = 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
     // rind crust towards the edge
+    if (RIM >= 0 && d > 0.952 + (noise(x * 4, y * 4) - 0.5) * 0.03) {   // a ragged mossy crust in its own tones
+      const m = 1.2 + (noise(x * 5, y * 5) - 0.5) * 2 + (d - 0.95) * 25;
+      T[j] = RIM + Math.max(0, Math.min(2, Math.floor(m) + ((m - Math.floor(m)) > th ? 1 : 0))); continue;
+    }
     if (d > 0.935) v = 1.5 + (noise(x * 2, y * 2) - 0.5) * 1.6 - (d - 0.935) * 8;
     else if (d > 0.9) v -= (d - 0.9) / 0.035 * 1.2;
     T[j] = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
@@ -764,7 +773,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed) {
     for (let y = Math.max(0, Math.floor(h.y - h.r)); y <= Math.min(S - 1, Math.ceil(h.y + h.r)); y++) for (let x = Math.max(0, Math.floor(h.x - h.r)); x <= Math.min(S - 1, Math.ceil(h.x + h.r)); x++) {
       const j = y * S + x; if (took[j] || dist[j] > 1) continue;
       const hx = x - h.x, hy = y - h.y, dd = Math.sqrt(hx * hx + hy * hy) / h.r;
-      if (dd < 1) { took[j] = 1; T[j] = dd > 0.7 && hy > 0 ? 3 : 0; }
+      if (dd < 1) { took[j] = 1; T[j] = SPOT >= 0 ? (dd > 0.6 && hy < 0 ? SPOT + 1 : SPOT) : (dd > 0.7 && hy > 0 ? 3 : 0); }
     }
   }
   for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring
@@ -783,7 +792,8 @@ function makePlanetTexture(scene, key, Rw, pal, seed) {
 }
 
 // fixed (non-rotating) overlay: dithered darkening deeper into the planet + bright dithered rim
-function makePlanetShade(scene, key, Rw) {
+function makePlanetShade(scene, key, Rw, rimCol, darkCol) {
+  const RC = rimCol || [255, 246, 190], DC = darkCol || [40, 14, 60];
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, r = S / 2;
   const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
@@ -792,8 +802,8 @@ function makePlanetShade(scene, key, Rw) {
     if (d > 1) continue;
     const th = BAYER4[(y & 3) * 4 + (x & 3)], i = (y * S + x) * 4;
     const dark = Math.max(0, Math.min(0.7, (0.8 - d) * 1.6));      // deeper = darker
-    if (dark > th) { D[i] = 40; D[i + 1] = 14; D[i + 2] = 60; D[i + 3] = 105; }
-    else if (d > 0.955 && d < 0.985 && th < 0.5) { D[i] = 255; D[i + 1] = 246; D[i + 2] = 190; D[i + 3] = 200; }   // rim light
+    if (dark > th) { D[i] = DC[0]; D[i + 1] = DC[1]; D[i + 2] = DC[2]; D[i + 3] = 105; }
+    else if (d > 0.955 && d < 0.985 && th < 0.5) { D[i] = RC[0]; D[i + 1] = RC[1]; D[i + 2] = RC[2]; D[i + 3] = 200; }   // rim light
   }
   ctx.putImageData(img, 0, 0);
   tex.refresh();

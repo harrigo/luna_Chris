@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.90';
+const BUILD = 'v0.91';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -261,6 +261,18 @@ class Level1 extends Phaser.Scene {
       };
       glowFx(this.abduct.beam, 0xffd23f, 3, 10); bakedGlow(this.abduct.ship, 0x9fd8ff, 1, 6);
     }
+    if (this.def.nebula) {                              // big swirling pixel nebulae + four-point sparkle stars (level 2: turquoise)
+      const NB = this.def.nebula;
+      for (let i = 0; i < NB.n; i++) {
+        const key = 'neb' + this.levelId + '_' + i; if (!this.textures.exists(key)) makeNebula(this, key, 900 + i * 41, NB.pal);
+        const s = this.add.image(0, 0, key).setDepth(0).setAlpha(0.8).setScale(rnd(4.5, 5.5)).setFlipX(i % 2 === 1).setRotation(rnd(-0.6, 0.6));
+        this.bgStars.push({ s, a: i * TAU / NB.n + rnd(-0.4, 0.4), r: rnd(0.12, 0.4), k: rnd(0.035, 0.06), rv: rnd(0.008, 0.02) * (i % 2 ? 1 : -1) });
+      }
+      for (let i = 0; i < 26; i++) {
+        const near = i < 8, s = this.add.image(0, 0, 'px_star').setDepth(0).setTint(NB.sparkles[i % NB.sparkles.length]).setScale(near ? 3 : 2);
+        this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: near ? rnd(0.6, 0.85) : rnd(0.3, 0.5), tws: rnd(0, 6), bsc: s.scale });
+      }
+    }
     if (this.def.bgDecor === 'motes') {                 // level 2: drifting glowing spores
       for (let i = 0; i < 40; i++) {
         const s = this.add.image(0, 0, 'spore').setDepth(0).setScale(rnd(0.4, 1.1)).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
@@ -281,8 +293,8 @@ class Level1 extends Phaser.Scene {
     this.planetImg = null;
     if (this.def.surface) {                              // pixel-art planet surface (rotates with the world) + fixed shading
       const key = 'surf' + this.levelId;
-      makePlanetTexture(this, key, R, this.def.surface.pal, this.def.surface.seed);
-      makePlanetShade(this, 'shade' + this.levelId, R);
+      makePlanetTexture(this, key, R, this.def.surface.pal, this.def.surface.seed, this.def.surface);
+      makePlanetShade(this, 'shade' + this.levelId, R, this.def.surface.rimLight, this.def.surface.dark);
       this.planetImg = this.add.image(0, 0, key).setDepth(1.05);
       this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
@@ -325,8 +337,10 @@ class Level1 extends Phaser.Scene {
     // L2: green quicksand goop pools (drawn IN FRONT of Chris, so he visibly sinks into them)
     this.goops = (this.def.goop || []).map(g => {
       const spr = this.add.image(0, 0, 'goop').setOrigin(0.5, 0.32).setDepth(7.6);
+      let halo = null;
+      if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(0x6aff4a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
       spr.bsx = (2 * g.half * R) / 64 * 1.08; spr.bsy = 2;
-      return Object.assign({ spr, bubT: rnd(0, 1) }, g);
+      return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
     });
     this.goopTip = false; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
@@ -357,7 +371,12 @@ class Level1 extends Phaser.Scene {
         if (pr.alpha) spr.setAlpha(pr.alpha);
         spr.bsx = spr.bsy = rnd(pr.sc[0], pr.sc[1]) * 1.35;
         if (Math.random() < 0.5) spr.setFlipX(true);
-        this.props.push({ spr, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1 });
+        let halo = null;
+        if (pr.glow && Settings.lights) {                // a soft pulsing glow behind it (bioluminescent mushrooms, crystals)
+          halo = this.add.image(0, 0, 'halo').setDepth((pr.depth || (pr.fg ? 8.2 : 2.5)) - 0.01).setTint(pr.glow).setBlendMode(Phaser.BlendModes.ADD);
+          halo.bsx = halo.bsy = spr.bsx * (spr.width / 128) * 2.6; halo.baseA = pr.glowA || 0.75;
+        }
+        this.props.push({ spr, halo, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1, ph: rnd(0, 6) });
       }
     }
 
@@ -3179,6 +3198,12 @@ class Level1 extends Phaser.Scene {
       this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-this.unw);
       this.planetShade.setPosition(cx, cy).setScale(ps);
       this.rimG.clear().lineStyle(3, 0x1a1020, 1).strokeCircle(cx, cy, Rz + 1);
+      if (this.def.rimGlow) {                           // neon rim light (level 2)
+        const gl = this.def.rimGlow, pulse = 0.85 + 0.15 * Math.sin(this.t * 2);
+        this.rimG.lineStyle(14 * this.zoom, gl, 0.1 * pulse).strokeCircle(cx, cy, Rz + 3);
+        this.rimG.lineStyle(6 * this.zoom, gl, 0.28 * pulse).strokeCircle(cx, cy, Rz + 1);
+        this.rimG.lineStyle(2.5 * this.zoom, 0xd8ffc0, 0.95).strokeCircle(cx, cy, Rz - 1);
+      }
     } else {
       pg.fillStyle(pc.fill, 1).fillCircle(cx, cy, Rz);
       pg.fillStyle(pc.inner, 1).fillCircle(cx, cy, Rz - 70 * this.zoom);
@@ -3230,7 +3255,10 @@ class Level1 extends Phaser.Scene {
         }
       }
     }
-    for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
+    for (const q of this.props) {
+      this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
+      if (q.halo) { this.place(q.halo, q.theta, q.h + q.spr.height * q.spr.bsy * 0.5, 0); q.halo.setAlpha(q.halo.baseA * (0.75 + 0.25 * Math.sin(this.t * 1.8 + q.ph))); }
+    }
 
     this.place(P.spr, P.theta, P.h, 0);
     P.spr.setFlipX(P.facing < 0);
@@ -3317,7 +3345,7 @@ class Level1 extends Phaser.Scene {
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
-    for (const g of this.goops) { this.place(g.spr, g.theta, 0, 0); g.spr.setScale(g.spr.scaleX * (1 + 0.015 * Math.sin(this.t * 3 + g.theta * 5)), g.spr.scaleY); }
+    for (const g of this.goops) { if (g.halo) this.place(g.halo, g.theta, 4, 0); this.place(g.spr, g.theta, 0, 0); g.spr.setScale(g.spr.scaleX * (1 + 0.015 * Math.sin(this.t * 3 + g.theta * 5)), g.spr.scaleY); }
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
     this.updatePopups(this.lastDt || 0.016);
