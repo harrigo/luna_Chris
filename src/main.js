@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.97';
+const BUILD = 'v0.98';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1942,12 +1942,12 @@ class Level1 extends Phaser.Scene {
     if (e.face === undefined) { e.face = side; e.state = 'walk'; e.turnT = 0; e.torchCd = 1; }
     const grounded = e.h <= 0 && e.vh <= 0;
     e.torchCd -= dt;
-    if (side !== e.face && !fooled) { e.turnT += dt; if (e.turnT > 0.7 && e.state === 'walk') { e.face = side; e.turnT = 0; Sound.sfx('clunk'); e.spr.hsq = 1; } }
+    if (side !== e.face && !fooled) { e.turnT += dt; if (e.turnT > 0.45 && e.state === 'walk') { e.face = side; e.turnT = 0; Sound.sfx('clunk'); e.spr.hsq = 1; } }
     else e.turnT = 0;
     e.dir = e.face;
     if (e.state === 'walk') {
-      if (grounded && distP > 46) e.theta = wrap(e.theta + e.face * 58 / R * dt);
-      if (!fooled && side === e.face && distP < 85 && e.torchCd <= 0 && Math.abs(P.h) < 60) { e.state = 'tell'; e.tT = 0.5; Sound.sfx('charge'); }
+      if (grounded && distP > 46) e.theta = wrap(e.theta + e.face * 82 / R * dt);
+      if (!fooled && side === e.face && distP < 100 && e.torchCd <= 0 && Math.abs(P.h) < 60) { e.state = 'tell'; e.tT = 0.5; Sound.sfx('charge'); }
     } else if (e.state === 'tell') {                 // goggles down, sparks
       e.tT -= dt; if (Math.random() < dt * 30) this.burst(wrap(e.theta - e.face * 18 / R), 16, 'spark', 1, 0.4);
       e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0x9ad8ff : 0xffffff);
@@ -1955,9 +1955,9 @@ class Level1 extends Phaser.Scene {
     } else if (e.state === 'flame') {
       e.tT -= dt;
       const ahead = angDiff(P.theta, e.theta) * R * e.face;
-      if (ahead > 0 && ahead < 82 && P.h < 46 && P.invuln <= 0 && this.state === 'play') this.hurt();
+      if (ahead > 0 && ahead < 95 && P.h < 50 && P.invuln <= 0 && this.state === 'play') this.hurt();
       if (Math.random() < dt * 40) { const im = this.add.image(0, 0, 'flame').setDepth(7.5); this.parts.push({ theta: wrap(e.theta + e.face * rnd(18, 75) / R), h: rnd(6, 30), vt: e.face * rnd(60, 140), vh: rnd(20, 90), life: rnd(0.2, 0.35), spr: im }); }
-      if (e.tT <= 0) { e.state = 'walk'; e.torchCd = 1.8; }
+      if (e.tT <= 0) { e.state = 'walk'; e.torchCd = 1.3; }
     }
     e.vh -= this.gAt(e.theta) * dt; e.h += e.vh * dt; if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
   }
@@ -2028,7 +2028,7 @@ class Level1 extends Phaser.Scene {
       if (e.kind === 'welder' && e.state === 'flame') {
         const n = 6;
         for (let k = 0; k < n; k++) {
-          const u = (k + Math.random() * 0.5) / n, p0 = this.screenPos(wrap(e.theta + e.face * (16 + u * 70) / R), 14 + Math.sin(this.t * 40 + k) * 4 * u), r = (4 + u * 12) * z;
+          const u = (k + Math.random() * 0.5) / n, p0 = this.screenPos(wrap(e.theta + e.face * (16 + u * 82) / R), 14 + Math.sin(this.t * 40 + k) * 4 * u), r = (4 + u * 12) * z;
           g.fillStyle(u < 0.3 ? 0xffffff : (u < 0.6 ? 0xffd23f : 0xff6a1a), 0.85 - u * 0.4).fillCircle(p0.x, p0.y, r);
         }
       }
@@ -2572,10 +2572,10 @@ class Level1 extends Phaser.Scene {
           e.theta = wrap(e.theta + ((distP > hold ? dirP : -dirP * 0.5) * 95 / R) * dt);
           e.dir = dirP;
           e.cd -= dt;
-          if (e.cd <= 0 && !fooled && distP < 380) { e.state = 'aim'; e.cd = 0.75; Sound.sfx('charge'); }
+          if (e.cd <= 0 && !fooled && distP < 380) { e.state = 'aim'; e.cd = 0.6; Sound.sfx('charge'); }
         } else if (e.state === 'aim') {                  // laser follows Chris
           e.cd -= dt; e.tx = P.theta; e.ty = P.h + 20; e.dir = dirP;
-          if (e.cd <= 0) { e.state = 'tele'; e.cd = 0.4; e.spr.setTint(0xff6060); Sound.sfx('zing'); }
+          if (e.cd <= 0) { e.state = 'tele'; e.cd = 0.35; e.spr.setTint(0xff6060); Sound.sfx('zing'); }
         } else if (e.state === 'tele') {                 // locked: the line freezes and blinks
           e.cd -= dt; e.h += Math.sin(e.t * 60) * 0.6;
           if (e.cd <= 0) {
@@ -2583,7 +2583,7 @@ class Level1 extends Phaser.Scene {
             const dx = angDiff(e.tx, e.theta) * R, dy = e.ty - e.h, len = Math.hypot(dx, dy) || 1; e.ux = dx / len; e.uy = dy / len;
           }
         } else if (e.state === 'dive') {                // straight along the locked line, and on past it
-          e.theta = wrap(e.theta + (e.ux * 520 / R) * dt); e.h += e.uy * 520 * dt;
+          e.theta = wrap(e.theta + (e.ux * 620 / R) * dt); e.h += e.uy * 620 * dt;
           e.dir = e.ux >= 0 ? 1 : -1; e.cd -= dt;
           if (e.h <= 6) { e.h = 4; e.state = 'stuck'; e.cd = 1.4; this.cameras.main.shake(80, 0.004); Sound.sfx('clang'); this.burst(e.theta, 4, 'spark', 10, 0.9); }
           else if (e.cd <= 0) { e.state = 'rise'; e.cd = 1; }
@@ -2594,23 +2594,39 @@ class Level1 extends Phaser.Scene {
         } else {
           e.h += (e.baseH - e.h) * Math.min(1, dt * 2.2);
           e.cd -= dt;
-          if (e.cd <= 0) { e.state = 'hover'; e.cd = rnd(1.8, 3); }
+          if (e.cd <= 0) { e.state = 'hover'; e.cd = rnd(1.2, 2.2); }
         }
 
       } else if (ai === 'slicer') {
-        // rolling saw-blade bot: fast, low, throws flat discs you have to jump
-        const conv = this.def.conveyor || 0;
-        e.theta = wrap(e.theta + ((dirP * 125 - conv) / R) * dt);
-        e.dir = dirP;
-        e.roll += ((dirP * 125 - conv) / 25) * dt;                   // rolls like a wheel (rotation follows the ground speed)
-        e.flipCd -= dt;
-        if (e.flipCd <= 0 && e.flipP === undefined) { e.flipP = 0; e.flipCd = rnd(4, 7); }   // the odd coin-flip spin
-        e.shootCd -= dt;
-        if (e.shootCd <= 0 && distP < 420 && distP > 90) {
-          e.shootCd = rnd(2.2, 3.2);
-          this.addEBullet('blade', e.theta + dirP * (24 / R), 14, dirP * 250, 0, 10, 2.2);
-          Sound.sfx('zing');
+        // rolling saw-blade bot: fast and low, throws flat discs you have to jump, and every few seconds REVS UP
+        // (spins faster, sparks, grinding whine - the tell) and LEAPS in an arc at where you're heading. Never stomp it.
+        const conv = this.def.conveyor || 0, grounded = e.h <= 0 && e.vh <= 0;
+        e.leapCd = (e.leapCd === undefined ? rnd(2, 3.5) : e.leapCd) - dt;
+        if (e.state === 'rev') {
+          e.revT -= dt; e.roll += dirP * 40 * dt; e.dir = dirP;
+          if (Math.random() < dt * 30) this.burst(e.theta, 4, 'spark', 1, 0.7);
+          if (e.revT <= 0) {
+            e.state = 'leap'; e.vh = 520; const air = 2 * e.vh / this.gAt(e.theta);
+            e.leapV = Math.max(-380, Math.min(380, (toP * R + (P.vx || 0) * air * 0.5) / air)) || dirP * 200; Sound.sfx('whoosh');
+          }
+        } else if (e.state === 'leap') {
+          e.theta = wrap(e.theta + (e.leapV / R) * dt); e.roll += e.leapV / 20 * dt;
+          if (grounded) { e.state = 'roll'; e.leapCd = rnd(2.8, 4.2); this.cameras.main.shake(70, 0.004); Sound.sfx('clang'); this.burst(e.theta, 4, 'spark', 8, 0.9); }
+        } else {
+          e.theta = wrap(e.theta + ((dirP * 135 - conv) / R) * dt);
+          e.dir = dirP;
+          e.roll += ((dirP * 135 - conv) / 25) * dt;                 // rolls like a wheel (rotation follows the ground speed)
+          e.flipCd -= dt;
+          if (e.flipCd <= 0 && e.flipP === undefined) { e.flipP = 0; e.flipCd = rnd(4, 7); }   // the odd coin-flip spin
+          e.shootCd -= dt;
+          if (e.shootCd <= 0 && distP < 420 && distP > 90) {
+            e.shootCd = rnd(1.8, 2.8);
+            this.addEBullet('blade', e.theta + dirP * (24 / R), 14, dirP * 270, 0, 10, 2.2);
+            Sound.sfx('zing');
+          }
+          if (e.leapCd <= 0 && distP > 90 && distP < 320 && grounded && !fooled) { e.state = 'rev'; e.revT = 0.6; Sound.sfx('grind'); }
         }
+        e.vh -= this.gAt(e.theta) * dt; e.h += e.vh * dt; if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
 
       } else if (e.type === 'boss') {
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
@@ -2802,6 +2818,11 @@ class Level1 extends Phaser.Scene {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
           const pound = P.diving && P.vh < -380;
+          if (e.kind === 'slicer') {                                      // a spinning saw-blade: you do NOT land on that
+            P.vh = 420; P.h = top + 1; P.jetArmed = false; this.hurt(); P.vx = -(Math.sign(angDiff(e.theta, P.theta)) || 1) * 200;
+            this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.banner('OUCH! NOT THE SAW!');
+            continue;
+          }
           if (e.type === 'boss' && this.def.boss.armouredTop) {           // armour plating: Chris just bounces off
             P.vh = 380; P.h = top + 1; P.jetArmed = false; P.invuln = Math.max(P.invuln, 0.2);
             this.burst(P.theta, top, 'spark', 12, 1.1); this.cameras.main.shake(80, 0.005);

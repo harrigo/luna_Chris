@@ -711,3 +711,16 @@ Every new threat has a tell and a counter you can learn:
   - shoot it apart (6 hp, 35% chance of a cheese wedge), or it crumbles after 12s.
 - **Steam vents** (L3 geysers with `puff: 'steam'`, `vent: 'steamvent'`, `float`): hissing puffs warn (1.1s), then a scalding column of billowing steam (1.2s, 170 high). Puffs can float without gravity and grow (`noGrav`, `grow`).
 - Waves have 8, 11 and 14 spawns, mixing welders, drones and slicers.
+
+### v0.98 — L3 harder; no stomping saw-blades
+- **Saw-blades can't be stomped:** landing on a slicer cuts Chris (a hit), flings him up and off, and shows "OUCH! NOT THE SAW!"
+- **Saw-bots leap:**
+  - they roll faster (135);
+  - they throw discs more often (every 1.8–2.8s at 270);
+  - every 2.8–4.2s within 90–320px they **rev up**: spinning faster, sparking, with a grinding whine (0.6s tell);
+  - then they **leap** in an arc at where Chris is heading and land with a clang. Run under or away.
+- **Welders:** turn after 0.45s (was 0.7), walk at 82 (was 58), torch reach 95 (was 82), torch cooldown 1.3s.
+- **Drones:** aim 0.6s, lock 0.35s, dash at 620, back on the attack every 1.2–2.2s.
+- **Claw drops:** every 3.5–5.5s, up to 4 blocks.
+- **Steam vents:** 7 vents, erupting every 2.5–5s.
+- **A new WAVE 4:** 17 spawns, a dense mix of welders, drones and saw-bots.

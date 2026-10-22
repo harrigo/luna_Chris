@@ -85,8 +85,8 @@ const LEVELS = {
     music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'GET BEHIND THE SHIELD-RATS! WATCH THE CLAW!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
-    clawDrops: { every: [6, 9], max: 3 },                      // the Claw drops cheese blocks: crush hazard, then cover you can stand on / shoot apart
-    geysers: { n: 5, idle: [4, 7], warn: 1.1, erupt: 1.2, height: 170, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
+    clawDrops: { every: [3.5, 5.5], max: 4 },                      // the Claw drops cheese blocks: crush hazard, then cover you can stand on / shoot apart
+    geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
     dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
@@ -104,7 +104,8 @@ const LEVELS = {
     waves: [
       { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
-      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] }
+      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
+      { name: 'WAVE 4', spawns: [S('gogglerat', 0), S('gogglerat', 0.5), S('slicer', 1.2), S('drone', 1.8), S('drone', 2.3), S('gogglerat', 3), S('slicer', 3.6), S('drone', 4.2), S('gogglerat', 4.8), S('gogglerat', 5.2), S('slicer', 5.8), S('drone', 6.4), S('drone', 6.8), S('gogglerat', 7.4), S('slicer', 8), S('drone', 8.6), S('gogglerat', 9.2)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
