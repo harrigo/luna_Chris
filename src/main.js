@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.81';
+const BUILD = 'v0.82';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -457,7 +457,7 @@ class Level1 extends Phaser.Scene {
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.mouseAim = false;
       const Bb = this.btn && this.btn.bash;                // touch BASH button reacts on the press, so even a flick of a tap counts
-      if (p.wasTouch && Bb && this.touchUI && Math.hypot(p.x - Bb.x, p.y - Bb.y) < Bb.r * 1.25) this.bashReq = true;
+      if (p.wasTouch && Bb && this.touchUI && Math.hypot(p.x - Bb.x, p.y - Bb.y) < Bb.r * 1.05) this.bashReq = true;
     });
     this.input.on('wheel', (p, objs, dx, dy) => {
       if (this.state !== 'play' || this.paused || this.time.now < this.wheelCd || !dy) return;
@@ -520,7 +520,7 @@ class Level1 extends Phaser.Scene {
     this.btn = {
       move: { x: 92, y: H - 86, r: 52 },
       aim:  { x: W - 170, y: H - 86, r: 52 },
-      bash: { x: W - 58, y: H - 150, r: 40 }
+      bash: { x: W - 48, y: Math.max(H * 0.36, H - 215), r: 32 }      // up the right edge, clear of where the thumb lands to aim
     };
     this.btnLabels.move.setPosition(this.btn.move.x, this.btn.move.y + 64);
     this.btnLabels.aim.setPosition(this.btn.aim.x, this.btn.aim.y + 64);
@@ -1185,7 +1185,7 @@ class Level1 extends Phaser.Scene {
       const ox = p.downX, oy = p.downY;
       if (oy < this.H * 0.28) continue;                                  // the HUD / menu area isn't a stick
       const Bb = this.btn.bash;
-      if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.3) { d.melee = true; continue; }       // the big right-hand button = BASH
+      if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.05) { d.melee = true; continue; }      // the right-hand button = BASH (only if the press starts on it)
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
         S.move = { ox, oy, vx, vy }; moveTouched = true;
@@ -1328,7 +1328,9 @@ class Level1 extends Phaser.Scene {
     const W = this.weapon;
     // ---- MELEE: gun-butt bash (Halo style). B / F / V any time, or just keep holding FIRE when the gun is out of pasta.
     P.bashCd = Math.max(0, P.bashCd - dt);
-    if ((inp.melee || (want && P.overheat)) && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
+    // (the out-of-pasta auto-bash only kicks in when something is actually close enough to hit - otherwise just aiming
+    //  an empty gun on a phone, which counts as holding FIRE, would bash over and over)
+    if ((inp.melee || (want && P.overheat && this.bashTargetNear())) && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
     if (P.bashT > 0) {
       P.bashT = Math.max(0, P.bashT - dt);
       const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
@@ -1539,6 +1541,19 @@ class Level1 extends Phaser.Scene {
     }
   }
   comboMult() { return this.combo >= 15 ? 4 : this.combo >= 10 ? 3 : this.combo >= 5 ? 2 : 1; }
+
+  // is there anything in front of Chris that a bash would connect with?
+  bashTargetNear() {
+    const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34), reachT = CFG.bashRange / R;
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      const a = angDiff(e.theta, P.theta) * dir;
+      if (a < -14 / R || a > reachT + e.r / R + 10 / R) continue;
+      if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
+      return true;
+    }
+    return !!(this.relics && this.relics.some(r => Math.abs(angDiff(r.theta, P.theta)) * R < CFG.bashRange + 10 && Math.abs(r.h - cy) < 50));
+  }
 
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);

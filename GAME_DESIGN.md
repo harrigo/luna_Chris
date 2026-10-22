@@ -508,3 +508,7 @@ Bessie is snatched back at the end of every level until Level 9.
     - Bigger spore rings, and a second staggered ring in phase 2.
     - New aimed triple-spit.
     - Summons germs, and stink-flies in phase 2.
+
+### v0.82 — No more accidental bashes on mobile
+- The out-of-pasta auto-bash (holding FIRE with an overheated gun) now only fires when an enemy or relic is within bash reach (`bashTargetNear()`). On a phone, aiming counts as holding FIRE, so an empty gun used to bash over and over just from aiming.
+- The touch BASH button moved up the right edge (out of where the thumb lands to aim right) and is a bit smaller (r 32). It only triggers if the press *starts* on the button (hit area 1.05× the button, down from 1.3×). Dragging the aim stick across it never bashes.
