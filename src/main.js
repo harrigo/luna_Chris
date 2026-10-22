@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.75';
+const BUILD = 'v0.76';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -305,11 +305,25 @@ class Level1 extends Phaser.Scene {
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     this.ledgeSprs = [];
-    for (const L of (this.def.ledges || [])) {
-      const spr = this.add.image(0, 0, this.def.ledgeTex || 'ledge1').setOrigin(0.5, 0.1).setDepth(3);
-      spr.bsx = (L.half * 2 * R) / 72; spr.bsy = 1;
-      this.ledgeSprs.push({ spr, L });
-    }
+    makePlatformTextures(this);
+    (this.def.ledges || []).forEach((L, i) => {
+      const types = this.def.ledgeTypes, type = L.type || (types ? types[i % types.length] : null), T = type && PLATFORMS[type];
+      if (!T) {                                                      // old-style slab (fallback)
+        const spr = this.add.image(0, 0, this.def.ledgeTex || 'ledge1').setOrigin(0.5, 0.1).setDepth(3);
+        spr.bsx = (L.half * 2 * R) / 72; spr.bsy = 1;
+        this.ledgeSprs.push({ spr, L, extras: [] }); return;
+      }
+      const tex = this.textures.get(T.key).getSourceImage ? this.textures.getFrame(T.key) : null, th = tex ? tex.cutHeight : 30;
+      const spr = this.add.image(0, 0, T.key).setOrigin(0.5, T.top / th).setDepth(3);
+      spr.bsx = spr.bsy = (L.half * 2 * R) / 124;                    // scaled evenly to the ledge's width
+      const q = { spr, L, type, extras: [], t: rnd(0, 6), f: 0, ft: 0 };
+      const ex = (key, dx, dy, depth, add) => { const im = this.add.image(0, 0, key).setDepth(depth); if (add) im.setBlendMode(Phaser.BlendModes.ADD); q.extras.push({ im, dx, dy }); return im; };
+      if (type === 'energy') { q.glow = ex('puff', 0, 5, 2.95, true).setTint(0x5ce1ff); q.glow.bsx = 2.4; q.glow.bsy = 0.5; }
+      if (type === 'girder') { ex('pl_siren', 26, -5, 3.05); q.beacon = ex('puff', 26, -6, 3.06, true).setTint(0xff3030); q.beacon.bsx = q.beacon.bsy = 0.5; }
+      if (type === 'crystal') { q.sparks = [ex('spark', -56, -8, 3.06, true), ex('spark', 56, -8, 3.06, true), ex('spark', -48, -12, 3.06, true)]; q.glow = ex('puff', 0, 6, 2.95, true).setTint(0xb060f0); q.glow.bsx = 2.2; q.glow.bsy = 0.7; }
+      if (type === 'panini') { q.glow = ex('puff', 0, 4, 2.95, true).setTint(0xffb040); q.glow.bsx = 2.2; q.glow.bsy = 0.45; q.dripT = rnd(0.2, 1); }
+      this.ledgeSprs.push(q);
+    });
     this.props = [];
     for (const pr of (this.def.props || [])) {
       for (let i = 0; i < pr.n; i++) {
@@ -2150,7 +2164,31 @@ class Level1 extends Phaser.Scene {
       this.place(L.bub, L.theta + L.bx, L.h + 2 + L.bt * 5, 0);
       L.bub.setAlpha(L.bt < 0.9 ? 1 : (1 - L.bt) * 10);
     }
-    for (const q of this.ledgeSprs) this.place(q.spr, q.L.theta, q.L.h - 1, 0);
+    for (const q of this.ledgeSprs) {
+      this.place(q.spr, q.L.theta, q.L.h - 1, 0);
+      if (!q.type) continue;
+      const dt = this.lastDt || 0.016, sc = q.spr.bsx, L = q.L;
+      q.t += dt;
+      for (const e of q.extras) this.place(e.im, wrap(L.theta + e.dx * sc / (R + L.h)), L.h - e.dy * sc, 0);   // dx along the ledge, dy below its top
+      if (q.type === 'energy') {                                       // lightning flickers between frames, the glow hums
+        q.ft += dt; if (q.ft > 0.06) { q.ft = 0; q.f = (q.f + 1 + (Math.random() < 0.3 ? 1 : 0)) % 3; q.spr.setTexture('pl_energy' + q.f); }
+        q.glow.setAlpha(0.35 + 0.2 * Math.random());
+      } else if (q.type === 'girder') {
+        const on = Math.floor(q.t * 2.5) % 2 === 0; q.beacon.setAlpha(on ? 0.85 : 0.05); q.extras[0].im.setTint(on ? 0xffffff : 0x803030);
+      } else if (q.type === 'crystal') {
+        q.sparks.forEach((s, k) => s.setScale(s.scaleX * (0.4 + 0.6 * Math.max(0, Math.sin(q.t * 3 + k * 2.1)))));
+        q.glow.setAlpha(0.22 + 0.1 * Math.sin(q.t * 2));
+      } else if (q.type === 'panini') {
+        q.glow.setAlpha(0.2 + 0.08 * Math.sin(q.t * 3));
+        q.dripT -= dt;
+        if (q.dripT <= 0 && this.state === 'play') {                   // a blob of cheese drops off now and then
+          q.dripT = rnd(0.5, 1.4);
+          const dx = rnd(-0.7, 0.7) * L.half;
+          const im = this.add.image(0, 0, 'fondue').setDepth(2.9); im.bsx = im.bsy = rnd(0.4, 0.6);
+          this.parts.push({ theta: wrap(L.theta + dx), h: L.h - 26 * sc, vt: 0, vh: -10, life: 1.6, spr: im });
+        }
+      }
+    }
     for (const q of this.props) this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
 
     this.place(P.spr, P.theta, P.h, 0);

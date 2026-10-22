@@ -25,7 +25,7 @@ const LEVELS = {
     geysers: { n: 7, idle: [3.5, 7], warn: 1.1, erupt: 1.3, height: 175 },
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
-    gravity: 1, ledgeTex: 'ledge1',
+    gravity: 1, ledgeTypes: ['panini', 'crystal', 'carnival', 'energy', 'panini'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.9, half: 0.14, h: 85 }, { theta: 2.0, half: 0.12, h: 165 }, { theta: 3.3, half: 0.14, h: 85 }, { theta: 4.4, half: 0.12, h: 165 }, { theta: 5.5, half: 0.14, h: 85 }],
     props: [
       { tex: 'p_skull', n: 3, sc: [1, 1.3], tint: 0xe0d8c0 },
@@ -45,7 +45,7 @@ const LEVELS = {
     radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
     dust: [0x2fbf8f, 0x3ad0c0, 0x6a8cff, 0x9bff6a], decorTint: 0x4fa88f, decorAlpha: 1,
-    gravity: 1, ledgeTex: 'ledge2',
+    gravity: 1, ledgeTypes: ['crystal', 'girder', 'panini', 'crystal', 'girder', 'panini'], ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
     props: [
       { tex: 'pile_tyres', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x40604f, alpha: 0.6, h: -10 },
@@ -68,7 +68,7 @@ const LEVELS = {
     radius: 300, sky: [0x0e0506, 0x56260c], bg: '#0e0506', starTint: 0xffd9a8, dustAlpha: 1.4, bgDecor: 'gears',
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0xd5dde8 },
     dust: [0xff9a3a, 0xff6a3a, 0x8aa0c0, 0xffd23f], decorTint: 0x8a929c, decorAlpha: 0.55,
-    gravity: 1, ledgeTex: 'ledge3',
+    gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
     ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
     props: [
       { tex: 'pile_scrap', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x5a3a34, alpha: 0.6, h: -10 },
@@ -98,7 +98,7 @@ const LEVELS = {
     geysers: { n: 11, idle: [2.2, 4.6], warn: 0.9, erupt: 1.5, height: 235 },
     planet: { fill: 0xf6a62e, inner: 0xe06c18, rim: 0xffd65e, glow: 0xffb060 },
     dust: [0xff6a3a, 0xffb03a, 0xff3a6a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
-    gravity: 1, ledgeTex: 'ledge1',
+    gravity: 1, ledgeTypes: ['carnival', 'panini', 'energy', 'carnival', 'panini', 'energy'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.6, half: 0.12, h: 90 }, { theta: 1.5, half: 0.11, h: 175 }, { theta: 2.6, half: 0.12, h: 90 }, { theta: 3.6, half: 0.11, h: 175 }, { theta: 4.6, half: 0.12, h: 90 }, { theta: 5.5, half: 0.11, h: 175 }],
     props: [
       { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffc8a8 },
@@ -774,6 +774,88 @@ function makeSkyDither(scene, key, w, h, cols) {
       const lo = Math.floor(v), f = v - lo;
       for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
     }
+  });
+}
+
+// ---------------------------------------------------------------- platform types (all 124px wide, scaled to each ledge)
+// top = the pixel row you stand on. Extras (siren, glow, drips, sparkles) are added at runtime in main.js.
+const PLATFORMS = {
+  energy:   { key: 'pl_energy0', frames: 3, top: 7 },
+  girder:   { key: 'pl_girder', top: 4 },
+  panini:   { key: 'pl_panini', top: 3 },
+  crystal:  { key: 'pl_crystal', top: 14 },
+  carnival: { key: 'pl_carnival', top: 4 }
+};
+function makePlatformTextures(scene) {
+  if (scene.textures.exists('pl_girder')) return;
+  const W = 124, STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272], DARK = [0x5a6272, 0x3a3e4c, 0x24262e];
+  // electric bar: metal end caps with cyan lamps, a glowing energy tube, lightning crackling along it (3 frames)
+  for (let f = 0; f < 3; f++) pixSprite(scene, 'pl_energy' + f, W, 26, p => {
+    const r = rng(77 + f * 13);
+    p.rrect(12, 7, 111, 18, 4, [0xc8fbff, 0x5ce1ff, 0x1a8ab0]);
+    p.rect(14, 9, 109, 10, 0xffffff);
+    for (let k = 0; k < 2; k++) {                                    // a lightning bolt running the length of the tube
+      let y = 12 + (r() * 4 - 2) | 0; const pts = [];
+      for (let x = 12; x <= 112; x += 6 + (r() * 6 | 0)) { pts.push([x, y]); y = Math.max(8, Math.min(17, y + (r() * 8 - 4 | 0))); }
+      p.line(pts, k ? 0xe8ffff : 0xffffff);
+    }
+    for (let k = 0; k < 5; k++) { const x = 16 + r() * 92 | 0, up = r() < 0.5; p.line([[x, up ? 7 : 18], [x + (r() * 6 - 3 | 0), up ? 2 + (r() * 3 | 0) : 22 + (r() * 3 | 0)]], 0x9ff4ff); }   // stray arcs
+    for (const x0 of [0, 110]) {
+      p.rrect(x0, 3, x0 + 13, 22, 4, STEEL); p.rect(x0 + 2, 11, x0 + 11, 13, 0x5a6272);
+      p.ell(x0 + 6.5, 12, 3.5, 3.5, [0xffffff, 0x9ff4ff, 0x2aa8d0]);
+    }
+  });
+  // steel girder: riveted beam, hazard stripes, cables and a chain hanging underneath (siren added at runtime)
+  pixSprite(scene, 'pl_girder', W, 52, p => {
+    for (const [x0, x1, sag, c] of [[18, 46, 22, 0x3a3e4c], [30, 70, 30, 0x24262e], [52, 86, 18, 0x4a2f1a], [74, 100, 26, 0x3a3e4c]]) {   // drooping cables
+      const pts = []; for (let k = 0; k <= 10; k++) { const t = k / 10; pts.push([x0 + (x1 - x0) * t, 17 + Math.sin(t * Math.PI) * sag]); }
+      p.line(pts, c, 2);
+    }
+    p.line([[60, 17], [62, 40], [60, 46]], 0x24262e, 2); p.rect(59, 45, 62, 48, 0xffa21a);       // a cable end dangling
+    for (let y = 18; y < 46; y += 4) { p.rect(104, y, 106, y + 2, 0x7a8290); p.px(105, y + 3, 0x5a6272); }   // chain
+    p.rrect(1, 3, 122, 17, 2, STEEL);
+    p.rect(22, 6, 101, 13, 0x1a1020);
+    for (let x = 22; x < 102; x += 8) for (let y = 6; y <= 13; y++) for (let k = 0; k < 4; k++) { const xx = x + k + (y - 6); if (xx < 102) p.px(xx, y, 0xffd23f); }   // diagonal hazard stripes
+    for (const x of [6, 14, 108, 116]) for (const y of [6, 13]) { p.px(x, y, 0xffffff); p.px(x + 1, y + 1, 0x3a3e4c); }   // rivets
+    p.line([[2, 16], [121, 16]], 0x3a3e4c);
+  });
+  pixSprite(scene, 'pl_siren', 12, 10, p => { p.rect(1, 7, 10, 9, 0x5a6272); p.ell(5.5, 5, 4, 4, [0xff8a8a, 0xe03030, 0x901818]); p.px(4, 3, 0xffffff); });
+  // toasted panini: grill-marked bread, oozing cheese, drips hanging off the bottom
+  pixSprite(scene, 'pl_panini', W, 34, p => {
+    const CH = [0xfff0a0, 0xffc83a, 0xd8901a];
+    for (const [x, len] of [[14, 10], [26, 16], [40, 8], [57, 19], [71, 11], [88, 15], [104, 9]]) { p.rrect(x - 2, 14, x + 2, 14 + len, 2, CH); p.ell(x, 15 + len, 2.5, 2.5, CH); }
+    p.rrect(3, 11, 120, 17, 3, CH);                                                    // the melted layer
+    p.rrect(1, 2, 122, 13, 6, [0xffd890, 0xe0a050, 0xa86a2a]);                         // the bread
+    for (let x = 10; x < 118; x += 9) p.line([[x, 3], [x + 6, 12]], 0x8a4a1a, 2);      // grill marks
+    p.line([[8, 4], [114, 4]], 0xfff0c0);
+  });
+  // floating crystal rock: craggy dark stone, glowing purple/cyan crystals, roots trailing underneath
+  pixSprite(scene, 'pl_crystal', W, 58, p => {
+    const ROCK = [0x5a5470, 0x3a344e, 0x221e30];
+    for (const [x, y, len] of [[30, 40, 14], [48, 44, 12], [72, 43, 13], [92, 38, 15]]) p.line([[x, y], [x - 3, y + len * 0.5], [x + 2, y + len]], 0x6a4a2a);   // roots
+    p.poly([[2, 16], [12, 13], [40, 14], [70, 13], [100, 14], [121, 16], [118, 26], [104, 36], [84, 44], [60, 48], [38, 44], [18, 36], [6, 26]], ROCK);
+    for (const [x, y] of [[20, 24], [44, 30], [66, 22], [80, 34], [98, 26], [56, 40]]) { p.px(x, y, 0x5ce1ff); p.px(x + 1, y, 0x2aa8d0); p.px(x, y + 1, 0x2aa8d0); }
+    for (const [x, y] of [[32, 20], [88, 20], [70, 40]]) { p.px(x, y, 0xd080ff); p.px(x + 1, y + 1, 0x8a3ad0); }
+    const xtal = (x, h, w, cols) => p.poly([[x - w, 15], [x - w, 15 - h * 0.7], [x, 15 - h], [x + w, 15 - h * 0.7], [x + w, 15]], cols);
+    const PUR = [0xf0c0ff, 0xb060f0, 0x6a2aa8], CY = [0xd0ffff, 0x5ce1ff, 0x1a8ab0];
+    xtal(6, 13, 3, PUR); xtal(12, 9, 2, CY); xtal(3, 7, 2, CY);                       // clusters on the ends (the middle is the walkway)
+    xtal(116, 12, 3, CY); xtal(110, 8, 2, PUR); xtal(121, 6, 2, PUR);
+  });
+  // carnival beam: gold riveted bar with scroll ends, purple star bunting and stars on strings
+  pixSprite(scene, 'pl_carnival', W, 50, p => {
+    const GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a], PUR = [0x9a6aff, 0x5a3ad0, 0x2a1a8a];
+    for (const x of [16, 108]) { p.line([[x, 14], [x, 40]], 0xc8a040); p.poly([[x, 39], [x + 3, 43], [x + 1, 46], [x - 1, 46], [x - 3, 43]], GOLD); }   // hanging stars
+    for (const [x0, x1] of [[20, 62], [62, 104]]) {                                    // two swags of pennants
+      const n = 5;
+      for (let k = 0; k < n; k++) { const t = (k + 0.5) / n, x = x0 + (x1 - x0) * t, y = 14 + Math.sin(t * Math.PI) * 6;
+        p.poly([[x - 4, y], [x + 4, y], [x + 4, y + 9], [x, y + 13], [x - 4, y + 9]], PUR); p.px(x, y + 5, 0xffd23f); p.px(x - 1, y + 5, 0xffe27a); p.px(x + 1, y + 5, 0xffe27a); p.px(x, y + 4, 0xffe27a); p.px(x, y + 6, 0xffe27a); }
+      const pts = []; for (let k = 0; k <= 8; k++) { const t = k / 8; pts.push([x0 + (x1 - x0) * t, 14 + Math.sin(t * Math.PI) * 6]); }
+      p.line(pts, 0xffd23f);
+    }
+    p.rrect(4, 3, 119, 14, 3, GOLD);
+    p.line([[6, 5], [117, 5]], 0xfffbe0);
+    for (let x = 14; x < 112; x += 12) { p.ell(x, 9, 1.6, 1.6, [0xffffff, 0xc8a040, 0x7a5a1a]); }
+    for (const x0 of [0, 113]) p.ell(x0 + 5, 8.5, 5, 6, GOLD);                          // scroll ends
   });
 }
 

@@ -377,3 +377,17 @@ Bessie is snatched back at the end of every level until Level 9.
   - the body drops 13.5px onto the legs, with only a hint of squash, and leans in 0.13 rad;
   - the belly sags (+16%), and the cape follows the body down.
 - The gun drops with the body, so shots leave from crouch height (fallback gun height 29). Hitboxes are unchanged.
+
+### v0.76 — Varied platforms
+- Five platform types (`PLATFORMS` + `makePlatformTextures` in levels.js, all on the sprite sheet). Each is drawn 124px wide and scaled evenly to its ledge; `top` = the row you stand on.
+  - **energy:** a glowing cyan tube between metal caps, with lightning crackling across 3 flickering frames and a humming glow.
+  - **girder:** a riveted steel beam with diagonal hazard stripes and drooping cables, a dangling cable end and a chain underneath. A red siren on top blinks with a glow.
+  - **panini:** grill-marked toasted bread with an oozing cheese layer and drips. Real cheese blobs drop off now and then, with a warm glow.
+  - **crystal:** a craggy floating rock with purple/cyan crystal clusters on its ends, glowing specks, hanging roots, twinkles and a purple glow.
+  - **carnival:** a gold riveted bar with scroll ends, two swags of purple star pennants, and stars on strings.
+- Per-level mixes via `ledgeTypes`:
+  - L1: panini / crystal / carnival / energy.
+  - L2: crystal / girder / panini.
+  - L3: girder / energy.
+  - L5.5: carnival / panini / energy.
+- A ledge can also force `type`. Without types, the old slab is used.
