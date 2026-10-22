@@ -7,6 +7,9 @@ const Settings = (() => {
     gfx: /[?&]lowfx/.test(location.search) ? 'low' : load('gfx', 'high'),     // high | medium | low
     shake: load('shake', true),
     rumble: load('rumble', true),
+    diff: load('diff', 'normal'),                    // easy | normal | hard
+    cycleDiff(dir) { const o = ['easy', 'normal', 'hard'], i = o.indexOf(this.diff); this.set('diff', dir ? o[Math.max(0, Math.min(2, i + dir))] : o[(i + 1) % 3]); },
+    get dk() { return { easy: { hp: 0.7, shot: 0.75 }, normal: { hp: 1, shot: 1 }, hard: { hp: 1.3, shot: 1.15 } }[this.diff] || { hp: 1, shot: 1 }; },
     get glow() { return this.gfx === 'high'; },      // shader glow on sprites
     get lights() { return this.gfx !== 'low'; },     // light halos + heat haze
     set(k, v) { this[k] = v; save(k, v); },
@@ -20,6 +23,7 @@ const Settings = (() => {
 // options shared by the main menu and the pause menu
 function optionItems(onGfx) {
   return [
+    { label: () => 'DIFFICULTY: ' + Settings.diff.toUpperCase(), act: d => Settings.cycleDiff(d) },
     { label: () => 'GRAPHICS: ' + Settings.gfx.toUpperCase(), act: d => { Settings.cycleGfx(d); if (onGfx) onGfx(); } },
     { label: () => 'SOUND: ' + (Settings.soundOn() ? 'ON' : 'OFF'), act: () => Settings.toggleSound() },
     { label: () => 'SCREEN SHAKE: ' + (Settings.shake ? 'ON' : 'OFF'), act: () => Settings.set('shake', !Settings.shake) },

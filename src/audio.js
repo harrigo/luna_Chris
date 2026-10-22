@@ -150,6 +150,8 @@ const Sound = (() => {
     bonk:    () => { tone({ type: 'square', f: 240, f2: 70, dur: 0.14, vol: 0.32 }); noise({ f1: 900, f2: 120, dur: 0.12, vol: 0.4 }); },
     charge:  () => tone({ type: 'pulse', duty: 0.25, f: 300 + (SFX._ch || 0) * 700, f2: 340 + (SFX._ch || 0) * 760, dur: 0.07, vol: 0.07 }),   // pitch rises with the charge
     charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
+    beat:    () => { tone({ type: 'sine', f: 70, f2: 40, dur: 0.12, vol: 0.4 }); tone({ type: 'sine', f: 62, f2: 38, dur: 0.12, vol: 0.3, t: ctx.currentTime + 0.18 }); },   // low-health heartbeat
+    combo:   () => arp([660, 990], 0.04, { type: 'pulse', duty: 0.25, vol: 0.08 }),
     blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter
     alarm:   () => { for (let i = 0; i < 3; i++) tone({ type: 'square', f: 880, f2: 620, dur: 0.18, vol: 0.09, t: ctx.currentTime + i * 0.24 }); },
     shine:   () => arp([1320, 1760, 2640], 0.05, { type: 'pulse', duty: 0.125, vol: 0.08 }),
@@ -319,6 +321,80 @@ const Sound = (() => {
       { p: J('A2:1 -:1 A2:1 -:1 C3:1 -:1 A2:1 -:1 E3:1 -:1 A2:1 -:1 G2:1 -:1 A2:1 -:1'), w: 'triangle', vol: 0.3, gate: 0.6 },
       { p: J('-:4 E5:2 -:2 C5:2 -:2 A4:4', '-:4 D5:2 -:2 B4:2 -:2 G4:4'), w: 'pulse', duty: 0.125, vol: 0.1, pluck: true, gate: 1 },
       { drums: true, p: 'h.h.h.h.h.h.h.h.', vol: 0.35 }
+    ] }),
+
+    // Level 4: Mount Mozzarella - a fiery Italian tarantella in D harmonic minor
+    level4: build({ bpm: 150, ch: [
+      { p: J('D5:2 E5:2 F5:2 D5:2 A5:4 F5:4', 'G5:2 F5:2 E5:2 D5:2 C#5:4 A4:4', 'D5:2 F5:2 A5:2 D6:2 C6:2 A#5:2 A5:4', 'G5:2 A5:2 F5:2 E5:2 D5:8'),
+        w: 'pulse', duty: 0.25, vol: 0.16, gate: 0.8 },
+      { p: J(arpBar([50, 53, 57]), arpBar([45, 49, 52]), arpBar([46, 50, 53]), arpBar([50, 53, 57])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(38), bassBar(33), bassBar(34), bassBar(38)), w: 'triangle', vol: 0.34, gate: 0.75 },
+      { drums: true, p: 'k.hsk.hsk.hsk.hs', vol: 0.95 }
+    ] }),
+
+    // Level 5: The Brie-muda Triangle - slow, spooky and echoey
+    level5: build({ bpm: 100, ch: [
+      { p: J('B4:4 C5:2 B4:2 G4:4 F#4:4', 'E4:4 G4:2 B4:2 D#5:8', 'C5:4 D5:2 C5:2 A4:4 G4:4', 'F#4:2 A4:2 C5:2 D#5:2 E5:8'), w: 'triangle', vol: 0.22, gate: 0.95 },
+      { p: J('-:1 B4:4 C5:2 B4:2 G4:4 F#4:3', 'E4:4 G4:2 B4:2 D#5:8', 'C5:4 D5:2 C5:2 A4:4 G4:4', 'F#4:2 A4:2 C5:2 D#5:2 E5:8'), w: 'pulse', duty: 0.125, vol: 0.045, gate: 0.9 },   // a ghostly echo, one step behind
+      { p: J(arpBar([52, 55, 59]), arpBar([47, 51, 54]), arpBar([48, 52, 55]), arpBar([47, 51, 54])), w: 'pulse', duty: 0.5, vol: 0.04, pluck: true, gate: 1 },
+      { p: J(...[40, 35, 36, 35].map(r => `${r}:8 ${r + 12}:8`)), w: 'triangle', vol: 0.3, gate: 0.9 },
+      { drums: true, p: 'k.......s.......', vol: 0.6 }
+    ] }),
+
+    // Level 6: Cheddar Gorge - breakneck punk, the Pepper Jack is right behind you
+    level6: build({ bpm: 172, ch: [
+      { p: J('G5:2 G5:1 G5:1 F#5:2 D5:2 E5:2 D5:2 B4:4', 'C5:2 C5:1 C5:1 D5:2 E5:2 D5:4 -:4', 'G5:2 G5:1 G5:1 A5:2 B5:2 C6:2 B5:2 A5:4', 'G5:2 F#5:2 E5:2 F#5:2 G5:8'),
+        w: 'pulse', duty: 0.5, vol: 0.14, gate: 0.75 },
+      { p: J(arpBar([55, 59, 62]), arpBar([48, 52, 55]), arpBar([55, 59, 62]), arpBar([50, 54, 57])), w: 'pulse', duty: 0.25, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(43), bassBar(36), bassBar(43), bassBar(38)), w: 'triangle', vol: 0.34, gate: 0.7 },
+      { drums: true, p: 'k.hsk.hskkhsk.hs', vol: 1 }
+    ] }),
+
+    // Level 7: The Astro-Rat Armada - a pompous rat military march
+    level7: build({ bpm: 128, ch: [
+      { p: J('C5:3 C5:1 C5:2 Eb5:2 G5:4 F5:2 Eb5:2', 'D5:3 D5:1 D5:2 F5:2 Ab5:4 G5:4', 'Eb5:3 Eb5:1 Eb5:2 G5:2 C6:4 Bb5:2 Ab5:2', 'G5:2 F5:2 Eb5:2 D5:2 C5:8'),
+        w: 'pulse', duty: 0.25, vol: 0.17, gate: 0.85 },
+      { p: J(arpBar([48, 51, 55]), arpBar([43, 47, 50]), arpBar([44, 48, 51]), arpBar([43, 47, 50])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(36), bassBar(31), bassBar(32), bassBar(31)), w: 'triangle', vol: 0.34, gate: 0.8 },
+      { drums: true, p: 's.s.k...s.ssk...', vol: 0.9 }
+    ] }),
+
+    // Level 8: Lactose Labyrinth - creeping through the holes in the Swiss
+    level8: build({ bpm: 118, ch: [
+      { p: J('F5:2 -:2 Ab5:2 -:2 G5:2 F5:2 E5:4', 'C5:2 -:2 Db5:2 -:2 C5:2 Bb4:2 C5:4', 'F5:2 -:2 Ab5:2 -:2 Bb5:2 C6:2 Db6:4', 'C6:2 Bb5:2 Ab5:2 G5:2 F5:8'),
+        w: 'pulse', duty: 0.125, vol: 0.16, gate: 0.7 },
+      { p: J(arpBar([53, 56, 60]), arpBar([49, 53, 56]), arpBar([46, 49, 53]), arpBar([48, 52, 55])), w: 'pulse', duty: 0.5, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(41), bassBar(37), bassBar(34), bassBar(36)), w: 'triangle', vol: 0.34, gate: 0.7 },
+      { drums: true, p: 'k..hk..hs..hk.hh', vol: 0.85 }
+    ] }),
+
+    // Level 9: Parmesan Prime - the big one, eight bars of A-minor heroics
+    level9: build({ bpm: 158, ch: [
+      { p: J('A4:2 E5:2 A5:2 G5:2 F5:2 E5:2 D5:2 E5:2', 'F5:4 E5:2 D5:2 C5:4 B4:4', 'C5:2 G5:2 C6:2 B5:2 A5:2 G5:2 F5:2 G5:2', 'A5:4 G#5:2 F5:2 E5:8',
+              'A5:2 A5:2 C6:2 A5:2 G5:2 G5:2 B5:2 G5:2', 'F5:2 F5:2 A5:2 F5:2 E5:4 D5:4', 'D5:2 F5:2 A5:2 D6:2 C6:2 B5:2 A5:2 G#5:2', 'A5:8 E5:4 A4:4'),
+        w: 'pulse', duty: 0.25, vol: 0.16, gate: 0.85 },
+      { p: J(arpBar(Am), arpBar(F), arpBar(C), arpBar(E), arpBar(Am), arpBar(F), arpBar([50, 53, 57]), arpBar(E)), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(bassBar(45), bassBar(41), bassBar(36), bassBar(40), bassBar(45), bassBar(41), bassBar(38), bassBar(40)), w: 'triangle', vol: 0.34, gate: 0.8 },
+      { drums: true, p: 'k.hskkhsk.hskkss', vol: 1 }
+    ] }),
+
+    // Secret level 5.5: The Forbidden Fondue Fountain - a bouncy fondue party
+    level55: build({ bpm: 140, ch: [
+      { p: J('F5:2 A5:2 C6:2 A5:1 C6:1 D6:4 C6:4', 'Bb5:2 A5:2 G5:2 F5:2 G5:4 -:4', 'E5:2 G5:2 Bb5:2 G5:1 Bb5:1 C6:4 Bb5:4', 'A5:2 G5:2 F5:2 E5:2 F5:8'),
+        w: 'pulse', duty: 0.5, vol: 0.15, pluck: true, gate: 1 },
+      { p: J(arpBar([53, 57, 60]), arpBar([46, 50, 53]), arpBar([48, 52, 55]), arpBar([53, 57, 60])), w: 'pulse', duty: 0.25, vol: 0.06, pluck: true, gate: 1 },
+      { p: J(...[41, 34, 36, 41].map(r => `${r}:3 ${r + 7}:1 ${r + 12}:2 ${r + 7}:2 ${r}:3 ${r + 7}:1 ${r + 12}:2 ${r + 7}:2`)), w: 'triangle', vol: 0.32, gate: 0.7 },
+      { drums: true, p: 'k.hsh.k.hkh.s.hh', vol: 0.85 }
+    ] }),
+
+    // The final boss: the Grand Rat-King. Fastest thing in the game.
+    final: build({ bpm: 176, ch: [
+      { p: J('D5:1 D5:1 D6:2 A5:2 F5:2 D5:1 D5:1 C6:2 A5:2 F5:2', 'A#4:1 A#4:1 A#5:2 F5:2 D5:2 C5:1 C5:1 C6:2 G5:2 E5:2',
+              'D5:1 D5:1 D6:2 A5:2 F5:2 D5:1 D5:1 C6:2 A5:2 F5:2', 'D5:2 F5:2 A5:2 C#6:2 D6:8'),
+        w: 'pulse', duty: 0.25, vol: 0.17, gate: 0.8 },
+      { p: J(arpBar([50, 53, 57]), arpBar([46, 50, 53]), arpBar([50, 53, 57]), arpBar([45, 49, 52])), w: 'pulse', duty: 0.125, vol: 0.07, pluck: true, gate: 1 },
+      { p: J(bassBar(38), bassBar(34), bassBar(38), bassBar(33)), w: 'triangle', vol: 0.36, gate: 0.8 },
+      { drums: true, p: 'kkhskkhskkhskshs', vol: 1 }
     ] }),
 
     win: build({ bpm: 132, loop: false, ch: [

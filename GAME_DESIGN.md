@@ -457,3 +457,36 @@ Bessie is snatched back at the end of every level until Level 9.
 
 - HUD: the icon and a draining timer bar sit next to the weapon card. There's also a name banner on pickup.
 - Visuals: Slow-Mo adds a pulsing blue wash, and Giant scales the whole rig. All the art is on the sprite sheet (`makePowerupTextures`).
+
+### v0.80 — Review-readiness pass: feel, retries, music, replay value
+- **Game feel:**
+  - Hits shove enemies back. Bullets nudge them, the Swiss-Shot plough and blasts shove harder, and bash knocks hardest. Big enemies only budge a little and bosses don't move (`knock()`, `e.kb`).
+  - Killed enemies flash white, then tumble off spinning with a little poof when they land, instead of vanishing.
+  - Floating score numbers on every kill (pooled text, `popup()`).
+  - **Kill combos:** kills within 1.6s of each other chain. The HUD shows "N COMBO". 5+ doubles the score, 10+ triples it and 15+ quadruples it. A banner shows when a big combo ends.
+  - **Low health:** on the last cheese, a red vignette pulses at the screen edges along with a heartbeat sound.
+  - **Boss name card:** a fighting-game-style banner slides in with the boss's name ("WARNING! BOSS APPROACHING").
+- **Checkpoints and fast retries:**
+  - Checkpoints are halfway through the waves and just before the boss. On Easy, every wave is a checkpoint.
+  - Dying offers an instant retry from the checkpoint (wave and score restored). Retry is available 0.5s after dying.
+  - Death screen quips rotate.
+- **Music:** every level now has its own chiptune track:
+  - L4 Italian tarantella (D harmonic minor);
+  - L5 spooky echoes;
+  - L6 breakneck punk;
+  - L7 rat military march;
+  - L8 creeping maze;
+  - L9 eight-bar finale;
+  - 5.5 fondue party.
+
+  The Rat-King also gets his own faster final-boss theme (`bossMusic: 'final'`).
+- **Golden cheese wheels:** 3 hidden per level, saved on the device (`Progress.wheels`). A wheel already found on an earlier run shows as a faint ghost.
+  1. On the highest ledge, or floating mid-air if the level has none.
+  2. Right up at the jetpack ceiling on the far side of the planet.
+  3. Only drops when you finish off a medium-or-bigger enemy with a BASH.
+- **Level ranks (S/A/B/C/D):**
+  - Scored from hearts lost, deaths, time over par, and best combo.
+  - The rank letter slams onto the clear screen with time, hits, best combo and wheels found. The best rank is saved and shown on the level-select card, along with the 3 wheel icons.
+- **Difficulty (Options and pause menu):**
+  - Easy: enemies have 70% health and their shots move at 75% speed; checkpoints every wave; rank capped at A.
+  - Hard: 130% health and 115% shot speed; no healing wedge between waves; rank bonus.

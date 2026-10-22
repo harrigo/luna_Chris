@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.79';
+const BUILD = 'v0.80';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -101,7 +101,13 @@ const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { try { if (!(LEVELS[n] && LEVELS[n].secret) && n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
   found(n) { try { if (n === 5.5 && localStorage.getItem('lc_found6') === '1') return true; return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels (5.5 was briefly numbered 6)
-  find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } }
+  find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } },
+  // best rank per level (S A B C D) and which of its 3 golden cheese wheels have been found (bitmask)
+  rank(n) { try { return localStorage.getItem('lc_rank_' + n) || ''; } catch (e) { return ''; } },
+  setRank(n, r) { const o = 'SABCD'; try { const old = this.rank(n); if (!old || o.indexOf(r) < o.indexOf(old)) localStorage.setItem('lc_rank_' + n, r); } catch (e) { /* ignore */ } },
+  wheels(n) { try { return +(localStorage.getItem('lc_wheels_' + n) || 0); } catch (e) { return 0; } },
+  addWheel(n, i) { try { localStorage.setItem('lc_wheels_' + n, String(this.wheels(n) | (1 << i))); } catch (e) { /* ignore */ } },
+  wheelCount(n) { const m = this.wheels(n); return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); }
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock;
 
@@ -134,9 +140,12 @@ class Level1 extends Phaser.Scene {
     this.warped = !!(data && data.warped);                       // arrived through a warp hole
     this.direct = !!(data && data.direct);                       // arrived from the level-select screen
     this.levelId = (data && data.level) || 1;
+    this.cp = (data && data.cp) || null;                         // checkpoint to resume from after dying: { wave, score }
+    this.deaths = (data && data.deaths) || 0;                    // deaths this attempt (counts against the level rank)
+    this.runT0 = (data && data.runT) || 0;                       // time already spent before the last death
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
-    this.waves = this.def.waves.concat([{ name: 'BOSS: ' + this.def.bossName, spawns: [{ type: 'boss', t: 1.5 }] }]);
+    this.waves = this.def.waves.concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 1.5 }] }]);
   }
 
   // ------------------------------------------------------------------ setup
@@ -173,7 +182,9 @@ class Level1 extends Phaser.Scene {
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0;
     this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
-    this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
+    this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
+    this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null;
+    this.gotPower = !!(this.cp && this.cp.power); this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
@@ -406,7 +417,7 @@ class Level1 extends Phaser.Scene {
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
-      else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
+      else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
     });
     // controller: A/Start = start / retry / continue, View (back) = level menu
@@ -417,7 +428,7 @@ class Level1 extends Phaser.Scene {
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
-      else if (this.state === 'dead' && this.t - this.endT > 0.8) this.scene.restart({ autostart: true, level: this.levelId });
+      else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
     });
     this.events.once('shutdown', padOff);
@@ -616,11 +627,18 @@ class Level1 extends Phaser.Scene {
   // ------------------------------------------------------------- game flow
   startGame() {
     this.hideOverlay();
+    this.placeWheels();
     this.state = 'play';
     Sound.init();
     this.waveText.setText('LEVEL ' + this.levelId);
     if (this.warped) { this.warped = false; Sound.music('stinger', this.def.music); this.nextWave(); this.banner('WARP ZONE!\n' + this.def.name.toUpperCase()); this.cameras.main.fadeIn(600, 255, 255, 255); return; }
-    if (this.autostart) { Sound.music(this.def.music); this.nextWave(); return; }   // retry: no cutscene, straight back in
+    if (this.autostart) {                                    // retry: no cutscene, straight back in (from the checkpoint if one was reached)
+      Sound.music(this.def.music);
+      if (this.cp) { this.waveIdx = this.cp.wave - 1; this.score = this.scoreShown = this.cp.score; this.resumed = true; }
+      this.nextWave(); this.resumed = false;
+      if (this.cp) this.banner('CHECKPOINT\n' + this.waves[this.waveIdx].name);
+      return;
+    }
     Sound.music('stinger', this.def.music);
     this.clearT = -1.8;                // first wave starts about 3s in, once the rat-ship has made off with Bessie
     this.banner('THE RATS ARE TAKING BESSIE!');
@@ -867,12 +885,18 @@ class Level1 extends Phaser.Scene {
     const w = this.waves[this.waveIdx];
     this.queue = w.spawns.map(s => Object.assign({}, s)).sort((a, b) => a.t - b.t);
     this.waveTotal = Math.max(1, this.queue.length);
-    if (this.waveIdx > 0) this.addScore(1000);                // wave-clear bonus
+    if (this.waveIdx > 0 && !this.resumed) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;
     this.clearT = 0;
-    this.banner(this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name);
+    // checkpoints: halfway through the waves, and just before the boss
+    const half = Math.max(1, Math.floor((this.waves.length - 1) / 2)), isCp = this.waveIdx === half || this.waveIdx === this.waves.length - 1 || (Settings.diff === 'easy' && this.waveIdx > 0);
+    if (isCp && !this.resumed && (!this.cp || this.cp.wave < this.waveIdx)) {
+      this.cp = { wave: this.waveIdx, score: this.score, power: this.gotPower };
+      Sound.sfx('shine');
+    }
+    this.banner((this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed ? '\nCHECKPOINT!' : ''));
     if (this.waveIdx > 0 && this.waveIdx < this.waves.length - 1) Sound.sfx('wave');
-    if (this.waveIdx > 0 && this.pl.hp < CFG.maxHp) {      // a breather: a cheese wedge drops in between waves when you're hurt
+    if (this.waveIdx > 0 && this.pl.hp < CFG.maxHp && Settings.diff !== 'hard') {      // a breather: a cheese wedge drops in between waves when you're hurt
       this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
     }
     this.waveText.setText(this.waveIdx < this.waves.length - 1 ? 'WAVE ' + (this.waveIdx + 1) + '/' + (this.waves.length - 1) : 'BOSS');
@@ -880,18 +904,69 @@ class Level1 extends Phaser.Scene {
 
   win() { this.startRescue(); }
 
+  // ---- golden cheese wheels: 3 hidden per level, remembered on the device
+  //  #1 sits on the highest ledge (or floats mid-air), #2 hangs right up at the jetpack ceiling on the far side,
+  //  #3 only drops when you finish off a medium-or-bigger enemy with a BASH
+  placeWheels() {
+    for (const w of this.wheels) w.spr.destroy();
+    this.wheels = [];
+    const ledges = (this.def.ledges || []).slice().sort((a, b) => b.h - a.h), have = Progress.wheels(this.levelId);
+    const top = ledges[0];
+    this.addWheel(0, top ? top.theta : wrap(this.pl.theta + 2.2), top ? top.h + 22 : 170, have);
+    this.addWheel(1, wrap(this.pl.theta + Math.PI), CFG.jetCeiling - 20, have);
+  }
+  addWheel(i, theta, h, have) {
+    if (this.wheels.some(w => w.i === i) || this.wheelsGot.includes(i)) return;
+    have = have === undefined ? Progress.wheels(this.levelId) : have;
+    const spr = this.add.image(0, 0, 'goldwheel').setDepth(6);
+    if (have & (1 << i)) spr.setAlpha(0.45); else bakedGlow(spr, 0xffd23f, 3, 8);   // already found on an earlier run: a ghost of it
+    this.wheels.push({ i, theta, h, spr, ph: rnd(0, 6), old: !!(have & (1 << i)) });
+  }
+  updateWheels(dt) {
+    const P = this.pl;
+    for (let k = this.wheels.length - 1; k >= 0; k--) {
+      const w = this.wheels[k], bob = Math.sin(this.t * 3 + w.ph) * 4;
+      if (w.vh !== undefined) { w.vh -= 600 * dt; w.h = Math.max(w.rest || 20, w.h + w.vh * dt); if (w.h <= (w.rest || 20)) w.vh = 0; }
+      this.place(w.spr, w.theta, w.h + bob, 0);
+      w.spr.setScale(w.spr.scaleX * Math.max(0.15, Math.abs(Math.cos(this.t * 2.4 + w.ph))), w.spr.scaleY);     // spins like a coin
+      if (this.state === 'play' && dist2(w.theta, w.h + bob, P.theta, P.h + 22) < 30 * 30) {
+        this.wheels.splice(k, 1); w.spr.destroy(); this.wheelsGot.push(w.i);
+        Progress.addWheel(this.levelId, w.i);
+        this.addScore(2500); this.popup(w.theta, w.h + 20, '+2500', '#ffd23f', true);
+        Sound.sfx('reveal'); buzz([30, 30, 60]);
+        this.burst(w.theta, w.h, 'crumb', 16, 1.2); this.bang(w.theta, w.h, 24); this.addLight(w.theta, w.h, 120, 0xffd23f, 1, 0.5);
+        this.banner('GOLDEN CHEESE WHEEL!\n' + Progress.wheelCount(this.levelId) + ' / 3 FOUND');
+      }
+    }
+  }
+
+  // the end-of-level rank: S A B C D from hits taken, deaths, time and best combo
+  levelRank() {
+    const time = this.runT0 + this.t, par = this.def.par || (70 + 35 * this.waves.length);
+    let pts = (Settings.diff === 'hard' ? 108 : 100) - 12 * this.hurtCount - 20 * this.deaths - Math.max(0, (time - par) / 5) + Math.min(10, this.maxCombo / 2);
+    if (Settings.diff === 'easy') pts = Math.min(pts, 91);      // S rank needs Normal or Hard
+    const r = pts >= 92 ? 'S' : pts >= 78 ? 'A' : pts >= 60 ? 'B' : pts >= 40 ? 'C' : 'D';
+    return { r, time, pts };
+  }
+
   finishWin() {
     Progress.beat(this.levelId);
     this.state = 'won';
+    const RK = this.levelRank(), prev = Progress.rank(this.levelId);
+    Progress.setRank(this.levelId, RK.r);
+    const mm = Math.floor(RK.time / 60), ss = String(Math.floor(RK.time % 60)).padStart(2, '0');
+    const stats = 'TIME ' + mm + ':' + ss + '   HITS ' + this.hurtCount + (this.deaths ? '   DEATHS ' + this.deaths : '') + '   BEST COMBO ' + this.maxCombo +
+      '\nCHEESE WHEELS ' + Progress.wheelCount(this.levelId) + '/3' + (prev && 'SABCD'.indexOf(RK.r) < 'SABCD'.indexOf(prev) ? '   NEW BEST!' : '');
+    this.time.delayedCall(700, () => this.showRank(RK.r));
     if (this.levelId === CFG.finalLevel) {               // the whole game is done: on to the ending
       Sound.music('win'); this.endT = this.t;
-      this.showOverlay('YOU DID IT!', 'Bessie is safe at last...');
+      this.showOverlay('YOU DID IT!', 'Bessie is safe at last...\n\n' + stats);
       this.time.delayedCall(2600, () => { this.cameras.main.fadeOut(600, 0, 0, 0); this.time.delayedCall(650, () => this.scene.start('ending')); });
       return;
     }
     if (this.levelId < CFG.finalLevel) Sound.music('win');
     this.endT = this.t;
-    this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\nTap for level select');
+    this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\n' + stats + '\n\nTap for level select');
   }
 
   die() {
@@ -900,7 +975,27 @@ class Level1 extends Phaser.Scene {
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
-    this.showOverlay('CHRIS IS TOAST', 'The rats got away with Bessie.\n\nTap to try again');
+    this.deaths++;
+    const quips = ['The rats got away with Bessie.', 'Chris has been grated.', 'That was cheesy.', 'Bessie is NOT impressed.', 'Squeak squeak. (The rats are laughing.)', 'Brie-lliant effort. Not really.', 'You got Camem-BURNT.'];
+    this.showOverlay('CHRIS IS TOAST', quips[(this.deaths - 1) % quips.length] + '\n\n' + (this.cp ? 'Tap to retry from the checkpoint' : 'Tap to try again'));
+  }
+
+  // the big rank letter that slams onto the clear screen
+  showRank(r) {
+    if (this.state !== 'won') return;
+    const col = { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[r];
+    const rx = Math.min(this.W - 40, this.ovTitle.x + this.ovTitle.width / 2 + 54), ry = this.ovTitle.y;
+    const t = this.add.text(rx, ry, r, { fontFamily: PIXEL, fontSize: '44px', color: col, stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(32).setScale(4).setAlpha(0).setRotation(-0.3);
+    const lab = this.add.text(rx, ry + 34, 'RANK', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff' }).setOrigin(0.5).setDepth(32).setAlpha(0);
+    this.tweens.add({ targets: t, scale: 1, alpha: 1, rotation: -0.12, duration: 260, ease: 'Back.In', onComplete: () => {
+      this.cameras.main.shake(180, 0.008); Sound.sfx(r === 'S' ? 'reveal' : 'clunk'); buzz(40); this.tweens.add({ targets: lab, alpha: 1, duration: 200 });
+      if (r === 'S') this.tweens.add({ targets: t, scale: 1.12, yoyo: true, repeat: -1, duration: 420 });
+    } });
+  }
+
+  // straight back in: from the last checkpoint if one was reached this attempt
+  retry() {
+    this.scene.restart({ autostart: true, level: this.levelId, cp: this.cp, deaths: this.deaths, runT: this.runT0 + this.t });
   }
 
   hurt() {
@@ -926,7 +1021,7 @@ class Level1 extends Phaser.Scene {
       this.banner('POWER-UP LOST!');
       return;
     }
-    P.hp--;
+    P.hp--; this.hurtCount++;
     P.invuln = CFG.invuln;
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
@@ -993,6 +1088,7 @@ class Level1 extends Phaser.Scene {
       this.updatePlayerBullets(dt);
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
+      this.updateWheels(dt);
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1000,12 +1096,41 @@ class Level1 extends Phaser.Scene {
     }
     if (this.nap) this.updateNap(dt);
     if (this.warp) this.updateWarp(dt);
+    this.updateFeel(rawDt);
     this.updateParticles(dt);
 
     this.fpsT += dt;
     if (this.fpsT > 0.5) { this.fpsT = 0; this.fpsText.setText(Math.round(this.game.loop.actualFps) + ' fps'); }
 
     this.render(inp);
+  }
+
+  // combo timer, low-health heartbeat + red vignette
+  updateFeel(dt) {
+    if (this.comboT > 0) {
+      this.comboT -= dt;
+      if (this.comboT <= 0) { if (this.combo >= 5) this.banner(this.combo + ' COMBO!'); this.combo = 0; if (this.comboText) this.tweens.add({ targets: this.comboText, alpha: 0, duration: 250 }); }
+    }
+    if (this.comboText) this.comboText.setPosition(this.W / 2, 40);
+    const low = this.state === 'play' && this.pl.hp === 1 && !this.bonusHeart;
+    if (low && !this.vign) {
+      const key = 'vign_red';
+      if (!this.textures.exists(key)) {
+        const ct = this.textures.createCanvas(key, 160, 90), c = ct.getContext();
+        const g = c.createRadialGradient(80, 45, 28, 80, 45, 95);
+        g.addColorStop(0, 'rgba(255,0,40,0)'); g.addColorStop(0.45, 'rgba(255,20,40,0.3)'); g.addColorStop(1, 'rgba(170,0,20,1)');
+        c.fillStyle = g; c.fillRect(0, 0, 160, 90); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      }
+      this.vign = this.add.image(0, 0, key).setOrigin(0).setDepth(19.4).setAlpha(0);
+    }
+    if (this.vign) {
+      if (low) {
+        this.beatT -= dt;
+        if (this.beatT <= 0) { this.beatT = 0.9; Sound.sfx('beat'); }
+        const ph = 0.9 - this.beatT, pulse = Math.exp(-ph * 9) + 0.6 * Math.exp(-Math.max(0, ph - 0.18) * 9) * (ph > 0.18 ? 1 : 0);
+        this.vign.setDisplaySize(this.W, this.H).setAlpha(0.6 + 0.4 * Math.min(1, pulse));
+      } else this.vign.setAlpha(Math.max(0, this.vign.alpha - dt * 2));
+    }
   }
 
   switchWeapon(dirn) {
@@ -1372,6 +1497,49 @@ class Level1 extends Phaser.Scene {
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
   }
 
+  // shove an enemy away from a point (bosses don't budge, big ones only a little)
+  knock(e, fromTheta, v) {
+    if (e.type === 'boss' || e.noKnock) return;
+    const s = Math.sign(angDiff(e.theta, fromTheta)) || (this.pl.facing || 1);
+    e.kb = (e.kb || 0) + s * v * (e.big ? 0.35 : 1);
+    if (Math.abs(e.kb) > 420) e.kb = Math.sign(e.kb) * 420;
+  }
+
+  // little floating score numbers (pooled text objects)
+  popup(theta, h, str, col, big) {
+    let t = this.popPool.pop();
+    if (!t) t = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(19);
+    t.setText(str).setColor(col || '#ffffff').setVisible(true).setAlpha(1);
+    t.bsx = t.bsy = big ? 1.5 : 1;
+    this.popups.push({ theta, h, vh: 70, life: big ? 1.2 : 0.8, t });
+  }
+
+  updatePopups(dt) {
+    for (let i = this.popups.length - 1; i >= 0; i--) {
+      const p = this.popups[i];
+      p.h += p.vh * dt; p.vh *= Math.exp(-3 * dt); p.life -= dt;
+      if (p.life <= 0) { p.t.setVisible(false); this.popPool.push(p.t); this.popups.splice(i, 1); continue; }
+      this.place(p.t, p.theta, p.h, 0);
+      p.t.setAlpha(Math.min(1, p.life * 4));
+      const pop = Math.max(0, p.life - (p.t.bsx > 1 ? 1.0 : 0.6)) * 6;            // pops in big then settles
+      p.t.setScale(p.t.scaleX * (1 + pop), p.t.scaleY * (1 + pop));
+    }
+  }
+
+  // kill streaks: kills close together build a combo that multiplies the score
+  comboKill() {
+    this.combo = this.comboT > 0 ? this.combo + 1 : 1;
+    this.comboT = 1.6;
+    this.maxCombo = Math.max(this.maxCombo, this.combo);
+    if (this.combo >= 3) {
+      if (!this.comboText) this.comboText = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '10px', color: '#ff9d3a', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5, 0).setDepth(20);
+      this.comboText.setText(this.combo + ' COMBO' + (this.comboMult() > 1 ? '  x' + this.comboMult() : '')).setAlpha(1).setScale(1.5);
+      this.tweens.add({ targets: this.comboText, scale: 1, duration: 140, ease: 'Back.Out' });
+      if (this.combo % 5 === 0) { Sound.sfx('charged'); buzz(15); }
+    }
+  }
+  comboMult() { return this.combo >= 15 ? 4 : this.combo >= 10 ? 3 : this.combo >= 5 ? 2 : 1; }
+
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
     const reachT = CFG.bashRange / R;
@@ -1382,8 +1550,11 @@ class Level1 extends Phaser.Scene {
       if (a < -14 / R || a > reachT + e.r / R) continue;
       if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
       e.hp -= e.type === 'boss' ? 3 : CFG.bashDmg; hit++;
+      if (e.hp <= 0 && e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3 && !this.wheels.some(w => w.i === 2)) {   // bash-finish a tough one: wheel #3
+        this.addWheel(2, e.theta, e.h + e.ch + 10); const w = this.wheels.find(w => w.i === 2); if (w) { w.vh = 300; w.rest = 24; }
+      }
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
-      if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 34 / R); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
+      if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 12 / R); this.knock(e, P.theta, 300); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
       this.burst(e.theta, e.h + e.ch, 'spark', 8, 0.9);
       this.bang(e.theta, e.h + e.ch, 16);
     }
@@ -1519,6 +1690,7 @@ class Level1 extends Phaser.Scene {
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
       e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6);
+      this.knock(e, theta, full ? 240 : 130);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
@@ -1621,8 +1793,27 @@ class Level1 extends Phaser.Scene {
     }
     const e = this.makeEnemy(type, theta, side);
     this.enemies.push(e);
-    if (type === 'boss') { Sound.sfx('bossIn'); Sound.music('boss'); buzz(150); }
+    if (type === 'boss') { Sound.sfx('bossIn'); Sound.music(this.def.bossMusic || 'boss'); buzz(150); this.showBossCard(); }
     return e;
+  }
+
+  // a fighting-game style name card when the boss arrives
+  showBossCard() {
+    if (this.bossCard) this.bossCard.destroy();
+    const W = this.W, H = this.H, y = H * 0.8, c = this.add.container(0, 0).setDepth(25);
+    const g = this.add.graphics();
+    g.fillStyle(0x000000, 0.7).fillRect(0, y - 30, W, 60);
+    g.fillStyle(0xffd23f, 1).fillRect(0, y - 30, W, 3).fillRect(0, y + 27, W, 3);
+    const sm = this.add.text(W / 2, y - 16, 'WARNING!  BOSS APPROACHING', { fontFamily: PIXEL, fontSize: '8px', color: '#ff8a6a', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5);
+    const nm = this.add.text(W / 2, y + 6, this.def.bossName, { fontFamily: PIXEL, fontSize: (this.def.bossName.length > 20 ? 14 : 18) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5);
+    c.add([g, sm, nm]);
+    c.x = W; nm.x += 60;
+    this.tweens.add({ targets: c, x: 0, duration: 260, ease: 'Cubic.Out' });
+    this.tweens.add({ targets: nm, x: W / 2, duration: 1800, ease: 'Linear' });
+    this.tweens.add({ targets: sm, alpha: 0.3, duration: 180, yoyo: true, repeat: 5 });
+    this.tweens.add({ targets: c, x: -W, delay: 2000, duration: 260, ease: 'Cubic.In', onComplete: () => { c.destroy(); if (this.bossCard === c) this.bossCard = null; } });
+    this.cameras.main.shake(300, 0.006);
+    this.bossCard = c;
   }
 
   // Build an enemy object. Sprites are drawn a bit bigger than their art; hitboxes grow less so it stays fair.
@@ -1635,7 +1826,7 @@ class Level1 extends Phaser.Scene {
       st = ENEMY[type]; tex = st.tex; oy = st.oy; k = 1.22;
     }
     const e = {
-      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp, maxHp: st.hp, r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
+      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp, maxHp: st.hp * Settings.dk.hp, r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
       big: !!st.big, drop: st.drop,
       spr: this.add.image(0, 0, tex).setOrigin(0.5, oy).setDepth(type === 'boss' ? 6 : 5),
       t: 0, seed: rnd(0, 6), flash: 0, vx: 0, dh: 0, dir: -(side || 1)
@@ -1668,6 +1859,10 @@ class Level1 extends Phaser.Scene {
     for (const e of this.enemies) {
       const pt = e.theta, ph = e.h;
       e.t += dt;
+      if (e.kb) {                                        // knockback from hits: a shove that dies away quickly
+        e.theta = wrap(e.theta + e.kb / R * dt); e.kb *= Math.exp(-11 * dt);
+        if (Math.abs(e.kb) < 3) e.kb = 0;
+      }
       const toP = angDiff(P.theta, e.theta);
       const fooled = e.type !== 'boss' && this.buffOn('disguise');
       const distP = fooled ? 9999 : Math.abs(toP) * R;
@@ -1986,7 +2181,16 @@ class Level1 extends Phaser.Scene {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
-      this.addScore({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, boss: 5000 }[e.type] || 100);
+      if (e.type !== 'boss') this.comboKill();
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      this.addScore(pts);
+      this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
+      if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
+        const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
+        c.bsx = e.spr.bsx || 1; c.bsy = e.spr.bsy || 1;
+        const away = Math.sign(angDiff(e.theta, this.pl.theta)) || 1;
+        this.parts.push({ theta: e.theta, h: e.h, vt: away * rnd(110, 200), vh: rnd(260, 380), life: 0.75, spr: c, rot: 0, rv: away * rnd(9, 14), corpse: true, flashT: 0.07 });
+      }
       Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
       this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.big ? 30 : 14));
       if (e.type === 'boss') { this.cameras.main.flash(450, 255, 255, 255); buzz([80, 50, 80, 50, 220]); this.hitStop = 0.3; this.slowT = 1.4; this.camPunch(0.08); }
@@ -2018,7 +2222,7 @@ class Level1 extends Phaser.Scene {
   addEBullet(kind, theta, h, vt, vh, r, life) {
     const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a }[kind] || 0xffc040;
     const b = {
-      kind, theta: wrap(theta), h, vt, vh, r, life,
+      kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
       spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); bakedGlow(im, glow, 2, 6); return im; })()
     };
@@ -2059,7 +2263,7 @@ class Level1 extends Phaser.Scene {
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) >= rr * rr) continue;
           if (e.type === 'boss') { dead = true; break; }  // too big to plough through: burst on it
           b.hits.push(e);
-          e.hp -= b.ploughDmg;
+          e.hp -= b.ploughDmg; this.knock(e, b.theta, 190);
           if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
           this.burst(b.theta, b.h, 'crumb', 8, 0.9); this.bang(b.theta, b.h, 14);
           Sound.sfx('bonk'); this.hitStop = Math.max(this.hitStop || 0, 0.03);
@@ -2074,6 +2278,7 @@ class Level1 extends Phaser.Scene {
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
             e.hp -= b.dmg || 1; if (this.buffOn('sauce')) e.burn = 2;
+            this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
             Sound.sfx('hit');
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
             if (b.hits) { b.hits.push(e); this.burst(b.theta, b.h, 'spark', 3, 0.4); if (b.hits.length >= b.pierce) { dead = true; break; } }
@@ -2189,6 +2394,9 @@ class Level1 extends Phaser.Scene {
       p.vh -= 900 * dt;
       p.h += p.vh * dt;
       p.life -= dt;
+      if (p.rv) p.rot += p.rv * dt;
+      if (p.flashT > 0) { p.flashT -= dt; if (p.flashT <= 0) p.spr.setTint(0xff9d9d); }
+      if (p.corpse && p.h < 0 && p.vh < 0) { this.burst(p.theta, 4, 'spark', 3, 0.4); p.h = 0; p.life = 0; }    // a little poof as it lands
       if (p.life <= 0 || p.h < 0) { p.spr.destroy(); this.parts.splice(i, 1); }
     }
   }
@@ -2617,7 +2825,8 @@ class Level1 extends Phaser.Scene {
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
-    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
+    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
+    this.updatePopups(this.lastDt || 0.016);
 
     // controls
     const cg = this.ctrlG;

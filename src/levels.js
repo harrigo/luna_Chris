@@ -91,7 +91,7 @@ const LEVELS = {
 
   4: {
     id: 4, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'A volatile volcano planet.\nBoiling string cheese whips across the sky.',
-    music: 'level1', bossName: 'THE PIZZA OVEN OF DOOM', tip: 'WATCH FOR THE STRING CHEESE - IT SNAPS!',
+    music: 'level4', bossName: 'THE PIZZA OVEN OF DOOM', tip: 'WATCH FOR THE STRING CHEESE - IT SNAPS!',
     radius: 440, sky: [0x14040a, 0x8e2418], skyCols: [0x14040a, 0x2a0810, 0x480c14, 0x6a1418, 0x8e2418, 0xb43a18], bg: '#14040a', starTint: 0xffc0a0, dustAlpha: 1.2, bgDecor: 'cosmic', lava: 12,
     surface: { pal: [0x6a4a3a, 0xb08a6a, 0xe8d4b8, 0xf6ecdc, 0xfff8f0, 0xffffff], seed: 4444 },
     geysers: { n: 5, idle: [4, 8], warn: 1, erupt: 1.2, height: 150 },
@@ -112,7 +112,7 @@ const LEVELS = {
 
   5: {
     id: 5, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A spectral pocket dimension of powdery rind.\nGhostly dairy-maids and very odd bullets.',
-    music: 'level2', bossName: 'THE PHANTOM MILKMAID', tip: 'GHOSTLY MILKMAIDS RAM YOU - KEEP MOVING!',
+    music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'GHOSTLY MILKMAIDS RAM YOU - KEEP MOVING!',
     radius: 500, sky: [0x2a2a4a, 0x9a9ac4], skyCols: [0x2a2a4a, 0x40406a, 0x5a5a8a, 0x7a7aa8, 0x9a9ac4, 0xbcbce0], bg: '#2a2a4a', starTint: 0xe0e8ff, dustAlpha: 1.4, bgDecor: 'motes',
     surface: { pal: [0x8a8aa0, 0xb8b8c8, 0xd8d8e4, 0xececf4, 0xf8f8fc, 0xffffff], seed: 5151 },
     planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xd0e0ff },
@@ -133,7 +133,7 @@ const LEVELS = {
 
   6: {
     id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A tiny, high-speed cheddar planetoid.\nA giant wheel of Pepper Jack is chasing you.',
-    music: 'level3', bossName: 'THE GREAT PEPPER JACK', tip: 'THE PEPPER JACK IS ROLLING - KEEP RUNNING!',
+    music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'THE PEPPER JACK IS ROLLING - KEEP RUNNING!',
     radius: 270, sky: [0x1a0a20, 0xd86a20], skyCols: [0x1a0a20, 0x3a1430, 0x6a2030, 0xa03a28, 0xd86a20, 0xf0a030], bg: '#1a0a20', starTint: 0xffd8a0, dustAlpha: 1.2, bgDecor: 'cosmic',
     surface: { pal: [0x6a2a0a, 0xa84a10, 0xe07a1a, 0xf6a02a, 0xffc85a, 0xffe8a0], seed: 6262 },
     planet: { fill: 0xf6a02a, inner: 0xe07a1a, rim: 0xffe8a0, glow: 0xffb050 },
@@ -153,7 +153,7 @@ const LEVELS = {
 
   7: {
     id: 7, name: 'The Astro-Rat Armada', short: 'ASTRO-RAT ARMADA', blurb: 'A fleet of rusty spherical rat ships.\nThe flagship sweeps the decks with lasers.',
-    music: 'level1', bossName: 'THE RAT FLAGSHIP', tip: 'DODGE THE FLAGSHIP LASERS!',
+    music: 'level7', bossName: 'THE RAT FLAGSHIP', tip: 'DODGE THE FLAGSHIP LASERS!',
     radius: 380, sky: [0x02040c, 0x18265a], skyCols: [0x02040c, 0x060c1c, 0x0a1430, 0x101c44, 0x18265a, 0x22306a], bg: '#02040c', starTint: 0xffffff, dustAlpha: 1.2, bgDecor: 'cosmic',
     surface: { pal: [0x3a1a10, 0x6a3a24, 0x9a5a32, 0xc0804a, 0xd8a070, 0xf0c8a0], seed: 7373 },
     planet: { fill: 0x9a5a32, inner: 0x6a3a24, rim: 0xf0c8a0, glow: 0xff9a5a },
@@ -173,7 +173,7 @@ const LEVELS = {
 
   8: {
     id: 8, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
-    music: 'level2', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
+    music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
     radius: 360, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
     surface: { pal: [0x6a4a10, 0xa87a1a, 0xe0b02a, 0xf6d04a, 0xffe27a, 0xfff4c4], seed: 8484 },
     planet: { fill: 0xf6d04a, inner: 0xe0b02a, rim: 0xfff4c4, glow: 0xffd23f },
@@ -193,7 +193,7 @@ const LEVELS = {
 
   9: {
     id: 9, name: 'Parmesan Prime', short: 'PARMESAN PRIME', blurb: 'The collapsing rat homeworld.\nThe Grand Rat-King waits at the core.',
-    music: 'level3', bossName: 'THE GRAND RAT-KING', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY!',
+    music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY!',
     radius: 520, sky: [0x100204, 0x8a2010], skyCols: [0x100204, 0x2a0408, 0x4a080c, 0x6a1010, 0x8a2010, 0xaa3a10], bg: '#100204', starTint: 0xffb0a0, dustAlpha: 1.4, bgDecor: 'gears', lava: 10,
     surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595 },
     planet: { fill: 0xdcd0a0, inner: 0xc0b07a, rim: 0xfff8e0, glow: 0xffb070 },
@@ -214,7 +214,7 @@ const LEVELS = {
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
   5.5: {
     id: 5.5, secret: true, name: 'The Forbidden Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A molten cheese moon, deep in a warp.\nFondue fountains everywhere.',
-    music: 'level1', bossName: 'LE GRAND FROMAGE', tip: 'WARP ZONE! MIND THE FONDUE FOUNTAINS!',
+    music: 'level55', bossName: 'LE GRAND FROMAGE', tip: 'WARP ZONE! MIND THE FONDUE FOUNTAINS!',
     radius: 460, sky: [0x12030a, 0x6a1220], skyCols: [0x12030a, 0x24050f, 0x3c0816, 0x580e1c, 0x781a20, 0x9a2c22], bg: '#12030a', starTint: 0xffd0a0, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 14,
     surface: { pal: [0x5a1406, 0xa8380e, 0xe06c18, 0xf6a62e, 0xffd65e, 0xfff0b0], seed: 6161 },
     geysers: { n: 11, idle: [2.2, 4.6], warn: 0.9, erupt: 1.5, height: 235 },
@@ -559,7 +559,7 @@ class SelectScene extends Phaser.Scene {
   constructor() { super('select'); }
 
   create() {
-    makeTextures(this); makeLevelTextures(this);
+    makeTextures(this); makeLevelTextures(this); makePowerupTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020');
     this.cameras.main.fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
@@ -633,7 +633,11 @@ class SelectScene extends Phaser.Scene {
       const tx = pcx + Math.min(ch * 0.34, 34) + 10, tw = x + cw - tx - 8;
       this.ui.add(this.add.text(tx, y + ch * 0.2, 'LEVEL ' + i, f(cw > 200 ? 9 : 8, '#9fd8ff')).setOrigin(0, 0));
       this.ui.add(this.add.text(tx, y + ch * 0.2 + 16, L.short, f(cw > 200 ? 9 : 7, '#ffffff', { wordWrap: { width: tw }, lineSpacing: 5 })).setOrigin(0, 0));
-      if (Progress.best >= i) this.ui.add(this.add.text(x + cw - 8, y + 6, '*', f(10, '#ffd23f')).setOrigin(1, 0));     // beaten
+      const rk = Progress.rank(i);
+      if (rk) this.ui.add(this.add.text(x + cw - 8, y + 6, rk, f(12, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 0));   // best rank
+      else if (Progress.best >= i) this.ui.add(this.add.text(x + cw - 8, y + 6, '*', f(10, '#ffd23f')).setOrigin(1, 0));     // beaten
+      const wm = Progress.wheels(i);
+      for (let k = 0; k < 3; k++) this.ui.add(this.add.image(x + cw - 10 - (2 - k) * 13, y + ch - 10, 'goldwheel').setScale(0.55).setAlpha(wm & (1 << k) ? 1 : 0.2));   // golden cheese wheels found
       const z = this.add.zone(x, y, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
       z.on('pointerup', () => this.go(i));
@@ -1050,6 +1054,11 @@ function makePowerupTextures(scene) {
     p.rect(9, 0, 11, 3, STEEL[1]);
     p.poly([[5, 4], [15, 4], [18, 16], [2, 16]], [0xfff0a0, 0xffc83a, 0xb07a1a]); p.rect(2, 15, 18, 17, 0xb07a1a);
     p.ell(10, 18, 2, 1.5, STEEL);
+  });
+  pixSprite(scene, 'goldwheel', 22, 22, p => {                // a golden cheese wheel, face-on, with a shine
+    p.ell(11, 11, 10, 10, [0xfff6b0, 0xffd23f, 0xb07a1a]); p.ell(11, 11, 7, 7, [0xfff0a0, 0xffc83a, 0xd8901a]);
+    p.ell(8, 9, 1.5, 1.5, [0xd8901a, 0xb07a1a, 0x8a5a10]); p.ell(14, 13, 2, 2, [0xd8901a, 0xb07a1a, 0x8a5a10]); p.ell(10, 15, 1, 1, [0xd8901a, 0xb07a1a, 0x8a5a10]);
+    p.line([[5, 7], [7, 5]], 0xffffff); p.px(15, 6, 0xffffff);
   });
   pixSprite(scene, 'pu_ears', 22, 14, p => {                   // novelty rat ears on a headband
     p.ell(5, 6, 4.5, 5, [0xc0c8d4, 0x9aa3b2, 0x6a7280]); p.ell(17, 6, 4.5, 5, [0xc0c8d4, 0x9aa3b2, 0x6a7280]);
