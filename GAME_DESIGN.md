@@ -559,3 +559,6 @@ Bessie is snatched back at the end of every level until Level 9.
 ### v0.85 — Game-over crash fix
 - Fixed a crash ("Cannot read properties of undefined (reading 'home')") when an enemy bullet took the last life. GAME OVER cleared the bullet list while the bullet loop was still running. The loop now stops once the game has ended, skips missing entries, and the clear is deferred to the next tick.
 - Croque Monsieur health is now 155 (+10%).
+
+### v0.86 — No cheese in the L1 sky
+- The floating cheese chunks in Level 1's orbital debris layer are gone (rocks, satellites and bolts only). They looked too much like the cheese-wedge heart pickups.

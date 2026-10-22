@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.85';
+const BUILD = 'v0.86';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -246,7 +246,7 @@ class Level1 extends Phaser.Scene {
         const s = this.add.image(0, 0, 'px_star').setDepth(0).setTint(scol[i % scol.length]).setScale(near ? 3 : 2);
         this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.05, 1), k: near ? rnd(0.75, 0.95) : rnd(0.4, 0.55), tws: rnd(0, 6), bsc: s.scale });
       }
-      const deb = ['db_rock', 'db_rock', 'db_sat', 'db_bolt', 'db_cheese', 'db_cheese'];
+      const deb = ['db_rock', 'db_rock', 'db_sat', 'db_bolt', 'db_rock', 'db_sat'];   // (no cheese chunks: they looked like the heart pickups)
       for (let i = 0; i < 12; i++) {                   // orbital debris tumbling past (nearest layer)
         const s = this.add.image(0, 0, deb[i % deb.length]).setDepth(0.4).setScale(2);
         this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.02, 0.6), k: rnd(0.6, 1.1), rv: rnd(-1.6, 1.6) });
