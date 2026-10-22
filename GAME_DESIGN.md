@@ -448,9 +448,9 @@ Bessie is snatched back at the end of every level until Level 9.
 |---|---|---|---|
 | Hot Sauce | L1 | 10s | Fires twice as fast, beam ticks faster, hits set enemies burning |
 | Rocket Boots | L1 | 10s | Faster jetpack, unlimited fuel |
-| Cheese Magnet | L2 | 12s | Pulls pickups in and pushes enemy bullets away |
-| Fondue Shield | L3 | until used | Orbiting shield that soaks 3 hits |
-| Slow-Mo Brie | L4 | 8s | Enemies, their bullets and hazards run at 40% speed |
+| Magnet Fork | L2 | 12s | Pulls pickups in and pushes enemy bullets away |
+| Fondue Shield | L3 | 14s | Orbiting shield that soaks 3 hits (ends early once they are used) |
+| Slow-Mo Brie | L4 | 6s | Enemies, their bullets and hazards run at 40% speed |
 | Gouda Gigantism | L5 | 8s | Chris grows to nearly 2x, is invulnerable and stomps enemies |
 | Moo Bomb | L6 | instant | Bessie-shaped shockwave that wipes the screen |
 | Rat Disguise | L7 | 10s | Ears on the hat, and normal enemies ignore you (bosses aren't fooled) |
