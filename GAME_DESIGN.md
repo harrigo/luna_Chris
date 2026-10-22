@@ -562,3 +562,15 @@ Bessie is snatched back at the end of every level until Level 9.
 
 ### v0.86 — No cheese in the L1 sky
 - The floating cheese chunks in Level 1's orbital debris layer are gone (rocks, satellites and bolts only). They looked too much like the cheese-wedge heart pickups.
+
+### v0.87 — Gorgonzola Gulch: quicksand goop, psychic rat-frogs, no tyres
+- **Goop pools (`def.goop`):** 5 green quicksand pools on L2.
+  - They're drawn in front of Chris, so he visibly sinks in (up to 18px, waist-deep) with bubbles plopping up.
+  - In goop, running drops to 20% speed.
+  - Getting out: the first 2 jumps only squelch him up a little (42% height). Jump twice more, or hop and hold to light the jetpack and fly out.
+  - The first time you get stuck, a banner explains: "STUCK IN THE GOOP! JUMP JUMP - OR JET OUT!"
+  - New sounds: `squelch`, plus goop splash particles.
+- **Rat-frogs are faster and psychic:**
+  - Shorter pauses between leaps, and leaps up to 430 units/s, still aimed at where Chris is heading.
+  - Every 3.5–5.5s, within 380px, a frog stops and crouches, its eyes flash purple (0.55s warning, with a `psy` sound), then it fires a **telekinesis ray**: 10 psychic orbs streamed 45ms apart along one big lobbed arc that lands where Chris will be. The orb gravity scales with difficulty so the arc still lands on Easy and Hard.
+- **Tyre piles removed** from L2. Giant mushrooms looming in the background, plus more mushrooms, reeds and stalks, replace them.

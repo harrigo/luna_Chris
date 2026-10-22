@@ -150,6 +150,8 @@ const Sound = (() => {
     bonk:    () => { tone({ type: 'square', f: 240, f2: 70, dur: 0.14, vol: 0.32 }); noise({ f1: 900, f2: 120, dur: 0.12, vol: 0.4 }); },
     charge:  () => tone({ type: 'pulse', duty: 0.25, f: 300 + (SFX._ch || 0) * 700, f2: 340 + (SFX._ch || 0) * 760, dur: 0.07, vol: 0.07 }),   // pitch rises with the charge
     charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
+    squelch: () => { wobble({ type: 'square', f: 110, f2: 60, dur: 0.25, vol: 0.16, rate: 30, depth: 25, lp: 700 }); noise({ ft: 'lowpass', f1: 500, f2: 120, dur: 0.2, vol: 0.2 }); },
+    psy:     () => wobble({ type: 'sine', f: 600, f2: 1400, dur: 0.45, vol: 0.12, rate: 18, depth: 120 }),
     beat:    () => { tone({ type: 'sine', f: 70, f2: 40, dur: 0.12, vol: 0.4 }); tone({ type: 'sine', f: 62, f2: 38, dur: 0.12, vol: 0.3, t: ctx.currentTime + 0.18 }); },   // low-health heartbeat
     combo:   () => arp([660, 990], 0.04, { type: 'pulse', duty: 0.25, vol: 0.08 }),
     blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter

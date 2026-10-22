@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.86';
+const BUILD = 'v0.87';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -322,6 +322,13 @@ class Level1 extends Phaser.Scene {
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
+    // L2: green quicksand goop pools (drawn IN FRONT of Chris, so he visibly sinks into them)
+    this.goops = (this.def.goop || []).map(g => {
+      const spr = this.add.image(0, 0, 'goop').setOrigin(0.5, 0.32).setDepth(7.6);
+      spr.bsx = (2 * g.half * R) / 64 * 1.08; spr.bsy = 2;
+      return Object.assign({ spr, bubT: rnd(0, 1) }, g);
+    });
+    this.goopTip = false;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1176,6 +1183,15 @@ class Level1 extends Phaser.Scene {
   updateWorld(dt) {
     const d = this.def, P = this.pl;
     if (d.conveyor) this.convPhase = wrap(this.convPhase + d.conveyor / R * dt);
+    for (const g of (this.goops || [])) {                   // goop bubbles plop up near Chris
+      if (Math.abs(angDiff(g.theta, P.theta)) > 1.2) continue;
+      g.bubT -= dt;
+      if (g.bubT <= 0) {
+        g.bubT = rnd(0.25, 0.7);
+        const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.6, 1.2);
+        this.parts.push({ theta: wrap(g.theta + rnd(-g.half, g.half) * 0.85), h: 4, vt: 0, vh: rnd(60, 120), life: rnd(0.25, 0.4), spr: im });
+      }
+    }
     if (d.zones) {
       const g = this.gAt(P.theta);
       this.zoneText.setText(g < CFG.gravity ? 'LOW GRAVITY' : (g > CFG.gravity ? 'HEAVY GRAVITY' : '')).setColor(g < CFG.gravity ? '#9bff6a' : '#d6a6ff');
@@ -1396,7 +1412,7 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1422,11 +1438,21 @@ class Level1 extends Phaser.Scene {
     const hPrev = P.h;
     P.floor = this.floorAt(P.theta, P.h);
     const grounded = P.h <= P.floor && P.vh <= 0;
+    // quicksand goop: sink in, crawl along, and the first couple of jumps only squelch you up a little (or hop then jet out)
+    const pool = (this.goops && this.goops.length && P.floor === 0 && P.h <= 1 && this.state === 'play') ? this.goops.find(g => Math.abs(angDiff(P.theta, g.theta)) < g.half) : null;
+    if (pool && !P.goop) {
+      P.stuck = 2; Sound.sfx('squelch'); this.goopSplash(P.theta); buzz(30);
+      if (!this.goopTip) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nJUMP JUMP - OR JET OUT!'); }
+    }
+    P.goop = !!pool;
+    P.sink = pool ? Math.min(18, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
     if (inp.jump && !P.jumpWas) P.jumpBufT = CFG.jumpBuffer;     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
     if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
-      P.vh = CFG.jumpV; P.jetArmed = false; P.holdT = 0; P.jumpBufT = 0; P.coyT = 0; Sound.sfx('jump');
+      if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
+      else { P.vh = CFG.jumpV; Sound.sfx('jump'); if (P.goop) this.goopSplash(P.theta); }
+      P.jetArmed = false; P.holdT = 0; P.jumpBufT = 0; P.coyT = 0;
       if (!grounded) P.h = Math.max(P.h, P.floor || 0);
     }
     if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay || inp.jetNow) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
@@ -1636,6 +1662,13 @@ class Level1 extends Phaser.Scene {
     P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0;
     Sound.sfx('swish');
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
+  }
+
+  goopSplash(theta) {
+    for (let k = 0; k < 7; k++) {
+      const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.8, 1.5);
+      this.parts.push({ theta, h: 6, vt: rnd(-120, 120), vh: rnd(150, 300), life: rnd(0.35, 0.6), spr: im });
+    }
   }
 
   // shove an enemy away from a point (bosses don't budge, big ones only a little)
@@ -2101,26 +2134,46 @@ class Level1 extends Phaser.Scene {
         e.spr.sqx = 1 + Math.sin(e.t * 9) * 0.05; e.spr.sqy = 1 - Math.sin(e.t * 9) * 0.05;
 
       } else if (ai === 'frog') {
-        // rat-frog: crouches, then makes a big leap straight at Chris
+        // rat-frog: quick crouch-and-leap at where Chris is heading. Every few seconds it stops, its eyes glow purple
+        // (the warning) and it hurls a TELEKINESIS RAY: a big arcing stream of psychic orbs that lands on Chris.
         const grounded = e.h <= 0 && e.vh <= 0;
+        e.tkCd = (e.tkCd === undefined ? rnd(2, 4) : e.tkCd) - dt;
         if (grounded) {
-          if (e.state === 'air') {                       // lands with a squelch: a pair of spores skid out along the ground
-            e.state = 'idle'; e.cd = rnd(0.7, 1.3); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
-            if (Math.abs(toP) * R < 400 && Math.random() < 0.5) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
+          if (e.state === 'air') {                       // lands with a squelch: sometimes a pair of spores skid out along the ground
+            e.state = 'idle'; e.cd = rnd(0.35, 0.7); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
+            if (Math.abs(toP) * R < 400 && Math.random() < 0.4) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
           }
-          e.cd -= dt; e.dir = dirP;
-          if (e.cd <= 0) {                               // leaps to where Chris is heading
-            e.state = 'air'; e.vh = rnd(480, 580);
-            const air = 2 * e.vh / this.gAt(e.theta), lead = (toP * R + (P.vx || 0) * air * 0.5);
-            e.leapV = Math.max(-330, Math.min(330, lead / air)) || dirP * 200;
-            Sound.sfx('ribbit');
+          e.dir = dirP;
+          if (e.state === 'tk') {                        // the psychic ray: telegraph, then a stream of orbs along one big arc
+            e.tkT -= dt;
+            e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0xd890ff : 0xffffff);
+            if (e.tkT <= 0 && e.tkN > 0) {
+              e.tkGap -= dt;
+              if (e.tkGap <= 0) {
+                e.tkGap = 0.045; e.tkN--;
+                const b = this.addEBullet('psyorb', e.theta, e.h + e.ch + 8, e.tkVt, e.tkVh, 8, 2.6); b.grav = e.tkG * Settings.dk.shot * Settings.dk.shot; b.spinV = 8;
+              }
+            }
+            if (e.tkN <= 0) { e.state = 'idle'; e.cd = rnd(0.3, 0.6); e.tkCd = rnd(3.5, 5.5); e.spr.clearTint(); }
+          } else {
+            e.cd -= dt;
+            if (e.tkCd <= 0 && !fooled && distP < 380 && distP > 60 && this.state === 'play') {
+              e.state = 'tk'; e.tkT = 0.55; e.tkN = 10; e.tkGap = 0; Sound.sfx('psy');
+              const air = 1.25, g = 430, dx = toP * R + (P.vx || 0) * air * 0.4;                 // aims a big lob at where he'll be
+              e.tkVt = Math.max(-360, Math.min(360, dx / air)); e.tkVh = 0.5 * g * air + (P.h + 20 - (e.ch + 8)) / air; e.tkG = g;
+            } else if (e.cd <= 0) {                      // leaps to where Chris is heading
+              e.state = 'air'; e.vh = rnd(500, 600);
+              const air = 2 * e.vh / this.gAt(e.theta), lead = (toP * R + (P.vx || 0) * air * 0.5);
+              e.leapV = Math.max(-430, Math.min(430, lead / air)) || dirP * 260;
+              Sound.sfx('ribbit');
+            }
           }
         }
         e.theta = wrap(e.theta + (e.leapV / R) * dt);
         e.vh -= this.gAt(e.theta) * dt;
         e.h += e.vh * dt;
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
-        const crouch = e.state === 'idle' && e.cd < 0.35;
+        const crouch = (e.state === 'idle' && e.cd < 0.25) || e.state === 'tk';
         e.spr.sqx = crouch ? 1.14 : 1; e.spr.sqy = crouch ? 0.8 : 1 + Math.max(0, Math.min(0.15, e.vh / 3500));
 
       } else if (ai === 'drone') {
@@ -2448,7 +2501,7 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a }[kind] || 0xffc040;
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff }[kind] || 0xffc040;
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
@@ -2994,7 +3047,7 @@ class Level1 extends Phaser.Scene {
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
-    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
     this.drawBuff();
     if (this.ko) {                                           // game over: flat on his back (rotates about his feet), little stars circling
       const r = this.rig.root; r.setRotation(this.ko.rot); r.y -= Math.abs(this.ko.rot) * 7 * this.zoom; r.x += this.ko.rot * 4 * this.zoom;   // lies ON the ground
@@ -3060,6 +3113,7 @@ class Level1 extends Phaser.Scene {
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
+    for (const g of this.goops) { this.place(g.spr, g.theta, 0, 0); g.spr.setScale(g.spr.scaleX * (1 + 0.015 * Math.sin(this.t * 3 + g.theta * 5)), g.spr.scaleY); }
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
     this.updatePopups(this.lastDt || 0.016);

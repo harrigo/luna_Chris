@@ -85,7 +85,7 @@ function buildAllTextures(scene) {
   // pre-made glow versions (see bakedGlow in main.js) so they live on the sheet too
   for (const [k, c, s, d] of [['lava_pool', 0xff7a1a, 3, 6], ['swissball', 0xffe27a, 2, 6], ['power', 0xfff3a0, 3, 8], ['ratship', 0x9fd8ff, 1, 6],
     ['spore', 0x7dff8a, 2, 6], ['blade', 0xdfe6f0, 2, 6], ['crumb', 0xffc040, 2, 6], ['cube', 0xffc040, 2, 6], ['meatball', 0xffc040, 2, 6],
-    ['pepper', 0xff6a3a, 2, 6], ['ghostorb', 0x9fd8ff, 2, 6], ['chili', 0xff4a2a, 2, 6]]) {
+    ['pepper', 0xff6a3a, 2, 6], ['ghostorb', 0x9fd8ff, 2, 6], ['chili', 0xff4a2a, 2, 6], ['psyorb', 0xc080ff, 2, 6]]) {
     if (scene.textures.exists(k)) makeGlowTexture(scene, k, c, s, d);
   }
   const n = Atlas.pack(scene);

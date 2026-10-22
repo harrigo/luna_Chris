@@ -44,7 +44,7 @@ const LEVELS = {
   },
 
   2: {
-    id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Germs, rat-frogs, stink-flies.',
+    id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Quicksand goop.\nGerms, psychic rat-frogs, stink-flies.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
     radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
@@ -52,10 +52,9 @@ const LEVELS = {
     gravity: 1, ledgeTypes: ['crystal', 'girder', 'panini', 'crystal', 'girder', 'panini'], ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
     props: [
-      { tex: 'pile_tyres', n: 7, sc: [2.4, 3.6], depth: 1.6, tint: 0x40604f, alpha: 0.6, h: -10 },
-      { tex: 'pile_tyres', n: 7, sc: [1.2, 1.9], tint: 0x9fb8a8, alpha: 0.92 },
+      { tex: 'p_shroom', n: 6, sc: [2.4, 3.4], depth: 1.6, tint: 0x3f6a5c, alpha: 0.7, h: -6 },          // giant mushrooms looming behind
       { tex: 'pile_bones', n: 5, sc: [1.1, 1.8], tint: 0xc8c8b0, alpha: 0.9 },
-      { tex: 'p_shroom', n: 6, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 10, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 4, sc: [0.9, 1.4] },
+      { tex: 'p_shroom', n: 9, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4] },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
@@ -63,6 +62,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6)] },
       { name: 'WAVE 4', spawns: [S('frog', 0), S('frog', 0.6), S('stinkfly', 1.2), S('germ', 1.6), S('germ', 2), S('stinkfly', 2.4), S('frog', 3), S('germ', 3.4), S('stinkfly', 3.8), S('germ', 4.2), S('frog', 4.8), S('frog', 5.4), S('stinkfly', 6), S('germ', 6.4), S('germ', 6.8), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.4), S('stinkfly', 9)] }
     ],
+    goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
     boss: { tex: 'baron', hp: 160, ai: 'baron' },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
@@ -925,6 +925,18 @@ function makeRoadmapTextures(scene) {
   const STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272], RUST = [0xd08a5a, 0x9a5a32, 0x5e3020], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a];
   // ---- shots
   pixSprite(scene, 'pepper', 16, 16, p => { p.ell(8, 8, 7, 7, [0xff7a6a, 0xd0301a, 0x8a1a10]); for (const [x, y] of [[5, 5], [10, 6], [7, 10], [11, 10], [4, 9]]) { p.px(x, y, 0x7a1010); p.px(x + 1, y, 0xff9a8a); } });
+  pixSprite(scene, 'psyorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xf0c8ff, 0xb06aff, 0x6a2ad0]); p.ell(7, 7, 3, 3, [0xffffff, 0xf0d8ff, 0xc890ff]); p.px(5, 4, 0xffffff); });
+  pixTex(scene, 'goop', 64, 22, put => {                         // green quicksand: a glossy lip on top, murky body, bubbles
+    for (let y = 0; y < 22; y++) for (let x = 0; x < 64; x++) {
+      const e = Math.pow((x - 31.5) / 32, 2), top = 3 + Math.round(e * 4), bot = 21 - Math.round(e * 14);
+      if (y < top || y > bot) continue;
+      let c = y === top ? 0x1a3a20 : (y === top + 1 ? 0xc8ff8a : (y < top + 4 ? 0x7ee05a : ((x * 7 + y * 3) % 11 === 0 ? 0x3a9a3a : 0x4cb848)));
+      if (y > top + 3 && (y - top) / (bot - top) > 0.55 + 0.1 * Math.sin(x * 0.7)) c = 0x2e8a34;
+      put(x, y, c);
+    }
+    for (const [bx, by] of [[14, 9], [40, 8], [27, 13], [50, 11]]) { put(bx, by, 0xd8ffb0); put(bx + 1, by, 0xa8f080); put(bx, by + 1, 0xa8f080); }
+  });
+  pixSprite(scene, 'goopbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xe0ffc0, 0x8ae86a, 0x3a9a3a]); p.px(3, 2, 0xffffff); });
   pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
   pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
   // ---- enemies
