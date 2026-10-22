@@ -646,3 +646,9 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
 - **More contrast:** a near-black sky, a darker slate planet and darker shading, a brighter neon rim, fewer dust blobs, and the skyline layer tinted darker so the bright foreground stands out.
 - **Dark rocks:** two new mossy basalt boulders (`rock_dark`, `rock_dark2`). There are 10 behind Chris and 2 small ones in front.
 - **Skyline composed by hand:** props can now take `at: [[theta, scale, flipX], ...]` instead of random spread. L2's skyline alternates tall mushroom, ribcage, small mushroom pair, skull and so on around the planet, so it reads as a rhythm rather than random clumps.
+
+### v0.94 — Stomp → boost chains
+- **Head-bounce refuel:** stomping an enemy (`stompBoost()`) adds half a tank of jet fuel, re-arms the jetpack and resets the hold timer. Keep holding jump through the bounce and the boots light as you rise. You can chain stomp, boost, stomp, boost across a crowd.
+- Feedback for the refuel: a "BOOST!" pop-up, a `charged` chime and the fuel bar flashing white.
+- **The jet never slows a bounce:** thrust can only add lift (`max(vh, ...)`), so a 440–520 bounce keeps its full height and the jet takes over as it slows.
+- **Air trickle:** after half a second off the throttle in mid-air, fuel trickles back at 30% of the ground rate.

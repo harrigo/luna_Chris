@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.93';
+const BUILD = 'v0.94';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1492,12 +1492,16 @@ class Level1 extends Phaser.Scene {
     if (suck) P.vh -= 320 * dt;
     if (P.thrusting) {
       const rb = this.buffOn('boots');
-      P.vh = Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt);
+      P.vh = Math.max(P.vh, Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt));   // (never slows a bounce down)
       P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * dt);
       this.jetFlames(2);
     } else if (grounded) {
       P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
+    } else {                                                   // gliding with the jet off: a slow trickle back after half a second
+      P.airRegenT = (P.airRegenT || 0) + dt;
+      if (P.airRegenT > 0.5) P.fuel = Math.min(1, P.fuel + CFG.jetRegen * 0.3 * dt);
     }
+    if (P.thrusting) P.airRegenT = 0;
 
     P.vh -= this.gAt(P.theta) * dt * (P.diving ? 3.2 : 1);
     if (P.diving && P.vh > -220) P.vh = -220;                // kill the upward float straight away
@@ -1947,6 +1951,14 @@ class Level1 extends Phaser.Scene {
       const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.8, 1.5);
       this.parts.push({ theta, h: 6, vt: rnd(-120, 120), vh: rnd(150, 300), life: rnd(0.35, 0.6), spr: im });
     }
+  }
+
+  // bouncing off a head refuels the jetpack (half a tank) and re-arms it: keep holding jump and it lights as you rise
+  stompBoost() {
+    const P = this.pl, before = P.fuel;
+    P.fuel = Math.min(1, P.fuel + 0.5);
+    P.jetArmed = true; P.holdT = CFG.jetHoldDelay + 1; P.airRegenT = 0;
+    if (P.fuel > before + 0.05) { Sound.sfx('charged'); this.popup(P.theta, P.h + 60, 'BOOST!', '#5ce1ff'); this.fuelFlash = 0.35; }
   }
 
   // shove an enemy away from a point (bosses don't budge, big ones only a little)
@@ -2657,7 +2669,8 @@ class Level1 extends Phaser.Scene {
           if (e.type === 'boss') e.hp -= pound ? 12 : 6;
           else if (e.big) { e.stomps = (e.stomps || 0) + 1; if (pound || e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - 3); }
           else e.hp = 0;
-          P.vh = pound ? 520 : 440; P.h = top + 1; P.jetArmed = false;
+          P.vh = pound ? 520 : 440; P.h = top + 1;
+          this.stompBoost();                                          // a head-bounce tops up the jetpack and re-arms it
           P.invuln = Math.max(P.invuln, 0.2);
           e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1.4; this.hitStop = Math.max(this.hitStop || 0, 0.06); this.camKick(0, 5);
           this.burst(e.theta, top, 'spark', pound ? 16 : 8, pound ? 1.3 : 0.8);
@@ -3406,7 +3419,8 @@ class Level1 extends Phaser.Scene {
     const flash = Math.floor(this.t * 8) % 2;
     const gx = 96, gy = 46, gw = 136, gh = 8;
     pix(gx, gy, gw, gh, 0x0c0a24);
-    const fc = P.fuel > 0.3 ? 0x39c6ff : (flash ? 0xff5a3c : 0xa02a1a), nb = 17, bw = gw / nb;    // fills in chunky 8px blocks
+    this.fuelFlash = Math.max(0, (this.fuelFlash || 0) - (this.lastDt || 0.016));
+    const fc = this.fuelFlash > 0 && Math.floor(this.fuelFlash * 20) % 2 ? 0xffffff : (P.fuel > 0.3 ? 0x39c6ff : (flash ? 0xff5a3c : 0xa02a1a)), nb = 17, bw = gw / nb;   // (flashes white when a stomp refuels it)    // fills in chunky 8px blocks
     const litB = Math.ceil(P.fuel * nb - 0.05);
     for (let i = 0; i < litB; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
     const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
