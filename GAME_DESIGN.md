@@ -774,3 +774,28 @@ Built from the brief (`makeBrieTextures`):
   2. **flicker** (0.4s tell);
   3. **solid** for 1.3s, swooping at you: hit it then.
 - Waves are rebuilt around pirates and wedges, with some ghost milkmaids. The boss is still the Phantom Milkmaid for now.
+
+### v1.01 — Cheddar Gorge: the chase (first pass)
+Built from the brief (`makeGorgeTextures`):
+- **The chase:**
+  - On a tiny round planet a literal side-scrolling camera can't work, so the **Pepper Jack is the scroll**. It rolls after Chris without stopping and speeds up every wave, so standing still is never an option.
+  - The wheel has a spinning rind (`jack_rind`) and a separate **upright furious face** (`jack_face`) that doesn't spin, like the concept.
+  - **Run over:** lose 2 hearts, flung up and ahead ("FLATTENED!").
+  - **Pinned** between the wheel and a tortilla chip: **instant crush** ("SQUASHED!"), costing a life.
+  - It **spits spicy pepper shrapnel** up and forward (every 2.5–4s).
+  - It **sends mini wheels** racing ahead (every 7–10s, max 3; `miniwheel` AI: flat-out rolling with hops, overshooting and turning).
+- **Swapping matters:** a Swiss-Shot blast that catches the wheel **stuns it** for 1.8s ("STUNNED!", dizzy face, rolls back). It also smashes chips with double damage. Normal shots only slow the wheel a touch. The rhythm is: swap to Swiss to stun behind, swap back to clear the way ahead.
+- **Tortilla-chip stalagmites (`chips`):**
+  - 10 razor nachos (`nacho`) jutting from the crust, solid to Chris below 52px high;
+  - shoot them apart (4 hp);
+  - they regrow after 22s when you're not close;
+  - a 30% chance to drop a Jalapeño Boost.
+- **Craters (`craters`), drawn into the curved surface:**
+  - **bottomless pits**: black voids with crusty lips. Fall in and Chris drops away ("AAAAARGH!") and is hauled out further along, a heart lighter. **Jet over them.**
+  - **speed bumps**: shallow bowls where running drops to 45%.
+- **The boss, the Core of the Wheel:**
+  - the Pepper Jack's rind armour takes normal damage;
+  - below 45% health **the rind cracks open** to show a gooey molten core with one big bloodshot eye (`jack_core`), and it rolls 25% slower;
+  - normal shots barely scratch the core (×0.12). Only a **charged Swiss-Shot blast into the eye** does real damage (45, "BULLSEYE!").
+- **Jalapeño Boost** (new power-up, from L6): a green-hot jet (×1.7 climb, unlimited fuel) with a flame trail that scorches enemies behind and below and **stalls the wheel** if it gets close.
+- **Look:** small ruined citadel spires with lit windows on the skyline (`bg_spires`) and dark rocks. The orange pitted planet, cosmic sky and distant UFO stay.

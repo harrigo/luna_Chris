@@ -13,6 +13,7 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
   frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
+  miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel' },             // L6: little wheels the Pepper Jack spits out
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer' },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
@@ -175,21 +176,28 @@ const LEVELS = {
 
   6: {
     id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A tiny, high-speed cheddar planetoid.\nA giant wheel of Pepper Jack is chasing you.',
-    music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'THE PEPPER JACK IS ROLLING - KEEP RUNNING!',
+    music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'RUN! BLAST THE CHIPS, JET OVER THE PITS!',
     radius: 270, sky: [0x1a0a20, 0xd86a20], skyCols: [0x1a0a20, 0x3a1430, 0x6a2030, 0xa03a28, 0xd86a20, 0xf0a030], bg: '#1a0a20', starTint: 0xffd8a0, dustAlpha: 1.2, bgDecor: 'cosmic',
     surface: { pal: [0x6a2a0a, 0xa84a10, 0xe07a1a, 0xf6a02a, 0xffc85a, 0xffe8a0], seed: 6262 },
     planet: { fill: 0xf6a02a, inner: 0xe07a1a, rim: 0xffe8a0, glow: 0xffb050 },
     dust: [0xff9a3a, 0xffd23f, 0xff6a3a, 0xffb0a0], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTypes: ['panini', 'girder', 'panini', 'girder'], ledgeTex: 'ledge1',
-    ledges: [{ theta: 0.8, half: 0.2, h: 90 }, { theta: 2.4, half: 0.18, h: 165 }, { theta: 4.0, half: 0.2, h: 90 }, { theta: 5.5, half: 0.18, h: 165 }],
-    props: [{ tex: 'pile_rind', n: 3, sc: [1, 1.4], tint: 0xffc070 }, { tex: 'p_cone', n: 5, sc: [0.8, 1.1], fg: true }, { tex: 'p_tuft1', n: 8, sc: [0.8, 1.2], fg: true, tint: 0xffb050 }],
-    chaser: { speed: 170 },
+    ledges: [{ theta: 0.8, half: 0.2, h: 90 }, { theta: 2.4, half: 0.18, h: 165 }, { theta: 4.0, half: 0.18, h: 90 }, { theta: 5.5, half: 0.18, h: 165 }],
+    props: [
+      { tex: 'bg_spires', at: [[0.5, 0.7], [1.9, 0.6, 1], [3.3, 0.75], [4.7, 0.65, 1], [5.9, 0.6]], depth: 0.95, tint: 0xa06a5a, alpha: 0.85, h: -14 },
+      { tex: 'rock_dark', at: [[1.2, 0.9], [3.6, 1.0, 1], [5.2, 0.9]], tint: 0xc0703a, h: -3 },
+      { tex: 'p_tuft1', n: 8, sc: [0.8, 1.2], fg: true, tint: 0xffb050 }],
+    chaser: { speed: 175, spit: [2.5, 4], spawn: [7, 10] },
+    // bottomless pits (jet over them!) and speed-bump craters; razor tortilla chips block the way - blast them
+    craters: [{ theta: 1.05, half: 0.075, kind: 'pit' }, { theta: 1.6, half: 0.1, kind: 'bump' }, { theta: 2.15, half: 0.08, kind: 'pit' }, { theta: 3.0, half: 0.11, kind: 'bump' },
+              { theta: 3.35, half: 0.075, kind: 'pit' }, { theta: 4.45, half: 0.1, kind: 'bump' }, { theta: 4.85, half: 0.08, kind: 'pit' }, { theta: 5.85, half: 0.075, kind: 'pit' }],
+    chips: [0.55, 1.35, 1.85, 2.7, 3.15, 3.85, 4.25, 5.05, 5.55, 6.15],
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1.2), S('slicer', 2.4), S('mouse', 3.4), S('drone', 4.4), S('mouse', 5.4), S('slicer', 6.6)] },
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('mouse', 1), S('drone', 2), S('mouse', 3), S('slicer', 4), S('drone', 5), S('mouse', 6), S('mouse', 7)] },
       { name: 'WAVE 3', spawns: [S('drone', 0), S('slicer', 1), S('mouse', 1.8), S('drone', 2.8), S('slicer', 3.8), S('mouse', 4.6), S('drone', 5.6), S('slicer', 6.6), S('mouse', 7.4)] }
     ],
-    boss: { tex: 'wheel', hp: 160, ai: 'wheel' },
+    boss: { tex: 'jack_rind', hp: 170, ai: 'wheel' },
     win: 'The Great Pepper Jack has crumbled!\nBessie rolled clear... into the hold of the rat armada.\nTime to board their fleet.'
   },
 
@@ -1257,6 +1265,7 @@ function makeRoadmapTextures(scene) {
 // Dropped (randomly) by medium and big enemies. `from` = the first level they can turn up on, so the early levels get the
 // plain ones and the silly ones arrive later. t = seconds it lasts (0 = instant).
 const BUFFS = {
+  jalapeno: { name: 'JALAPENO BOOST!', tex: 'pu_jalapeno', t: 8, from: 6, col: 0x6aff4a },              // supercharged jet + a flame trail that stalls the wheel
   sauce:   { name: 'HOT SAUCE!',        tex: 'pu_sauce',  t: 10, from: 1, col: 0xff4a2a },
   boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 10, from: 1, col: 0x5ce1ff },
   magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 12, from: 2, col: 0xff6a8a },
@@ -1400,6 +1409,64 @@ function makePlatformTextures(scene) {
     p.line([[6, 5], [117, 5]], 0xfffbe0);
     for (let x = 14; x < 112; x += 12) { p.ell(x, 9, 1.6, 1.6, [0xffffff, 0xc8a040, 0x7a5a1a]); }
     for (const x0 of [0, 113]) p.ell(x0 + 5, 8.5, 5, 6, GOLD);                          // scroll ends
+  });
+}
+
+// L6 "Cheddar Gorge": the chase. The Pepper Jack's spinning rind + its (upright) angry face / exposed core, mini wheels,
+// tortilla-chip stalagmites, bottomless pits and speed-bump craters, the Jalapeño Boost, ruined spires on the skyline
+function makeGorgeTextures(scene) {
+  if (scene.textures.exists('jack_rind')) return;
+  const RIND = [0xffc860, 0xf09a2a, 0xa85a10], PASTE = [0xfff0a0, 0xffd060, 0xd89a2a];
+  pixSprite(scene, 'jack_rind', 120, 120, p => {                    // the wheel itself (it spins); the face is a separate upright overlay
+    p.ell(60, 60, 58, 58, RIND); p.ell(60, 60, 50, 50, PASTE);
+    const r = rng(61);
+    for (let k = 0; k < 22; k++) { const a = r() * 6.28, d = Math.sqrt(r()) * 44, x = 60 + Math.cos(a) * d, y = 60 + Math.sin(a) * d, rr = 2 + r() * 4; p.ell(x, y, rr, rr * 0.85, 0xc87a1a); p.px(x - 1, y - 1, 0x8a4a0a); }   // holes
+    for (let k = 0; k < 40; k++) { const a = r() * 6.28, d = r() * 46; p.px(60 + Math.cos(a) * d, 60 + Math.sin(a) * d, k % 3 ? 0xd02a1a : 0x2a8a2a); }   // pepper flecks
+    for (let k = 0; k < 16; k++) { const a = k / 16 * 6.28; p.line([[60 + Math.cos(a) * 51, 60 + Math.sin(a) * 51], [60 + Math.cos(a) * 57, 60 + Math.sin(a) * 57]], 0xa85a10); }   // rind ridges (show the spin)
+  });
+  pixSprite(scene, 'jack_face', 70, 46, p => {                      // furious face: knitted brows, glaring eyes, gritted teeth
+    p.line([[4, 6], [30, 16]], 0x1a0a04, 4); p.line([[66, 6], [40, 16]], 0x1a0a04, 4);
+    p.ell(20, 18, 9, 7, 0xffffff); p.ell(50, 18, 9, 7, 0xffffff); p.ell(23, 19, 3.5, 4, 0x1a0a04); p.ell(47, 19, 3.5, 4, 0x1a0a04); p.px(22, 17, 0xffffff); p.px(46, 17, 0xffffff);
+    p.rrect(12, 30, 58, 44, 5, 0x5a0a0a); for (let x = 15; x < 56; x += 6) p.rect(x, 31, x + 4, 43, 0xffffff); p.line([[14, 37], [56, 37]], 0x9a8a7a);   // clenched teeth
+  });
+  pixSprite(scene, 'jack_core', 70, 60, p => {                      // rind torn open: gooey molten core with ONE big glowing eye
+    p.ell(35, 30, 33, 28, [0xffd890, 0xff9a3a, 0xc84a10]);
+    for (const [x, y] of [[8, 20], [60, 26], [16, 48], [54, 50], [30, 56]]) p.poly([[x - 4, y], [x + 4, y], [x, y + 8]], [0xffd890, 0xff9a3a, 0xc84a10]);   // drips
+    p.ell(35, 28, 15, 15, 0xffffff); p.ell(35, 28, 9, 9, [0xff8a8a, 0xe02020, 0x800808]); p.ell(35, 28, 4, 5, 0x1a0204); p.px(31, 23, 0xffffff); p.px(32, 23, 0xffffff);   // the eye: the target
+    for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28; p.px(35 + Math.cos(a) * 13, 28 + Math.sin(a) * 13, 0xe02020); }       // bloodshot rim
+  });
+  pixSprite(scene, 'miniwheel', 30, 30, p => {                      // little angry cheese wheel
+    p.ell(15, 15, 14, 14, RIND); p.ell(15, 15, 11, 11, PASTE);
+    p.ell(10, 13, 3, 2.5, 0xffffff); p.ell(20, 13, 3, 2.5, 0xffffff); p.px(11, 13, 0x1a0a04); p.px(19, 13, 0x1a0a04);
+    p.line([[6, 9], [12, 11]], 0x1a0a04, 2); p.line([[24, 9], [18, 11]], 0x1a0a04, 2); p.rect(10, 18, 20, 21, 0x5a0a0a); p.rect(11, 19, 19, 19, 0xffffff);
+  });
+  pixSprite(scene, 'nacho', 34, 50, p => {                          // a razor-sharp giant tortilla chip jutting out of the crust
+    p.poly([[17, 0], [33, 49], [1, 49]], [0xffe08a, 0xf0b040, 0xb07818]);
+    p.poly([[17, 0], [21, 49], [14, 49]], [0xfff0b0, 0xffd060, 0xd09a30]);
+    for (const [x, y] of [[12, 30], [22, 36], [16, 42], [20, 20], [9, 44], [26, 44]]) { p.px(x, y, 0xa86a10); p.px(x + 1, y, 0xd8a040); }   // toasted flecks
+    for (const [x, y] of [[8, 34], [25, 28]]) p.px(x, y, 0xd02a1a);
+  });
+  for (const [k, deep] of [['crater_pit', true], ['crater_bump', false]]) pixTex(scene, k, 64, 26, put => {   // flush with the ground: a crust lip, then either a black void or a shallow bowl
+    for (let y = 0; y < 26; y++) for (let x = 0; x < 64; x++) {
+      const inset = y < 4 ? 0 : (y - 4) * (deep ? 0.25 : 0.9), ex = Math.min(x, 63 - x) - inset;
+      if (ex < 0 || y < 2) continue;
+      let c;
+      if (y <= 3) c = ex < 4 ? 0xffc860 : 0xa85a10;                  // the raised crust lip
+      else if (deep) c = y < 8 ? (ex < 3 ? 0x6a2a0a : 0x2a0a04) : 0x0a0204;   // falls away into darkness
+      else { if (y > 12) continue; c = ex < 3 ? 0xc87a1a : ((x + y) % 5 === 0 ? 0xd8902a : 0xe8a03a); }
+      put(x, y, c);
+    }
+  });
+  pixSprite(scene, 'pu_jalapeno', 20, 22, p => {                    // a green chilli with a flame
+    p.poly([[5, 4], [9, 2], [14, 8], [15, 16], [11, 21], [8, 15]], [0x8af06a, 0x3aa040, 0x1a6a20]); p.rect(6, 1, 9, 3, 0x6a4a20);
+    p.poly([[14, 12], [19, 8], [18, 16]], [0xfff6a0, 0xffa21a, 0xd04a10]); p.px(9, 6, 0xffffff);
+  });
+  pixSprite(scene, 'bg_spires', 120, 80, p => {                     // a ruined cheese-rock citadel on the horizon
+    const R2 = [0x6a3a3a, 0x4a2428, 0x2a1418];
+    for (const [x, w, h] of [[6, 14, 50], [22, 10, 70], [36, 18, 40], [56, 12, 78], [72, 16, 55], [92, 10, 66], [104, 14, 38]]) {
+      p.poly([[x, 79], [x, 79 - h + 8], [x + w / 2, 79 - h], [x + w, 79 - h + 8], [x + w, 79]], R2);
+      for (let y = 79 - h + 14; y < 76; y += 12) p.rect(x + w / 2 - 1, y, x + w / 2 + 1, y + 3, 0xffb050);   // lit windows
+    }
   });
 }
 
