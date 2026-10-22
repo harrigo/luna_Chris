@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.88';
+const BUILD = 'v0.89';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1412,7 +1412,7 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : 1) * (P.grabbed ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : 1)) * (P.grabbed ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1453,6 +1453,7 @@ class Level1 extends Phaser.Scene {
       if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
       else { P.vh = CFG.jumpV; Sound.sfx('jump'); if (P.goop) this.goopSplash(P.theta); }
       P.jetArmed = false; P.holdT = 0; P.jumpBufT = 0; P.coyT = 0;
+      if (P.goop) { P.jetArmed = true; P.holdT = CFG.jetHoldDelay + 1; }      // out of the goop, holding jump lights the boots at once (they just struggle)
       if (!grounded) P.h = Math.max(P.h, P.floor || 0);
     }
     if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay || inp.jetNow) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
@@ -1463,9 +1464,14 @@ class Level1 extends Phaser.Scene {
     P.diving = !grounded && !!inp.down;                       // duck in mid-air = tuck and drop fast (cuts the jetpack)
     P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
+    // goop suction: just above a pool the muck clings to the jet boots - weak thrust, slow climb, and it drags you back down
+    const suck = (this.goops && this.goops.length && P.h < 46 && P.floor === 0) ? this.goops.some(g => Math.abs(angDiff(P.theta, g.theta)) < g.half * 1.05) : false;
+    if (suck && P.thrusting && Math.random() < dt * 14) { const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); this.parts.push({ theta: P.theta + rnd(-0.02, 0.02), h: P.h, vt: rnd(-40, 40), vh: rnd(-60, 20), life: 0.4, spr: im }); }
+    P.suck = suck;
+    if (suck) P.vh -= 320 * dt;
     if (P.thrusting) {
       const rb = this.buffOn('boots');
-      P.vh = Math.min(CFG.jetMaxV * (rb ? 1.45 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * dt);
+      P.vh = Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt);
       P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * dt);
       this.jetFlames(2);
     } else if (grounded) {

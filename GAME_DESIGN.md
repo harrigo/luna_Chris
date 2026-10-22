@@ -591,3 +591,13 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
   Reeled all the way in means a CHOMP: one hit and Chris is spat out.
 - **Pounce:** if Chris gets within 105px, the frog leaps at where he's going (3s cooldown). On landing it splashes spores both ways, then flips belly-up, stunned for 0.95s, with no contact damage while stunned.
 - **Damage:** mouth open (lash or grab), mid-pounce and stunned frogs take ×2 damage. A BASH always lands full damage and stuns for 1.1s. Hot Sauce burns them at half rate.
+
+### v0.89 — Goop grips the jet boots
+- **Suction zone:** within 46px above a goop pool, the muck clings to the jet boots:
+  - jet thrust ×0.85;
+  - max climb speed ×0.3 (78 instead of 260);
+  - an extra 320/s² of drag pulling down;
+  - sideways speed ×0.4;
+  - goop drips off the boots.
+- Jetting out takes about a second and burns about 40% of the fuel tank. The two weak jumps are usually the better way out.
+- A hop out of the goop arms the jetpack at once, so holding jump starts the slow struggle straight away instead of never lighting.
