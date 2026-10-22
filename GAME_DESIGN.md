@@ -652,3 +652,19 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
 - Feedback for the refuel: a "BOOST!" pop-up, a `charged` chime and the fuel bar flashing white.
 - **The jet never slows a bounce:** thrust can only add lift (`max(vh, ...)`), so a 440–520 bounce keeps its full height and the jet takes over as it slows.
 - **Air trickle:** after half a second off the throttle in mid-air, fuel trickles back at 30% of the ground rate.
+
+### v0.95 — The new rat-frog
+- Redrawn after the reference sheet (`drawFrog` in src/levels.js):
+  - a hunched, mottled olive body with a brown back, warts and a pale belly;
+  - long green frog legs and feet;
+  - a curly pink worm tail with rings;
+  - a little pink ear;
+  - a rat snout with a pink nose, whiskers and buck teeth;
+  - a huge red-rimmed, bloodshot, bulging yellow eye.
+- **Frames:** `frog` (idle), `frog_blink`, `frog_crouch` (just before a hop), `frog_leap` (stretched out with legs trailing), `frog_open` and `frog_open_c` (jaw dropped with tongue and drool; the crouched version is for the low-tongue tell).
+- **Which frame shows when (`frogAI`):**
+  - in the air or pouncing: leap;
+  - about to hop: crouch;
+  - tell, lash and grab: mouth open (crouched for a low tongue);
+  - stunned: eyes shut;
+  - idle: blinks every ~3s.

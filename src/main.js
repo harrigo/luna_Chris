@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.94';
+const BUILD = 'v0.95';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1803,6 +1803,14 @@ class Level1 extends Phaser.Scene {
     e.vh -= this.gAt(e.theta) * dt;
     e.h += e.vh * dt;
     if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; if (e.state === 'approach') e.leapV *= 0.5; }
+    // which frame: leaping in the air, crouched just before a hop, mouth open for the tongue, blinking now and then
+    let fr = 'frog';
+    if (e.state === 'tell' || e.state === 'lash' || e.state === 'grab') fr = e.low ? 'frog_open_c' : 'frog_open';
+    else if (e.h > 2 || e.state === 'pounce') fr = 'frog_leap';
+    else if (e.state === 'approach' && (e.hopT || 0) < 0.08) fr = 'frog_crouch';
+    else if (e.state === 'stun') fr = 'frog_blink';
+    else if ((e.t + e.seed * 3) % 3.2 < 0.14) fr = 'frog_blink';
+    if (e.spr.texture.key !== fr) e.spr.setTexture(fr);
     // body language: low tell = squat flat, high tell = rear up tall
     if (e.state === 'tell') { const k = e.sacK; e.spr.sqx = e.low ? 1 + 0.22 * k : 1 - 0.1 * k; e.spr.sqy = e.low ? 1 - 0.3 * k : 1 + 0.28 * k; }
     else if (e.state === 'lash' || e.state === 'grab') { e.spr.sqx = e.low ? 1.18 : 0.92; e.spr.sqy = e.low ? 0.75 : 1.22; }
