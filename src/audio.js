@@ -148,6 +148,8 @@ const Sound = (() => {
     flap:    () => tone({ type: 'triangle', f: 300, f2: 480, dur: 0.06, vol: 0.07 }),
     swish:   () => noise({ ft: 'highpass', f1: 1800, f2: 5200, dur: 0.12, vol: 0.18, q: 0.7 }),
     bonk:    () => { tone({ type: 'square', f: 240, f2: 70, dur: 0.14, vol: 0.32 }); noise({ f1: 900, f2: 120, dur: 0.12, vol: 0.4 }); },
+    charge:  () => tone({ type: 'pulse', duty: 0.25, f: 300 + (SFX._ch || 0) * 700, f2: 340 + (SFX._ch || 0) * 760, dur: 0.07, vol: 0.07 }),   // pitch rises with the charge
+    charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
     blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter
     alarm:   () => { for (let i = 0; i < 3; i++) tone({ type: 'square', f: 880, f2: 620, dur: 0.18, vol: 0.09, t: ctx.currentTime + i * 0.24 }); },
     shine:   () => arp([1320, 1760, 2640], 0.05, { type: 'pulse', duty: 0.125, vol: 0.08 }),
@@ -169,7 +171,8 @@ const Sound = (() => {
     }
   };
 
-  function sfx(name) {
+  function sfx(name, v) {
+    if (v !== undefined) SFX._ch = v;
     if (!ctx || muted || ctx.state !== 'running') return;
     const now = ctx.currentTime, gap = MIN_GAP[name] || 0;
     if (gap && last[name] && now - last[name] < gap) return;

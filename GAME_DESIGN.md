@@ -315,3 +315,14 @@ Bessie is snatched back at the end of every level until Level 9.
   - Also smashes the warp-hole junk.
 - The first time you run dry in a level: "OUT OF PASTA - BASH 'EM!".
 - The rig gets `P.bashA/bashX/bashY` offsets on the gun arm. Tune them in `CFG.bash*`.
+
+### v0.70 — Pressure-sensitive guns + charged Swiss-Shot
+- Controller RT is read as analog pressure (`Pad.state.fireP`). The X / RB fire buttons count as full pressure, as do keys and touch.
+- **Mac-Grinder:** a light trigger pull fires slower and shorter. At ~30% pull, speed and range are about 70% and the fire rate about 60%. A full pull is unchanged.
+- **Spaghetti Spinner:** reach = 40–100% of the full range from trigger pressure. On touch, drag the aim stick further for a longer stream.
+- **Swiss-Shot = hold and release:**
+  - Holding fire grows a glowing, wobbling cheese ball on the nozzle with sizzling sparks and a rising charge tone. Rumble builds, and Chris slows to about 45% move speed.
+  - Full charge (about 1.1s; a harder trigger pull charges faster) gives a "ding" and the ball flashes.
+  - Releasing lobs it: speed ×0.65–1.4, size ×0.45–1.4, blast radius ×0.45–1.3, blast damage ×0.4–1.4, same for the boss.
+  - A big charge kicks Chris back and shakes the screen harder, and costs more pasta (×0.5–1.4 of a normal shot).
+  - Bashing or swapping weapons cancels the charge.

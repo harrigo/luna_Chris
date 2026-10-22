@@ -49,7 +49,9 @@ const Pad = (() => {
     state.left = !!now.left; state.right = !!now.right; state.up = !!now.up; state.down = !!now.down;
     state.jump = !!(now.a || now.lb);
     state.fire = !!(now.x || now.rt || now.rb);
-    state.melee = !!now.b;                         // B = gun-butt bash (Halo style)
+    state.melee = !!now.b;
+    // trigger pressure (analog RT), 1 for the digital fire buttons: light pull = gentler shots
+    { const rt = gp && gp.buttons[7] ? gp.buttons[7].value || 0 : 0; state.fireP = (now.x || now.rb) ? 1 : (rt > 0.05 ? Math.min(1, rt) : 0); }                         // B = gun-butt bash (Halo style)
     // right stick = twin-stick aim: push it to aim and fire that way while the left stick moves
     const rx = gp ? (gp.axes[2] || 0) : 0, ry = gp ? (gp.axes[3] || 0) : 0, rm = Math.hypot(rx, ry);
     state.aimOn = rm > 0.45; state.aimX = rx; state.aimY = ry;

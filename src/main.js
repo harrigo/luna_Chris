@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.69';
+const BUILD = 'v0.70';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -45,14 +45,14 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot',
+    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    beam: true, range: 200, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
+    beam: true, range: 200, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
     blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
-    lob: true, interval: 0.45, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
-    blurb: 'Lobs fat balls of Swiss that burst in a cheesy blast. Hits groups and over cover.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
+    lob: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
@@ -168,7 +168,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
-    this.bashTipShown = false;
+    this.bashTipShown = false; this.chargeSpr = null;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
@@ -354,7 +354,7 @@ class Level1 extends Phaser.Scene {
       this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, power: 0, fuel: 1, jetArmed: false, thrusting: false,
+      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, charge: 0, charging: false, beamReach: 1, power: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'blank').setOrigin(0.5, 1).setDepth(7)
     };
 
@@ -955,7 +955,7 @@ class Level1 extends Phaser.Scene {
       const i = ((this.weaponIdx + (dirn || 1) * k) % n + n) % n;
       if (!weaponUnlocked(WEAPONS[i], this.levelId)) continue;
       if (i === this.weaponIdx) return;
-      this.weaponIdx = i; this.weapon = WEAPONS[i];
+      this.weaponIdx = i; this.weapon = WEAPONS[i]; this.pl.charging = false; this.pl.charge = 0;
       try { localStorage.setItem('lc_weapon', String(i)); } catch (e) { /* ignore */ }
       this.rig.setWeapon(this.weapon);
       this.pl.fireCd = Math.max(this.pl.fireCd, 0.15);
@@ -1010,16 +1010,17 @@ class Level1 extends Phaser.Scene {
         if (vy < -0.85) d.jetNow = true;                                  // ...push right to the top (~90%): jetpack fires straight away (works on diagonals too)
       } else {                                                           // AIM+FIRE stick: touching fires, dragging aims
         S.aim = { ox, oy, vx, vy };
-        d.fire = true;
+        d.fire = true; d.reach = Math.max(d.reach || 0, 0.5 + 0.5 * Math.min(1, Math.hypot(vx, vy) / 0.9));   // touch: drag further = longer spaghetti
         if (Math.hypot(vx, vy) > 0.35) d.aim = { x: vx, y: vy };
       }
     }
+    if (d.fire && !d.fireP) d.fireP = 1;
     const k = this.keys;
     if (k) {
       if (k.left.isDown || k.a.isDown) d.left = true;
       if (k.right.isDown || k.d.isDown) d.right = true;
       if (k.space.isDown || k.up.isDown || k.w.isDown) d.jump = true;
-      if (k.z.isDown || k.x.isDown) d.fire = true;
+      if (k.z.isDown || k.x.isDown) { d.fire = true; d.fireP = 1; }
       if (k.down.isDown || k.s.isDown) d.down = true;
       if (k.f.isDown || k.v.isDown) d.melee = true;
     }
@@ -1028,11 +1029,12 @@ class Level1 extends Phaser.Scene {
       if (g.left) d.left = true;
       if (g.right) d.right = true;
       if (g.jump) d.jump = true;
-      if (g.fire) d.fire = true;
+      if (g.fire) { d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); d.reach = Math.max(d.reach || 0, g.fireP || 1); }
       if (g.down) d.down = true;
       if (g.melee) d.melee = true;
-      if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; }   // twin-stick: aiming fires
+      if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); }   // twin-stick: aiming fires
     }
+    if (d.fire) { d.fireP = d.fireP || 1; d.reach = d.reach || d.fireP; }
     return d;
   }
 
@@ -1054,7 +1056,7 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1131,6 +1133,7 @@ class Level1 extends Phaser.Scene {
     } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; }
     P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
+      P.beamReach = (P.beamReach || 1) + ((W.reachMin + (1 - W.reachMin) * (inp.reach || 1)) - (P.beamReach || 1)) * Math.min(1, dt * 10);   // trigger pressure / drag = reach
       if (P.beamOn) {
         P.firing = 0.12;
         if (P.power <= 0) {
@@ -1140,9 +1143,23 @@ class Level1 extends Phaser.Scene {
         P.beamT = (P.beamT || 0) - dt;
         if (P.beamT <= 0) { P.beamT = W.tick; this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
       }
+    } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
+      const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
+      if (want && ok && P.fireCd <= 0) {
+        if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; }
+        P.charge = Math.min(1, P.charge + dt / W.chargeTime * (0.55 + 0.45 * (inp.fireP || 1)));    // a harder trigger pull charges faster
+        P.chargeSnd -= dt;
+        if (P.charge < 1 && P.chargeSnd <= 0) { P.chargeSnd = 0.13; Sound.sfx('charge', P.charge); if (Pad.state.connected) Pad.pulse(60, 0.1 + 0.5 * P.charge, 0.2 + 0.4 * P.charge); }
+        if (P.charge >= 1 && !P.chargeFull) { P.chargeFull = true; Sound.sfx('charged'); buzz(40); this.addLight(this.muzzle ? this.muzzle.theta : P.theta, this.muzzle ? this.muzzle.h : P.h + 40, 80, 0xffe27a, 1, 0.3); }
+      } else if (P.charging) {                          // let go: fire it
+        P.charging = false;
+        if (ok) this.fireCharged(Math.max(0.2, P.charge), tgt);
+        P.charge = 0;
+      }
     } else if (P.fireCd <= 0 && want && !P.overheat && P.bashT <= 0) {
-      this.fire(tgt);
-      P.fireCd = this.weapon.interval;
+      const pr = W.pressure ? (inp.fireP || 1) : 1;      // Mac-Grinder: light trigger = slower, shorter shots
+      this.fire(tgt, W.pressure ? { speedK: 0.6 + 0.4 * pr, lifeK: 0.6 + 0.4 * pr } : null);
+      P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1);
       if (P.power <= 0) {
         P.ammo = Math.max(0, P.ammo - this.weapon.ammo);
         P.ammoHold = CFG.ammoDelay;
@@ -1152,9 +1169,21 @@ class Level1 extends Phaser.Scene {
     if (P.ammoHold <= 0) P.ammo = Math.min(1, P.ammo + CFG.ammoRegen * dt);
   }
 
+  // release a charged Swiss-Shot: everything scales with the charge (c = 0.2 .. 1)
+  fireCharged(c, tgt) {
+    const P = this.pl, W = this.weapon;
+    this.fire(tgt, { speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c });
+    P.fireCd = W.interval;
+    if (P.power <= 0) {
+      P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c)); P.ammoHold = CFG.ammoDelay;
+      if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
+    }
+    if (c > 0.6) { this.camKick(-(P.facing || 1) * 6 * c, 0); P.vx -= (P.facing || 1) * 160 * c; buzz(Math.round(30 + 40 * c)); }   // a big one kicks back
+  }
+
   startBash() {
     const P = this.pl;
-    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false;
+    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0;
     Sound.sfx('swish');
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
   }
@@ -1199,9 +1228,10 @@ class Level1 extends Phaser.Scene {
   }
 
   // The Mac-Grinder 3000: a fast stream of spiralling macaroni, auto-aimed at the nearest enemy.
-  fire(tgt) {
+  fire(tgt, o) {
     const P = this.pl;
     const W = this.weapon;
+    o = o || {};
     if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
     let dx = P.facing * Math.cos(P.aimA || 0), dy = Math.sin(P.aimA || 0);    // aimed up/down with the right stick
     const M = this.muzzle;
@@ -1220,16 +1250,17 @@ class Level1 extends Phaser.Scene {
     if (Pad.state.connected) Pad.pulse(90, 0.05, 0.3);          // a light buzz in the hands while the Mac-Grinder fires
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
-    if (W.lob) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
+    if (W.lob) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle * (o.angleK || 1) + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
       this.pBullets.push({
         bt, bh: gh, theta: bt, h: gh,
-        vt: ux * W.speed, vh: uy * W.speed,
+        vt: ux * W.speed * (o.speedK || 1), vh: uy * W.speed * (o.speedK || 1),
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
-        life: W.life, wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0, blast: W.blast || 0, blastDmg: W.blastDmg || 0,
-        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = W.ballScale || 1; if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
+        life: W.life * (o.lifeK || 1), wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0,
+        blast: o.blast || W.blast || 0, blastDmg: o.blastDmg || W.blastDmg || 0, bossDmg: o.bossDmg,
+        spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = (W.ballScale || 1) * (o.scaleK || 1); if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
     }
   }
@@ -1323,7 +1354,7 @@ class Level1 extends Phaser.Scene {
       const P = { spr: pud, theta, h: -1, rot: 0 }; this.actors.push(P);
       this.tweens.add({ targets: pud, alpha: 0, delay: 1600, duration: 900, onComplete: () => { this.actors.splice(this.actors.indexOf(P), 1); pud.destroy(); } });
     }
-    this.cameras.main.shake(200, 0.012);
+    this.cameras.main.shake(160 + rad * 0.6, 0.006 + rad * 0.00005);       // bigger blast, bigger shake
     this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camPunch(0.035);
     this.addLight(theta, h + 10, rad * 1.6, 0xffe080, 1, 0.45);
     Sound.sfx('boom'); buzz([60, 30, 90]);
@@ -1333,8 +1364,8 @@ class Level1 extends Phaser.Scene {
   beamGeom(W) {
     const P = this.pl, dir = P.facing || 1, M = this.muzzle;
     const gh = M ? M.h : P.h + (P.duck ? 22 : 40);
-    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), span = W.range * Math.cos(aa) / (R + gh);
-    return { dir, gh, t0, span, rise: W.range * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
+    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), rng = W.range * (P.beamReach || 1), span = rng * Math.cos(aa) / (R + gh);
+    return { dir, gh, t0, span, rise: rng * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
   }
   beamHit(W) {
     const B = this.beamGeom(W);
@@ -1749,7 +1780,7 @@ class Level1 extends Phaser.Scene {
         }
       }
       if (!dead && this.relics.length && this.relicHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
-      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, this.weapon.bossDmg);
+      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, b.bossDmg || this.weapon.bossDmg);
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
     this.reapEnemies();
@@ -2020,6 +2051,19 @@ class Level1 extends Phaser.Scene {
       const tp = m.transformPoint(tipImg.width * (1 - tipImg.originX) - 1, 0);
       const dx = tp.x - this.cx, dy = this.cy - tp.y;
       this.muzzle = { theta: wrap(P.theta + Math.atan2(dx, dy)), h: Math.hypot(dx, dy) / this.zoom - R, x: tp.x, y: tp.y };
+      const tb = m.transformPoint(-tipImg.width * tipImg.originX, 0), ml = Math.hypot(tp.x - tb.x, tp.y - tb.y) || 1;
+      this.muzzle.dx = (tp.x - tb.x) / ml; this.muzzle.dy = (tp.y - tb.y) / ml;          // which way the barrel points on screen
+    }
+    { // Swiss-Shot charge: the ball swells on the end of the gun, wobbling faster as it fills
+      if (!this.chargeSpr) { this.chargeSpr = this.add.image(0, 0, 'swissball').setDepth(8.6).setVisible(false); bakedGlow(this.chargeSpr, 0xffe27a, 2, 6); }
+      const c = P.charging ? Math.max(0.2, P.charge) : 0, M = this.muzzle;
+      if (c > 0 && M) {
+        const z = this.zoom, W = this.weapon, wob = 1 + (0.05 + 0.08 * c) * Math.sin(this.t * (18 + 40 * c));
+        const sc = (W.ballScale || 1) * (0.45 + 0.95 * c) * z, r = 11 * sc;                  // swissball is 22px across
+        this.chargeSpr.setPosition(M.x + M.dx * r * 0.8, M.y + M.dy * r * 0.8).setScale(sc * wob, sc / wob).setRotation(this.t * 2).setVisible(true);
+        if (P.chargeFull && Math.floor(this.t * 16) % 2) this.chargeSpr.setTint(0xfff6c0); else this.chargeSpr.clearTint();
+        if (Math.random() < c * 0.5) this.fxBang.emitParticleAt(M.x + M.dx * r + rnd(-r, r), M.y + M.dy * r + rnd(-r, r), 1);    // sizzling sparks
+      } else this.chargeSpr.setVisible(false);
     }
 
     for (const e of this.enemies) {
