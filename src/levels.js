@@ -13,7 +13,7 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
   frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
-  gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'mouse' },          // L3 factory rat in goggles
+  gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'welder' },         // L3 welder rat: riot shield + blowtorch
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
   phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone' },          // ghostly dairy-maid: hovers, then rams
@@ -82,9 +82,11 @@ const LEVELS = {
 
   3: {
     id: 3, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
-    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'THE FLOOR IS A GRATER! USE THE PLATFORMS!',
+    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'GET BEHIND THE SHIELD-RATS! WATCH THE CLAW!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
+    clawDrops: { every: [6, 9], max: 3 },                      // the Claw drops cheese blocks: crush hazard, then cover you can stand on / shoot apart
+    geysers: { n: 5, idle: [4, 7], warn: 1.1, erupt: 1.2, height: 170, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
     dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
@@ -1424,6 +1426,16 @@ function makeFactoryTextures(scene) {
     }
     p.rect(16, 8, 30, 12, 0xffd23f); p.px(18, 10, 0x1a1020); p.px(22, 10, 0x1a1020); p.px(26, 10, 0x1a1020);   // a stencilled label
   });
+  pixSprite(scene, 'cheeseblock', 46, 36, p => {                  // a block of Swiss dropped by the claw
+    p.poly([[2, 10], [30, 4], [44, 10], [44, 34], [16, 35], [2, 30]], [0xfff09a, 0xffcf3a, 0xc9901a]);
+    p.poly([[2, 10], [30, 4], [44, 10], [16, 14]], [0xfff6c0, 0xffe27a, 0xd8a83a]);
+    for (const [x, y, r] of [[10, 22, 3], [24, 27, 3.5], [36, 20, 2.6], [30, 31, 2], [18, 9, 1.8]]) { p.ell(x, y, r, r * 0.8, 0xa8701a); p.px(x + 1, y + 1, 0xffe27a); }
+  });
+  pixSprite(scene, 'steam', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xe0e8f0, 0xa8b4c4]); p.px(5, 4, 0xffffff); });
+  pixSprite(scene, 'steamvent', 34, 14, p => {
+    p.rrect(1, 4, 33, 13, 2, [0x9aa4b4, 0x5e6878, 0x323a48]); p.rect(6, 4, 28, 6, 0x1a1020);
+    for (let x = 4; x < 31; x += 6) p.poly([[x, 9], [x + 3, 9], [x, 13]], 0xffd23f);
+  });
   pixSprite(scene, 'barrel', 22, 30, p => {                        // steel drum with a hazard band
     p.rrect(1, 2, 21, 29, 3, [0x7ab0d8, 0x3a6a9a, 0x1e3a5a]);
     p.rect(1, 8, 21, 13, 0xffd23f); for (let x = 2; x < 21; x += 5) p.poly([[x, 8], [x + 2, 8], [x, 13]], 0x1a1020);
@@ -1433,18 +1445,22 @@ function makeFactoryTextures(scene) {
     p.rect(6, 12, 9, 33, IRON[1]); p.rrect(3, 30, 13, 33, 1, IRON);
     p.rrect(2, 9, 14, 14, 1, STEEL); p.ell(8, 6, 5, 5.5, col); p.rect(6, 2, 7, 6, 0xffffff);
   });
-  // goggle-rat: a factory rat in a boiler suit and green welding goggles
-  pixSprite(scene, 'gogglerat', 40, 32, p => {
+  // goggle-rat welder: a factory rat in a boiler suit and green welding goggles, a riveted steel shield in front, a blowtorch behind it
+  pixSprite(scene, 'gogglerat', 46, 34, p => {
     const FUR = [0xb8a08a, 0x8a705a, 0x54402e], SUIT = [0x9aa4b4, 0x5e6878, 0x323a48];
-    p.line([[6, 24], [2, 18], [3, 11], [7, 8]], 0xe9a8b8, 2);                                   // tail
-    p.ell(16, 21, 11, 9, SUIT); p.rect(10, 18, 22, 20, 0xffd23f);                               // boiler suit + hazard belt
-    p.rrect(8, 26, 15, 31, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]); p.rrect(18, 26, 25, 31, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]);   // boots
-    p.ell(26, 12, 9, 8, FUR); p.poly([[30, 9], [39, 13], [37, 16], [30, 17]], FUR);             // head + snout
-    p.ell(38, 13, 1.6, 1.6, [0xffb0c0, 0xe0607a, 0x9a3048]); p.rect(33, 16, 35, 19, 0xfff6e0);  // nose + teeth
-    p.ell(20, 5, 4, 4.5, FUR); p.ell(20, 5, 2, 2.5, 0xe9a8b8);                                  // ear
-    p.rect(19, 9, 34, 11, 0x2a2a2a);                                                            // goggle strap
-    p.ell(27, 10, 4, 4, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.ell(33, 10, 3, 3.5, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.px(26, 8, 0xffffff); p.px(32, 8, 0xffffff);   // green lenses
-    p.line([[22, 22], [28, 18], [32, 20]], SUIT[1], 3); p.ell(33, 20, 2.2, 2.2, [0xc0a890, 0x8a705a, 0x54402e]);   // arm + fist
+    p.line([[6, 26], [2, 20], [3, 13], [7, 10]], 0xe9a8b8, 2);                                   // tail
+    p.ell(16, 23, 11, 9, SUIT); p.rect(10, 20, 22, 22, 0xffd23f);                               // boiler suit + hazard belt
+    p.rrect(8, 28, 15, 33, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]); p.rrect(18, 28, 25, 33, 2, [0x5a4a3a, 0x3a2e22, 0x221a12]);   // boots
+    p.ell(24, 13, 9, 8, FUR); p.poly([[28, 10], [36, 14], [34, 17], [28, 18]], FUR);             // head + snout
+    p.ell(35, 14, 1.6, 1.6, [0xffb0c0, 0xe0607a, 0x9a3048]);
+    p.ell(18, 6, 4, 4.5, FUR); p.ell(18, 6, 2, 2.5, 0xe9a8b8);                                  // ear
+    p.rect(17, 10, 32, 12, 0x2a2a2a);                                                           // goggle strap
+    p.ell(25, 11, 4, 4, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.ell(31, 11, 3, 3.5, [0x9affa0, 0x3ac850, 0x1a6a2a]); p.px(24, 9, 0xffffff); p.px(30, 9, 0xffffff);   // green lenses
+    p.line([[14, 20], [8, 16]], SUIT[1], 3); p.rrect(2, 12, 9, 16, 1, [0xff8a8a, 0xe03030, 0x901818]); p.rect(0, 13, 2, 15, 0x5a6272);   // blowtorch held back
+    p.rrect(35, 6, 45, 33, 2, [0xc8d0dc, 0x8a96aa, 0x4a5262]);                                   // the riot shield
+    for (const y of [9, 30]) for (const x of [37, 43]) p.px(x, y, 0xffffff);                     // rivets
+    p.rect(36, 18, 44, 22, 0xffd23f); p.px(38, 19, 0x1a1020); p.px(40, 21, 0x1a1020); p.px(42, 19, 0x1a1020);   // hazard band
+    p.rect(36, 8, 37, 31, 0xeef4fc);                                                             // shine
   });
   // the flying pizza cutter: a steel cutting wheel on a handle, pushed along by a little rocket
   pixSprite(scene, 'drone', 50, 38, p => {

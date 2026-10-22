@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.96';
+const BUILD = 'v0.97';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -343,10 +343,11 @@ class Level1 extends Phaser.Scene {
     const gd = this.def.geysers;
     if (gd) for (let i = 0; i < gd.n; i++) {
       const theta = wrap(0.45 + i * (TAU - 0.9) / gd.n + rnd(0, 0.15));          // none right where Chris starts
-      const glow = this.add.image(0, 0, 'lava_glow').setDepth(2.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-      const vent = this.add.image(0, 0, 'geyser_vent').setOrigin(0.5, 0.75).setDepth(2.6);
-      glow.bsx = 1.3; glow.bsy = 2;
-      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0, fx: glowFx(vent, 0xff9a2a, 1, 10) });
+      const glow = this.add.image(0, 0, gd.float ? 'halo' : 'lava_glow').setDepth(2.5).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+      if (gd.float) glow.setTint(0xc8e0ff);                     // steam vents: a cool white glow, not molten orange
+      const vent = this.add.image(0, 0, gd.vent || 'geyser_vent').setOrigin(0.5, 0.75).setDepth(2.6);
+      glow.bsx = gd.float ? 0.6 : 1.3; glow.bsy = gd.float ? 1.2 : 2;
+      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0, fx: gd.float ? null : glowFx(vent, 0xff9a2a, 1, 10) });
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -358,7 +359,7 @@ class Level1 extends Phaser.Scene {
       spr.bsx = (2 * g.half * R) / 64 * 1.1; spr.bsy = 1.7;
       return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
     });
-    this.goopTip = false; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.clawT = undefined; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1239,6 +1240,7 @@ class Level1 extends Phaser.Scene {
     let f = 0;
     if (this.pl && this.pl.dropT > 0) return 0;          // dropping through a ledge
     for (const L of (this.def.ledges || [])) if (L.h > f && L.h <= h + 4 && Math.abs(angDiff(theta, L.theta)) < L.half) f = L.h;
+    for (const L of (this.dynLedges || [])) if (L.h > f && L.h <= h + 4 && Math.abs(angDiff(theta, L.theta)) < L.half) f = L.h;   // claw-dropped cheese blocks
     return f;
   }
 
@@ -1280,7 +1282,7 @@ class Level1 extends Phaser.Scene {
       this.updatePlayerBullets(dt);
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
-      this.updateWheels(dt); this.updateOneUp();
+      this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1713,6 +1715,8 @@ class Level1 extends Phaser.Scene {
 
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
   hitK(e) {
+    if (e.kind === 'welder') return (Math.sign(angDiff(this.pl.theta, e.theta)) || 1) === e.face && e.state !== 'flame' ? 0 : 1;   // riot shield faces you (it drops its guard while torching)
+    if (e.kind === 'drone') return e.state === 'stuck' ? 2 : 1;
     if (e.kind !== 'frog') return 1;
     return (e.state === 'lash' || e.state === 'grab' || e.state === 'stun' || e.state === 'pounce') ? 2 : 0;
   }
@@ -1925,6 +1929,109 @@ class Level1 extends Phaser.Scene {
       const a = this.screenPos(F.ath, F.ah), b = this.screenPos(F.theta, F.h), n = Math.max(3, Math.ceil(F.len / 9));
       for (let i = 1; i < n; i++) { const t = i / n, x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t + Math.sin(t * Math.PI) * (F.st === 'hang' ? 4 : 1) * z;
         O.chain.fillStyle(0x1a1020, 1).fillCircle(x, y, 3.2 * z).fillStyle(0xa8b0c0, 1).fillCircle(x, y, 2.2 * z); }
+    }
+  }
+
+  // WELDER RAT (L3). Learnable rules:
+  //  * it carries a riveted riot shield on the side it's FACING: shots from the front plink off
+  //  * it plods towards you, and is SLOW TO TURN (0.7s after you get behind it): jump over / go round and shoot its back
+  //  * get close in front and it lowers its goggles (blue sparks, 0.5s) then BLASTS its blowtorch (0.7s): back off or jump it
+  //  * stomping it works (it's not armoured on top); BASH knocks the shield aside
+  welderAI(e, dt, toP, distP, fooled) {
+    const P = this.pl, side = Math.sign(toP) || 1;
+    if (e.face === undefined) { e.face = side; e.state = 'walk'; e.turnT = 0; e.torchCd = 1; }
+    const grounded = e.h <= 0 && e.vh <= 0;
+    e.torchCd -= dt;
+    if (side !== e.face && !fooled) { e.turnT += dt; if (e.turnT > 0.7 && e.state === 'walk') { e.face = side; e.turnT = 0; Sound.sfx('clunk'); e.spr.hsq = 1; } }
+    else e.turnT = 0;
+    e.dir = e.face;
+    if (e.state === 'walk') {
+      if (grounded && distP > 46) e.theta = wrap(e.theta + e.face * 58 / R * dt);
+      if (!fooled && side === e.face && distP < 85 && e.torchCd <= 0 && Math.abs(P.h) < 60) { e.state = 'tell'; e.tT = 0.5; Sound.sfx('charge'); }
+    } else if (e.state === 'tell') {                 // goggles down, sparks
+      e.tT -= dt; if (Math.random() < dt * 30) this.burst(wrap(e.theta - e.face * 18 / R), 16, 'spark', 1, 0.4);
+      e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0x9ad8ff : 0xffffff);
+      if (e.tT <= 0) { e.state = 'flame'; e.tT = 0.7; e.spr.clearTint(); Sound.sfx('hiss'); }
+    } else if (e.state === 'flame') {
+      e.tT -= dt;
+      const ahead = angDiff(P.theta, e.theta) * R * e.face;
+      if (ahead > 0 && ahead < 82 && P.h < 46 && P.invuln <= 0 && this.state === 'play') this.hurt();
+      if (Math.random() < dt * 40) { const im = this.add.image(0, 0, 'flame').setDepth(7.5); this.parts.push({ theta: wrap(e.theta + e.face * rnd(18, 75) / R), h: rnd(6, 30), vt: e.face * rnd(60, 140), vh: rnd(20, 90), life: rnd(0.2, 0.35), spr: im }); }
+      if (e.tT <= 0) { e.state = 'walk'; e.torchCd = 1.8; }
+    }
+    e.vh -= this.gAt(e.theta) * dt; e.h += e.vh * dt; if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
+  }
+
+  // L3: the Claw drops cheese blocks. A target marker (pulsing ring + line from the sky) warns where; then it slams down
+  // (crush!) and stays as a block you can stand on or shoot apart (it might drop a cheese wedge).
+  updateClawDrops(dt) {
+    const d = this.def.clawDrops, P = this.pl; if (!d) return;
+    this.blocks = this.blocks || []; this.clawT = (this.clawT === undefined ? 4 : this.clawT) - dt;
+    const bossUp = this.enemies.some(e => e.type === 'boss');
+    if (this.clawT <= 0 && this.blocks.filter(b => b.st !== 'gone').length < d.max) {
+      this.clawT = rnd(d.every[0], d.every[1]) * (bossUp ? 1.3 : 1);
+      this.blocks.push({ st: 'warn', t: 1.2, theta: wrap(P.theta + (P.vx || 0) / R * 0.6 + rnd(-0.18, 0.18)), h: 420, vh: 0, hp: 6, life: 12, spr: null });
+      Sound.sfx('alarm');
+    }
+    for (let i = this.blocks.length - 1; i >= 0; i--) {
+      const B = this.blocks[i];
+      if (B.st === 'warn') { B.t -= dt; if (B.t <= 0) { B.st = 'fall'; B.vh = -500; B.spr = this.add.image(0, 0, 'cheeseblock').setOrigin(0.5, 1).setDepth(4); B.spr.bsx = B.spr.bsy = 1.3; Sound.sfx('whoosh'); } }
+      else if (B.st === 'fall') {
+        B.vh -= 1400 * dt; B.h += B.vh * dt;
+        if (B.h <= 0) {
+          B.h = 0; B.st = 'sit'; this.cameras.main.shake(160, 0.009); Sound.sfx('clunk'); buzz(30);
+          this.burst(B.theta, 6, 'crumb', 16, 1.1); this.bang(B.theta, 10, 24);
+          if (Math.abs(angDiff(P.theta, B.theta)) * R < 30 && P.h < 44 && P.invuln <= 0) { this.hurt(); P.vh = 300; }
+          for (const e of this.enemies) if (e.type !== 'boss' && e.h < 40 && Math.abs(angDiff(e.theta, B.theta)) * R < 28) e.hp = 0;   // squashes rats too
+          B.ledge = { theta: B.theta, half: 22 / R, h: 44 }; this.dynLedges.push(B.ledge);
+        }
+      } else if (B.st === 'sit') {
+        B.life -= dt;
+        if (B.flash > 0) { B.flash -= dt; if (B.flash <= 0) B.spr.clearTint(); }
+        if (B.life < 2) B.spr.setAlpha(Math.floor(B.life * 8) % 2 ? 0.5 : 1);
+        if (B.hp <= 0 || B.life <= 0) {
+          this.burst(B.theta, 20, 'crumb', 18, 1.2); Sound.sfx('kill');
+          if (B.hp <= 0 && Math.random() < 0.35) this.pickups.push({ kind: 'heal', theta: B.theta, h: 30, vh: 160, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+          this.dynLedges.splice(this.dynLedges.indexOf(B.ledge), 1); B.spr.destroy(); this.blocks.splice(i, 1);
+        }
+      }
+    }
+  }
+  blockHit(theta, h, dmg) {                                       // player shots chip away at the blocks
+    for (const B of (this.blocks || [])) if (B.st === 'sit' && Math.abs(angDiff(theta, B.theta)) * R < 26 && h < 50) { B.hp -= dmg; B.spr.setTintFill(0xffffff); B.flash = 0.05; this.burst(theta, h, 'crumb', 3, 0.5); return true; }
+    return false;
+  }
+
+  // claw-drop target markers + drone laser sights + welder flames
+  drawFactory() {
+    if (!this.facG) this.facG = this.add.graphics().setDepth(7.55);
+    const g = this.facG, z = this.zoom; g.clear();
+    for (const B of (this.blocks || [])) {
+      if (B.st === 'warn' || B.st === 'fall') {
+        const k = 1 - (B.st === 'warn' ? B.t / 1.2 : 1), s0 = this.screenPos(B.theta, 2), s1 = this.screenPos(B.theta, 420); if (!s0.vis) continue;
+        const pulse = 0.5 + 0.5 * Math.sin(this.t * 18);
+        g.lineStyle(2 * z, 0xff3030, 0.35 + 0.4 * pulse).lineBetween(s0.x, s0.y, s1.x, s1.y);
+        g.lineStyle(3 * z, 0xff3030, 0.6 + 0.4 * pulse).strokeEllipse(s0.x, s0.y, (40 - 16 * k) * z, (12 - 4 * k) * z);
+        g.fillStyle(0x000000, 0.25 + 0.3 * k).fillEllipse(s0.x, s0.y, 34 * z, 9 * z);
+      }
+      if (B.spr && B.st !== 'warn') this.place(B.spr, B.theta, B.h, 0);
+    }
+    for (const e of this.enemies) {
+      if (e.kind === 'drone' && (e.state === 'aim' || e.state === 'tele')) {
+        const a = this.screenPos(e.theta, e.h), b = this.screenPos(e.tx, e.ty); if (!a.vis) continue;
+        const ex = b.x + (b.x - a.x) * 0.4, ey = b.y + (b.y - a.y) * 0.4, lock = e.state === 'tele';
+        if (!lock || Math.floor(this.t * 14) % 2) {
+          g.lineStyle((lock ? 3 : 1.5) * z, 0xff2a2a, lock ? 0.95 : 0.45 + 0.2 * Math.sin(this.t * 30)).lineBetween(a.x, a.y, ex, ey);
+          g.fillStyle(0xff2a2a, lock ? 1 : 0.6).fillCircle(b.x, b.y, (lock ? 4 : 3) * z);
+        }
+      }
+      if (e.kind === 'welder' && e.state === 'flame') {
+        const n = 6;
+        for (let k = 0; k < n; k++) {
+          const u = (k + Math.random() * 0.5) / n, p0 = this.screenPos(wrap(e.theta + e.face * (16 + u * 70) / R), 14 + Math.sin(this.t * 40 + k) * 4 * u), r = (4 + u * 12) * z;
+          g.fillStyle(u < 0.3 ? 0xffffff : (u < 0.6 ? 0xffd23f : 0xff6a1a), 0.85 - u * 0.4).fillCircle(p0.x, p0.y, r);
+        }
+      }
     }
   }
 
@@ -2452,27 +2559,38 @@ class Level1 extends Phaser.Scene {
       } else if (ai === 'frog') {
         this.frogAI(e, dt, toP, distP, dirP, fooled);
 
+      } else if (ai === 'welder') {
+        this.welderAI(e, dt, toP, distP, fooled);
+
       } else if (ai === 'drone') {
-        // cheese-slicing drone: hovers, flashes red, then dives at where Chris was
+        // pizza-cutter drone: hovers, then a red LASER SIGHT tracks Chris (aim), FREEZES and blinks (lock - the tell),
+        // and it DASHES straight down that line. Miss, and it jams into the floor spinning (stuck = double damage).
         if (e.state === 'hover') {
           const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 14;
           e.h += (want - e.h) * Math.min(1, dt * 3);
-          const hold = 110 + Math.sin(e.t * 0.6 + e.seed) * 50;
+          const hold = 120 + Math.sin(e.t * 0.6 + e.seed) * 50;
           e.theta = wrap(e.theta + ((distP > hold ? dirP : -dirP * 0.5) * 95 / R) * dt);
           e.dir = dirP;
           e.cd -= dt;
-          if (e.cd <= 0) { e.state = 'tele'; e.cd = 0.55; e.tx = P.theta; e.ty = P.h + 20; e.spr.setTint(0xff6060); Sound.sfx('zing'); }
-        } else if (e.state === 'tele') {
-          e.cd -= dt;
-          e.h += Math.sin(e.t * 60) * 0.6;
-          if (e.cd <= 0) { e.state = 'dive'; e.spr.clearTint(); e.cd = 0.9; e.flipP = 0; }
-        } else if (e.state === 'dive') {
-          const dx = angDiff(e.tx, e.theta) * R, dy = e.ty - e.h, len = Math.hypot(dx, dy) || 1;
-          e.theta = wrap(e.theta + ((dx / len) * 380 / R) * dt);
-          e.h += (dy / len) * 380 * dt;
-          e.dir = dx >= 0 ? 1 : -1;
-          e.cd -= dt;
-          if (len < 18 || e.cd <= 0 || e.h <= 4) { e.state = 'rise'; e.cd = 1; }
+          if (e.cd <= 0 && !fooled && distP < 380) { e.state = 'aim'; e.cd = 0.75; Sound.sfx('charge'); }
+        } else if (e.state === 'aim') {                  // laser follows Chris
+          e.cd -= dt; e.tx = P.theta; e.ty = P.h + 20; e.dir = dirP;
+          if (e.cd <= 0) { e.state = 'tele'; e.cd = 0.4; e.spr.setTint(0xff6060); Sound.sfx('zing'); }
+        } else if (e.state === 'tele') {                 // locked: the line freezes and blinks
+          e.cd -= dt; e.h += Math.sin(e.t * 60) * 0.6;
+          if (e.cd <= 0) {
+            e.state = 'dive'; e.spr.clearTint(); e.cd = 1.2; e.flipP = 0; Sound.sfx('whoosh');
+            const dx = angDiff(e.tx, e.theta) * R, dy = e.ty - e.h, len = Math.hypot(dx, dy) || 1; e.ux = dx / len; e.uy = dy / len;
+          }
+        } else if (e.state === 'dive') {                // straight along the locked line, and on past it
+          e.theta = wrap(e.theta + (e.ux * 520 / R) * dt); e.h += e.uy * 520 * dt;
+          e.dir = e.ux >= 0 ? 1 : -1; e.cd -= dt;
+          if (e.h <= 6) { e.h = 4; e.state = 'stuck'; e.cd = 1.4; this.cameras.main.shake(80, 0.004); Sound.sfx('clang'); this.burst(e.theta, 4, 'spark', 10, 0.9); }
+          else if (e.cd <= 0) { e.state = 'rise'; e.cd = 1; }
+        } else if (e.state === 'stuck') {               // jammed in the grater, wheel screaming: punish it!
+          e.cd -= dt; e.roll = Math.sin(e.t * 50) * 0.15;
+          if (Math.random() < dt * 20) this.burst(e.theta, 6, 'spark', 1, 0.6);
+          if (e.cd <= 0) { e.state = 'rise'; e.cd = 1; e.roll = undefined; }
         } else {
           e.h += (e.baseH - e.h) * Math.min(1, dt * 2.2);
           e.cd -= dt;
@@ -2719,7 +2837,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 150, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -2828,6 +2946,7 @@ class Level1 extends Phaser.Scene {
         }
       }
       if (!dead && this.relics.length && this.relicHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
+      if (!dead && this.blocks && this.blocks.length && this.blockHit(b.theta, b.h, b.dmg || 1)) dead = true;
       if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, b.bossDmg || this.weapon.bossDmg);
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
@@ -2918,13 +3037,13 @@ class Level1 extends Phaser.Scene {
         if (near) Sound.sfx('zing');
       } else if (G.st === 'warn') {
         G.emitT -= dt;
-        if (near && G.emitT <= 0) { G.emitT = 0.12; this.parts.push({ theta: G.theta, h: 2, vt: rnd(-40, 40), vh: rnd(80, 160), life: 0.4, spr: this.add.image(0, 0, 'fondue').setDepth(2.7) }); }
+        if (near && G.emitT <= 0) { G.emitT = 0.12; this.parts.push({ theta: G.theta, h: 2, vt: rnd(-40, 40), vh: rnd(80, 160), life: 0.4, noGrav: gd.float, spr: this.add.image(0, 0, gd.puff || 'fondue').setDepth(2.7) }); if (gd.float && Math.random() < 0.3) Sound.sfx('hiss'); }
         if (G.cd <= 0) { G.st = 'erupt'; G.cd = gd.erupt; if (near) { this.cameras.main.shake(160, 0.005); Sound.sfx('boom'); buzz(30); } }
       } else if (G.st === 'erupt') {
         G.emitT -= dt;
         if (near && G.emitT <= 0) {
           G.emitT = 0.035;
-          this.parts.push({ theta: G.theta, h: 2, vt: rnd(-55, 55), vh: rnd(420, 640), life: rnd(0.9, 1.3), spr: (() => { const im = this.add.image(0, 0, 'fondue').setDepth(2.7); im.bsx = im.bsy = rnd(0.9, 1.7); return im; })() });
+          this.parts.push({ theta: G.theta, h: 2, vt: rnd(-55, 55), vh: gd.float ? rnd(300, 420) : rnd(420, 640), life: gd.float ? rnd(0.5, 0.7) : rnd(0.9, 1.3), noGrav: gd.float, grow: gd.float ? 2.2 : 0, spr: (() => { const im = this.add.image(0, 0, gd.puff || 'fondue').setDepth(2.7); im.bsx = im.bsy = rnd(0.9, 1.7); return im; })() });
         }
         // standing in the column hurts
         if (P.invuln <= 0 && this.state === 'play' && Math.abs(angDiff(P.theta, G.theta)) * R < 20 && P.h < gd.height) this.hurt();
@@ -2934,7 +3053,8 @@ class Level1 extends Phaser.Scene {
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i];
       p.theta = wrap(p.theta + (p.vt / R) * dt);
-      p.vh -= 900 * dt;
+      if (!p.noGrav) p.vh -= 900 * dt; else p.vh *= Math.exp(-1.5 * dt);
+      if (p.grow) { p.spr.bsx += p.grow * dt; p.spr.bsy += p.grow * dt; }
       p.h += p.vh * dt;
       p.life -= dt;
       if (p.rv) p.rot += p.rv * dt;
@@ -3169,7 +3289,7 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
     this.drawBlastFx();
     this.drawHazards();
-    this.drawTongues();
+    this.drawTongues(); this.drawFactory();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;

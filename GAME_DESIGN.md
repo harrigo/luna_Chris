@@ -689,3 +689,25 @@ After the "Planet Grat'o-Cheese" concept art, in our 16-bit style (`makeFactoryT
 - **Enemies:**
   - **goggle-rats**, new: factory rats in boiler suits with hazard belts and green welding goggles (hp 3, run-and-hop rat AI). They join all three waves.
   - The **drone is now a flying pizza cutter:** a steel cutting wheel with an angry red hub-eye on a wooden handle, pushed along by a red rocket. It's used wherever drones appear.
+
+### v0.97 — Planet Grat'o-Cheese gets teeth
+Every new threat has a tell and a counter you can learn:
+- **Welder rats** (`welderAI`; the goggle-rats now carry a riveted riot shield and a blowtorch):
+  - the shield faces the way the rat faces, so shots from the front plink off (`hitK` = 0);
+  - they plod towards Chris and are **slow to turn**: 0.7s after you get behind one, it swings round with a clunk. Jump over one, or go round the planet, and shoot its back;
+  - close up in front: goggles down and blue sparks (0.5s tell), then a **blowtorch blast** (0.7s, 82px ahead). It drops its guard while torching;
+  - stomps kill them, and bash ignores the shield.
+- **Pizza-cutter drones lock on:**
+  - hover, then a faint red **laser sight** tracks Chris (0.75s);
+  - it **freezes and blinks** (lock, 0.4s);
+  - it **dashes straight down the line** at 520 and carries on past;
+  - if it hits the floor, it **jams in the grater** for 1.4s, wheel screaming and sparking, and takes ×2 damage. Sidestep the line, then punish.
+
+  This applies wherever drones appear, ghost milkmaids included.
+- **The Claw drops cheese blocks** (`clawDrops`, every 6–9s, max 3):
+  - a pulsing red ring and a line from the sky mark the spot (1.2s, alarm);
+  - the block slams down: it crushes Chris and squashes rats;
+  - it then sits as a platform (`dynLedges`, which `floorAt` reads), which also keeps you off the grater blades;
+  - shoot it apart (6 hp, 35% chance of a cheese wedge), or it crumbles after 12s.
+- **Steam vents** (L3 geysers with `puff: 'steam'`, `vent: 'steamvent'`, `float`): hissing puffs warn (1.1s), then a scalding column of billowing steam (1.2s, 170 high). Puffs can float without gravity and grow (`noGrav`, `grow`).
+- Waves have 8, 11 and 14 spawns, mixing welders, drones and slicers.
