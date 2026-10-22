@@ -555,3 +555,7 @@ Bessie is snatched back at the end of every level until Level 9.
   4. Small and far off in the sky, the rat UFO whisks Bessie away ("moooo...").
   5. The screen cuts to black and a red-and-gold GAME OVER drops in letter by letter, with "BESSIE IS STILL OUT THERE..." and the final score.
   6. It fades to black and returns to the main menu with lives reset to 3. Tapping once the text is up skips ahead.
+
+### v0.85 — Game-over crash fix
+- Fixed a crash ("Cannot read properties of undefined (reading 'home')") when an enemy bullet took the last life. GAME OVER cleared the bullet list while the bullet loop was still running. The loop now stops once the game has ended, skips missing entries, and the clear is deferred to the next tick.
+- Croque Monsieur health is now 155 (+10%).

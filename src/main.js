@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.84';
+const BUILD = 'v0.85';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1045,7 +1045,8 @@ class Level1 extends Phaser.Scene {
     this.registry.set('lives', 0);
     Sound.jet(false); Sound.music(null);
     if (P.buff) this.endBuff();
-    this.clearEBullets(); P.invuln = 0; P.thrusting = false; P.vx = 0; P.duck = false; P.firing = 0;
+    this.time.delayedCall(0, () => this.clearEBullets());       // not right now: we may be inside the bullet loop
+    P.invuln = 0; P.thrusting = false; P.vx = 0; P.duck = false; P.firing = 0;
     this.slowT = 1.2; this.hitStop = 0.25;
     if (this.ctrlG) this.ctrlG.setVisible(false); for (const k in (this.btnLabels || {})) this.btnLabels[k].setVisible(false);
     const at = (ms, fn) => this.time.delayedCall(ms, () => { if (this.state === 'gameover') fn(); });
@@ -2523,7 +2524,9 @@ class Level1 extends Phaser.Scene {
   updateEnemyBullets(dt) {
     const P = this.pl;
     for (let i = this.eBullets.length - 1; i >= 0; i--) {
+      if (this.state !== 'play') return;                // a hit just ended the game (and cleared the bullets)
       const b = this.eBullets[i];
+      if (!b) continue;
       if (b.home > 0) {                                  // homing (pepperoni): steer towards Chris for a while
         b.home -= dt;
         const ex = angDiff(P.theta, b.theta) * R, ey = P.h + 22 - b.h, len = Math.hypot(ex, ey) || 1, v = b.homeV || 160;
