@@ -16,6 +16,7 @@ const ENEMY = {
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
   phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone' },          // ghostly dairy-maid: hovers, then rams
+  stinkfly: { hp: 2,  r: 15, ch: 12, tex: 'stinkfly', oy: 0.55,    drop: 0.2,  ai: 'flyer' },          // L2: bloated swamp fly that drops spore bombs
   paladin:  { hp: 8,  r: 17, ch: 12, tex: 'paladin',  oy: 0.92,    drop: 0.5,  big: true, ai: 'mouse' } // armoured Rat-Paladin
 };
 
@@ -38,12 +39,12 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 110, ai: 'croque', armouredTop: true },
+    boss: { tex: 'croque', hp: 190, ai: 'croque', armouredTop: true },
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
   2: {
-    id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Germs and rat-frogs.',
+    id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Germs, rat-frogs, stink-flies.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
     radius: 580, sky: [0x02100c, 0x16584a], bg: '#02100c', starTint: 0xc8ffe6, dustAlpha: 1.6, bgDecor: 'motes',
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x9be8c8 },
@@ -57,11 +58,12 @@ const LEVELS = {
       { tex: 'p_shroom', n: 6, sc: [0.9, 1.6] }, { tex: 'p_reed', n: 10, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 4, sc: [0.9, 1.4] },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 1.4), S('frog', 2.6), S('germ', 3.4), S('germ', 4.6), S('frog', 6), S('germ', 6.6), S('germ', 7.8)] },
-      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.8), S('germ', 1.8), S('frog', 3), S('germ', 3.6), S('germ', 4.6), S('frog', 6), S('germ', 6.4), S('germ', 7.4), S('frog', 8.6), S('germ', 9)] },
-      { name: 'WAVE 3', spawns: [S('frog', 0), S('germ', 0.6), S('frog', 1.8), S('germ', 2.4), S('germ', 3.2), S('frog', 4.4), S('germ', 5), S('frog', 6.4), S('germ', 6.8), S('germ', 7.8), S('frog', 8.6), S('germ', 9.4)] }
+      { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
+      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('germ', 8.2)] },
+      { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6)] },
+      { name: 'WAVE 4', spawns: [S('frog', 0), S('frog', 0.6), S('stinkfly', 1.2), S('germ', 1.6), S('germ', 2), S('stinkfly', 2.4), S('frog', 3), S('germ', 3.4), S('stinkfly', 3.8), S('germ', 4.2), S('frog', 4.8), S('frog', 5.4), S('stinkfly', 6), S('germ', 6.4), S('germ', 6.8), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.4), S('stinkfly', 9)] }
     ],
-    boss: { tex: 'baron', hp: 120, ai: 'baron' },
+    boss: { tex: 'baron', hp: 200, ai: 'baron' },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
@@ -926,6 +928,16 @@ function makeRoadmapTextures(scene) {
   pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
   pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
   // ---- enemies
+  pixSprite(scene, 'stinkfly', 34, 28, p => {                   // bloated blue-cheese swamp fly
+    const WING = [0xe8fff8, 0xb8e8f0, 0x7ab0c8], BODY = [0x9ad8b8, 0x4a9a80, 0x1e5a4a], VEIN = 0x2a6a8a;
+    p.ell(10, 7, 8, 5, WING); p.ell(23, 6, 8, 5, WING); p.line([[6, 7], [13, 8]], 0x9ac8d8); p.line([[20, 6], [27, 7]], 0x9ac8d8);
+    p.ell(17, 17, 10, 8, BODY);                                     // fat mouldy abdomen
+    for (const [x, y] of [[12, 15], [19, 20], [22, 14], [15, 21]]) { p.px(x, y, VEIN); p.px(x + 1, y, VEIN); }
+    p.ell(27, 15, 5, 5, [0x6ab89a, 0x3a7a64, 0x1a4a3a]);                 // head
+    p.ell(29, 13, 2.5, 2.5, [0xff9a8a, 0xe03030, 0x8a1010]); p.px(29, 12, 0xffffff);   // big red eye
+    p.line([[31, 17], [33, 20]], 0x1a2a20);                            // proboscis
+    p.line([[13, 24], [11, 27]], 0x1a2a20); p.line([[18, 25], [18, 27]], 0x1a2a20); p.line([[22, 24], [24, 27]], 0x1a2a20);   // dangly legs
+  });
   pixSprite(scene, 'phantom', 36, 40, p => {                    // ghostly dairy-maid
     const GH = [0xffffff, 0xd8ecff, 0x8ab0e0];
     p.poly([[8, 18], [28, 18], [32, 34], [27, 30], [22, 38], [17, 31], [12, 38], [8, 31], [4, 35]], GH);   // wispy skirt

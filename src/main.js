@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.80';
+const BUILD = 'v0.81';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1896,8 +1896,14 @@ class Level1 extends Phaser.Scene {
         e.dir = dirP;
         e.bombCd -= dt;
         if (e.bombCd <= 0 && distP < 230) {
-          this.addEBullet('cube', e.theta, e.h, dirP * 40, -190, 9, 3);
-          e.bombCd = rnd(1.5, 2.5);
+          if (e.type === 'stinkfly') {                   // spore bomb: a lob that leads Chris, and a stink puff either side
+            this.addEBullet('spore', e.theta, e.h, dirP * 70 + (P.vx || 0) * 0.35, -150, 11, 3).grav = 120;
+            for (const sd of [-1, 1]) this.addEBullet('spore', e.theta, e.h, sd * 90, -60, 8, 1.6).grav = 160;
+            e.bombCd = rnd(1.3, 2.1);
+          } else {
+            this.addEBullet('cube', e.theta, e.h, dirP * 40, -190, 9, 3);
+            e.bombCd = rnd(1.5, 2.5);
+          }
           Sound.sfx('cube');
         }
 
@@ -1924,6 +1930,18 @@ class Level1 extends Phaser.Scene {
         e.dir = dirP;
         e.hopCd -= dt;
         if (grounded && e.hopCd <= 0) { e.vh = mini ? rnd(260, 360) : rnd(340, 500); e.hopCd = mini ? rnd(0.4, 0.9) : rnd(0.9, 1.7); }
+        if (!mini) {                                     // big germs spit an arcing spore glob at Chris (a red flash warns first)
+          e.spitCd = (e.spitCd === undefined ? rnd(1.5, 3) : e.spitCd) - dt;
+          if (e.spitCd < 0.35 && e.spitCd + dt >= 0.35 && distP < 320) { e.spr.setTintFill(0xff6060); e.flash = 0.12; }
+          if (e.spitCd <= 0) {
+            e.spitCd = rnd(2.2, 3.4);
+            if (distP < 320 && !fooled) {
+              const ex = toP * R, air = 1.0, vt = Math.max(-260, Math.min(260, ex / air)), vh = 300;
+              this.addEBullet('spore', e.theta, e.h + e.ch, vt, vh, 10, 3).grav = 2 * vh / air;
+              Sound.sfx('cube'); e.spr.hsq = 1;
+            }
+          }
+        }
         e.vh -= this.gAt(e.theta) * dt;
         e.h += e.vh * dt;
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
@@ -1933,9 +1951,17 @@ class Level1 extends Phaser.Scene {
         // rat-frog: crouches, then makes a big leap straight at Chris
         const grounded = e.h <= 0 && e.vh <= 0;
         if (grounded) {
-          if (e.state === 'air') { e.state = 'idle'; e.cd = rnd(0.7, 1.3); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003); }
+          if (e.state === 'air') {                       // lands with a squelch: a pair of spores skid out along the ground
+            e.state = 'idle'; e.cd = rnd(0.5, 1.0); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
+            if (Math.abs(toP) * R < 400) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
+          }
           e.cd -= dt; e.dir = dirP;
-          if (e.cd <= 0) { e.state = 'air'; e.vh = rnd(460, 560); e.leapV = dirP * rnd(190, 250); Sound.sfx('ribbit'); }
+          if (e.cd <= 0) {                               // leaps to where Chris is heading
+            e.state = 'air'; e.vh = rnd(480, 580);
+            const air = 2 * e.vh / this.gAt(e.theta), lead = (toP * R + (P.vx || 0) * air * 0.5);
+            e.leapV = Math.max(-330, Math.min(330, lead / air)) || dirP * 200;
+            Sound.sfx('ribbit');
+          }
         }
         e.theta = wrap(e.theta + (e.leapV / R) * dt);
         e.vh -= this.gAt(e.theta) * dt;
@@ -2005,38 +2031,88 @@ class Level1 extends Phaser.Scene {
         e.fanCd -= dt;
         e.sumCd -= dt;
         if (e.ai === 'croque') {
-          if (e.rainCd <= 0) {          // side cannons: the one facing Chris fires a meatball straight at him
-            e.rainCd = phase2 ? 0.55 : 0.85;
-            const side = toP >= 0 ? 1 : -1, c = this.bossGun(e, side * 80, 56);
-            const ex = angDiff(P.theta, c.theta) * R, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 270 : 230;
-            this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3);
-            this.muzzleFlash(c.theta, c.h); Sound.sfx('cube');
+          // BODY SLAM: punishes camping underneath it. Stay below it too long and it shudders, lifts slightly (the tell),
+          // then drops straight down like a brick, sending crumb shockwaves along the ground (jump them).
+          // While it sits on the ground afterwards it's low and easy to hit - the reward for getting out of the way.
+          e.slamCd = Math.max(0, (e.slamCd || 0) - dt);
+          const under = Math.abs(toP) * R < 70 && P.h < e.h;
+          e.underT = under ? (e.underT || 0) + dt : Math.max(0, (e.underT || 0) - dt * 2);
+          if (!e.slam && e.slamCd <= 0 && e.underT > (phase2 ? 0.9 : 1.4)) {
+            e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h }; e.charge = 1; e.underT = 0; Sound.sfx('grind');
           }
-          if (e.fanCd <= 0) {           // belly turret: a spread of toast crumbs fired downwards
-            e.fanCd = phase2 ? 3.4 : 5.2;
-            Sound.sfx('fan');
-            const c = this.bossGun(e, 0, 93), n = phase2 ? 5 : 4;
-            for (let k = 0; k < n; k++) {
-              const a = (k - (n - 1) / 2) * 0.4;
-              this.addEBullet('crumb', c.theta, c.h, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
+          if (e.slam) {
+            const SL = e.slam; SL.t += dt;
+            if (SL.st === 'rise') {                      // the tell: a nervous shudder and a little lift
+              const tell = phase2 ? 0.55 : 0.75, k = Math.min(1, SL.t / tell);
+              e.h = SL.h0 + 30 * Math.sin(k * Math.PI / 2);
+              e.theta = wrap(SL.th + Math.sin(SL.t * 70) * (2 + 3 * k) / R);
+              if (Math.floor(SL.t * 14) % 2) e.spr.setTint(0xffb0a0); else e.spr.clearTint();
+              if (SL.t > tell) { SL.st = 'drop'; SL.t = 0; SL.v = 0; e.theta = SL.th; e.spr.clearTint(); Sound.sfx('whoosh'); }
+            } else if (SL.st === 'drop') {
+              SL.v += 2600 * dt; e.h -= SL.v * dt;
+              if (e.h <= 62) {
+                e.h = 62; SL.st = 'land'; SL.t = 0;
+                Sound.sfx('boom'); buzz([60, 30, 90]); this.cameras.main.shake(260, 0.014); this.camPunch(0.04);
+                this.burst(e.theta, 6, 'crumb', 22, 1.5); this.bang(e.theta, 10, 40);
+                for (const sd of [-1, 1]) {                          // shockwaves skimming the floor both ways
+                  this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);
+                  if (phase2) this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 170, 0, 11, 2.8);
+                }
+                if (phase2) for (let k = 0; k < 6; k++) { const a = (k - 2.5) * 0.35; this.addEBullet('meatball', e.theta, 80, 260 * Math.sin(a), 420 * Math.cos(a) * 0.8, 9, 3).grav = 500; }   // meatballs spray up and rain back down
+              }
+            } else if (SL.st === 'land') {
+              if (SL.t > (phase2 ? 0.8 : 1.1)) SL.st = 'up';
+            } else if (SL.st === 'up') {
+              e.h += 190 * dt;
+              if (e.h >= 170) { e.slam = null; e.charge = 0; e.slamCd = phase2 ? 2.5 : 3.5; e.rainCd = 0.6; }
             }
-            this.muzzleFlash(c.theta, c.h);
+          } else {
+            if (e.rainCd <= 0) {          // side cannons fire meatballs straight at him (both at once when it's angry)
+              e.rainCd = phase2 ? 0.42 : 0.62;
+              const facing = toP >= 0 ? 1 : -1, v = phase2 ? 290 : 245;
+              for (const side of (phase2 ? [-1, 1] : [facing])) {
+                const c = this.bossGun(e, side * 80, 56);
+                const ex = angDiff(P.theta, c.theta) * R + (P.vx || 0) * 0.18, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1;   // leads Chris a little
+                this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3);
+                this.muzzleFlash(c.theta, c.h);
+              }
+              Sound.sfx('cube');
+            }
+            if (e.fanCd <= 0) {           // belly turret: a spread of toast crumbs fired downwards
+              e.fanCd = phase2 ? 2.6 : 3.8;
+              Sound.sfx('fan');
+              const c = this.bossGun(e, 0, 93), n = phase2 ? 7 : 5;
+              for (let k = 0; k < n; k++) {
+                const a = (k - (n - 1) / 2) * 0.32;
+                this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5);
+              }
+              this.muzzleFlash(c.theta, c.h);
+            }
           }
         } else if (e.ai === 'baron') {
-          if (e.rainCd <= 0) {          // slow spore globs drift down around Chris
-            e.rainCd = phase2 ? 1.0 : 1.4;
-            for (const k of [-1, 0, 1]) this.addEBullet('spore', P.theta + k * 0.15 + rnd(-0.04, 0.04), 300, rnd(-30, 30), -165, 12, 2.8);
+          if (e.rainCd <= 0) {          // spore globs rain down around (and just ahead of) Chris
+            e.rainCd = phase2 ? 0.75 : 1.05;
+            const lead = (P.vx || 0) * 0.8 / R, n = phase2 ? 5 : 4;
+            for (let k = 0; k < n; k++) this.addEBullet('spore', P.theta + lead + (k - (n - 1) / 2) * 0.12 + rnd(-0.03, 0.03), 300, rnd(-30, 30), -185, 12, 2.8);
             Sound.sfx('cube');
           }
-          if (e.fanCd <= 0) {           // ring of spores
-            e.fanCd = phase2 ? 4.2 : 5.6;
+          if (e.fanCd <= 0) {           // ring of spores (two staggered rings when angry)
+            e.fanCd = phase2 ? 3.2 : 4.4;
             Sound.sfx('fan');
-            const n = phase2 ? 10 : 8;
-            for (let k = 0; k < n; k++) { const a = (k / n) * TAU; this.addEBullet('spore', e.theta, e.h, 150 * Math.sin(a), 150 * Math.cos(a), 11, 2.2); }
+            const n = phase2 ? 14 : 11, off = rnd(0, 1);
+            for (let k = 0; k < n; k++) { const a = ((k + off) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 165 * Math.sin(a), 165 * Math.cos(a), 11, 2.4); }
+            if (phase2) this.time.delayedCall(450, () => { if (e.hp > 0) for (let k = 0; k < n; k++) { const a = ((k + off + 0.5) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 125 * Math.sin(a), 125 * Math.cos(a), 11, 2.8); } });
           }
-          if (phase2 && e.sumCd <= 0 && this.enemies.length < 5) {   // calls in germ pals
-            e.sumCd = 7;
-            for (const sd of [-1, 1]) { const c = this.makeEnemy('minigerm', wrap(e.theta + sd * 0.06), sd); c.h = e.h; c.vh = 120; this.enemies.push(c); }
+          e.spitCd = (e.spitCd === undefined ? 2 : e.spitCd) - dt;
+          if (e.spitCd <= 0) {          // the Baron's monocle glints, then he spits a fast aimed triple at Chris
+            e.spitCd = phase2 ? 1.6 : 2.4;
+            const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - e.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 300 : 260, a0 = Math.atan2(ey, ex);
+            for (const da of [-0.18, 0, 0.18]) this.addEBullet('spore', e.theta, e.h, Math.cos(a0 + da) * v, Math.sin(a0 + da) * v, 10, 3);
+            this.muzzleFlash(e.theta, e.h); Sound.sfx('zing');
+          }
+          if (e.sumCd <= 0 && this.enemies.length < (phase2 ? 7 : 5)) {   // calls in pals: germs, and stink-flies once he's angry
+            e.sumCd = phase2 ? 5 : 8;
+            for (const sd of [-1, 1]) { const c = this.makeEnemy(phase2 && sd > 0 ? 'stinkfly' : 'germ', wrap(e.theta + sd * 0.08), sd); c.h = Math.max(c.h, 0); if (c.kind !== 'flyer') { c.h = e.h; c.vh = 120; } this.enemies.push(c); }
           }
         } else if (e.ai === 'mandoline') {
           if (e.rainCd <= 0) {          // a slicing disc skimming the floor: jump it
@@ -2182,7 +2258,7 @@ class Level1 extends Phaser.Scene {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing

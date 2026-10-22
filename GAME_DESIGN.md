@@ -490,3 +490,21 @@ Bessie is snatched back at the end of every level until Level 9.
 - **Difficulty (Options and pause menu):**
   - Easy: enemies have 70% health and their shots move at 75% speed; checkpoints every wave; rank capped at A.
   - Hard: 130% health and 115% shot speed; no healing wedge between waves; rank bonus.
+
+### v0.81 — Tougher Level 1 boss, much tougher Level 2
+- **Crusty Croque Monsieur (L1 boss):**
+  - Health raised from 110 to 190.
+  - The side cannon fires faster (0.62s, 0.42s when angry) and leads Chris slightly. In phase 2 both cannons fire together.
+  - The crumb fan is wider and comes more often (5 crumbs every 3.8s, then 7 every 2.6s).
+  - **Body slam** when Chris camps underneath it (1.4s, or 0.9s in phase 2). The tell: it shudders, flashes pink and lifts about 30px, then drops straight down. Landing sends crumb shockwaves along the floor both ways (jump them). In phase 2 it also sprays meatballs up that rain back down. It sits low for a moment afterwards, which is the window to punish it.
+- **Gorgonzola Gulch (L2):**
+  - Now 4 waves, denser, with more frogs.
+  - **Stink-fly** (new enemy, uses the flyer behaviour): a bloated mouldy fly that lobs spore bombs leading Chris, plus a stink puff either side.
+  - **Germs** spit an arcing spore glob at Chris every 2–3s. A red flash warns first.
+  - **Rat-frogs** aim their leaps at where Chris is heading, wait less between leaps, and splash two spores along the ground on landing.
+  - **Baron von Blue:**
+    - Health raised from 120 to 200.
+    - Spore rain leads Chris (4–5 globs).
+    - Bigger spore rings, and a second staggered ring in phase 2.
+    - New aimed triple-spit.
+    - Summons germs, and stink-flies in phase 2.
