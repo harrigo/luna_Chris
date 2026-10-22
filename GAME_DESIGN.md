@@ -367,3 +367,13 @@ Bessie is snatched back at the end of every level until Level 9.
   - **On the alarm:** the dog barks and hides behind Chris shivering, the chickens bolt off in a puff of feathers, the robot spins out and drops its churn, and the kid ducks behind the hay.
   - The barn moved to x 205 (`BX`) and the layout was spread out to fit everyone. The night launch shot shows the tower too.
 - **Bash, revised:** a quick ~120° anticlockwise swing round the grip (barrel up and back, butt forward into the enemy) with a lunge and lean, a short beat at the hit, then a snap back to normal. 0.3s total, 0.45s cooldown. The trails and BONK pops stay.
+
+### v0.75 — Real crouch instead of a squash
+- The whole-sprite squash (root scaleY 0.58) is gone, and so is the gun counter-scale.
+- The crouch is now built from the rig:
+  - a springy 0..1 value with a little overshoot going in and popping up;
+  - knees bend out (front leg -1.05 rad, back leg +0.95), and the legs compress (scaleY ×0.64, chunkier ×1.2);
+  - the boots stay planted on the ground;
+  - the body drops 13.5px onto the legs, with only a hint of squash, and leans in 0.13 rad;
+  - the belly sags (+16%), and the cape follows the body down.
+- The gun drops with the body, so shots leave from crouch height (fallback gun height 29). Hitboxes are unchanged.

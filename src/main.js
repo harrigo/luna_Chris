@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.74';
+const BUILD = 'v0.75';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1256,7 +1256,7 @@ class Level1 extends Phaser.Scene {
   }
 
   bashHit() {
-    const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 22 : 34);
+    const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
     const reachT = CFG.bashRange / R;
     let hit = 0;
     for (const e of this.enemies) {
@@ -1303,7 +1303,7 @@ class Level1 extends Phaser.Scene {
     if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
     let dx = P.facing * Math.cos(P.aimA || 0), dy = Math.sin(P.aimA || 0);    // aimed up/down with the right stick
     const M = this.muzzle;
-    const gh = M ? M.h : P.h + (P.duck ? 22 : 40);   // shots leave the real muzzle (falls back to chest / crouch height)
+    const gh = M ? M.h : P.h + (P.duck ? 29 : 40);   // shots leave the real muzzle (falls back to chest / crouch height)
     if (tgt) {
       let ex = angDiff(tgt.theta, P.theta) * R;
       let ey = tgt.h + tgt.ch - gh;
@@ -1316,7 +1316,7 @@ class Level1 extends Phaser.Scene {
     }
     P.firing = 0.12;
     if (Pad.state.connected) Pad.pulse(90, 0.05, 0.3);          // a light buzz in the hands while the Mac-Grinder fires
-    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
+    { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 29 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
     if (W.lob && !W.aimed) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle * (o.angleK || 1) + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
@@ -1423,7 +1423,7 @@ class Level1 extends Phaser.Scene {
   // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
   beamGeom(W) {
     const P = this.pl, dir = P.facing || 1, M = this.muzzle;
-    const gh = M ? M.h : P.h + (P.duck ? 22 : 40);
+    const gh = M ? M.h : P.h + (P.duck ? 29 : 40);
     const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), rng = W.range * (P.beamReach || 1), span = rng * Math.cos(aa) / (R + gh);
     return { dir, gh, t0, span, rise: rng * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
   }

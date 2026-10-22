@@ -264,27 +264,35 @@ class ChrisRig {
     this.cape.setVisible(cp > 0.02).setScale(cp, 0.6 + 0.4 * cp).setAlpha(cp);
     this.cape.setRotation(0.25 * cp + Math.sin(t * 17) * 0.09 * cp * (1 + fly) - P.vh * 0.00035);
 
+    // ---- CROUCH: a springy 0..1 (with a little overshoot going in and popping back up). Instead of squashing the
+    // whole sprite, the knees bend out and the legs compress, the boots stay planted, and the body DROPS onto them.
+    this.dv = (this.dv || 0) + (((P.duck ? 1 : 0) - (this.duckA || 0)) * 320 - (this.dv || 0) * 24) * dt;
+    this.duckA = Math.max(-0.1, Math.min(1.12, (this.duckA || 0) + this.dv * dt));
+    const dk = Math.max(0, this.duckA), DROP = 13.5 * dk;
+
     // ---- waddle: legs, boots and body roll
     const legAmp = 0.38 * run;
-    const rotF = sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22));
-    const rotB = -sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22));
-    const L = 16;
+    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk;   // crouch: front knee out forward...
+    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk;   // ...back knee out behind
+    const L = 16, hipY = -16 + DROP, Le = L * (1 - 0.36 * dk);
     const place = (leg, boot, hipX, rot, liftPhase) => {
-      leg.setRotation(rot);
+      leg.setRotation(rot).setScale(1 + 0.2 * dk, 1 - 0.36 * dk);                  // bent + compressed (a bit chunkier)
       const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run : 0;
-      boot.setPosition(hipX - Math.sin(rot) * L, -16 + Math.cos(rot) * L - lift + air * -3);
-      boot.setRotation(rot * 0.35);
-      leg.setPosition(hipX, -16 - lift * 0.6);
+      boot.setPosition(hipX - Math.sin(rot) * Le, Math.min(air ? 99 : 0.5, hipY + Math.cos(rot) * Le) - lift + air * -3);   // boots stay on the ground
+      boot.setRotation(rot * 0.35 * (1 - dk)).setScale(1 + 0.06 * dk, 1);
+      leg.setPosition(hipX, hipY - lift * 0.6);
     };
     place(this.legF, this.bootF, 7, rotF, sw);
     place(this.legB, this.bootB, -6, rotB, -sw);
 
     const idle = (1 - run) * (1 - air);
-    this.torso.setPosition(sw * 1.9 * run, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle);
-    this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0));
+    this.torso.setPosition(sw * 1.9 * run + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle + DROP);
+    this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched
+    this.cape.setPosition(-6, -42 + DROP);
     const stretchY = air ? 1 + Math.max(-0.1, Math.min(0.12, P.vh / 2000)) : 1;
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
       stretchY - 0.18 * Math.max(0, sq) + 0.1 * Math.max(0, -sq) + Math.sin(t * 2.6 + 1) * 0.018 * idle);
+    if (dk > 0) this.torso.setScale(this.torso.scaleX * (1 + 0.04 * dk), this.torso.scaleY * (1 - 0.05 * dk));   // only a hint of squash
 
     // belly jiggle on every footfall
     this.body.setScale(1, 1 + Math.abs(Math.cos(this.wp)) * 0.05 * run);
@@ -293,7 +301,7 @@ class ChrisRig {
     const drive = run * Math.sin(this.wp * 2) * 3;
     this.bv += (-this.bo * 170 - this.bv * 8 + drive * 55) * dt;
     this.bo = Math.max(-1.4, Math.min(1.4, this.bo + this.bv * dt));
-    this.belly.setScale(1 - this.bo * 0.05, 1 + this.bo * 0.14).setPosition(7 + this.bo * 0.3, -10 + this.bo * 0.8);
+    this.belly.setScale((1 - this.bo * 0.05) * (1 + 0.1 * dk), (1 + this.bo * 0.14) * (1 + 0.16 * dk)).setPosition(7 + this.bo * 0.3, -10 + this.bo * 0.8);
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
@@ -313,9 +321,6 @@ class ChrisRig {
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
 
     this.setPowered(P.power > 0);
-    this.duckA = (this.duckA || 0) + ((P.duck ? 1 : 0) - (this.duckA || 0)) * Math.min(1, dt * 16);   // crouch: squash down, spread a little
-    const dk = this.duckA;
-    this.gunArm.setScale(1 / (1 + 0.12 * dk), 1 / (1 - 0.42 * dk));      // crouching squashes Chris, not his gun
-    this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1) * (1 + 0.12 * dk), z * RIG_SCALE * (1 - 0.42 * dk)).setAlpha(alpha);
+    this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1), z * RIG_SCALE).setAlpha(alpha);   // (no whole-body squash: the crouch is in the legs)
   }
 }
