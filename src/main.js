@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.92';
+const BUILD = 'v0.93';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -336,10 +336,10 @@ class Level1 extends Phaser.Scene {
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     // L2: green quicksand goop pools (drawn IN FRONT of Chris, so he visibly sinks into them)
     this.goops = (this.def.goop || []).map(g => {
-      const spr = this.add.image(0, 0, 'goop').setOrigin(0.5, 0.32).setDepth(7.6);
+      const spr = this.add.image(0, 0, 'goop').setOrigin(0.5, 0.12).setDepth(7.6);   // surface sits flush with the ground
       let halo = null;
-      if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(0x6aff4a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
-      spr.bsx = (2 * g.half * R) / 64 * 1.08; spr.bsy = 2;
+      if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(0xb05aff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
+      spr.bsx = (2 * g.half * R) / 64 * 1.1; spr.bsy = 1.7;
       return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
     });
     this.goopTip = false; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
@@ -365,18 +365,19 @@ class Level1 extends Phaser.Scene {
     });
     this.props = [];
     for (const pr of (this.def.props || [])) {
-      for (let i = 0; i < pr.n; i++) {
+      for (let i = 0; i < (pr.at ? pr.at.length : pr.n); i++) {
+        const spot = pr.at ? pr.at[i] : null;                         // hand-placed: [theta, scale, flipX]
         const spr = this.add.image(0, 0, pr.tex).setOrigin(0.5, 1).setDepth(pr.depth || (pr.fg ? 8.2 : 2.5));
         if (pr.tint) spr.setTint(pr.tint);
         if (pr.alpha) spr.setAlpha(pr.alpha);
-        spr.bsx = spr.bsy = rnd(pr.sc[0], pr.sc[1]) * 1.35;
-        if (Math.random() < 0.5) spr.setFlipX(true);
+        spr.bsx = spr.bsy = (spot ? spot[1] : rnd(pr.sc[0], pr.sc[1])) * 1.35;
+        if (spot ? spot[2] : Math.random() < 0.5) spr.setFlipX(true);
         let halo = null;
         if (pr.glow && Settings.lights) {                // a soft pulsing glow behind it (bioluminescent mushrooms, crystals)
           halo = this.add.image(0, 0, 'halo').setDepth((pr.depth || (pr.fg ? 8.2 : 2.5)) - 0.01).setTint(pr.glow).setBlendMode(Phaser.BlendModes.ADD);
           halo.bsx = halo.bsy = spr.bsx * (spr.width / 128) * 2.6; halo.baseA = pr.glowA || 0.75;
         }
-        this.props.push({ spr, halo, theta: wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1, ph: rnd(0, 6) });
+        this.props.push({ spr, halo, theta: spot ? spot[0] : wrap((i + rnd(0.1, 0.9)) * TAU / pr.n), h: pr.h !== undefined ? pr.h : (pr.fg ? -4 : -2), sway: pr.sway ? rnd(0, 6) : -1, ph: rnd(0, 6) });
       }
     }
 
@@ -1464,7 +1465,8 @@ class Level1 extends Phaser.Scene {
       if (!this.goopTip) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nJUMP JUMP - OR JET OUT!'); }
     }
     P.goop = !!pool;
-    P.sink = pool ? Math.min(18, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
+    const edgeK = pool ? Math.max(0, Math.min(1, (1 - Math.abs(angDiff(P.theta, pool.theta)) / pool.half) * 4)) : 0;   // shallower at the very edges, so feet never poke out below
+    P.sink = pool ? Math.min(18 * edgeK, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
     if (inp.jump && !P.jumpWas) { if (P.grabbed) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;

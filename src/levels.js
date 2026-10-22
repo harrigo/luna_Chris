@@ -46,8 +46,8 @@ const LEVELS = {
   2: {
     id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Quicksand goop.\nGerms, tongue-lashing rat-frogs, stink-flies.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
-    radius: 580, sky: [0x010608, 0x04261f], bg: '#010608', starTint: 0xd8fff0, dustAlpha: 0.9, bgDecor: 'motes',
-    surface: { pal: [0x0a121c, 0x121f2e, 0x1b2c40, 0x253b52, 0x304a62, 0x46627a], seed: 2121, rim: [0x1d5a2a, 0x3a9a3a, 0x7ee05a], spot: [0x163a26, 0x2f7a3a], rimLight: [150, 255, 120], dark: [4, 12, 22] },
+    radius: 580, sky: [0x000204, 0x021a16], bg: '#000204', starTint: 0xe8fff8, dustAlpha: 0.6, bgDecor: 'motes',
+    surface: { pal: [0x04080e, 0x0a1220, 0x121e30, 0x1c2c42, 0x283c56, 0x3e5a74], seed: 2121, rim: [0x1d5a2a, 0x3a9a3a, 0x7ee05a], spot: [0x163a26, 0x2f7a3a], rimLight: [170, 255, 130], dark: [0, 4, 10] },
     rimGlow: 0x6aff6a,
     nebula: { pal: [0x021614, 0x053a36, 0x0b5e52, 0x1f9a7e, 0x7ae8c8], n: 4, sparkles: [0xffffff, 0x8af5d2, 0x5ce1ff, 0xc8ffd0] },
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x3aff8a },
@@ -55,11 +55,16 @@ const LEVELS = {
     gravity: 1, ledgeTypes: ['crystal', 'girder', 'panini', 'crystal', 'girder', 'panini'], ledgeTex: 'ledge2',
     ledges: [{ theta: 0.7, half: 0.1, h: 90 }, { theta: 1.5, half: 0.09, h: 170 }, { theta: 2.5, half: 0.1, h: 90 }, { theta: 3.6, half: 0.09, h: 170 }, { theta: 4.5, half: 0.1, h: 90 }, { theta: 5.5, half: 0.09, h: 170 }],
     props: [
-      // the skyline: huge beast skeletons and towering glowing mushrooms, hazy with distance
-      { tex: 'bg_ribcage', n: 4, sc: [1.9, 2.4], depth: 0.95, tint: 0x84bcac, alpha: 0.72, h: -22 },     // (depth < planet: they stand BEHIND the horizon)
-      { tex: 'bg_skull', n: 3, sc: [1.3, 1.7], depth: 0.95, tint: 0x78ae9e, alpha: 0.65, h: -22 },
-      { tex: 'bg_shroom', n: 7, sc: [1.4, 2.0], depth: 0.96, tint: 0x8ac8cc, alpha: 0.72, h: -30, glow: 0x3ae8ff, glowA: 0.4 },
-      { tex: 'bg_shroom2', n: 6, sc: [1.2, 1.6], depth: 0.97, tint: 0x9ad8d8, alpha: 0.8, h: -18, glow: 0x3ae8ff, glowA: 0.45 },
+      // the skyline, composed by hand round the planet: [theta, scale, flipX]. Big and small pieces alternate so it reads
+      // as a rhythm (tall mushroom, ribcage, little pair, skull...) rather than random clumps. They stand behind the horizon.
+      { tex: 'bg_shroom', at: [[0.35, 2.0], [2.75, 1.7, 1], [4.55, 2.1], [5.95, 1.5, 1]], depth: 0.96, tint: 0x6aa8b0, alpha: 0.7, h: -30, glow: 0x3ae8ff, glowA: 0.38 },
+      { tex: 'bg_ribcage', at: [[1.2, 2.3], [3.55, 2.1, 1], [5.25, 2.0]], depth: 0.95, tint: 0x5a8c80, alpha: 0.7, h: -22 },
+      { tex: 'bg_shroom2', at: [[0.75, 1.5, 1], [1.85, 1.3], [3.05, 1.6], [4.2, 1.4, 1], [6.25, 1.3]], depth: 0.97, tint: 0x7ab8bc, alpha: 0.78, h: -18, glow: 0x3ae8ff, glowA: 0.4 },
+      { tex: 'bg_skull', at: [[2.25, 1.6, 1], [4.95, 1.5]], depth: 0.95, tint: 0x6a9a8c, alpha: 0.72, h: -20 },
+      // dark mossy boulders: a few behind Chris, a couple of small ones in front
+      { tex: 'rock_dark', at: [[0.55, 1.6], [1.62, 1.9, 1], [2.6, 1.5], [3.35, 2.0, 1], [4.75, 1.7], [5.75, 1.8, 1]], depth: 2.45, h: -3 },
+      { tex: 'rock_dark2', at: [[0.95, 1.4], [2.35, 1.3, 1], [3.85, 1.5], [5.35, 1.3, 1]], depth: 2.46, h: -2 },
+      { tex: 'rock_dark2', at: [[1.4, 1.0, 1], [4.4, 1.1]], fg: true, h: -6 },
       { tex: 'pile_bones', n: 2, sc: [1.1, 1.5], tint: 0xc8d8c8, alpha: 0.85 },
       { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0x9ff0ff, glow: 0x5ce1ff }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
@@ -971,17 +976,34 @@ function makeRoadmapTextures(scene) {
   // ---- shots
   pixSprite(scene, 'pepper', 16, 16, p => { p.ell(8, 8, 7, 7, [0xff7a6a, 0xd0301a, 0x8a1a10]); for (const [x, y] of [[5, 5], [10, 6], [7, 10], [11, 10], [4, 9]]) { p.px(x, y, 0x7a1010); p.px(x + 1, y, 0xff9a8a); } });
   pixSprite(scene, 'psyorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xf0c8ff, 0xb06aff, 0x6a2ad0]); p.ell(7, 7, 3, 3, [0xffffff, 0xf0d8ff, 0xc890ff]); p.px(5, 4, 0xffffff); });
-  pixTex(scene, 'goop', 64, 22, put => {                         // green quicksand: a glossy lip on top, murky body, bubbles
-    for (let y = 0; y < 22; y++) for (let x = 0; x < 64; x++) {
-      const e = Math.pow((x - 31.5) / 32, 2), top = 3 + Math.round(e * 4), bot = 21 - Math.round(e * 14);
-      if (y < top || y > bot) continue;
-      let c = y === top ? 0x1a3a20 : (y === top + 1 ? 0xc8ff8a : (y < top + 4 ? 0x7ee05a : ((x * 7 + y * 3) % 11 === 0 ? 0x3a9a3a : 0x4cb848)));
-      if (y > top + 3 && (y - top) / (bot - top) > 0.55 + 0.1 * Math.sin(x * 0.7)) c = 0x2e8a34;
+  pixTex(scene, 'goop', 64, 26, put => {                         // purple quicksand pit: flush with the ground, walls sloping in, murky depths
+    for (let y = 0; y < 26; y++) for (let x = 0; x < 64; x++) {
+      const inset = y < 4 ? 0 : (y - 4) * 0.42, ex = Math.min(x, 63 - x) - inset;   // narrower the deeper it goes
+      const wave = y === 2 && ((x >> 2) % 2) === 0 ? 1 : 0;           // a gently rippled surface
+      if (ex < 0 || y < 2 + wave) continue;
+      let c;
+      if (ex < 1 || y === 25) c = 0x12061e;                          // outline / pit wall edge
+      else if (y <= 3 + wave) c = 0xf0c8ff;                          // glossy surface
+      else if (y < 7) c = 0xc070f0;
+      else if (y < 14) c = ((x * 5 + y * 3) % 13 === 0) ? 0x9a4ae0 : 0x8a3ad0;
+      else c = ((x * 7 + y) % 11 === 0) ? 0x6a28b0 : 0x4e1a88;
+      if (y > 5 && ex < 3) c = 0x2a0c4a;                             // shadowed walls
       put(x, y, c);
     }
-    for (const [bx, by] of [[14, 9], [40, 8], [27, 13], [50, 11]]) { put(bx, by, 0xd8ffb0); put(bx + 1, by, 0xa8f080); put(bx, by + 1, 0xa8f080); }
+    for (const [bx, by] of [[14, 9], [38, 8], [26, 14], [48, 11], [22, 19], [40, 18]]) { put(bx, by, 0xf0d0ff); put(bx + 1, by, 0xc890f0); put(bx, by + 1, 0xc890f0); }
   });
-  pixSprite(scene, 'goopbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xe0ffc0, 0x8ae86a, 0x3a9a3a]); p.px(3, 2, 0xffffff); });
+  pixSprite(scene, 'goopbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xf4d8ff, 0xc070f0, 0x7a30c0]); p.px(3, 2, 0xffffff); });
+  // dark basalt boulders with mossy tops
+  pixSprite(scene, 'rock_dark', 44, 30, p => {
+    p.poly([[2, 29], [4, 16], [12, 6], [24, 2], [34, 6], [41, 15], [43, 29]], [0x3a4652, 0x222a34, 0x10151c]);
+    p.line([[14, 12], [20, 20], [18, 28]], 0x0a0e14); p.line([[30, 10], [28, 18]], 0x0a0e14);
+    p.poly([[10, 8], [18, 3], [28, 2], [36, 7], [30, 9], [20, 7], [13, 11]], [0x8af06a, 0x3aa040, 0x1a5a2a]);  // moss cap
+    p.px(16, 14, 0x5a6878); p.px(32, 20, 0x5a6878);
+  });
+  pixSprite(scene, 'rock_dark2', 30, 22, p => {
+    p.poly([[1, 21], [3, 10], [10, 3], [20, 2], [27, 8], [29, 21]], [0x3a4652, 0x222a34, 0x10151c]);
+    p.poly([[8, 5], [14, 2], [22, 3], [18, 6], [11, 7]], [0x8af06a, 0x3aa040, 0x1a5a2a]); p.line([[16, 9], [13, 18]], 0x0a0e14);
+  });
   pixSprite(scene, 'ghostorb', 14, 14, p => { p.ell(7, 7, 6, 6, [0xffffff, 0xc8f0ff, 0x7ab8e0]); p.px(5, 4, 0xffffff); });
   pixSprite(scene, 'chili', 10, 12, p => { p.poly([[2, 2], [8, 3], [6, 11], [3, 9]], [0xff6a4a, 0xe02a1a, 0x8a1a10]); p.px(4, 1, 0x4ac040); p.px(5, 1, 0x2a8a20); });
   // ---- L2 skyline: giant beast skeletons and tall glowing mushrooms

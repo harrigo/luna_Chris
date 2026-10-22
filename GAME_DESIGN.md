@@ -635,3 +635,14 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
   - `bg_shroom2`: a smaller pair of mushrooms.
 - They stand on L2's skyline at depth 0.95, below the planet surface (1.05), and sunk 18–30px. They rise from **behind** the curve of the horizon, tinted and faded into the haze so they read as distant. The mushrooms carry the soft cyan glow halos.
 - The cartoon bone piles are cut from 5 to 2.
+
+### v0.93 — L2: purple quicksand pits, contrast, dark rocks, composed skyline
+- **Goop is purple** and redrawn as a **sunken pit:**
+  - the glossy rippled surface sits flush with the ground;
+  - the walls slope inwards to a flat bottom, with shadowed sides and a dark outline;
+  - bubbles, splashes and the glow underneath are purple too.
+
+  How deep Chris sinks now tapers to nothing over the outer quarter of each pool (`edgeK`), so his feet never poke out below the pit as he wades in or out.
+- **More contrast:** a near-black sky, a darker slate planet and darker shading, a brighter neon rim, fewer dust blobs, and the skyline layer tinted darker so the bright foreground stands out.
+- **Dark rocks:** two new mossy basalt boulders (`rock_dark`, `rock_dark2`). There are 10 behind Chris and 2 small ones in front.
+- **Skyline composed by hand:** props can now take `at: [[theta, scale, flipX], ...]` instead of random spread. L2's skyline alternates tall mushroom, ribcage, small mushroom pair, skull and so on around the planet, so it reads as a rhythm rather than random clumps.
