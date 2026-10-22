@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.72';
+const BUILD = 'v0.73';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -33,8 +33,8 @@ const CFG = {
   ammoPerShot: 0.022, // Mac-Grinder gauge: full tank is about 45 shots
   ammoRegen: 0.5,     // refill per second once you stop shooting
   ammoDelay: 0.35,    // pause after the last shot before it refills
-  bashTime: 0.32,     // melee: whole swing (wind-up, slam, recover)
-  bashCd: 0.5,        // melee: time between bashes
+  bashTime: 0.42,     // melee: whole move (flip the gun butt-first, strike, flip back)
+  bashCd: 0.55,        // melee: time between bashes
   bashRange: 64,      // melee: reach in front of Chris
   bashDmg: 4,         // melee: one-shots small fry, two hits for the bigger ones
   ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
@@ -170,7 +170,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
-    this.bashTipShown = false; this.chargeSpr = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
+    this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
@@ -356,7 +356,7 @@ class Level1 extends Phaser.Scene {
       this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, charge: 0, charging: false, beamReach: 1, power: 0, fuel: 1, jetArmed: false, thrusting: false,
+      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, bashSpin: 0, bashLean: 0, charge: 0, charging: false, beamReach: 1, power: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'blank').setOrigin(0.5, 1).setDepth(7)
     };
 
@@ -1173,12 +1173,19 @@ class Level1 extends Phaser.Scene {
     if (P.bashT > 0) {
       P.bashT = Math.max(0, P.bashT - dt);
       const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
-      if (k < 0.3) { const q = k / 0.3; P.bashA = -0.42 * q; P.bashX = -5 * q; P.bashY = -2 * q; }                // wind up: pull the gun back and up
-      else if (k < 0.55) { const q = (k - 0.3) / 0.25; P.bashA = -0.42 + 0.77 * q; P.bashX = -5 + 15 * q; P.bashY = -2 + 5 * q;   // SMACK: thrust forward, swiping down
-        P.theta = wrap(P.theta + (P.facing || 1) * 210 / R * dt); }         // a little lunge
-      else { const q = (k - 0.55) / 0.45, e = 1 - q * q; P.bashA = 0.35 * e; P.bashX = 10 * e; P.bashY = 3 * e; }
-      if (!P.bashHit && k >= 0.45) { P.bashHit = true; this.bashHit(); }
-    } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; }
+      // 1) FLIP: the gun spins anticlockwise round the grip until the butt faces forward, arm drawn back
+      // 2) STRIKE: drive the butt forward with a lunge and a lean (the hit lands here)
+      // 3) FLIP BACK: keep spinning the same way to finish a full turn, back into firing position
+      const PI = Math.PI;
+      if (k < 0.32) { const q = k / 0.32, e = 1 - Math.pow(1 - q, 3);
+        P.bashSpin = -(PI + 0.3) * e; P.bashX = -5 * q; P.bashY = -2 * q; P.bashA = -0.14 * q; P.bashLean = -0.07 * q; }   // overshoots a touch...
+      else if (k < 0.52) { const q = (k - 0.32) / 0.2, e = 1 - (1 - q) * (1 - q);
+        P.bashSpin = -(PI + 0.3) + 0.3 * e; P.bashX = -5 + 29 * e; P.bashY = -2 + 5 * e; P.bashA = -0.14 + 0.26 * e; P.bashLean = -0.07 + 0.26 * e;   // ...then snaps level as the butt drives in
+        P.theta = wrap(P.theta + (P.facing || 1) * 230 / R * dt); }         // lunge into it
+      else { const q = (k - 0.52) / 0.48, e = q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2;
+        P.bashSpin = -PI - PI * e; P.bashX = 24 * (1 - e); P.bashY = 3 * (1 - e); P.bashA = 0.12 * (1 - e); P.bashLean = 0.19 * (1 - e); }
+      if (!P.bashHit && k >= 0.44) { P.bashHit = true; this.bashHit(); }
+    } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; }
     P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
       P.beamReach = (P.beamReach || 1) + ((W.reachMin + (1 - W.reachMin) * (inp.reach || 1)) - (P.beamReach || 1)) * Math.min(1, dt * 10);   // trigger pressure / drag = reach
@@ -1229,6 +1236,18 @@ class Level1 extends Phaser.Scene {
     if (c > 0.6) { this.camKick(-(P.facing || 1) * 6 * c, 0); P.vx -= (P.facing || 1) * 160 * c; buzz(Math.round(30 + 40 * c)); }   // a big one kicks back
   }
 
+  // comic impact on a bash: a spinning pixel star flash and a "BONK!" that pops up and drifts off
+  bashPop(theta, h) {
+    const s = this.screenPos(theta, h), z = this.zoom;
+    const star = this.add.image(s.x, s.y, 'px_star').setDepth(9.5).setScale(0.5 * z).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: star, scale: 4.2 * z, angle: 90, alpha: 0, duration: 260, ease: 'Quad.easeOut', onComplete: () => star.destroy() });
+    const words = ['BONK!', 'THWACK!', 'BOP!', 'WHAM!'];
+    const t = this.add.text(s.x, s.y - 18 * z, words[(this.bashN = (this.bashN || 0) + 1) % words.length], { fontFamily: PIXEL, fontSize: Math.round(11 * z) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: Math.max(3, Math.round(4 * z)) })
+      .setOrigin(0.5).setDepth(9.6).setScale(0.4).setAngle(-8 + Math.random() * 16);
+    this.tweens.add({ targets: t, scale: 1.15, duration: 120, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, y: t.y - 26 * z, alpha: 0, delay: 260, duration: 380, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+  }
+
   startBash() {
     const P = this.pl;
     P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0;
@@ -1253,6 +1272,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.relics && this.relics.length) hit += this.relicHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (hit) {
+      this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy);
       Sound.sfx('bonk'); buzz([30, 20, 50]);
       this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camKick(dir * 6, 2); this.camPunch(0.02);
       this.addLight(wrap(P.theta + dir * reachT * 0.5), cy, 70, 0xffe0a0, 0.8, 0.25);
@@ -2159,6 +2179,24 @@ class Level1 extends Phaser.Scene {
       this.muzzle = { theta: wrap(P.theta + Math.atan2(dx, dy)), h: Math.hypot(dx, dy) / this.zoom - R, x: tp.x, y: tp.y };
       const tb = m.transformPoint(-tipImg.width * tipImg.originX, 0), ml = Math.hypot(tp.x - tb.x, tp.y - tb.y) || 1;
       this.muzzle.dx = (tp.x - tb.x) / ml; this.muzzle.dy = (tp.y - tb.y) / ml;          // which way the barrel points on screen
+    }
+    { // melee flip: motion-blur trails following the barrel tip and the butt as the gun spins
+      const B = this.bashTrail || (this.bashTrail = { tip: [], butt: [], g: this.add.graphics().setDepth(8.4) });
+      B.g.clear();
+      if (P.bashT > 0) {
+        const tipImg = this.rig.auger, gun = this.rig.gun;
+        const tp = tipImg.getWorldTransformMatrix().transformPoint(tipImg.width * (1 - tipImg.originX), 0);
+        const bp = gun.getWorldTransformMatrix().transformPoint(-gun.width * gun.originX + 1, 0);
+        B.tip.push({ x: tp.x, y: tp.y }); B.butt.push({ x: bp.x, y: bp.y });
+        if (B.tip.length > 7) { B.tip.shift(); B.butt.shift(); }
+        const z = this.zoom;
+        for (const [pts, col, w] of [[B.tip, 0xffffff, 7], [B.butt, 0xffd23f, 9]]) {
+          for (let i = 1; i < pts.length; i++) {
+            const a = i / pts.length;
+            B.g.lineStyle(Math.max(1, w * a * z), col, 0.55 * a).lineBetween(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y);
+          }
+        }
+      } else if (B.tip.length) { B.tip.length = 0; B.butt.length = 0; }
     }
     { // Swiss-Shot charge: the ball swells on the end of the gun, wobbling faster as it fills
       if (!this.chargeSpr) { this.chargeSpr = this.add.image(0, 0, 'swissball').setDepth(8.6).setVisible(false); bakedGlow(this.chargeSpr, 0xffe27a, 2, 6); }

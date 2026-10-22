@@ -210,9 +210,13 @@ class ChrisRig {
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
-    this.gun = img('c_gun', 4, 1, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
-    this.auger = img('auger0', 44, 1, 0, 0.5).setScale(1.25);
-    this.gunArm.add([this.gArm, this.gun, this.auger]);
+    // the gun hangs off a pivot at the grip, so the melee bash can FLIP it round (butt first) without moving the arm
+    const GX = 20, GY = 5;
+    this.gunPivot = scene.add.container(GX, GY);
+    this.gun = img('c_gun', 4 - GX, 1 - GY, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
+    this.auger = img('auger0', 44 - GX, 1 - GY, 0, 0.5).setScale(1.25);
+    this.gunPivot.add([this.gun, this.auger]);
+    this.gunArm.add([this.gArm, this.gunPivot]);
     this.root.add([this.cape, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
 
     this.parts = [this.cape, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
@@ -277,7 +281,7 @@ class ChrisRig {
 
     const idle = (1 - run) * (1 - air);
     this.torso.setPosition(sw * 1.9 * run, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle);
-    this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air);
+    this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0));
     const stretchY = air ? 1 + Math.max(-0.1, Math.min(0.12, P.vh / 2000)) : 1;
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
       stretchY - 0.18 * Math.max(0, sq) + 0.1 * Math.max(0, -sq) + Math.sin(t * 2.6 + 1) * 0.018 * idle);
@@ -303,7 +307,8 @@ class ChrisRig {
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 + (P.bashX || 0), this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0));
-    this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0));   // + melee swing   // twin-stick aim tilts the gun
+    this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0));   // + melee swing
+    this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
 

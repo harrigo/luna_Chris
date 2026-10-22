@@ -344,3 +344,12 @@ Bessie is snatched back at the end of every level until Level 9.
 - **Blasts drawn in planet coordinates** (`drawBlastFx`): the shockwave dome bends with the surface and is clipped at the ground. A ripple runs along the curve, and a molten-cheese smear hugs the surface, tapers and fades. This replaces the flat ring and flat puddle sprite.
 - **Range +25%:** Mac-Grinder life 0.6→0.75s, Spaghetti 200→250, Swiss launch speed ×1.118 (≈ +25% ballistic range).
 - **Weapon select:** stats sit low and centred in each card and never overlap the description.
+
+### v0.73 — Gun-flip bash
+- The gun now sits on a pivot at the grip (`rig.gunPivot`), so it can spin independently of the arm.
+- The bash is about 0.42s, in three beats:
+  1. **Flip:** the gun spins anticlockwise round the grip until the butt faces forward, overshooting slightly, with the arm drawn back.
+  2. **Strike:** the spin snaps level as the butt drives forward (+29px), Chris leans in and lunges. The hit lands here.
+  3. **Flip back:** it keeps spinning the same way to complete a full turn into firing position.
+- Motion-blur trails follow the barrel tip (white) and the butt (gold) through the spin.
+- On a hit: a spinning pixel-star flash plus a comic word (BONK! / THWACK! / BOP! / WHAM!) that pops and drifts off, on top of the sparks, freeze, kick, sound and rumble.
