@@ -512,3 +512,19 @@ Bessie is snatched back at the end of every level until Level 9.
 ### v0.82 — No more accidental bashes on mobile
 - The out-of-pasta auto-bash (holding FIRE with an overheated gun) now only fires when an enemy or relic is within bash reach (`bashTargetNear()`). On a phone, aiming counts as holding FIRE, so an empty gun used to bash over and over just from aiming.
 - The touch BASH button moved up the right edge (out of where the thumb lands to aim right) and is a bit smaller (r 32). It only triggers if the press *starts* on the button (hit area 1.05× the button, down from 1.3×). Dragging the aim stick across it never bashes.
+
+### v0.83 — Auto-bash removed, physics cape and front apron
+- **Auto-bash removed:** a bash only ever happens when you press BASH (B, F/V, right-click or the touch button). The level-start hint now says "Out of pasta? BASH them!"
+- **The cape** (src/chris.js `updateCloth`):
+  - A red cape with a gold zig-zag hem, made of 4 pixel strips (`c_capeS0-3`) riding a 5-point chain from the back of the neck.
+  - The chain is simulated in the rig's own facing-right space:
+    - gravity pulls it down;
+    - "air" blowing against Chris's movement drags it back when running, down when jumping and up when falling;
+    - the jetpack blows it down and back;
+    - a flutter grows with speed, strongest at the hem.
+  - A cone constraint keeps it draping out behind him, so it shows even when standing still. It never passes through his body or the floor.
+  - Strips snap to 1/12-turn angles and whole pixels, so it reads as sprite animation rather than smooth cloth.
+  - Substeps scale with frame time, so it moves the same on slow phones.
+- **Cape knot:** a red bow with a gold clasp (`c_collar`) sits in front of the neck, so the cape wraps over him.
+- **The apron** now sits over the FRONT of the suit instead of hiding behind it. It's split into a bib ("KISS THE") and a skirt ("COOK"). The skirt hangs on a springy hinge: it swings back when running, flips up when falling and whumps on landing, with angles snapped to 1/32-turn steps.
+- The old apron-to-cape swap on jumping is gone: he now wears both all the time.

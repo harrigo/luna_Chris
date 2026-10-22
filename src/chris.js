@@ -59,7 +59,37 @@ function makeChrisTextures(scene) {
     for (const [x, y] of [[5, 30], [6, 30], [20, 29], [21, 30], [22, 16], [4, 21], [18, 32]]) a.px(x, y, 0xff9a2a);   // stains
     a.px(19, 9, 0xffd23f); a.px(9, 31, 0xffd23f);
   });
-  // the apron's other life: a cape (same cream cloth, red edge)
+  // the apron split in two so the bottom half can flap: bib (KISS THE) and skirt (COOK + hem)
+  pixSprite(scene, 'c_apronT', 24, 21, a => {
+    a.poly([[6, 1], [17, 1], [21, 12], [22, 20], [1, 20], [2, 12]], CREAM);
+    a.rect(6, 1, 17, 2, 0xd62828);                                                       // neck band
+    word(a, 'KISS', 5, 9, 0xd62828); word(a, 'THE', 7, 15, 0xd62828);
+    a.px(17, 7, 0xffd23f); a.px(4, 17, 0xff9a2a);
+  });
+  pixSprite(scene, 'c_apronB', 26, 17, a => {
+    a.poly([[2, 0], [23, 0], [25, 15], [1, 15]], CREAM);
+    word(a, 'COOK', 5, 3, 0xd62828);
+    a.rect(1, 13, 25, 14, 0xd62828);                                                     // red hem
+    for (const [x, y] of [[4, 10], [5, 10], [19, 9], [20, 10]]) a.px(x, y, 0xff9a2a);     // mac-cheese stains
+  });
+  // the cape, as 4 cloth strips that hang off a little physics chain (widening towards the hem)
+  for (let i = 0; i < 4; i++) {
+    const w = 13 + i * 3, last = i === 3;
+    pixSprite(scene, 'c_capeS' + i, w + 2, last ? 15 : 13, a => {
+      const t0 = i === 0 ? 3 : 1;
+      a.poly([[t0 + 1, 0], [w - t0, 0], [w, 12], [1, 12]], [0xff6a6a, 0xd62828, 0x8a1414]);         // red cape cloth
+      a.rect(Math.round(w / 2) + 1, 1, Math.round(w / 2) + 1, 11, 0xa01c1c);                           // a fold down the middle
+      if (i === 0) a.rect(t0 + 1, 0, w - t0, 1, 0xff9a9a);                                             // shine at the shoulders
+      if (last) { for (let x = 1; x <= w; x++) { const y = 12 + ((x >> 1) % 2); a.px(x, y, 0xffd23f); if ((x >> 1) % 2) a.px(x, y + 1, 0xd8901a); } }   // gold zig-zag hem
+    });
+  }
+  // the knot that ties the cape on, sitting in FRONT of his neck so the cape wraps over him
+  pixSprite(scene, 'c_collar', 16, 10, a => {
+    a.poly([[1, 2], [7, 4], [7, 7], [1, 8]], [0xff6a6a, 0xd62828, 0x8a1414]);
+    a.poly([[14, 2], [9, 4], [9, 7], [14, 8]], [0xff6a6a, 0xd62828, 0x8a1414]);
+    a.ell(8, 5.5, 2.5, 2.5, [0xfff0a0, 0xffc83a, 0xb07a1a]);                              // gold clasp
+  });
+  // (old one-piece cape, kept for anything else that uses it)
   pixSprite(scene, 'c_cape', 50, 46, a => {
     const pts = [[48, 2], [48, 14], [22, 30], [14, 45], [8, 33], [1, 40], [5, 22], [24, 8]];
     a.poly(pts, CREAM);
@@ -194,7 +224,7 @@ class ChrisRig {
     const img = (key, x, y, ox, oy) => scene.add.image(x, y, key).setOrigin(ox, oy);
     this.root = scene.add.container(0, 0).setDepth(7);
 
-    this.cape = img('c_cape', -6, -42, 1, 0.08);
+    this.capeS = [0, 1, 2, 3].map(i => img('c_capeS' + i, 0, 0, 0.5, 0));   // physics cape strips (behind everything)
     this.tanks = img('c_tanks', -16, -36, 0.5, 0.5);
     this.legB = img('c_leg', -6, -16, 0.5, 0);
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
@@ -202,10 +232,12 @@ class ChrisRig {
     this.body = img('c_body', 0, 3, 0.5, 1);
     this.belly = img('c_belly', 7, -10, 0.5, 0);                    // a slight overhang under the front of the hem
     this.armB = img('c_arm', -3, -22, 0, 0.5);
-    this.apron = img('c_apron', -7, -30, 0.5, 0);
+    this.apron = img('c_apronT', 5, -33, 0.5, 0);                    // the apron over the FRONT of the suit...
+    this.apronB = img('c_apronB', 5, -14, 0.5, 0);                   // ...with a skirt that flaps on a spring
+    this.collar = img('c_collar', -3, -37, 0.5, 0.5);                // the cape's knot, over the neck
     this.head = img('c_head', 2, -44, 0.5, 0.5);
     this.hat = img('c_hat', 3, -54, 0.5, 1);
-    this.torso.add([this.apron, this.belly, this.body, this.armB, this.head, this.hat]);     // apron hangs BEHIND him so the belly is on show
+    this.torso.add([this.body, this.armB, this.apron, this.apronB, this.belly, this.collar, this.head, this.hat]);
     this.legF = img('c_leg', 7, -16, 0.5, 0);
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
@@ -217,13 +249,14 @@ class ChrisRig {
     this.auger = img('auger0', 44 - GX, 1 - GY, 0, 0.5).setScale(1.25);
     this.gunPivot.add([this.gun, this.auger]);
     this.gunArm.add([this.gArm, this.gunPivot]);
-    this.root.add([this.cape, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
+    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
 
-    this.parts = [this.cape, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
+    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
     this.tinted = false;
     this.wp = 0;          // waddle phase
     this.t = 0;
-    this.c = 0;           // 0 = apron, 1 = cape
+    this.cloth = null;    // cape chain points (local space), built on the first update
+    this.flapA = 0; this.flapV = 0;    // apron skirt spring
     this.squash = 0;
     this.recoil = 0;
     this.wasGround = true;
@@ -234,6 +267,51 @@ class ChrisRig {
     if (on === this.tinted) return;
     this.tinted = on;
     for (const p of this.parts) { if (on) p.setTint(0xffe9a0); else p.clearTint(); }
+  }
+
+  // ---- the cape: a 5-point chain hanging off the back of the neck. Simulated in the rig's own (facing-right) space:
+  // gravity pulls it down, and "air" blowing against Chris's movement drags it back when he runs, down when he jumps,
+  // up when he falls, with a flutter that grows with speed. Strips snap to 1/12-turn angles so it stays sprite-y.
+  updateCloth(P, dt, grounded, fly) {
+    const N = 5, SEG = 9.5, fc = P.facing < 0 ? -1 : 1;
+    const tr = this.torso.rotation, tx = this.torso.x, ty = this.torso.y;
+    const ax = tx + (-9) * Math.cos(tr) - (-36) * Math.sin(tr), ay = ty + (-9) * Math.sin(tr) + (-36) * Math.cos(tr);   // anchor: back of the neck
+    if (!this.cloth) { this.cloth = []; for (let i = 0; i < N; i++) this.cloth.push({ x: ax - i * 1.5, y: ay + i * SEG, vx: 0, vy: 0 }); }
+    const C = this.cloth, airX = -(P.vx || 0) * fc * 0.65, airY = (P.vh || 0) * 0.55 + (fly ? 140 : 0);   // jetting: the exhaust blows it down and back
+    const sp = Math.hypot(airX, airY), nSub = Math.min(6, Math.max(2, Math.ceil(dt * 120))), h = Math.min(0.05, dt) / nSub;   // more steps on slow frames, so it moves at the same speed on any phone
+    for (let sub = 0; sub < nSub; sub++) {
+      C[0].x = ax; C[0].y = ay;
+      for (let i = 1; i < N; i++) {
+        const p = C[i], fl = Math.sin(this.t * (16 + sp * 0.02) + i * 1.4) * Math.min(260, sp * 0.9) * (i / N);   // flutter, worst at the hem
+        const nx = -airY / (sp || 1), ny = airX / (sp || 1);
+        p.vx += ((airX - p.vx) * 3.5 + nx * fl - 6) * h;               // (a slight backwards bias so it never hangs dead straight)
+        p.vy += (900 + (airY - p.vy) * 3.5 + ny * fl) * h;
+        p.ox = p.x; p.oy = p.y; p.x += p.vx * h; p.y += p.vy * h;
+      }
+      for (let it = 0; it < 3; it++) {
+        C[0].x = ax; C[0].y = ay;
+        for (let i = 1; i < N; i++) {
+          const a = C[i - 1], b = C[i], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, k = (d - SEG) / d;
+          if (i === 1) { b.x -= dx * k; b.y -= dy * k; } else { a.x += dx * k * 0.5; a.y += dy * k * 0.5; b.x -= dx * k * 0.5; b.y -= dy * k * 0.5; }
+          const back = ax - 3.2 * i;                                  // drapes out in a cone behind him, so it shows even standing still
+          if (b.x > back) b.x = back;
+          if (grounded && b.y > -1) b.y = -1;                          // and never through the floor
+        }
+      }
+      for (let i = 1; i < N; i++) { const p = C[i]; p.vx = (p.x - p.ox) / h; p.vy = (p.y - p.oy) / h; }
+    }
+    const STEP = Math.PI / 12;
+    for (let i = 0; i < 4; i++) {
+      const a = C[i], b = C[i + 1], ang = Math.atan2(b.y - a.y, b.x - a.x) - Math.PI / 2;
+      this.capeS[i].setPosition(Math.round(a.x), Math.round(a.y)).setRotation(Math.round(ang / STEP) * STEP);
+    }
+    // apron skirt: a springy hinge at the waist. Swings back when running, flips up when falling, wobbles on landing
+    const tgt = Math.max(-1.1, Math.min(0.5, -(P.vx || 0) * fc * 0.0022 + Math.min(0, P.vh || 0) * 0.0016 * (grounded ? 0 : 1)));
+    this.flapV += ((tgt - this.flapA) * 160 - this.flapV * 9) * dt;
+    if (this.squash > 0.9) this.flapV -= 6;                          // landing whump
+    this.flapA = Math.max(-1.3, Math.min(0.7, this.flapA + this.flapV * dt));
+    const fq = Math.round(this.flapA / (Math.PI / 16)) * (Math.PI / 16);
+    this.apronB.setRotation(fq).setScale(1, Math.max(0.7, Math.cos(fq) * 0.9 + 0.1));
   }
 
   // P = player state, (x, y) = screen position of his feet, z = world zoom, alpha = hit flicker, augerFrame = 0..3
@@ -255,14 +333,6 @@ class ChrisRig {
     const air = grounded ? 0 : 1;
     const fly = P.thrusting ? 1 : 0;
 
-    // ---- cape / apron swap (the apron spins edge-on, then the cape unfurls)
-    const target = (!grounded || P.thrusting) ? 1 : 0;
-    this.c += (target - this.c) * Math.min(1, dt * 10);
-    const c = this.c;
-    this.apron.setScale(1.15 * Math.cos(Math.min(c, 0.5) * Math.PI), 0.95).setVisible(c < 0.5);
-    const cp = Math.max(0, Math.min(1, (c - 0.3) / 0.7));
-    this.cape.setVisible(cp > 0.02).setScale(cp, 0.6 + 0.4 * cp).setAlpha(cp);
-    this.cape.setRotation(0.25 * cp + Math.sin(t * 17) * 0.09 * cp * (1 + fly) - P.vh * 0.00035);
 
     // ---- CROUCH: a springy 0..1 (with a little overshoot going in and popping back up). Instead of squashing the
     // whole sprite, the knees bend out and the legs compress, the boots stay planted, and the body DROPS onto them.
@@ -288,7 +358,7 @@ class ChrisRig {
     const idle = (1 - run) * (1 - air);
     this.torso.setPosition(sw * 1.9 * run + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle + DROP);
     this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched
-    this.cape.setPosition(-6, -42 + DROP);
+    this.updateCloth(P, dt, grounded, fly);
     const stretchY = air ? 1 + Math.max(-0.1, Math.min(0.12, P.vh / 2000)) : 1;
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
       stretchY - 0.18 * Math.max(0, sq) + 0.1 * Math.max(0, -sq) + Math.sin(t * 2.6 + 1) * 0.018 * idle);

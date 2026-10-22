@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.82';
+const BUILD = 'v0.83';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -487,7 +487,7 @@ class Level1 extends Phaser.Scene {
           : (Pad.state.connected
             ? 'L-stick run  R-stick aim + fire  A jump (hold = jet)\nRT fire (pressure!)  B bash  LT jetpack  Y swap'
             : 'WASD / arrows run   SPACE jump (hold = jet)\nMOUSE aim  CLICK fire  RIGHT-CLICK bash  WHEEL swap')) +
-          '\nOut of pasta? Keep firing to bash.\n\nTap to start'
+          '\nOut of pasta? BASH them!\n\nTap to start'
       );
     }
   }
@@ -1326,11 +1326,10 @@ class Level1 extends Phaser.Scene {
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = (CFG.autoFire && tgt) || inp.fire;
     const W = this.weapon;
-    // ---- MELEE: gun-butt bash (Halo style). B / F / V any time, or just keep holding FIRE when the gun is out of pasta.
+    // ---- MELEE: gun-butt bash (Halo style). B / F / V / right-click / the BASH button. Never automatic.
     P.bashCd = Math.max(0, P.bashCd - dt);
-    // (the out-of-pasta auto-bash only kicks in when something is actually close enough to hit - otherwise just aiming
-    //  an empty gun on a phone, which counts as holding FIRE, would bash over and over)
-    if ((inp.melee || (want && P.overheat && this.bashTargetNear())) && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
+    // (no auto-bash: it only ever happens when you press BASH)
+    if (inp.melee && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
     if (P.bashT > 0) {
       P.bashT = Math.max(0, P.bashT - dt);
       const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
