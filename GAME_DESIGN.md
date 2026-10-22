@@ -574,3 +574,20 @@ Bessie is snatched back at the end of every level until Level 9.
   - Shorter pauses between leaps, and leaps up to 430 units/s, still aimed at where Chris is heading.
   - Every 3.5–5.5s, within 380px, a frog stops and crouches, its eyes flash purple (0.55s warning, with a `psy` sound), then it fires a **telekinesis ray**: 10 psychic orbs streamed 45ms apart along one big lobbed arc that lands where Chris will be. The orb gravity scales with difficulty so the arc still lands on Easy and Hard.
 - **Tyre piles removed** from L2. Giant mushrooms looming in the background, plus more mushrooms, reeds and stalks, replace them.
+
+### v0.88 — Rat-frog pack: tongues, pounces, a pattern you can learn
+The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpdate(e, dt)` can be called from any enemy AI. The rat-frogs (`frogAI`) now work like this:
+- **Slime shield:** sitting or approaching frogs take no damage. Shots plink off with a glint (`hitK()` = 0, `deflect()`). A one-time banner explains: "SLIME SHIELD! HIT THEM WHILE THEY ATTACK - OR BASH!"
+- **Pack spacing:** each frog stays on its own side of Chris, 170px out plus 55px for each frog ahead of it in the queue, hopping to reposition.
+- **Taking turns:** only one frog lashes at a time (`frogNextLash`, 1s apart), and the pack alternates low and high tongues.
+- **The tell (0.65s):**
+  - **Low:** squats flat with a GREEN throat sac. The tongue skims the floor (h 14), so JUMP.
+  - **High:** rears up tall with a PINK throat sac. The tongue is at chest height (h 32), so DUCK.
+- **Lash:** the tongue shoots out 245px in 0.16s, holds 0.22s and retracts in 0.3s. It's pink, drawn along the planet's curve.
+- **Grab:** if it touches Chris, it reels him in at 175 units/s. Escapes:
+  - mash JUMP 3 times to break free (the frog is stunned);
+  - shoot the open mouth for 2+ damage and it lets go.
+
+  Reeled all the way in means a CHOMP: one hit and Chris is spat out.
+- **Pounce:** if Chris gets within 105px, the frog leaps at where he's going (3s cooldown). On landing it splashes spores both ways, then flips belly-up, stunned for 0.95s, with no contact damage while stunned.
+- **Damage:** mouth open (lash or grab), mid-pounce and stunned frogs take ×2 damage. A BASH always lands full damage and stuns for 1.1s. Hot Sauce burns them at half rate.

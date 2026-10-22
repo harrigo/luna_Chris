@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.87';
+const BUILD = 'v0.88';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -328,7 +328,7 @@ class Level1 extends Phaser.Scene {
       spr.bsx = (2 * g.half * R) / 64 * 1.08; spr.bsy = 2;
       return Object.assign({ spr, bubT: rnd(0, 1) }, g);
     });
-    this.goopTip = false;
+    this.goopTip = false; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1412,7 +1412,7 @@ class Level1 extends Phaser.Scene {
     const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
-    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
+    P.vx += (ax * CFG.runSpeed * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : 1) * (P.grabbed ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : 12));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
       P.theta = wrap(P.theta - this.def.conveyor / R * dt);
@@ -1447,7 +1447,7 @@ class Level1 extends Phaser.Scene {
     P.goop = !!pool;
     P.sink = pool ? Math.min(18, (P.sink || 0) + dt * 26) : Math.max(0, (P.sink || 0) - dt * 90);
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
-    if (inp.jump && !P.jumpWas) P.jumpBufT = CFG.jumpBuffer;     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
+    if (inp.jump && !P.jumpWas) { if (P.grabbed) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
     if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
       if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
@@ -1664,6 +1664,162 @@ class Level1 extends Phaser.Scene {
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
   }
 
+  // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
+  hitK(e) {
+    if (e.kind !== 'frog') return 1;
+    return (e.state === 'lash' || e.state === 'grab' || e.state === 'stun' || e.state === 'pounce') ? 2 : 0;
+  }
+  deflect(e, theta, h) {                                      // a shot glances off the slime: a glint and a plink
+    if ((e.plinkT || 0) > this.t) return;
+    e.plinkT = this.t + 0.12;
+    this.burst(theta, h, 'spark', 3, 0.5); Sound.sfx('clang');
+    e.spr.setTintFill(0xc8ffd0); e.flash = 0.05;
+    if (!this.slimeTip) { this.slimeTip = true; this.banner('SLIME SHIELD!\nHIT THEM WHILE THEY ATTACK - OR BASH!'); }
+  }
+  frogStun(e, t) {
+    if (this.pl.grabbed === e) this.releaseGrab(false);
+    e.state = 'stun'; e.stunT = t; e.tongue = 0; e.leapV = 0; e.spr.setFlipY(true);
+  }
+  releaseGrab(chomped) {
+    const P = this.pl, e = P.grabbed; if (!e) return;
+    P.grabbed = null; P.mash = 0;
+    if (e.hp > 0 && (e.state === 'grab' || e.state === 'lash')) { e.state = 'sit'; e.lashCd = 1.6; e.tongueOut = 0; }
+    if (chomped) { const away = Math.sign(angDiff(P.theta, e.theta)) || 1; P.theta = wrap(P.theta + away * 26 / R); P.vh = 380; P.vx = away * 220; }
+  }
+
+  // RAT-FROG PACK. Learnable rules:
+  //  * sitting frogs are slime-shielded: shots plink off. They hang back at mid-range, spaced out, on their own side.
+  //  * they take turns: one LASHES its tongue at a time, the next a beat later. The TELL says which height:
+  //      squats flat + GREEN throat  -> LOW tongue along the floor  -> JUMP it
+  //      rears up tall + PINK throat -> HIGH tongue at chest height -> DUCK it
+  //    (a pack alternates low / high, so you learn the rhythm)
+  //  * caught? it reels you in: mash JUMP x3 to break free, or shoot its open mouth. Reeled all the way in = a chomp.
+  //  * get too close and it POUNCES straight at you: run under it. It lands belly-up, stunned.
+  //  * open mouth, mid-pounce and stunned = double damage. BASH always connects and stuns.
+  frogAI(e, dt, toP, distP, dirP, fooled) {
+    const P = this.pl, side = -(Math.sign(toP) || 1);            // which side of Chris this frog lives on
+    if (!e.state || e.state === 'idle' || e.state === 'air') e.state = 'approach';
+    e.lashCd = Math.max(0, (e.lashCd || 0) - dt); e.pounceCd = Math.max(0, (e.pounceCd === undefined ? 1.5 : e.pounceCd) - dt);
+    const grounded = e.h <= 0 && e.vh <= 0;
+    // where it wants to sit: 170px out on its own side, then 55px further per frog ahead of it in the queue
+    let slot = 0;
+    for (const f of this.enemies) if (f !== e && f.kind === 'frog' && f.hp > 0 && Math.sign(angDiff(f.theta, P.theta)) === side && Math.abs(angDiff(f.theta, P.theta)) < Math.abs(toP)) slot++;
+    const want = wrap(P.theta + side * (170 + slot * 55) / R), off = angDiff(want, e.theta) * R;
+    if (e.state !== 'stun') e.spr.setFlipY(false);
+    if (e.state !== 'tell') { e.sacK = 0; }
+    e.dir = (e.state === 'approach' && Math.abs(off) > 30) ? Math.sign(off) : dirP;
+
+    if (e.state === 'approach') {
+      if (grounded) {
+        e.hopT = (e.hopT || 0) - dt;
+        if (Math.abs(off) < 25 && distP < 320) { e.state = 'sit'; e.leapV = 0; }
+        else if (e.hopT <= 0) { e.vh = rnd(240, 300); e.leapV = Math.sign(off) * Math.min(260, Math.abs(off) * 2.2 + 80); e.hopT = 0.12; Sound.sfx('squeak'); }
+      }
+    } else if (e.state === 'sit') {
+      e.leapV = 0;
+      if (fooled) { /* disguise: it just sits */ }
+      else if (distP < 105 && e.pounceCd <= 0) {                 // too close: POUNCE
+        e.state = 'pounce'; e.vh = 560; e.pounceCd = 3;
+        const air = 2 * e.vh / this.gAt(e.theta);
+        e.leapV = Math.max(-420, Math.min(420, (toP * R + (P.vx || 0) * air * 0.5) / air)) || dirP * 200;
+        Sound.sfx('ribbit'); e.spr.hsq = 1;
+      }
+      else if (Math.abs(off) > 70 || distP > 340) e.state = 'approach';
+      else if (e.lashCd <= 0 && distP < 245 && this.t >= (this.frogNextLash || 0) && this.state === 'play') {
+        this.frogLow = !this.frogLow;                              // the pack alternates low / high
+        e.state = 'tell'; e.tellT = 0.65; e.low = this.frogLow; e.lashDir = dirP;
+        this.frogNextLash = this.t + 1.0;
+        Sound.sfx('ribbit');
+      }
+    } else if (e.state === 'tell') {
+      e.tellT -= dt; e.sacK = Math.min(1, 1 - e.tellT / 0.65);
+      if (e.tellT <= 0) { e.state = 'lash'; e.tongue = 0; e.tongueT = 0; Sound.sfx('stretch'); }
+    } else if (e.state === 'lash') {
+      e.tongueT += dt;
+      const L = 245, ext = 0.16, hold = 0.22, back = 0.3;
+      e.tongue = e.tongueT < ext ? L * e.tongueT / ext : (e.tongueT < ext + hold ? L : L * Math.max(0, 1 - (e.tongueT - ext - hold) / back));
+      // does it catch Chris? (anywhere along its length, at its height)
+      const th = e.low ? 14 : 32, along = angDiff(P.theta, e.theta) * R * e.lashDir;
+      const pc = P.h + (P.duck ? 10 : 22), pr = P.duck ? 9 : 12;
+      if (e.tongueT < ext + hold && along > 0 && along < e.tongue + 6 && Math.abs(th - pc) < pr + 3 && P.invuln <= 0 && !P.grabbed && this.state === 'play') {
+        e.state = 'grab'; P.grabbed = e; P.mash = 0; e.grabHp = e.hp; Sound.sfx('squelch'); buzz([40, 30, 40]);
+        this.banner('GRABBED! MASH JUMP!');
+      }
+      if (e.tongueT >= ext + hold + back) { e.state = 'sit'; e.lashCd = rnd(1.8, 2.6); e.tongue = 0; }
+    } else if (e.state === 'grab') {
+      // reel him in
+      const along = Math.abs(angDiff(P.theta, e.theta)) * R;
+      e.tongue = along;
+      P.theta = wrap(P.theta - e.lashDir * 175 / R * dt); P.vx = 0; P.vh = Math.min(P.vh, 0); P.h = Math.max(0, P.h - 300 * dt);
+      if (P.mash >= 3) {                                          // broke free!
+        this.releaseGrab(false); P.vh = 360; this.frogStun(e, 0.9); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
+      } else if (e.hp <= e.grabHp - 2) {                          // shot in the open mouth: lets go
+        this.releaseGrab(false); this.frogStun(e, 1.1); this.banner('LET GO!');
+      } else if (along < e.r + 16) {                              // CHOMP
+        this.releaseGrab(true); this.hurt(); e.state = 'sit'; e.lashCd = 2.2; Sound.sfx('bonk');
+      }
+    } else if (e.state === 'pounce') {
+      if (grounded && e.t > 0.2) {                                 // lands: a splash either side, then flops over stunned
+        Sound.sfx('squelch'); this.cameras.main.shake(90, 0.005);
+        if (distP < 400) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 180, 0, 9, 1.1);
+        this.frogStun(e, 0.95);
+      }
+    } else if (e.state === 'stun') {
+      e.stunT -= dt; e.leapV = 0;
+      if (e.stunT <= 0) { e.state = 'sit'; e.spr.setFlipY(false); e.lashCd = Math.max(e.lashCd, 0.8); }
+    }
+    e.theta = wrap(e.theta + ((e.leapV || 0) / R) * dt);
+    e.vh -= this.gAt(e.theta) * dt;
+    e.h += e.vh * dt;
+    if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; if (e.state === 'approach') e.leapV *= 0.5; }
+    // body language: low tell = squat flat, high tell = rear up tall
+    if (e.state === 'tell') { const k = e.sacK; e.spr.sqx = e.low ? 1 + 0.22 * k : 1 - 0.1 * k; e.spr.sqy = e.low ? 1 - 0.3 * k : 1 + 0.28 * k; }
+    else if (e.state === 'lash' || e.state === 'grab') { e.spr.sqx = e.low ? 1.18 : 0.92; e.spr.sqy = e.low ? 0.75 : 1.22; }
+    else { e.spr.sqx = 1; e.spr.sqy = 1 + Math.max(0, Math.min(0.15, e.vh / 3500)); }
+  }
+
+  // tongues + throat sacs (drawn along the curve of the planet)
+  drawTongues() {
+    if (!this.tongueG) this.tongueG = this.add.graphics().setDepth(5.5);
+    const g = this.tongueG; g.clear();
+    for (const e of this.enemies) {
+      if (e.kind !== 'frog' || e.hp <= 0) continue;
+      const mouthH = e.low ? 14 : 32;
+      if (e.state === 'tell' && e.sacK > 0) {                    // the throat sac swells: green = low, pink = high
+        const s = this.screenPos(wrap(e.theta + e.lashDir * 12 / R), e.low ? 10 : 26); if (!s.vis) continue;
+        const r = (3 + 8 * e.sacK) * this.zoom;
+        g.fillStyle(0x1a1020, 1).fillCircle(s.x, s.y, r + 1.5);
+        g.fillStyle(e.low ? 0x8aff6a : 0xff7ab0, 1).fillCircle(s.x, s.y, r);
+        g.fillStyle(0xffffff, 0.8).fillCircle(s.x - r * 0.35, s.y - r * 0.35, r * 0.25);
+      }
+      if ((e.state === 'lash' || e.state === 'grab') && e.tongue > 2) {
+        const n = Math.max(2, Math.ceil(e.tongue / 12)), pts = [];
+        for (let k = 0; k <= n; k++) { const a = wrap(e.theta + e.lashDir * (12 + (e.tongue - 12) * k / n) / R); pts.push(this.screenPos(a, mouthH + Math.sin(k * 0.9 + this.t * 30) * (e.state === 'grab' ? 1.5 : 0))); }
+        if (e.state === 'grab') pts[n] = this.screenPos(this.pl.theta, this.pl.h + (this.pl.duck ? 10 : 22));
+        g.lineStyle(7 * this.zoom, 0x1a1020, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath();
+        g.lineStyle(4.5 * this.zoom, 0xff6a96, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath();
+        g.lineStyle(1.5 * this.zoom, 0xffb8cc, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y - 1); g.strokePath();
+        const t = pts[n]; g.fillStyle(0x1a1020, 1).fillCircle(t.x, t.y, 6 * this.zoom); g.fillStyle(0xff4a7a, 1).fillCircle(t.x, t.y, 4.5 * this.zoom);
+      }
+    }
+  }
+
+  // SAVED FOR LATER: the telekinesis ray (was on the L2 rat-frogs). An enemy stops, flashes purple, then streams
+  // 10 psychic orbs along one big lobbed arc that lands where Chris will be. Call psyRayStart(e) from any enemy's AI,
+  // then psyRayUpdate(e, dt) every frame while e.psy is set (returns true when finished).
+  psyRayStart(e, toP) {
+    const P = this.pl, air = 1.25, g = 430, dx = toP * R + (P.vx || 0) * air * 0.4;
+    e.psy = { t: 0.55, n: 10, gap: 0, vt: Math.max(-360, Math.min(360, dx / air)), vh: 0.5 * g * air + (P.h + 20 - (e.h + e.ch + 8)) / air, g };
+    Sound.sfx('psy');
+  }
+  psyRayUpdate(e, dt) {
+    const S = e.psy; if (!S) return true;
+    S.t -= dt; e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0xd890ff : 0xffffff);
+    if (S.t <= 0 && S.n > 0) { S.gap -= dt; if (S.gap <= 0) { S.gap = 0.045; S.n--; const b = this.addEBullet('psyorb', e.theta, e.h + e.ch + 8, S.vt, S.vh, 8, 2.6); b.grav = S.g * Settings.dk.shot * Settings.dk.shot; b.spinV = 8; } }
+    if (S.n <= 0) { e.psy = null; e.spr.clearTint(); return true; }
+    return false;
+  }
+
   goopSplash(theta) {
     for (let k = 0; k < 7; k++) {
       const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); im.bsx = im.bsy = rnd(0.8, 1.5);
@@ -1741,6 +1897,7 @@ class Level1 extends Phaser.Scene {
         this.addWheel(2, e.theta, e.h + e.ch + 10); const w = this.wheels.find(w => w.i === 2); if (w) { w.vh = 300; w.rest = 24; }
       }
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
+      if (e.kind === 'frog' && e.hp > 0) this.frogStun(e, 1.1);        // bash cracks the slime: stunned and open
       if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 12 / R); this.knock(e, P.theta, 300); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
       this.burst(e.theta, e.h + e.ch, 'spark', 8, 0.9);
       this.bang(e.theta, e.h + e.ch, 16);
@@ -1876,7 +2033,7 @@ class Level1 extends Phaser.Scene {
       const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
-      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6);
+      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e);
       this.knock(e, theta, full ? 240 : 130);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
@@ -1912,7 +2069,8 @@ class Level1 extends Phaser.Scene {
       if (a < -e.r / R || a > B.span) continue;
       const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
       if (Math.abs(e.h + e.ch - (B.gh + B.rise * f - sag)) > e.r + B.band) continue;
-      e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true; if (this.buffOn('sauce')) e.burn = 2;
+      if (this.hitK(e) === 0) { this.deflect(e, e.theta, e.h + e.ch); hitAny = true; continue; }
+      e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = true; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
     }
@@ -2058,7 +2216,7 @@ class Level1 extends Phaser.Scene {
       const dirP = fooled ? e.wdir : e.fdir;
       if (e.burn > 0) {                                  // Hot Sauce: on fire for a bit
         e.burn -= dt; e.burnT = (e.burnT || 0) - dt;
-        if (e.burnT <= 0) { e.burnT = 0.3; e.hp -= e.type === 'boss' ? 0.5 : 0.7; this.burst(e.theta, e.h + e.ch, 'flame', 2, 0.5); }
+        if (e.burnT <= 0) { e.burnT = 0.3; e.hp -= (e.type === 'boss' ? 0.5 : 0.7) * (e.kind === 'frog' ? 0.5 : 1); this.burst(e.theta, e.h + e.ch, 'flame', 2, 0.5); }
       }
       const ai = e.kind || e.type;
       if (e.type === 'phantom') e.spr.setAlpha(0.6 + 0.3 * Math.sin(e.t * 5 + e.seed));     // ghostly flicker
@@ -2134,47 +2292,7 @@ class Level1 extends Phaser.Scene {
         e.spr.sqx = 1 + Math.sin(e.t * 9) * 0.05; e.spr.sqy = 1 - Math.sin(e.t * 9) * 0.05;
 
       } else if (ai === 'frog') {
-        // rat-frog: quick crouch-and-leap at where Chris is heading. Every few seconds it stops, its eyes glow purple
-        // (the warning) and it hurls a TELEKINESIS RAY: a big arcing stream of psychic orbs that lands on Chris.
-        const grounded = e.h <= 0 && e.vh <= 0;
-        e.tkCd = (e.tkCd === undefined ? rnd(2, 4) : e.tkCd) - dt;
-        if (grounded) {
-          if (e.state === 'air') {                       // lands with a squelch: sometimes a pair of spores skid out along the ground
-            e.state = 'idle'; e.cd = rnd(0.35, 0.7); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
-            if (Math.abs(toP) * R < 400 && Math.random() < 0.4) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
-          }
-          e.dir = dirP;
-          if (e.state === 'tk') {                        // the psychic ray: telegraph, then a stream of orbs along one big arc
-            e.tkT -= dt;
-            e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0xd890ff : 0xffffff);
-            if (e.tkT <= 0 && e.tkN > 0) {
-              e.tkGap -= dt;
-              if (e.tkGap <= 0) {
-                e.tkGap = 0.045; e.tkN--;
-                const b = this.addEBullet('psyorb', e.theta, e.h + e.ch + 8, e.tkVt, e.tkVh, 8, 2.6); b.grav = e.tkG * Settings.dk.shot * Settings.dk.shot; b.spinV = 8;
-              }
-            }
-            if (e.tkN <= 0) { e.state = 'idle'; e.cd = rnd(0.3, 0.6); e.tkCd = rnd(3.5, 5.5); e.spr.clearTint(); }
-          } else {
-            e.cd -= dt;
-            if (e.tkCd <= 0 && !fooled && distP < 380 && distP > 60 && this.state === 'play') {
-              e.state = 'tk'; e.tkT = 0.55; e.tkN = 10; e.tkGap = 0; Sound.sfx('psy');
-              const air = 1.25, g = 430, dx = toP * R + (P.vx || 0) * air * 0.4;                 // aims a big lob at where he'll be
-              e.tkVt = Math.max(-360, Math.min(360, dx / air)); e.tkVh = 0.5 * g * air + (P.h + 20 - (e.ch + 8)) / air; e.tkG = g;
-            } else if (e.cd <= 0) {                      // leaps to where Chris is heading
-              e.state = 'air'; e.vh = rnd(500, 600);
-              const air = 2 * e.vh / this.gAt(e.theta), lead = (toP * R + (P.vx || 0) * air * 0.5);
-              e.leapV = Math.max(-430, Math.min(430, lead / air)) || dirP * 260;
-              Sound.sfx('ribbit');
-            }
-          }
-        }
-        e.theta = wrap(e.theta + (e.leapV / R) * dt);
-        e.vh -= this.gAt(e.theta) * dt;
-        e.h += e.vh * dt;
-        if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
-        const crouch = (e.state === 'idle' && e.cd < 0.25) || e.state === 'tk';
-        e.spr.sqx = crouch ? 1.14 : 1; e.spr.sqy = crouch ? 0.8 : 1 + Math.max(0, Math.min(0.15, e.vh / 3500));
+        this.frogAI(e, dt, toP, distP, dirP, fooled);
 
       } else if (ai === 'drone') {
         // cheese-slicing drone: hovers, flashes red, then dives at where Chris was
@@ -2450,7 +2568,7 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (!fooled && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (!fooled && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
@@ -2462,6 +2580,7 @@ class Level1 extends Phaser.Scene {
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
+      if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
@@ -2544,7 +2663,8 @@ class Level1 extends Phaser.Scene {
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) >= rr * rr) continue;
           if (e.type === 'boss') { dead = true; break; }  // too big to plough through: burst on it
           b.hits.push(e);
-          e.hp -= b.ploughDmg; this.knock(e, b.theta, 190);
+          if (this.hitK(e) === 0) { this.deflect(e, b.theta, b.h); dead = true; break; }
+          e.hp -= b.ploughDmg * this.hitK(e); this.knock(e, b.theta, 190);
           if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
           this.burst(b.theta, b.h, 'crumb', 8, 0.9); this.bang(b.theta, b.h, 14);
           Sound.sfx('bonk'); this.hitStop = Math.max(this.hitStop || 0, 0.03);
@@ -2558,7 +2678,9 @@ class Level1 extends Phaser.Scene {
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
-            e.hp -= b.dmg || 1; if (this.buffOn('sauce')) e.burn = 2;
+            const hk = this.hitK(e);
+            if (hk === 0) { this.deflect(e, b.theta, b.h); dead = true; break; }
+            e.hp -= (b.dmg || 1) * hk; if (this.buffOn('sauce')) e.burn = 2;
             this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
             Sound.sfx('hit');
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
@@ -2904,6 +3026,7 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
     this.drawBlastFx();
     this.drawHazards();
+    this.drawTongues();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
