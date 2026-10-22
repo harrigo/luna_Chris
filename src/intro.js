@@ -263,7 +263,7 @@ function makeIntroPix(scene) {
 }
 
 class IntroScene extends Phaser.Scene {
-  constructor() { super('intro'); }
+  constructor(key) { super(key || 'intro'); }
 
   preload() {
     this.load.image('titleArt', 'assets/title.jpg?v=1');
@@ -318,6 +318,7 @@ class IntroScene extends Phaser.Scene {
   create() {
     buildAllTextures(this);                                    // every sprite, generated once and packed onto the shared sheet
     if (/[?&]skipintro/.test(window.location.search)) { this.scene.start('level1'); return; }
+    if (/[?&]ending/.test(window.location.search)) { this.scene.start('ending'); return; }
     this.cameras.main.setBackgroundColor('#000000');
     this.phase = 'gate';            // gate (waiting for first tap) -> title -> play -> leaving
     this.wantFs = false;

@@ -113,7 +113,7 @@ class MenuScene extends Phaser.Scene {
       { label: () => 'PLAY', act: () => this.go() },
       { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
-    ];
+    ].concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
     const opts = () => optionItems().concat([{ label: () => 'BACK', act: toMain }]);
     const I = (text, color) => ({ info: true, text, color });
     const controls = () => [

@@ -423,3 +423,19 @@ Bessie is snatched back at the end of every level until Level 9.
   - L8 tight chambers / ceiling;
   - L9 dairy-extraction machine and finale cutscene;
   - L5.5 rings, croutons, fork-vault rats and the Triple-Tiered Terror.
+
+### v0.78 — The ending (src/ending.js)
+- `EndingScene` extends `IntroScene`, so it reuses the same pixel-cutscene engine: stage, bars, typewriter captions, pixel bubbles and the real Chris rig.
+- It plays automatically after beating Level 9 ("YOU DID IT!", then fade). Once the game is beaten it's on the main menu as **THE END**, and `?ending` in the URL opens it directly.
+- Beats (all very silly):
+  1. **Ruins of Parmesan Prime:** Chris jets down, finds Bessie sulking in a glass extraction tank, macaroni-blasts it, and the glass shatters ("THE GLASS NEVER STOOD A CHANCE.").
+  2. **Slow-motion run:** dreamy sparkles, "BEEEEESSSSIIIIEEEEE..." / "MOOOOOOOOOOOO...". Then a wide shot: "IT WAS A VERY, VERY BIG FIELD."
+  3. **The crash-hug:** a heart explosion, pink flash, "SLUUUURP!", "...I MISSED YOU TOO, GIRL.", "(SHE LICKED HIS VISOR. IT WILL NEVER BE CLEAN AGAIN.)"
+  4. **The Rat-King** crawls out of his smoking mech in polka-dot pants: "CURSE YOU, LUNA CHRIS!", then *RUMBLE* "...WE ONLY WANTED SOME CHEESE." Bessie drops him a glowing wheel of Mad Cheese, he takes one bite, and the planet is cured: the red sky fades to blue, flowers pop up and the rats dance. "...IS THIS GOUDA?" "MOO!!"
+  5. **Party at the ranch:**
+     - a "WELCOME HOME BESSIE!" bunting sign, Bessie in a crown, and the Rat-King in an apron flipping burgers;
+     - a rat conga line, fireworks, and Chris flipping pancakes onto an ever-growing stack;
+     - "EVEN THE RATS CAME. THEY BROUGHT CRACKERS.";
+     - then a tiny UFO beams up the pancake stack: "OH, COME ON!!"
+  6. **THE END ?** with silly scrolling credits ("PANCAKE CONSULTANT: THE DOG AGAIN", "NO RATS WERE HARMED / MOST OF THEM WERE CURED", "MADE BY HARRIGO", "MOO.") while Bessie floats past waving. Tap to continue to the menu.
+- New pixel art (`makeEndingPix`, on the sprite sheet): ruined and cured skies, the extraction tank, glass shards, the pants-wearing Rat-King, an apron, hearts, flowers, a crown and bunting.

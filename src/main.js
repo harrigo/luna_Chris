@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.77';
+const BUILD = 'v0.78';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -882,6 +882,12 @@ class Level1 extends Phaser.Scene {
   finishWin() {
     Progress.beat(this.levelId);
     this.state = 'won';
+    if (this.levelId === CFG.finalLevel) {               // the whole game is done: on to the ending
+      Sound.music('win'); this.endT = this.t;
+      this.showOverlay('YOU DID IT!', 'Bessie is safe at last...');
+      this.time.delayedCall(2600, () => { this.cameras.main.fadeOut(600, 0, 0, 0); this.time.delayedCall(650, () => this.scene.start('ending')); });
+      return;
+    }
     if (this.levelId < CFG.finalLevel) Sound.music('win');
     this.endT = this.t;
     this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\nTap for level select');
@@ -2588,7 +2594,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, MenuScene, SelectScene, WeaponScene, Level1]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, Level1]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.
