@@ -1004,6 +1004,60 @@ function makeRoadmapTextures(scene) {
   });
 }
 
+// ---------------------------------------------------------------- timed power-ups
+// Dropped (randomly) by medium and big enemies. `from` = the first level they can turn up on, so the early levels get the
+// plain ones and the silly ones arrive later. t = seconds it lasts (0 = instant).
+const BUFFS = {
+  sauce:   { name: 'HOT SAUCE!',        tex: 'pu_sauce',  t: 10, from: 1, col: 0xff4a2a },
+  boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 10, from: 1, col: 0x5ce1ff },
+  magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 12, from: 2, col: 0xff6a8a },
+  shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 14, from: 3, col: 0xffd23f },
+  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 6,  from: 4, col: 0xb8a8ff },
+  giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 8,  from: 5, col: 0xff3a3a },
+  moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 6, col: 0xffffff },
+  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 10, from: 7, col: 0xff9db8 }
+};
+function makePowerupTextures(scene) {
+  if (scene.textures.exists('pu_sauce')) return;
+  const STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272];
+  pixSprite(scene, 'pu_sauce', 18, 22, p => {                  // hot sauce bottle
+    p.rrect(7, 1, 11, 6, 1, [0x8af06a, 0x3aa040, 0x1a6a20]); p.rect(8, 6, 10, 8, 0xe8e8f0);
+    p.rrect(4, 8, 14, 21, 3, [0xff7a5a, 0xe0301a, 0x8a1010]); p.rect(5, 12, 13, 16, 0xfff6e0); p.px(8, 14, 0xe0301a); p.px(10, 14, 0xe0301a); p.px(9, 13, 0xff9a1a);
+  });
+  pixSprite(scene, 'pu_boots', 20, 20, p => {                  // rocket boot
+    p.ell(7, 18, 3, 2, [0xfff6a0, 0xffa21a, 0xd04a10]);
+    p.rrect(3, 2, 11, 14, 2, [0x9fd8ff, 0x4a7ae0, 0x24348a]); p.rrect(3, 11, 18, 16, 3, [0x9fd8ff, 0x4a7ae0, 0x24348a]); p.rect(4, 15, 17, 16, 0xe8e8f0);
+    p.line([[5, 6], [9, 6]], 0xffffff);
+  });
+  pixSprite(scene, 'pu_magnet', 20, 20, p => {                 // horseshoe magnet
+    p.ell(10, 9, 8, 8, [0xff8a8a, 0xe03030, 0x901818]); p.ell(10, 9, 4, 4, -1);
+    p.rect(2, 9, 6, 18, 0xe03030); p.rect(14, 9, 18, 18, 0xe03030); p.rect(2, 15, 6, 18, STEEL[0]); p.rect(14, 15, 18, 18, STEEL[0]);
+  });
+  pixSprite(scene, 'pu_shield', 22, 20, p => {                 // fondue pot
+    p.ell(11, 6, 9, 3, [0xfff0a0, 0xffc83a, 0xd8901a]); p.rrect(7, 4, 9, 10, 1, [0xfff0a0, 0xffc83a, 0xd8901a]);
+    p.rrect(2, 6, 20, 17, 5, [0xd08a5a, 0x9a5a32, 0x5e3020]); p.line([[4, 12], [18, 12]], 0xc0804a);
+    p.line([[5, 18], [4, 19]], 0x5a6272); p.line([[17, 18], [18, 19]], 0x5a6272);
+  });
+  pixSprite(scene, 'pu_slowmo', 22, 18, p => {                 // a wedge of brie with a clock on it
+    p.poly([[1, 16], [21, 16], [21, 6]], [0xffffff, 0xf2eedc, 0xc8c0a0]); p.poly([[1, 16], [21, 6], [21, 3], [1, 13]], [0xe8dcb0, 0xd8c890, 0xa89860]);
+    p.ell(14, 12, 4, 4, [0xd8ecff, 0x9ab8e0, 0x4a6aa0]); p.line([[14, 12], [14, 9]], 0x1a1020); p.line([[14, 12], [16, 12]], 0x1a1020);
+  });
+  pixSprite(scene, 'pu_giant', 20, 20, p => {                  // a red-waxed gouda with an up arrow
+    p.ell(10, 12, 9, 7, [0xff7a6a, 0xd0301a, 0x8a1a10]); p.ell(10, 11, 6, 4, [0xfff0a0, 0xffd23f, 0xd09a10]);
+    p.poly([[10, 0], [15, 5], [12, 5], [12, 9], [8, 9], [8, 5], [5, 5]], [0xffffff, 0xe8e8f0, 0xa8a8b8]);
+  });
+  pixSprite(scene, 'pu_moo', 20, 20, p => {                    // golden cowbell
+    p.rect(9, 0, 11, 3, STEEL[1]);
+    p.poly([[5, 4], [15, 4], [18, 16], [2, 16]], [0xfff0a0, 0xffc83a, 0xb07a1a]); p.rect(2, 15, 18, 17, 0xb07a1a);
+    p.ell(10, 18, 2, 1.5, STEEL);
+  });
+  pixSprite(scene, 'pu_ears', 22, 14, p => {                   // novelty rat ears on a headband
+    p.ell(5, 6, 4.5, 5, [0xc0c8d4, 0x9aa3b2, 0x6a7280]); p.ell(17, 6, 4.5, 5, [0xc0c8d4, 0x9aa3b2, 0x6a7280]);
+    p.ell(5, 6, 2.5, 3, [0xffc8d8, 0xff9db8, 0xc06a88]); p.ell(17, 6, 2.5, 3, [0xffc8d8, 0xff9db8, 0xc06a88]);
+    p.line([[2, 12], [6, 10], [16, 10], [20, 12]], 0x1a1020, 2);
+  });
+}
+
 // ---------------------------------------------------------------- platform types (all 124px wide, scaled to each ledge)
 // top = the pixel row you stand on. Extras (siren, glow, drips, sparkles) are added at runtime in main.js.
 const PLATFORMS = {

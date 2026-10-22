@@ -77,7 +77,7 @@ function buildAllTextures(scene) {
   if (scene.registry.get('atlasBuilt')) return;
   const t0 = performance.now();
   makeIntroTextures(scene); makeTextures(scene); makeLevelTextures(scene); makeChrisTextures(scene); makeHudTextures(scene);
-  makeCosmicTextures(scene); makeWarpTextures(scene); makePlatformTextures(scene); makeRoadmapTextures(scene); makeIntroPix(scene); makeEndingPix(scene); makeHalo(scene);
+  makeCosmicTextures(scene); makeWarpTextures(scene); makePlatformTextures(scene); makeRoadmapTextures(scene); makePowerupTextures(scene); makeIntroPix(scene); makeEndingPix(scene); makeHalo(scene);
   for (const id of Object.keys(LEVELS)) {                                            // the pixel planets
     const d = LEVELS[id];
     if (d.surface) { makePlanetTexture(scene, 'surf' + id, d.radius || 420, d.surface.pal, d.surface.seed); makePlanetShade(scene, 'shade' + id, d.radius || 420); }

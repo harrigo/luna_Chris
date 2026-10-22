@@ -439,3 +439,21 @@ Bessie is snatched back at the end of every level until Level 9.
      - then a tiny UFO beams up the pancake stack: "OH, COME ON!!"
   6. **THE END ?** with silly scrolling credits ("PANCAKE CONSULTANT: THE DOG AGAIN", "NO RATS WERE HARMED / MOST OF THEM WERE CURED", "MADE BY HARRIGO", "MOO.") while Bessie floats past waving. Tap to continue to the menu.
 - New pixel art (`makeEndingPix`, on the sprite sheet): ruined and cured skies, the extraction tank, glass shards, the pants-wearing Rat-King, an apron, hearts, flowers, a crown and bunting.
+
+### v0.79 — Power-ups (`BUFFS` in src/levels.js)
+- Timed pick-ups dropped by medium and bigger enemies (ENEMY hp ≥ 3, not bosses). Each kill has a 25% chance, and only one power-up can be on the ground at a time. Drops start after the first weapon power has been collected.
+- The pool grows as you progress (each buff has a `from` level), so early levels only get the plain ones:
+
+| Power-up | From | Time | Effect |
+|---|---|---|---|
+| Hot Sauce | L1 | 10s | Fires twice as fast, beam ticks faster, hits set enemies burning |
+| Rocket Boots | L1 | 10s | Faster jetpack, unlimited fuel |
+| Cheese Magnet | L2 | 12s | Pulls pickups in and pushes enemy bullets away |
+| Fondue Shield | L3 | until used | Orbiting shield that soaks 3 hits |
+| Slow-Mo Brie | L4 | 8s | Enemies, their bullets and hazards run at 40% speed |
+| Gouda Gigantism | L5 | 8s | Chris grows to nearly 2x, is invulnerable and stomps enemies |
+| Moo Bomb | L6 | instant | Bessie-shaped shockwave that wipes the screen |
+| Rat Disguise | L7 | 10s | Ears on the hat, and normal enemies ignore you (bosses aren't fooled) |
+
+- HUD: the icon and a draining timer bar sit next to the weapon card. There's also a name banner on pickup.
+- Visuals: Slow-Mo adds a pulsing blue wash, and Giant scales the whole rig. All the art is on the sprite sheet (`makePowerupTextures`).

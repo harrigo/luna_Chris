@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.78';
+const BUILD = 'v0.79';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -171,6 +171,7 @@ class Level1 extends Phaser.Scene {
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
+    this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0;
     this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -306,7 +307,7 @@ class Level1 extends Phaser.Scene {
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     this.ledgeSprs = [];
-    makePlatformTextures(this); makeRoadmapTextures(this);
+    makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
       const types = this.def.ledgeTypes, type = L.type || (types ? types[i % types.length] : null), T = type && PLATFORMS[type];
       if (!T) {                                                      // old-style slab (fallback)
@@ -906,6 +907,14 @@ class Level1 extends Phaser.Scene {
     this.camKick((Math.random() < 0.5 ? -1 : 1) * 7, -4);
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
+    if (this.buffOn('giant')) return;                        // too big to hurt
+    if (this.buffOn('shield') && P.buff.charges > 0) {       // the Fondue Shield soaks it
+      P.buff.charges--; P.invuln = 0.8;
+      Sound.sfx('clang'); buzz(30); this.burst(P.theta, P.h + 30, 'fondue', 10, 1); this.bang(P.theta, P.h + 30, 16);
+      this.banner(P.buff.charges > 0 ? 'SHIELD: ' + P.buff.charges + ' LEFT' : 'SHIELD GONE!');
+      if (P.buff.charges <= 0) this.endBuff();
+      return;
+    }
     if (P.power > 0) {                     // the Parmesan Power-Up takes the hit instead of a heart
       P.power = 0;
       P.invuln = CFG.invuln;
@@ -974,13 +983,15 @@ class Level1 extends Phaser.Scene {
     this.t += dt;
 
     if (this.state === 'play') {
-      this.updateHazards(dt);
+      const ek = this.buffOn('slowmo') ? 0.4 : 1;          // Slow-Mo Brie: everything but Chris crawls
+      this.updateBuff(dt);
+      this.updateHazards(dt * ek);
       this.updateWorld(dt);
       this.updatePlayer(dt, inp);
       this.updateWaves(dt);
-      this.updateEnemies(dt);
+      this.updateEnemies(dt * ek);
       this.updatePlayerBullets(dt);
-      this.updateEnemyBullets(dt);
+      this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
     }
     else if (this.state === 'rescue') {
@@ -1162,8 +1173,9 @@ class Level1 extends Phaser.Scene {
     P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     if (P.thrusting) {
-      P.vh = Math.min(CFG.jetMaxV, P.vh + CFG.jetAccel * dt);
-      P.fuel = Math.max(0, P.fuel - CFG.jetDrain * dt);
+      const rb = this.buffOn('boots');
+      P.vh = Math.min(CFG.jetMaxV * (rb ? 1.45 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * dt);
+      P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * dt);
       this.jetFlames(2);
     } else if (grounded) {
       P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
@@ -1218,7 +1230,7 @@ class Level1 extends Phaser.Scene {
           if (P.ammo <= 0) { P.overheat = true; P.beamOn = false; Sound.sfx('hiss'); }
         }
         P.beamT = (P.beamT || 0) - dt;
-        if (P.beamT <= 0) { P.beamT = W.tick; this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
+        if (P.beamT <= 0) { P.beamT = W.tick * (this.buffOn('sauce') ? 0.6 : 1); this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
       }
     } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
       const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
@@ -1236,7 +1248,7 @@ class Level1 extends Phaser.Scene {
     } else if (P.fireCd <= 0 && want && !P.overheat && P.bashT <= 0) {
       const pr = W.pressure ? (inp.fireP || 1) : 1;      // Mac-Grinder: light trigger = slower, shorter shots
       this.fire(tgt, W.pressure ? { speedK: 0.6 + 0.4 * pr, lifeK: 0.6 + 0.4 * pr } : null);
-      P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1);
+      P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1) * (this.buffOn('sauce') ? 0.5 : 1);
       if (P.power <= 0) {
         P.ammo = Math.max(0, P.ammo - this.weapon.ammo);
         P.ammoHold = CFG.ammoDelay;
@@ -1250,7 +1262,7 @@ class Level1 extends Phaser.Scene {
   fireCharged(c, tgt) {
     const P = this.pl, W = this.weapon;
     this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c });
-    P.fireCd = W.interval;
+    P.fireCd = W.interval * (this.buffOn('sauce') ? 0.5 : 1);
     if (P.power <= 0) {
       P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c)); P.ammoHold = CFG.ammoDelay;
       if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
@@ -1268,6 +1280,89 @@ class Level1 extends Phaser.Scene {
       .setOrigin(0.5).setDepth(9.6).setScale(0.4).setAngle(-8 + Math.random() * 16);
     this.tweens.add({ targets: t, scale: 1.15, duration: 120, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, y: t.y - 26 * z, alpha: 0, delay: 260, duration: 380, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+  }
+
+  // ================================================================= timed power-ups (see BUFFS in levels.js)
+  buffOn(k) { const b = this.pl && this.pl.buff; return !!(b && b.kind === k); }
+
+  startBuff(k) {
+    const P = this.pl, B = BUFFS[k];
+    if (P.buff) this.endBuff();
+    Sound.sfx('power'); buzz([20, 30, 20, 30, 60]); this.bang(P.theta, P.h + 24, 26);
+    this.banner(B.name); this.addScore(300);
+    this.addLight(P.theta, P.h + 30, 140, B.col, 1, 0.5);
+    if (k === 'moo') { this.mooBomb(); return; }
+    P.buff = { kind: k, t: B.t, max: B.t, charges: k === 'shield' ? 3 : 0 };
+    if (k === 'giant') this.cameras.main.shake(300, 0.01);
+  }
+
+  endBuff() {
+    const P = this.pl; if (!P.buff) return;
+    const k = P.buff.kind; P.buff = null;
+    if (this.buffFx) { this.buffFx.forEach(o => o.destroy()); this.buffFx = null; }
+    if (this.slowRect) this.slowRect.setVisible(false);
+    if (k === 'giant') P.invuln = Math.max(P.invuln, 1);           // a moment's grace as he shrinks back
+    Sound.sfx('flap');
+  }
+
+  updateBuff(dt) {
+    const P = this.pl, b = P.buff;
+    if (!b) return;
+    b.t -= dt;
+    if (b.kind === 'giant') {                                    // stomp stomp: flattens anything small he walks into
+      for (const e of this.enemies) if (e.type !== 'boss' && e.hp > 0 && Math.abs(angDiff(e.theta, P.theta)) * R < 46 && e.h < 100) { e.hp = 0; this.burst(e.theta, e.h + 10, 'spark', 8, 1); }
+      this.stepT -= dt;
+      if (Math.abs(P.vx) > 60 && P.h <= (P.floor || 0) + 1 && this.stepT <= 0) { this.stepT = 0.3; this.cameras.main.shake(90, 0.007); Sound.sfx('clunk'); this.burst(P.theta, 2, 'crumb', 5, 0.7); }
+      this.reapEnemies();
+    }
+    if (b.t <= 0) this.endBuff();
+  }
+
+  // the visible side of the power-ups: orbiting fondue, rat ears, the slow-mo wash and the HUD timer
+  drawBuff() {
+    const P = this.pl, b = P.buff, z = this.zoom;
+    if (!this.buffIcon) {
+      this.buffIcon = this.add.image(0, 0, 'pu_sauce').setDepth(20.6).setVisible(false);
+      this.buffBarG = this.add.graphics().setDepth(20.6);
+    }
+    this.buffBarG.clear();
+    if (!b) { this.buffIcon.setVisible(false); return; }
+    const B = BUFFS[b.kind], frac = b.max ? Math.max(0, b.t / b.max) : 0;
+    const flash = frac < 0.25 && Math.floor(this.t * 8) % 2;            // flashes when it's about to run out
+    this.buffIcon.setTexture(B.tex).setPosition(320, 52).setScale(2).setVisible(!flash);
+    this.buffBarG.fillStyle(0x1a1020, 0.9).fillRect(302, 70, 38, 6).fillStyle(B.col, 1).fillRect(303, 71, 36 * frac, 4);
+    if (b.kind === 'shield') {
+      if (!this.buffFx) this.buffFx = [0, 1, 2].map(() => this.add.image(0, 0, 'fondue').setDepth(7.4));
+      this.buffFx.forEach((o, i) => {
+        const a = this.t * 4 + i * TAU / 3, rr = 30 * this.giantK;
+        o.setVisible(i < b.charges); o.bsx = o.bsy = 1.3;
+        this.place(o, wrap(P.theta + Math.cos(a) * rr / R), P.h + 30 * this.giantK + Math.sin(a) * rr, 0);
+      });
+    }
+    if (b.kind === 'disguise') {
+      if (!this.buffFx) this.buffFx = [this.add.image(0, 0, 'pu_ears').setDepth(7.5)];
+      const hd = this.rig.head.getWorldTransformMatrix();
+      this.buffFx[0].setPosition(hd.tx, hd.ty - 25 * z * this.giantK).setScale(z * 1.1 * this.giantK).setRotation(hd.rotation);   // up on top, either side of the hat
+    }
+    if (b.kind === 'slowmo') {
+      if (!this.slowRect) this.slowRect = this.add.rectangle(0, 0, this.W, this.H, 0x7a6aff, 0.13).setOrigin(0).setDepth(19).setBlendMode(Phaser.BlendModes.ADD);
+      this.slowRect.setSize(this.W, this.H).setVisible(true).setAlpha(0.2 + 0.05 * Math.sin(this.t * 6));
+    }
+  }
+
+  // Bessie's Moo Bomb: a giant ghostly Bessie moos everything small off the screen
+  mooBomb() {
+    const P = this.pl;
+    Sound.sfx('moo'); Sound.sfx('boom'); this.cameras.main.flash(300, 255, 255, 255); this.cameras.main.shake(500, 0.014); buzz([60, 40, 120]);
+    const s = this.screenPos(P.theta, P.h + 60);
+    const g = this.add.image(s.x, s.y, 'bessie').setDepth(19).setBlendMode(Phaser.BlendModes.ADD).setScale(this.zoom).setAlpha(0.9);
+    this.tweens.add({ targets: g, scale: this.zoom * 9, alpha: 0, duration: 900, ease: 'Quad.easeOut', onComplete: () => g.destroy() });
+    for (const e of this.enemies) {
+      if (Math.abs(angDiff(e.theta, P.theta)) > 1.3) continue;
+      if (e.type === 'boss') { e.hp -= 25; e.flash = 0.1; e.spr.setTintFill(0xffffff); } else e.hp = 0;
+    }
+    this.clearEBullets();
+    this.reapEnemies();
   }
 
   startBash() {
@@ -1458,7 +1553,7 @@ class Level1 extends Phaser.Scene {
       if (a < -e.r / R || a > B.span) continue;
       const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
       if (Math.abs(e.h + e.ch - (B.gh + B.rise * f - sag)) > e.r + B.band) continue;
-      e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true;
+      e.hp -= e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg; hitAny = true; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
     }
@@ -1574,9 +1669,15 @@ class Level1 extends Phaser.Scene {
       const pt = e.theta, ph = e.h;
       e.t += dt;
       const toP = angDiff(P.theta, e.theta);
-      const distP = Math.abs(toP) * R;
+      const fooled = e.type !== 'boss' && this.buffOn('disguise');
+      const distP = fooled ? 9999 : Math.abs(toP) * R;
       if (e.fdir === undefined || distP > 16) e.fdir = toP >= 0 ? 1 : -1;      // keep facing when right next to Chris: no flip flicker
-      const dirP = e.fdir;
+      if (fooled && !e.wdir) e.wdir = Math.random() < 0.5 ? -1 : 1;
+      const dirP = fooled ? e.wdir : e.fdir;
+      if (e.burn > 0) {                                  // Hot Sauce: on fire for a bit
+        e.burn -= dt; e.burnT = (e.burnT || 0) - dt;
+        if (e.burnT <= 0) { e.burnT = 0.3; e.hp -= e.type === 'boss' ? 0.5 : 0.7; this.burst(e.theta, e.h + e.ch, 'flame', 2, 0.5); }
+      }
       const ai = e.kind || e.type;
       if (e.type === 'phantom') e.spr.setAlpha(0.6 + 0.3 * Math.sin(e.t * 5 + e.seed));     // ghostly flicker
 
@@ -1873,7 +1974,7 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (!fooled && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt();
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
@@ -1897,7 +1998,12 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'germ') {          // bacteria split in two
         for (const sd of [-1, 1]) { const c = this.makeEnemy('minigerm', wrap(e.theta + sd * 0.03), sd); c.h = e.h + e.ch * 0.5; c.vh = 260; this.enemies.push(c); }
       }
-      if (e.big && (!this.gotPower || Math.random() < 0.3)) {     // the first big enemy always drops a Power-Up
+      const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
+      const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId));
+      if (midSize && this.gotPower && Math.random() < 0.25 && !this.pickups.some(p => p.kind === 'buff') && pool.length) {
+        const bk = pool[Math.floor(Math.random() * pool.length)], B = BUFFS[bk];
+        this.pickups.push({ kind: 'buff', bk, theta: e.theta, h: e.h + e.ch, vh: 240, life: 14, spr: (() => { const im = this.add.image(0, 0, B.tex).setDepth(6); bakedGlow(im, B.col, 3, 8); return im; })() });
+      } else if (e.big && (!this.gotPower || Math.random() < 0.3)) {     // the first big enemy always drops a Power-Up
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
       } else if (Math.random() < (e.drop || 0)) {
@@ -1967,7 +2073,7 @@ class Level1 extends Phaser.Scene {
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
-            e.hp -= b.dmg || 1;
+            e.hp -= b.dmg || 1; if (this.buffOn('sauce')) e.burn = 2;
             Sound.sfx('hit');
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
             if (b.hits) { b.hits.push(e); this.burst(b.theta, b.h, 'spark', 3, 0.4); if (b.hits.length >= b.pierce) { dead = true; break; } }
@@ -1995,6 +2101,10 @@ class Level1 extends Phaser.Scene {
       b.theta = wrap(b.theta + (b.vt / R) * dt);
       b.h += b.vh * dt;
       b.life -= dt;
+      if (this.buffOn('magnet')) {                       // Magnet Fork: shots bend away
+        const ex = angDiff(b.theta, P.theta) * R, ey = b.h - (P.h + 22), dd = Math.hypot(ex, ey);
+        if (dd < 110 && dd > 1) { b.vt += ex / dd * 420 * dt; b.vh += ey / dd * 420 * dt; }
+      }
       b.spin += b.spinV * dt;
       let dead = b.life <= 0 || b.h < -2;
       if (!dead && P.invuln <= 0) {
@@ -2009,13 +2119,19 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
+      if (this.buffOn('magnet') && Math.abs(angDiff(p.theta, P.theta)) * R < 420) {     // Magnet Fork: everything comes to Chris
+        p.theta = wrap(p.theta + Math.sign(angDiff(P.theta, p.theta)) * Math.min(Math.abs(angDiff(P.theta, p.theta)), 360 / R * dt));
+        p.h += (P.h + 14 - p.h) * Math.min(1, dt * 4); p.vh = 0;
+      }
       p.vh -= this.gAt(p.theta) * 0.6 * dt;
       p.h += p.vh * dt;
+      if (p.kind === 'buff') p.spr.setScale(p.spr.scaleX * (1 + 0.1 * Math.sin(this.t * 8)));
       if (p.h <= 0) { p.h = 0; p.vh = 0; }
       p.life -= dt;
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
-        if (p.kind === 'power') {
+        if (p.kind === 'buff') this.startBuff(p.bk);
+        else if (p.kind === 'power') {
           P.power = 1; P.overheat = false; P.ammo = 1; this.addScore(500);
           Sound.sfx('power');
           buzz([20, 30, 20, 30, 60]);
@@ -2438,7 +2554,9 @@ class Level1 extends Phaser.Scene {
     // spinning drill-bit on the end of the Mac-Grinder, like a mincer's auger: fast while firing, idle-slow otherwise
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
-    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom * this.warpK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
+    this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    this.drawBuff();
     if (this.warp && this.warp.entering) this.rig.root.setRotation(this.rig.root.rotation + this.warp.t * 9);
     { // where the gun's muzzle actually is this frame (after recoil, crouch and facing), in world terms
       const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();
