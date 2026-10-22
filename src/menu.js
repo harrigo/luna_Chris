@@ -39,15 +39,23 @@ function makeMenu(scene, opt) {
   let items = opt.items, sel = 0, texts = [], title = null, g = null;
   const build = () => {
     c.removeAll(true);
-    const rowH = 26, w = Math.min(W - 40, opt.width || 330), h = 70 + items.length * rowH;
-    const x = Math.round(opt.x !== undefined ? opt.x : (W - w) / 2), y = Math.round(opt.y !== undefined ? opt.y : (H - h) / 2);
+    // size the box to what's in it: no empty title band, width from the longest line
+    const rowH = 26, infoH = 15, top = opt.title ? 50 : 14;
+    const rows = items.map(it => it.info ? infoH : rowH), bodyH = rows.reduce((a, b) => a + b, 0);
+    const longest = Math.max(...items.map(it => it.info ? String(it.text).length * 8.2 : (it.label().length + 6) * 10.4), opt.title ? opt.title.length * 16 : 0);
+    const w = Math.min(W - 24, Math.max(opt.minWidth || 200, Math.round(longest + 44))), h = top + bodyH + 6;
+    const x = Math.round(opt.x !== undefined ? opt.x : (W - w) / 2);
+    const y = Math.round(opt.y !== undefined ? Math.max(8, Math.min(opt.y, H - h - 10)) : (H - h) / 2);
     if (opt.dim !== false) c.add(scene.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setInteractive());   // swallow taps behind
     g = scene.add.graphics();
     g.fillStyle(0x1a1020, 1).fillRect(x - 3, y - 3, w + 6, h + 6).fillStyle(0xc9cde0, 1).fillRect(x - 1, y - 1, w + 2, h + 2).fillStyle(0x151b40, 0.96).fillRect(x, y, w, h);
     c.add(g);
     title = scene.add.text(x + w / 2, y + 14, opt.title || '', f(16, '#ffd23f')).setOrigin(0.5, 0); c.add(title);
+    let yy = y + top;
     texts = items.map((it, i) => {
-      const t = scene.add.text(x + w / 2, y + 52 + i * rowH, '', f(10, '#ffffff')).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
+      const ty = yy; yy += rows[i];
+      if (it.info) { const t = scene.add.text(x + w / 2, ty, it.text, f(8, it.color || '#c9cde0')).setOrigin(0.5, 0).setStroke('#1a1020', 3); c.add(t); return t; }   // a line of info, not selectable
+      const t = scene.add.text(x + w / 2, ty, '', f(10, '#ffffff')).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
       t.on('pointerover', () => { sel = i; render(); });
       t.on('pointerup', () => { sel = i; Sound.sfx('pickup'); it.act(0); render(); });
       c.add(t); return t;
@@ -55,9 +63,10 @@ function makeMenu(scene, opt) {
     render();
   };
   let dead = false;
-  const render = () => !dead && texts.forEach((t, i) => t.setText((i === sel ? '> ' : '  ') + items[i].label() + (i === sel ? ' <' : '  ')).setColor(i === sel ? '#ffd23f' : '#ffffff'));
-  const move = d => { sel = (sel + d + items.length) % items.length; Sound.sfx('jump'); render(); };
-  const act = d => { Sound.sfx(d ? 'jump' : 'pickup'); items[sel].act(d); render(); };
+  const render = () => !dead && texts.forEach((t, i) => items[i].info || t.setText((i === sel ? '> ' : '  ') + items[i].label() + (i === sel ? ' <' : '  ')).setColor(i === sel ? '#ffd23f' : '#ffffff'));
+  const move = d => { for (let k = 0; k < items.length; k++) { sel = (sel + d + items.length) % items.length; if (!items[sel].info) break; } Sound.sfx('jump'); render(); };
+  const first = () => { sel = Math.max(0, items.findIndex(it => !it.info)); };
+  const act = d => { if (items[sel].info) return; Sound.sfx(d ? 'jump' : 'pickup'); items[sel].act(d); render(); };
   const onKey = e => {
     const k = e.key;
     if (k === 'ArrowUp' || k === 'w' || k === 'W') move(-1);
@@ -76,7 +85,7 @@ function makeMenu(scene, opt) {
   });
   build();
   const api = {
-    setItems(list, ttl) { items = list; sel = 0; if (ttl !== undefined) opt.title = ttl; build(); },
+    setItems(list, ttl) { items = list; first(); if (ttl !== undefined) opt.title = ttl; build(); },
     refresh: render,
     destroy() { dead = true; window.removeEventListener('keydown', onKey); padOff(); scene.scale.off('resize', build); c.destroy(); }
   };
@@ -99,13 +108,30 @@ class MenuScene extends Phaser.Scene {
     this.scale.on('resize', this.fit, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.fit, this));
     this.going = false;
+    const toMain = () => { this.logo.setVisible(true); this.sub.setVisible(true); this.menu.setItems(main(), ''); };
     const main = () => [
       { label: () => 'PLAY', act: () => this.go() },
+      { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
     ];
-    const opts = () => optionItems().concat([{ label: () => 'BACK', act: () => this.menu.setItems(main(), '') }]);
-    this.menu = makeMenu(this, { items: main(), title: '', dim: false, y: Math.round(this.scale.height * 0.46), width: 300, depth: 5,
-      onBack: () => this.menu.setItems(main(), '') });
+    const opts = () => optionItems().concat([{ label: () => 'BACK', act: toMain }]);
+    const I = (text, color) => ({ info: true, text, color });
+    const controls = () => [
+      I('TOUCH', '#ffd23f'),
+      I('LEFT: drag to run, tap or push up to jump, hold up to fly'),
+      I('RIGHT: drag to aim + fire   BUTTON: BASH'),
+      I('CONTROLLER', '#ffd23f'),
+      I('L-STICK run   R-STICK aim + fire   A jump (hold = jet)'),
+      I('RT fire (squeeze harder = stronger)   B bash   LT jetpack'),
+      I('Y swap gun   START pause'),
+      I('KEYBOARD + MOUSE', '#ffd23f'),
+      I('WASD / ARROWS run   SPACE jump (hold = jet)   S duck'),
+      I('MOUSE aim   CLICK fire   RIGHT-CLICK bash   WHEEL / Q swap'),
+      I('SWISS-SHOT: hold fire to charge, let go to throw', '#9fd8ff'),
+      { label: () => 'BACK', act: toMain }
+    ];
+    this.menu = makeMenu(this, { items: main(), title: '', dim: false, y: Math.round(this.scale.height * 0.5), minWidth: 220, depth: 5,
+      onBack: toMain });
   }
   fit() {
     const W = this.scale.width, H = this.scale.height;

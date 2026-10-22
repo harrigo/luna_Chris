@@ -326,3 +326,21 @@ Bessie is snatched back at the end of every level until Level 9.
   - Releasing lobs it: speed ×0.65–1.4, size ×0.45–1.4, blast radius ×0.45–1.3, blast damage ×0.4–1.4, same for the boss.
   - A big charge kicks Chris back and shakes the screen harder, and costs more pasta (×0.5–1.4 of a normal shot).
   - Bashing or swapping weapons cancels the charge.
+
+### v0.71–v0.72 — Controls overhaul, aimed Swiss-Shot, curved blasts
+- **Platformer feel:**
+  - Jumps fire on the press (no auto-bunny-hop while held), with a 0.12s jump buffer and 0.1s coyote time.
+  - Hold jump in the air = jetpack, as before.
+- **Touch:**
+  - LEFT: drag to run. Tap, or a clear push UP, to jump. A push-up must be mostly vertical, with hysteresis (no accidental jumps while running or from thumb wobble). Hold up = jetpack.
+  - RIGHT: drag to aim + fire. The big right-hand button is now **BASH** (it reacts on the press). There is no separate jump button.
+- **PC:** the mouse aims (pixel crosshair replaces the cursor), left-click fires, right-click bashes, the wheel swaps guns. WASD/arrows + SPACE as before.
+- **Controller:** LT = jetpack. The full layout is on the start-of-level card and the new **CONTROLS** menu page.
+- **Menus:** boxes size to their contents (no empty title band). Main menu: PLAY / CONTROLS / OPTIONS.
+- **Swiss-Shot:**
+  - Fires along the barrel at the angle you aim, with lighter gravity (420).
+  - It ploughs THROUGH enemies, damaging each once (3–9 damage with charge). Every hit shrinks the ball and cuts its final blast (×0.82, or ×0.72 if the enemy survives).
+  - Worn down to under about a third of its size, it pops early. It still bursts on bosses and the ground.
+- **Blasts drawn in planet coordinates** (`drawBlastFx`): the shockwave dome bends with the surface and is clipped at the ground. A ripple runs along the curve, and a molten-cheese smear hugs the surface, tapers and fades. This replaces the flat ring and flat puddle sprite.
+- **Range +25%:** Mac-Grinder life 0.6→0.75s, Spaghetti 200→250, Swiss launch speed ×1.118 (≈ +25% ballistic range).
+- **Weapon select:** stats sit low and centred in each card and never overlap the description.

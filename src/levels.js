@@ -906,13 +906,16 @@ class WeaponScene extends Phaser.Scene {
       let ty = gy + 16 * gs;
       this.ui.add(this.add.text(x + cw / 2, ty, w.name, f(cw > 240 ? 10 : 8, open ? '#ffffff' : '#6b7390', ink)).setOrigin(0.5, 0));
       ty += 20;
-      this.ui.add(this.add.text(x + cw / 2, ty, w.blurb, f(8, open ? '#c9cde0' : '#4a5070', { align: 'center', wordWrap: { width: cw - 20 }, lineSpacing: 4 })).setOrigin(0.5, 0));
-      ty += 34;
+      const bl = this.add.text(x + cw / 2, ty, w.blurb, f(8, open ? '#c9cde0' : '#4a5070', { align: 'center', wordWrap: { width: cw - 20 }, lineSpacing: 4 })).setOrigin(0.5, 0);
+      this.ui.add(bl);
+      ty += bl.height + 14;                                     // stats always start below the description, however long it is
       if (open) {
+        const n = Object.keys(w.stats).length, blockW = 70 + 5 * 14 - 3;
+        const sy0 = Math.max(ty, y0 + ch - n * 14 - 14), sx = Math.round(x + (cw - blockW) / 2);   // sit low in the card, centred
         Object.entries(w.stats).forEach(([k, v], j) => {
-          const sy = ty + j * 14;
-          this.ui.add(this.add.text(x + 14, sy, k, f(8, '#9fa6c2')).setOrigin(0, 0));
-          for (let b = 0; b < 5; b++) g.fillStyle(b < v ? (k === 'POWER' ? 0xff6a3a : k === 'RATE' ? 0xffd23f : k === 'RANGE' ? 0x39c6ff : 0x7dff8a) : 0x2a2f50, 1).fillRect(x + 84 + b * 14, sy, 11, 8);
+          const sy = sy0 + j * 14;
+          this.ui.add(this.add.text(sx, sy, k, f(8, '#9fa6c2')).setOrigin(0, 0));
+          for (let b = 0; b < 5; b++) g.fillStyle(b < v ? (k === 'POWER' ? 0xff6a3a : k === 'RATE' ? 0xffd23f : k === 'RANGE' ? 0x39c6ff : 0x7dff8a) : 0x2a2f50, 1).fillRect(sx + 70 + b * 14, sy, 11, 8);
         });
       } else {
         g.fillStyle(0xc9cde0, 1).fillRect(x + cw / 2 - 9, ty + 8, 18, 14); g.lineStyle(3, 0xc9cde0, 1).strokeRect(x + cw / 2 - 5, ty, 10, 10);   // padlock

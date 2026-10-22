@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.70';
+const BUILD = 'v0.72';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -18,6 +18,8 @@ const CFG = {
   jumpV: 560,
   runSpeed: 230,
   maxHp: 5,
+  jumpBuffer: 0.12,   // a jump pressed this long before landing still happens
+  coyoteTime: 0.1,    // ...and you can still jump this long after running off an edge
   jetHoldDelay: 0.28, // hold jump this long after take-off and the jetpack lights by itself
   fireInterval: 0.085,
   bulletSpeed: 760,
@@ -45,14 +47,14 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.6, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
-    blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 2, PIERCE: 1 } },
+    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
+    blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    beam: true, range: 200, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
+    beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
     blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
-    lob: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 360, angle: 0.8, gravity: 900, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
-    blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 3, PIERCE: 4 } }
+    lob: true, aimed: true, plough: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
@@ -168,7 +170,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
-    this.bashTipShown = false; this.chargeSpr = null;
+    this.bashTipShown = false; this.chargeSpr = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.gotPower = false; this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
@@ -415,7 +417,26 @@ class Level1 extends Phaser.Scene {
     });
     this.events.once('shutdown', cheatOff);
     // Fullscreen needs a real tap *release* (user activation), so ask for it on pointerup.
-    this.input.on('pointerup', () => { if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); } });
+    this.input.on('pointerup', p => {
+      if (this.wantFs) { this.wantFs = false; this.enterFullscreen(); }
+      // touch: a quick tap on the left (MOVE) side = jump
+      if (p.wasTouch && this.state === 'play' && !this.paused && p.downX < this.W * 0.45 && p.downY >= this.H * 0.28
+        && p.upTime - p.downTime < 230 && Math.hypot(p.upX - p.downX, p.upY - p.downY) < 16) this.tapJumpT = 0.2;   // held ~0.2s = a full-height hop
+    });
+    // PC: mouse aims, left click fires, right click bashes, wheel swaps (switches on as soon as a real mouse moves)
+    this.mouseAim = false; this.tapJumpT = 0; this.wheelCd = 0;
+    if (this.input.mouse) this.input.mouse.disableContextMenu();
+    this.input.on('pointermove', p => { if (!p.wasTouch && p === this.input.manager.mousePointer) this.mouseAim = true; });
+    this.input.on('pointerdown', p => {
+      if (p.wasTouch) this.mouseAim = false;
+      const Bb = this.btn && this.btn.bash;                // touch BASH button reacts on the press, so even a flick of a tap counts
+      if (p.wasTouch && Bb && this.touchUI && Math.hypot(p.x - Bb.x, p.y - Bb.y) < Bb.r * 1.25) this.bashReq = true;
+    });
+    this.input.on('wheel', (p, objs, dx, dy) => {
+      if (this.state !== 'play' || this.paused || this.time.now < this.wheelCd || !dy) return;
+      this.wheelCd = this.time.now + 160; this.switchWeapon(dy > 0 ? 1 : -1);
+    });
+    this.events.once('shutdown', () => { if (this.game.canvas) this.game.canvas.style.cursor = ''; });
 
     const lockLandscape = () => {
       try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (e) { /* not supported */ }
@@ -434,7 +455,12 @@ class Level1 extends Phaser.Scene {
     } else {
       this.showOverlay(
         'LEVEL ' + this.levelId,
-        this.def.name + '\n\n◀ ▶ run   JUMP to hop   hold FIRE to blast\nOut of pasta? Keep FIRING to bash (or B / F)\nTap JUMP, let go, then HOLD it in the air\nto fire the JETPACK. Shots fly straight.\n\nTap to start'
+        this.def.name + '\n\n' + (this.touchUI
+          ? 'LEFT: drag to run, tap or push up to jump,\nhold up to fly   RIGHT: drag to aim + fire   BASH button'
+          : (Pad.state.connected
+            ? 'L-stick run  R-stick aim + fire  A jump (hold = jet)\nRT fire (pressure!)  B bash  LT jetpack  Y swap'
+            : 'WASD / arrows run   SPACE jump (hold = jet)\nMOUSE aim  CLICK fire  RIGHT-CLICK bash  WHEEL swap')) +
+          '\nOut of pasta? Keep firing to bash.\n\nTap to start'
       );
     }
   }
@@ -467,11 +493,11 @@ class Level1 extends Phaser.Scene {
     this.btn = {
       move: { x: 92, y: H - 86, r: 52 },
       aim:  { x: W - 170, y: H - 86, r: 52 },
-      jump: { x: W - 58, y: H - 150, r: 40 }
+      bash: { x: W - 58, y: H - 150, r: 40 }
     };
     this.btnLabels.move.setPosition(this.btn.move.x, this.btn.move.y + 64);
     this.btnLabels.aim.setPosition(this.btn.aim.x, this.btn.aim.y + 64);
-    this.btnLabels.jump.setPosition(this.btn.jump.x, this.btn.jump.y);
+    this.btnLabels.bash.setPosition(this.btn.bash.x, this.btn.bash.y);
 
     this.waveText.setPosition(W / 2, 4);
     this.scoreText.setPosition(W / 2, 26);
@@ -527,7 +553,7 @@ class Level1 extends Phaser.Scene {
 
   buildControls() {
     this.ctrlG = this.add.graphics().setDepth(20);
-    const labels = { move: 'MOVE', aim: 'AIM+FIRE', jump: 'JUMP\n+JET' };
+    const labels = { move: 'MOVE  (TAP/UP = JUMP)', aim: 'AIM+FIRE', bash: 'BASH' };
     this.btnLabels = {};
     for (const k in labels) {
       this.btnLabels[k] = this.add.text(0, 0, labels[k], { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', align: 'center', lineSpacing: 6 }).setOrigin(0.5).setDepth(21).setAlpha(0.7);
@@ -995,26 +1021,41 @@ class Level1 extends Phaser.Scene {
     const d = { left: false, right: false, jump: false, fire: false, down: false };
     // touch twin-sticks: each finger is a stick based where it first touched down
     const S = this.sticks; S.move = null; S.aim = null;
+    let moveTouched = false;
     if (this.touchUI && this.btn) for (const p of this.input.manager.pointers) {
-      if (!p || !p.isDown) continue;
+      if (!p || !p.isDown || (p === this.input.manager.mousePointer && !p.wasTouch)) continue;   // a real mouse isn't a thumbstick
       const ox = p.downX, oy = p.downY;
       if (oy < this.H * 0.28) continue;                                  // the HUD / menu area isn't a stick
-      const J = this.btn.jump;
-      if (Math.hypot(ox - J.x, oy - J.y) < J.r * 1.3) { d.jump = true; continue; }
+      const Bb = this.btn.bash;
+      if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.3) { d.melee = true; continue; }       // the big right-hand button = BASH
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
-        S.move = { ox, oy, vx, vy };
+        S.move = { ox, oy, vx, vy }; moveTouched = true;
         if (vx < -0.3) d.left = true; else if (vx > 0.3) d.right = true;
         if (vy > 0.55 && Math.abs(vy) > Math.abs(vx) * 0.8) d.down = true;            // pull down: duck / drop fast
-        if (vy < -0.45) d.jump = true;                                    // push up: jump...
-        if (vy < -0.85) d.jetNow = true;                                  // ...push right to the top (~90%): jetpack fires straight away (works on diagonals too)
+        // push UP to jump: must be a clear upward push (not a sloppy diagonal while running), and you have to come back
+        // down past -0.3 before it can jump again (hysteresis: no accidental double-jumps from thumb wobble)
+        const upish = -vy > Math.abs(vx) * 0.6;
+        if (this.stickUp) { if (vy > -0.3) this.stickUp = false; } else if (vy < -0.6 && upish) this.stickUp = true;
+        if (this.stickUp) d.jump = true;                                 // held up = keep holding jump (jetpack after a beat)
+        if (vy < -0.88) d.jetNow = true;                                  // pushed right to the top: jetpack straight away
       } else {                                                           // AIM+FIRE stick: touching fires, dragging aims
         S.aim = { ox, oy, vx, vy };
         d.fire = true; d.reach = Math.max(d.reach || 0, 0.5 + 0.5 * Math.min(1, Math.hypot(vx, vy) / 0.9));   // touch: drag further = longer spaghetti
         if (Math.hypot(vx, vy) > 0.35) d.aim = { x: vx, y: vy };
       }
     }
+    if (!moveTouched) this.stickUp = false;
+    if (this.tapJumpT > 0) { this.tapJumpT -= this.lastDt || 0.016; d.jump = true; }
+    if (this.bashReq) { this.bashReq = false; d.melee = true; }
     if (d.fire && !d.fireP) d.fireP = 1;
+    if (this.mouseAim && this.pl && this.pl.spr) {                       // mouse aim: point from Chris's gun to the cursor
+      const m = this.input.manager.mousePointer, gx = this.pl.spr.x, gy = this.pl.spr.y - 40 * this.zoom;
+      const ax = m.x - gx, ay = m.y - gy, len = Math.hypot(ax, ay);
+      if (len > 18) d.aim = { x: ax / len, y: ay / len };
+      if (m.leftButtonDown()) { d.fire = true; d.fireP = 1; }
+      if (m.rightButtonDown()) d.melee = true;
+    }
     const k = this.keys;
     if (k) {
       if (k.left.isDown || k.a.isDown) d.left = true;
@@ -1032,6 +1073,7 @@ class Level1 extends Phaser.Scene {
       if (g.fire) { d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); d.reach = Math.max(d.reach || 0, g.fireP || 1); }
       if (g.down) d.down = true;
       if (g.melee) d.melee = true;
+      if (g.jet) { d.jump = true; d.jetNow = true; }
       if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); }   // twin-stick: aiming fires
     }
     if (d.fire) { d.fireP = d.fireP || 1; d.reach = d.reach || d.fireP; }
@@ -1082,7 +1124,13 @@ class Level1 extends Phaser.Scene {
     const hPrev = P.h;
     P.floor = this.floorAt(P.theta, P.h);
     const grounded = P.h <= P.floor && P.vh <= 0;
-    if (inp.jump && grounded) { P.vh = CFG.jumpV; P.jetArmed = false; P.holdT = 0; Sound.sfx('jump'); }
+    P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
+    if (inp.jump && !P.jumpWas) P.jumpBufT = CFG.jumpBuffer;     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
+    P.jumpWas = !!inp.jump;
+    if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
+      P.vh = CFG.jumpV; P.jetArmed = false; P.holdT = 0; P.jumpBufT = 0; P.coyT = 0; Sound.sfx('jump');
+      if (!grounded) P.h = Math.max(P.h, P.floor || 0);
+    }
     if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay || inp.jetNow) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
     else if (!inp.jump) P.holdT = CFG.jetHoldDelay + 1;                                                                                // (a fresh press in mid-air lights it at once)
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
@@ -1172,7 +1220,7 @@ class Level1 extends Phaser.Scene {
   // release a charged Swiss-Shot: everything scales with the charge (c = 0.2 .. 1)
   fireCharged(c, tgt) {
     const P = this.pl, W = this.weapon;
-    this.fire(tgt, { speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c });
+    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c });
     P.fireCd = W.interval;
     if (P.power <= 0) {
       P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c)); P.ammoHold = CFG.ammoDelay;
@@ -1250,7 +1298,7 @@ class Level1 extends Phaser.Scene {
     if (Pad.state.connected) Pad.pulse(90, 0.05, 0.3);          // a light buzz in the hands while the Mac-Grinder fires
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 22 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
-    if (W.lob) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle * (o.angleK || 1) + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
+    if (W.lob && !W.aimed) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle * (o.angleK || 1) + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
     for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
@@ -1260,6 +1308,7 @@ class Level1 extends Phaser.Scene {
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life * (o.lifeK || 1), wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0,
         blast: o.blast || W.blast || 0, blastDmg: o.blastDmg || W.blastDmg || 0, bossDmg: o.bossDmg,
+        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32,
         spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = (W.ballScale || 1) * (o.scaleK || 1); if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
     }
@@ -1338,22 +1387,13 @@ class Level1 extends Phaser.Scene {
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
-    const ring = this.add.graphics().setDepth(8.5);
-    this.tweens.addCounter({ from: 0, to: 1, duration: 380, ease: 'Cubic.easeOut', onUpdate: tw => {
-      const k = tw.getValue(); ring.clear();
-      ring.lineStyle(Math.max(2, 10 * (1 - k) * z), 0xffe27a, 1 - k).strokeCircle(s.x, s.y, rad * z * k);
-      ring.lineStyle(Math.max(1, 4 * (1 - k) * z), 0xffffff, (1 - k) * 0.8).strokeCircle(s.x, s.y, rad * z * k * 0.8);
-    }, onComplete: () => ring.destroy() });
+    this.blastFx.push({ theta, h, rad, t: 0 });            // shockwave drawn in planet coordinates (see drawBlastFx), so it bends with the surface
     this.bang(theta, h + 6, 60);
     this.burst(theta, h + 6, 'crumb', 26, 1.8);
     for (let k = 0; k < 6; k++) { const im = this.add.image(0, 0, 'swissball').setDepth(9); im.bsx = im.bsy = rnd(0.5, 0.9);   // flying cheese chunks
       this.parts.push({ theta, h: h + 8, vt: rnd(-260, 260), vh: rnd(250, 520), life: rnd(0.6, 1), spr: im }); }
     for (let k = 0; k < 18; k++) this.fxBang.emitParticleAt(s.x + rnd(-10, 10) * z, s.y + rnd(-10, 10) * z, 1);
-    if (h < 30) {                                       // landed: leave a melted-cheese puddle that fades
-      const pud = this.add.image(0, 0, 'swisssplat').setDepth(2.8); pud.bsx = rad / 32; pud.bsy = 1.4;
-      const P = { spr: pud, theta, h: -1, rot: 0 }; this.actors.push(P);
-      this.tweens.add({ targets: pud, alpha: 0, delay: 1600, duration: 900, onComplete: () => { this.actors.splice(this.actors.indexOf(P), 1); pud.destroy(); } });
-    }
+    if (h < 30) this.puddles.push({ theta, rad, t: 0, life: 2.6 });   // landed: a melted-cheese smear that hugs the curve of the ground, then fades
     this.cameras.main.shake(160 + rad * 0.6, 0.006 + rad * 0.00005);       // bigger blast, bigger shake
     this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camPunch(0.035);
     this.addLight(theta, h + 10, rad * 1.6, 0xffe080, 1, 0.45);
@@ -1766,7 +1806,24 @@ class Level1 extends Phaser.Scene {
       b.h = b.bh + b.py * w;
 
       let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
-      if (!dead) {
+      if (!dead && b.plough) {                            // Swiss-Shot: ploughs THROUGH enemies, shrinking (and losing blast) with every one
+        if (!b.hits) b.hits = [];
+        for (const e of this.enemies) {
+          if (e.hp <= 0 || b.hits.includes(e)) continue;
+          const rr = e.r + 9 * b.spr.bsx;
+          if (dist2(b.theta, b.h, e.theta, e.h + e.ch) >= rr * rr) continue;
+          if (e.type === 'boss') { dead = true; break; }  // too big to plough through: burst on it
+          b.hits.push(e);
+          e.hp -= b.ploughDmg;
+          if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
+          this.burst(b.theta, b.h, 'crumb', 8, 0.9); this.bang(b.theta, b.h, 14);
+          Sound.sfx('bonk'); this.hitStop = Math.max(this.hitStop || 0, 0.03);
+          const k = e.hp > 0 ? 0.72 : 0.82;               // a tough one that survives takes more out of the ball
+          b.spr.bsx *= k; b.spr.bsy *= k; b.blast *= k; b.blastDmg *= k; b.ploughDmg *= k;
+          b.vt *= 0.94; b.vh *= 0.94;
+          if (b.spr.bsx < b.minScale) { dead = true; break; }      // worn down to a crumb: pops early
+        }
+      } else if (!dead) {
         for (const e of this.enemies) {
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
@@ -1923,9 +1980,58 @@ class Level1 extends Phaser.Scene {
     o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (1 - 0.22 * hq));
   }
 
+  // Swiss blasts, drawn every frame in the planet's own (curved) coordinates:
+  //  - a shockwave dome/ring that bends with the surface and is cut off at the ground
+  //  - a ripple that runs along the ground either side of the impact
+  //  - a melted-cheese smear that follows the curve, tapers at both ends and fades
+  drawBlastFx() {
+    if (!this.blastG) { this.blastG = this.add.graphics().setDepth(8.5); this.puddleG = this.add.graphics().setDepth(2.85); }
+    const g = this.blastG, pg = this.puddleG, z = this.zoom, dt = this.paused ? 0 : (this.lastDt || 0.016);
+    g.clear(); pg.clear();
+    const at = (th, h) => this.screenPos(th, h);
+    const stroke = (gr, pts, w, col, a) => {
+      let open = false;
+      gr.lineStyle(w, col, a); gr.beginPath();
+      for (const p of pts) { if (!p) { open = false; continue; } if (!open) { gr.moveTo(p.x, p.y); open = true; } else gr.lineTo(p.x, p.y); }
+      gr.strokePath();
+    };
+    for (let i = this.blastFx.length - 1; i >= 0; i--) {
+      const B = this.blastFx[i]; B.t += dt;
+      const k = Math.min(1, B.t / 0.45); if (k >= 1) { this.blastFx.splice(i, 1); continue; }
+      const e = 1 - Math.pow(1 - k, 3), r = B.rad * e, a = 1 - k, base = R + Math.max(0, B.h);
+      for (const [rr, w, col, al] of [[r, 10, 0xffe27a, a], [r * 0.78, 4, 0xffffff, a * 0.75]]) {
+        const pts = [];
+        for (let s = 0; s <= 48; s++) {
+          const ang = s / 48 * TAU, hh = B.h + Math.sin(ang) * rr;
+          pts.push(hh < 0 ? null : at(wrap(B.theta + Math.cos(ang) * rr / base), hh));        // clipped at the ground
+        }
+        stroke(g, pts, Math.max(1.5, w * a * z), col, al);
+      }
+      if (B.h < r * 1.1) {                                             // ground ripple, curving with the planet
+        const span = (Math.sqrt(Math.max(0, r * r - B.h * B.h)) * 1.2 + 8) / R, pts = [];
+        for (let s = 0; s <= 30; s++) pts.push(at(wrap(B.theta - span + 2 * span * s / 30), 1.5));
+        stroke(g, pts, Math.max(2, 8 * a * z), 0xfff1a0, a * 0.85);
+      }
+    }
+    for (let i = this.puddles.length - 1; i >= 0; i--) {
+      const Q = this.puddles[i]; Q.t += dt;
+      const f = Q.t < Q.life - 0.9 ? 1 : Math.max(0, (Q.life - Q.t) / 0.9);
+      if (f <= 0) { this.puddles.splice(i, 1); continue; }
+      const grow = Math.min(1, Q.t / 0.18), span = Q.rad * 0.85 * grow / R, N = 22;
+      for (let s = 0; s < N; s++) {                                    // short segments so the smear can taper and thin at the ends
+        const u0 = -1 + 2 * s / N, u1 = -1 + 2 * (s + 1) / N, um = (u0 + u1) / 2, taper = 1 - um * um;
+        const p0 = at(wrap(Q.theta + u0 * span), 0.5), p1 = at(wrap(Q.theta + u1 * span), 0.5);
+        pg.lineStyle((3 + 8 * taper) * z, 0xff9a1a, f * (0.45 + 0.5 * taper)).lineBetween(p0.x, p0.y, p1.x, p1.y);
+        const q0 = at(wrap(Q.theta + u0 * span), 2 + 2 * taper), q1 = at(wrap(Q.theta + u1 * span), 2 + 2 * taper);
+        pg.lineStyle((1.5 + 3.5 * taper) * z, 0xffffff, f * 0.85 * taper).lineBetween(q0.x, q0.y, q1.x, q1.y);
+      }
+    }
+  }
+
   render(inp) {
     const P = this.pl;
     const { cx, cy } = this;
+    this.drawBlastFx();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
@@ -2104,9 +2210,19 @@ class Level1 extends Phaser.Scene {
       };
       stick(this.btn.move, this.sticks.move);
       stick(this.btn.aim, this.sticks.aim);
-      const J = this.btn.jump, on = inp.jump;
-      cg.fillStyle(0xffffff, on ? 0.38 : 0.14).fillCircle(J.x, J.y, J.r);
-      cg.lineStyle(3, 0xffffff, on ? 0.9 : 0.45).strokeCircle(J.x, J.y, J.r);
+      const Bb = this.btn.bash, bOn = inp.melee || this.pl.bashT > 0;
+      cg.fillStyle(0xffffff, bOn ? 0.38 : 0.14).fillCircle(Bb.x, Bb.y, Bb.r);
+      cg.lineStyle(3, 0xffffff, bOn ? 0.9 : 0.45).strokeCircle(Bb.x, Bb.y, Bb.r);
+    }
+    // PC mouse aim: a chunky pixel crosshair instead of the system cursor
+    const mouseOn = this.mouseAim && this.state === 'play' && !this.paused;
+    if (this.game.canvas) this.game.canvas.style.cursor = mouseOn ? 'none' : '';
+    if (mouseOn) {
+      const m = this.input.manager.mousePointer, x = Math.round(m.x), y = Math.round(m.y), firing = inp.fire;
+      cg.fillStyle(0x1a1020, 1);
+      for (const [rx, ry, rw, rh] of [[-10, -2, 6, 4], [5, -2, 6, 4], [-2, -10, 4, 6], [-2, 5, 4, 6]]) cg.fillRect(x + rx, y + ry, rw, rh);
+      cg.fillStyle(firing ? 0xffd23f : 0xffffff, 1);
+      for (const [rx, ry, rw, rh] of [[-9, -1, 4, 2], [6, -1, 4, 2], [-1, -9, 2, 4], [-1, 6, 2, 4], [-1, -1, 2, 2]]) cg.fillRect(x + rx, y + ry, rw, rh);
     }
 
     // boss health bar

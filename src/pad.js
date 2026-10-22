@@ -50,6 +50,7 @@ const Pad = (() => {
     state.jump = !!(now.a || now.lb);
     state.fire = !!(now.x || now.rt || now.rb);
     state.melee = !!now.b;
+    state.jet = !!now.lt;                          // LT = jetpack (hold)
     // trigger pressure (analog RT), 1 for the digital fire buttons: light pull = gentler shots
     { const rt = gp && gp.buttons[7] ? gp.buttons[7].value || 0 : 0; state.fireP = (now.x || now.rb) ? 1 : (rt > 0.05 ? Math.min(1, rt) : 0); }                         // B = gun-butt bash (Halo style)
     // right stick = twin-stick aim: push it to aim and fire that way while the left stick moves
