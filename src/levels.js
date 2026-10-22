@@ -39,7 +39,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 190, ai: 'croque', armouredTop: true },
+    boss: { tex: 'croque', hp: 140, ai: 'croque', armouredTop: true },
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
@@ -63,7 +63,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6)] },
       { name: 'WAVE 4', spawns: [S('frog', 0), S('frog', 0.6), S('stinkfly', 1.2), S('germ', 1.6), S('germ', 2), S('stinkfly', 2.4), S('frog', 3), S('germ', 3.4), S('stinkfly', 3.8), S('germ', 4.2), S('frog', 4.8), S('frog', 5.4), S('stinkfly', 6), S('germ', 6.4), S('germ', 6.8), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.4), S('stinkfly', 9)] }
     ],
-    boss: { tex: 'baron', hp: 200, ai: 'baron' },
+    boss: { tex: 'baron', hp: 160, ai: 'baron' },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
@@ -1066,6 +1066,14 @@ function makePowerupTextures(scene) {
     p.rect(9, 0, 11, 3, STEEL[1]);
     p.poly([[5, 4], [15, 4], [18, 16], [2, 16]], [0xfff0a0, 0xffc83a, 0xb07a1a]); p.rect(2, 15, 18, 17, 0xb07a1a);
     p.ell(10, 18, 2, 1.5, STEEL);
+  });
+  pixSprite(scene, 'oneup', 22, 26, p => {                     // 1UP: a little Chris head (toque, helmet, red nose, moustache)
+    const W3 = [0xffffff, 0xeef2f8, 0xbcc6d6];
+    p.ell(6, 6, 4.5, 4.5, W3); p.ell(16, 6, 4.5, 4.5, W3); p.ell(11, 4, 5.5, 4.5, W3); p.rect(5, 8, 17, 11, W3[1]);
+    p.ell(11, 17, 9, 8.5, [0xe8f8ff, 0xb8e0ff, 0x7ab0e0]); p.ell(11, 18, 6.5, 6.5, [0xffd9c4, 0xf2b593, 0xc9805e]);
+    p.px(8, 16, 0x1a1020); p.px(14, 16, 0x1a1020); p.ell(11, 19, 1.8, 1.5, [0xff9a9a, 0xe03a3a, 0xa01818]);
+    p.line([[6, 22], [9, 21], [11, 21.5], [13, 21], [16, 22]], 0x5a3216, 2);
+    p.px(5, 13, 0xffffff); p.px(6, 12, 0xffffff);
   });
   pixSprite(scene, 'goldwheel', 22, 22, p => {                // a golden cheese wheel, face-on, with a shine
     p.ell(11, 11, 10, 10, [0xfff6b0, 0xffd23f, 0xb07a1a]); p.ell(11, 11, 7, 7, [0xfff0a0, 0xffc83a, 0xd8901a]);

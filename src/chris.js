@@ -98,8 +98,8 @@ function makeChrisTextures(scene) {
     word(a, 'KISS', 22, 12, 0xd62828);                                                                  // a ghost of the lettering
   });
   // head: glass helmet bubble round a furious face: one squint, one bulging eye, red nose, big moustache, gritted teeth
-  pixSprite(scene, 'c_head', 30, 30, a => {
-    a.ell(15, 15, 14, 14, [0xe8f8ff, 0xb8e0ff, 0x7ab0e0]);                              // helmet glass
+  const headArt = (a, glass) => {
+    if (glass) a.ell(15, 15, 14, 14, [0xe8f8ff, 0xb8e0ff, 0x7ab0e0]);                   // helmet glass
     a.ell(15, 16, 11, 11.5, SKIN);                                                       // face
     a.line([[6, 8], [13, 11]], HAIR, 2); a.line([[24, 7], [17, 11]], HAIR, 2);           // angry brows
     a.rect(7, 12, 12, 12, 0x1a1020); a.px(8, 13, 0x1a1020);                              // squinting eye
@@ -107,8 +107,20 @@ function makeChrisTextures(scene) {
     a.ell(16, 17.5, 3.4, 3, [0xff9a9a, 0xe03a3a, 0xa01818]); a.px(15, 16, 0xffffff);     // big red nose
     a.poly([[5, 22], [9, 19], [15, 20.5], [21, 19], [26, 21], [28, 18], [27, 23], [21, 23], [15, 22.5], [9, 23], [3, 24], [2, 20]], HAIR);   // handlebar moustache
     a.rect(10, 24, 20, 26, 0xffffff); a.rect(10, 25, 20, 25, 0x8a7a7a); a.px(13, 24, 0x8a7a7a); a.px(17, 24, 0x8a7a7a); a.px(13, 26, 0x8a7a7a); a.px(17, 26, 0x8a7a7a);   // gritted teeth
-    a.px(5, 6, 0xffffff); a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(4, 8, 0xffffff);   // glass glint
+    if (glass) { a.px(5, 6, 0xffffff); a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(4, 8, 0xffffff); }   // glass glint
+  };
+  pixSprite(scene, 'c_head', 30, 30, a => headArt(a, true));
+  // game over: the helmet glass cracks... then shatters (the bare head is left, dazed: both eyes X'd out)
+  pixSprite(scene, 'c_head_bare', 30, 30, a => {
+    headArt(a, false);
+    a.rect(6, 10, 13, 15, SKIN[1]); a.rect(18, 10, 24, 16, SKIN[1]);
+    for (const [cx, cy] of [[9.5, 12.5], [21, 13]]) { a.line([[cx - 2, cy - 2], [cx + 2, cy + 2]], 0x1a1020); a.line([[cx - 2, cy + 2], [cx + 2, cy - 2]], 0x1a1020); }
   });
+  pixSprite(scene, 'c_crack', 30, 30, a => {
+    a.line([[4, 9], [9, 12], [8, 17], [13, 20]], 0xffffff); a.line([[9, 12], [14, 9], [18, 4]], 0xffffff);
+    a.line([[22, 5], [21, 10], [26, 13]], 0xffffff); a.line([[21, 10], [17, 14]], 0xffffff); a.line([[24, 22], [20, 25], [21, 28]], 0xffffff);
+  }, 0);
+  pixSprite(scene, 'shard', 8, 8, a => { a.poly([[0, 0], [7, 2], [2, 7]], [0xffffff, 0xc8f0ff, 0x7ab0e0]); });
   // chef's toque
   pixSprite(scene, 'c_hat', 38, 30, a => {
     const W3 = [0xffffff, 0xeef2f8, 0xbcc6d6];
@@ -236,8 +248,9 @@ class ChrisRig {
     this.apronB = img('c_apronB', 5, -14, 0.5, 0);                   // ...with a skirt that flaps on a spring
     this.collar = img('c_collar', -3, -37, 0.5, 0.5);                // the cape's knot, over the neck
     this.head = img('c_head', 2, -44, 0.5, 0.5);
+    this.crack = img('c_crack', 2, -44, 0.5, 0.5).setVisible(false);  // game over: cracked glass
     this.hat = img('c_hat', 3, -54, 0.5, 1);
-    this.torso.add([this.body, this.armB, this.apron, this.apronB, this.belly, this.collar, this.head, this.hat]);
+    this.torso.add([this.body, this.armB, this.apron, this.apronB, this.belly, this.collar, this.head, this.crack, this.hat]);
     this.legF = img('c_leg', 7, -16, 0.5, 0);
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
@@ -257,11 +270,23 @@ class ChrisRig {
     this.t = 0;
     this.cloth = null;    // cape chain points (local space), built on the first update
     this.flapA = 0; this.flapV = 0;    // apron skirt spring
+    this.morph = -1;                   // apron -> cape spin (intro only); -1 = not spinning
+    this.setChef(false);               // in battle he's an astronaut: cape on, no apron
     this.squash = 0;
     this.recoil = 0;
     this.wasGround = true;
     this.vhPrev = 0;
   }
+
+  // chef mode (the intro / ending at home): "Kiss the Cook" apron, no cape. Battle mode: just the cape.
+  setChef(on) {
+    this.chef = on; this.morph = -1;
+    this.apron.setVisible(on).setScale(1); this.apronB.setVisible(on);
+    for (const c of this.capeS) c.setVisible(!on).setScale(1);
+    this.collar.setVisible(!on).setScale(1);
+  }
+  // the transformation: the apron whips round and round on the spot and turns into the cape
+  spinToCape() { if (this.chef) this.morph = 0; }
 
   setPowered(on) {
     if (on === this.tinted) return;
@@ -311,7 +336,8 @@ class ChrisRig {
     if (this.squash > 0.9) this.flapV -= 6;                          // landing whump
     this.flapA = Math.max(-1.3, Math.min(0.7, this.flapA + this.flapV * dt));
     const fq = Math.round(this.flapA / (Math.PI / 16)) * (Math.PI / 16);
-    this.apronB.setRotation(fq).setScale(1, Math.max(0.7, Math.cos(fq) * 0.9 + 0.1));
+    this.apronB.setRotation(fq);
+    if (this.morph < 0) this.apronB.setScale(1, Math.max(0.7, Math.cos(fq) * 0.9 + 0.1));
   }
 
   // P = player state, (x, y) = screen position of his feet, z = world zoom, alpha = hit flicker, augerFrame = 0..3
@@ -359,6 +385,15 @@ class ChrisRig {
     this.torso.setPosition(sw * 1.9 * run + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle + DROP);
     this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched
     this.updateCloth(P, dt, grounded, fly);
+    if (this.morph >= 0) {                                       // ~0.9s: the apron spins (faster and faster), then the cape unfurls
+      this.morph = Math.min(1, this.morph + dt / 0.9);
+      const m = this.morph, spinK = Math.min(1, m / 0.6), sx = Math.cos(spinK * spinK * Math.PI * 7);
+      this.apron.setVisible(m < 0.6).setScale(sx, 1); this.apronB.setVisible(m < 0.6).setScale(sx, 1);
+      const cp = Math.max(0, (m - 0.5) / 0.5);
+      for (const c of this.capeS) c.setVisible(cp > 0).setScale(cp, 0.4 + 0.6 * cp);
+      this.collar.setVisible(cp > 0).setScale(Math.min(1, cp * 2));
+      if (m >= 1) { this.chef = false; this.morph = -1; for (const c of this.capeS) c.setScale(1); this.collar.setScale(1); }
+    }
     const stretchY = air ? 1 + Math.max(-0.1, Math.min(0.12, P.vh / 2000)) : 1;
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
       stretchY - 0.18 * Math.max(0, sq) + 0.1 * Math.max(0, -sq) + Math.sin(t * 2.6 + 1) * 0.018 * idle);
@@ -378,7 +413,7 @@ class ChrisRig {
     this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
     this.hat.setRotation(-sw * 0.16 * run - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
-    this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2);
+    this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2); this.crack.setPosition(this.head.x, this.head.y);
 
     // ---- arms
     this.armB.setRotation(-sw * 0.8 * run + 0.35 + Math.sin(t * 2.2) * 0.07 * idle - air * 1.2);

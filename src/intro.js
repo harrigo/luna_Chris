@@ -190,6 +190,83 @@ function makeIntroPix(scene) {
     p.rect(1, 17, 7, 19, 0x9aa3b2);
   });
 
+  // ---- making the cabin a home: telly, sofa, lamp, bookshelf, kitchen corner, plant, clock, sampler
+  const WD = [0xb07a4a, 0x8a5a3a, 0x5e3a22], DK = [0x6a4a30, 0x4a321e, 0x2e1e12], MET = [0xd8dfe8, 0x9aa3b2, 0x5a6270];
+  pixSprite(scene, 'ix_tv', 40, 44, p => {                         // chunky old CRT telly on spindly legs, rabbit-ear aerial
+    p.line([[16, 9], [8, 0]], 0x9aa3b2); p.line([[24, 9], [33, 1]], 0x9aa3b2); p.px(8, 0, 0xff6a6a); p.px(33, 1, 0xff6a6a);
+    p.rrect(2, 9, 38, 36, 3, WD);
+    p.rrect(5, 12, 29, 33, 3, 0x1a1a24);                             // screen bezel (picture drawn over it)
+    p.ell(33, 17, 2, 2, MET); p.ell(33, 24, 2, 2, MET); p.rect(31, 29, 35, 30, DK[1]); p.rect(31, 31, 35, 32, DK[1]);   // knobs + speaker grille
+    p.line([[8, 37], [5, 43]], DK[1], 2); p.line([[32, 37], [35, 43]], DK[1], 2);
+  });
+  const scr = (key, draw) => pixSprite(scene, key, 22, 19, p => { p.rect(0, 0, 21, 18, 0x0a0a14); draw(p); });
+  scr('ix_tv0', p => {                                              // a cooking show: a pancake flipping over a pan
+    p.rect(1, 1, 20, 17, 0x3a6ad8); p.rect(1, 13, 20, 17, 0x8a5a3a);
+    p.ell(11, 13, 6, 2, MET); p.line([[17, 13], [21, 12]], 0x1a1020, 2);
+    p.ell(11, 6, 4, 1.6, [0xffe27a, 0xf0bc36, 0xb8801c]);
+  });
+  scr('ix_tv1', p => {                                              // a cow documentary
+    p.rect(1, 1, 20, 10, 0x9fd8ff); p.rect(1, 11, 20, 17, 0x6fcf5a);
+    p.ell(10, 10, 5, 3.4, [0xffffff, 0xf0f0f0, 0xb8b8c0]); p.ell(8, 9, 1.5, 1.2, 0x1a1020); p.ell(12, 11, 1.3, 1, 0x1a1020);
+    p.ell(15.5, 8.5, 2.3, 2, [0xffd0d8, 0xffa8b8, 0xc07080]); p.rect(7, 13, 7, 15, 0x1a1020); p.rect(12, 13, 12, 15, 0x1a1020);
+  });
+  scr('ix_tv2', p => {                                              // static
+    const r = rng(77); for (let y = 1; y < 18; y++) for (let x = 1; x < 21; x++) { const v = r(); p.px(x, y, v < 0.33 ? 0xffffff : (v < 0.66 ? 0x8a8a9e : 0x2a2a3a)); }
+  });
+  pixSprite(scene, 'ix_sofa', 76, 34, p => {                         // a squashy brown sofa with cow-print cushions
+    const SF = [0xc0704a, 0x9a4e32, 0x66301e];
+    p.rrect(6, 2, 70, 22, 6, SF);                                    // back
+    p.rrect(1, 12, 15, 30, 4, SF); p.rrect(61, 12, 75, 30, 4, SF);   // arms
+    p.rrect(12, 18, 64, 30, 3, [0xd88a5e, 0xb0603e, 0x7a3a22]);      // seat
+    p.line([[38, 19], [38, 29]], 0x7a3a22);
+    for (const cx of [22, 54]) { p.rrect(cx - 7, 9, cx + 7, 20, 3, [0xffffff, 0xf0f0f0, 0xb8b8c0]); p.ell(cx - 2, 13, 2, 1.6, 0x1a1020); p.ell(cx + 3, 16, 1.6, 1.3, 0x1a1020); }
+    p.rect(4, 30, 7, 33, DK[2]); p.rect(69, 30, 72, 33, DK[2]);
+  });
+  pixSprite(scene, 'ix_table', 40, 16, p => {                        // coffee table: a mug of cocoa and a cheese magazine
+    p.rect(2, 6, 37, 8, WD[1]); p.rect(2, 6, 37, 6, WD[0]); p.rect(4, 9, 6, 15, DK[1]); p.rect(33, 9, 35, 15, DK[1]);
+    p.rrect(8, 0, 14, 6, 1, [0xff8a8a, 0xe03030, 0x901818]); p.px(15, 2, 0xe03030); p.px(15, 3, 0xe03030); p.rect(9, 0, 13, 0, 0x7a4a2a);
+    p.rect(20, 4, 31, 5, 0xffd23f); p.rect(22, 4, 26, 4, 0xe03030);
+  });
+  pixSprite(scene, 'ix_lamp', 22, 64, p => {                          // floor lamp with a fringed shade
+    p.poly([[5, 2], [17, 2], [21, 16], [1, 16]], [0xfff0b0, 0xffd27a, 0xc8903a]);
+    for (let x = 2; x <= 20; x += 2) p.px(x, 17, 0xc8903a);
+    p.rect(10, 17, 11, 60, DK[1]); p.rrect(4, 59, 17, 63, 2, DK);
+  });
+  pixSprite(scene, 'ix_shelf', 48, 66, p => {                         // bookshelf: books, a cheese jar, a trophy, a model rocket
+    p.rrect(1, 1, 46, 65, 1, WD); p.rect(4, 4, 43, 62, DK[2]);
+    for (const y of [22, 42, 62]) p.rect(3, y, 44, y + 1, WD[0]);
+    const BK = [0xe03030, 0x3a6ad8, 0xffd23f, 0x4ac040, 0xa05ad8, 0xff8a3a];
+    let x = 5; for (let i = 0; i < 9; i++) { const h = 12 + (i * 5) % 6; p.rect(x, 21 - h, x + 2, 21, BK[i % 6]); x += 4; }
+    p.rrect(6, 30, 16, 41, 2, [0xeaf8ff, 0xb8e4ff, 0x6ab0e0]); p.rect(8, 33, 14, 40, 0xffd23f); p.rect(6, 29, 16, 30, 0xe03030);     // jar of Mad Cheese
+    p.poly([[24, 30], [32, 30], [30, 36], [26, 36]], [0xfff0a0, 0xffc83a, 0xb07a1a]); p.rect(27, 36, 29, 39, 0xb07a1a); p.rect(25, 40, 31, 41, DK[1]);   // trophy
+    p.poly([[38, 26], [41, 33], [41, 41], [35, 41], [35, 33]], MET); p.px(38, 34, 0x3a6ad8); p.rect(34, 39, 35, 41, 0xe03030); p.rect(41, 39, 42, 41, 0xe03030);   // model rocket
+    x = 5; for (let i = 0; i < 6; i++) { p.rect(x, 50, x + 4, 61, BK[(i + 3) % 6]); x += 6; }
+  });
+  pixSprite(scene, 'ix_stove', 42, 44, p => {                         // a proper chef's range with a bubbling pot
+    p.rrect(1, 12, 41, 43, 2, MET); p.rect(4, 22, 38, 40, 0x3a3a48); p.rect(6, 24, 36, 38, 0x1a1a24); p.rect(8, 26, 34, 27, 0x5a5a6a);
+    for (const x of [8, 16, 24, 32]) p.ell(x, 17, 2, 2, [0xff8a8a, 0xe03030, 0x901818]);
+    p.rrect(6, 1, 24, 12, 2, [0xd8dfe8, 0x9aa3b2, 0x5a6270]); p.rect(7, 0, 23, 2, 0xffd23f); p.line([[24, 5], [30, 4]], 0x1a1020, 2);   // pot full of cheese sauce
+  });
+  pixSprite(scene, 'ix_pans', 50, 26, p => {                          // pans hanging off a rail
+    p.rect(0, 1, 49, 2, DK[1]);
+    for (const [x, r] of [[8, 6], [24, 8], [40, 5]]) { p.line([[x, 2], [x, 6]], 0x5a6270); p.ell(x, 8 + r, r, r, [0xffd0a0, 0xd08a5a, 0x8a5a3a]); p.ell(x, 8 + r, r - 2, r - 2, 0x8a5a3a); }
+  });
+  pixSprite(scene, 'ix_plant', 18, 26, p => {
+    p.ell(9, 8, 7, 7, [0x8af06a, 0x4ac040, 0x2a8a20]); p.ell(4, 12, 4, 4, [0x8af06a, 0x4ac040, 0x2a8a20]); p.ell(14, 12, 4, 4, [0x8af06a, 0x4ac040, 0x2a8a20]);
+    p.poly([[3, 16], [15, 16], [13, 25], [5, 25]], [0xe08a5a, 0xc0603a, 0x8a3a1a]);
+  });
+  pixSprite(scene, 'ix_clock', 18, 30, p => {                          // cuckoo clock, pendulum drawn separately
+    p.poly([[9, 0], [18, 8], [0, 8]], DK); p.rrect(2, 8, 16, 22, 1, WD); p.ell(9, 15, 5, 5, [0xfff6e0, 0xf0e0c0, 0xb8a080]);
+    p.line([[9, 15], [9, 12]], 0x1a1020); p.line([[9, 15], [11, 15]], 0x1a1020); p.rect(7, 23, 8, 29, 0xffd23f); p.rect(10, 23, 11, 27, 0xffd23f);
+  });
+  pixSprite(scene, 'ix_sampler', 34, 22, p => {                       // "HOME" cross-stitch with a little cow
+    p.rrect(0, 0, 33, 21, 1, WD); p.rect(3, 3, 30, 18, 0xfff6e0);
+    const L = { H: ['1.1', '111', '1.1'], O: ['111', '1.1', '111'], M: ['1.1', '111', '1.1'], E: ['11', '1.', '11'] };
+    let x = 6; for (const ch of 'HOME') { L[ch].forEach((row, j) => [...row].forEach((v, i) => { if (v === '1') p.px(x + i, 6 + j, 0xe03030); })); x += ch === 'E' ? 3 : 4; }
+    p.ell(16, 14, 3, 2, [0xffffff, 0xf0f0f0, 0xb8b8c0]); p.px(15, 14, 0x1a1020); p.px(19, 13, 0xffa8b8);
+    for (let k = 4; k < 30; k += 3) { p.px(k, 4, 0x4ac040); p.px(k, 17, 0x4ac040); }
+  });
+
   // ---- the Mad Cheese stockpile: an overflowing wooden water tower full of cheese, and milk churns oozing it
   const CH = [0xffe27a, 0xf0bc36, 0xb8801c], WOOD = [0xb07a4a, 0x8a5a3a, 0x5e3a22], TIN = [0xf0f4fa, 0xb8c0cc, 0x7a8290];
   pixSprite(scene, 'ix_tower', 68, 112, p => {
@@ -513,7 +590,7 @@ class IntroScene extends Phaser.Scene {
     this.shot.add(this.rig.root);
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing };
     this.cx = x; this.walkTo = null;
-    if (tool === 'spatula') { this.rig.gun.setTexture('ix_spatula'); this.rig.auger.setVisible(false); }
+    if (tool === 'spatula') { this.rig.gun.setTexture('ix_spatula'); this.rig.auger.setVisible(false); this.rig.setChef(true); }   // at home he's a chef in his apron
     else this.rig.setWeapon(WEAPONS[0]);
     this.rigUpdate(0.016);
   }
@@ -827,7 +904,38 @@ class IntroScene extends Phaser.Scene {
     this.img(0, GY + 4, 'ix_wall');
     this.img(0, GY, 'ix_floor', 0.5, 0);
     this.img(-150, -34, 'ix_window', 0.5, 0.5);
+    // home comforts
+    this.img(-104, -42, 'ix_sampler', 0.5, 0.5);
+    this.img(-38, -46, 'ix_clock', 0.5, 0.5);
+    const pendG = this.add2(this.add.graphics());
+    this.acts.push(() => { const a = Math.sin(this.time.now / 500) * 0.4; pendG.clear().lineStyle(1, 0xffd23f, 1).lineBetween(-38, -32, -38 + Math.sin(a) * 10, -32 + Math.cos(a) * 10).fillStyle(0xffd23f, 1).fillCircle(-38 + Math.sin(a) * 10, -32 + Math.cos(a) * 10, 2); });
+    this.img(-212, -58, 'ix_pans', 0.5, 0.5);
+    this.img(-212, GY + 1, 'ix_stove');
+    const steam = this.add2(this.add.particles(-220, GY - 44, 'ix_smoke', { lifespan: 1600, speedY: { min: -18, max: -8 }, speedX: { min: -4, max: 4 }, scale: { start: 0.3, end: 0.9 }, alpha: { start: 0.5, end: 0 }, frequency: 300, tint: 0xffffff }));
+    this.img(-158, GY + 1, 'ix_plant');
+    this.img(-104, GY + 1, 'ix_sofa');
     this.img(-14, GY + 9, 'ix_rug');
+    this.img(-92, GY + 6, 'ix_table');
+    // the telly, angled at the sofa, flicking between a cooking show, a cow documentary and static
+    this.img(-42, GY + 1, 'ix_tv').setFlipX(true);
+    const tvScr = this.img(-39, GY - 10, 'ix_tv0', 0.5, 1).setFlipX(true);
+    const tvGlow = this.img(-42, GY - 18, 'puff', 0.5, 0.5).setScale(1.3).setTint(0x7ab8ff).setAlpha(0.22).setBlendMode(Phaser.BlendModes.ADD);
+    let ch = 0, chT = 0, zT = 0;
+    this.acts.push(dt => {
+      chT += dt; if (chT > 1.1) { chT = 0; ch = (ch + 1) % 5; tvScr.setTexture(['ix_tv0', 'ix_tv2', 'ix_tv1', 'ix_tv0', 'ix_tv1'][ch]); tvGlow.setTint(ch === 1 ? 0xffffff : 0x7ab8ff); }
+      zT += dt; if (zT > 1.4) {                                        // the sleeping dog's Zzz
+        zT = 0; const z = this.add2(this.add.text(46, GY - 10, 'z', { fontFamily: PIXEL, fontSize: '6px', color: '#ffffff' }).setResolution(3));
+        this.tweens.add({ targets: z, y: GY - 34, x: 54, alpha: 0, duration: 1600, onComplete: () => z.destroy() });
+      }
+    });
+    this.tweens.add({ targets: tvGlow, alpha: 0.12, yoyo: true, repeat: -1, duration: 90 });
+    this.img(-8, GY + 1, 'ix_lamp');
+    const lampGlow = this.img(-8, GY - 54, 'puff', 0.5, 0.5).setScale(1.5).setTint(0xffc060).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: lampGlow, alpha: 0.24, yoyo: true, repeat: -1, duration: 1400 });
+    this.img(170, GY + 1, 'ix_shelf');
+    const dog = this.cabinDog = this.img(40, GY + 8, 'ix_dog').setFlipX(true).setScale(0.9);   // (on the warm hearth)       // the space dog, fast asleep on the rug
+    this.tweens.add({ targets: dog, scaleY: 0.84, yoyo: true, repeat: -1, duration: 900 });
+
     const FX = 64;                                                       // the fireplace
     const glow = this.img(FX, GY - 22, 'puff', 0.5, 0.5).setScale(1.6).setTint(0xff7a2a).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glow, alpha: 0.22, scale: 1.4, yoyo: true, repeat: -1, duration: 160 });
@@ -835,6 +943,7 @@ class IntroScene extends Phaser.Scene {
     this.embers = this.add2(this.add.particles(FX, GY - 20, 'spark', { lifespan: 800, speedY: { min: -40, max: -20 }, speedX: { min: -12, max: 12 }, scale: { start: 0.7, end: 0 }, blendMode: 'ADD', frequency: 180, tint: 0xffb347 }));
     this.fireplace = this.img(FX, GY + 1, 'ix_fireplace');
     this.armory = this.img(FX, GY + 1, 'ix_armory').setScale(0, 1);
+    this.shot.bringToTop(this.cabinDog);                                 // the dog snoozes in front of the hearth
     const mantleY = GY + 1 - 98 + 18;
     this.grinder = this.img(FX + 46, mantleY, 'ix_grinder');
     for (let i = 0; i < 3; i++) this.img(FX - 40 + i * 12, mantleY, 'c_star', 0.5, 1).setScale(0.36).setTint(0xffd23f);     // his old medals
@@ -859,7 +968,7 @@ class IntroScene extends Phaser.Scene {
     });
     this.at(5000, () => this.flipWall());
     this.at(7200, () => this.grabGun());
-    this.at(10400, () => this.cut(this.shotLaunch));
+    this.at(11000, () => this.cut(this.shotLaunch));
   }
 
   flipWall() {
@@ -890,7 +999,9 @@ class IntroScene extends Phaser.Scene {
       this.P.power = 1; this.flash(0.6, 300);
       Sound.sfx('power'); this.shake(150, 0.005);
       this.dust(this.cx, GY - 40, 6, 'ix_dust', 16, 20);
-      this.hop = true; this.P.vh = 240;                              // a triumphant little hop: the cape flicks out
+      this.hop = true; this.P.vh = 300;                              // a triumphant hop, and the apron whips round into a CAPE
+      this.rig.spinToCape(); Sound.sfx('swish'); this.at(300, () => Sound.sfx('swish')); this.at(600, () => { Sound.sfx('shine'); this.flash(0.4, 250); });
+      this.say('OFF COMES THE APRON... ON GOES THE CAPE!');
       this.at(700, () => { this.P.power = 0; });
       this.at(900, () => {
         this.P.facing = 1;

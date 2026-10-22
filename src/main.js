@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.83';
+const BUILD = 'v0.84';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -18,6 +18,9 @@ const CFG = {
   jumpV: 560,
   runSpeed: 230,
   maxHp: 5,
+  startLives: 3,     // lives per game; GAME OVER when they run out
+  maxLives: 9,
+  lifeEvery: 40000,  // a bonus life for every this many points scored in a level
   jumpBuffer: 0.12,   // a jump pressed this long before landing still happens
   coyoteTime: 0.1,    // ...and you can still jump this long after running off an edge
   jetHoldDelay: 0.28, // hold jump this long after take-off and the jetpack lights by itself
@@ -183,7 +186,9 @@ class Level1 extends Phaser.Scene {
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0;
     this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
-    this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null;
+    this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
+    if (!(this.registry.get('lives') > 0)) this.registry.set('lives', CFG.startLives);   // a fresh game
+    this.nextLife = (Math.floor(((this.cp && this.cp.score) || 0) / CFG.lifeEvery) + 1) * CFG.lifeEvery;
     this.gotPower = !!(this.cp && this.cp.power); this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
     // distant stars
@@ -419,6 +424,7 @@ class Level1 extends Phaser.Scene {
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
+      else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     // controller: A/Start = start / retry / continue, View (back) = level menu
     const padOff = Pad.on(b => {
@@ -430,6 +436,7 @@ class Level1 extends Phaser.Scene {
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
+      else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     this.events.once('shutdown', padOff);
     // cheat mode: H / phone shake gives a heart
@@ -529,6 +536,7 @@ class Level1 extends Phaser.Scene {
     this.waveText.setPosition(W / 2, 4);
     this.scoreText.setPosition(W / 2, 26);
     if (this.portrait) this.portrait.setPosition(10, 10);
+    this.livesText.setPosition(60, 60);
     this.nameText.setPosition(66, 8);
     this.cheeseIcons.forEach((c, i) => c.setPosition(66 + i * 28, 20));
     this.macIcons.forEach((c, i) => c.setPosition(96 + i * 20, 61));
@@ -569,6 +577,7 @@ class Level1 extends Phaser.Scene {
     this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
     this.swapText = this.add.text(0, 0, 'SWAP', f(8, '#9fa6c2', ink)).setOrigin(0.5, 0).setDepth(20);
     this.cheatText = this.add.text(0, 0, 'CHEAT', f(8, '#ff4d8d', ink)).setDepth(20).setVisible(Cheat.on);
+    this.livesText = this.add.text(0, 0, '', f(10, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 1).setDepth(20.7);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
     this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
     this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
@@ -613,7 +622,38 @@ class Level1 extends Phaser.Scene {
     this.tweens.add({ targets: this.bannerText, alpha: 0, delay: 1400, duration: 500 });
   }
 
-  addScore(n) { this.score += n; }
+  addScore(n) {
+    this.score += n;
+    if (this.score >= this.nextLife && this.state === 'play') { this.nextLife += CFG.lifeEvery; this.gainLife(); }
+  }
+
+  get lives() { return this.registry.get('lives') || 0; }
+  gainLife() {
+    this.registry.set('lives', Math.min(CFG.maxLives, this.lives + 1));
+    Sound.sfx('power'); buzz([20, 30, 20, 30, 60]); this.banner('1UP!');
+    this.popup(this.pl.theta, this.pl.h + 70, '1UP', '#7dff8a', true);
+    this.tweens.add({ targets: this.livesText, scale: 1.8, yoyo: true, duration: 160 });
+  }
+
+  // one 1UP floats somewhere in every level (high up, so it takes the jetpack). Once taken it stays taken until GAME OVER.
+  placeOneUp() {
+    if (this.oneUp) { this.oneUp.spr.destroy(); this.oneUp = null; }
+    if (this.registry.get('oneup_' + this.levelId)) return;
+    const ledges = (this.def.ledges || []).slice().sort((a, b) => b.h - a.h), L = ledges[1] || ledges[0];
+    const theta = L ? L.theta : wrap(this.pl.theta - 1.6), h = L ? L.h + 70 : 220;
+    const spr = this.add.image(0, 0, 'oneup').setDepth(6); bakedGlow(spr, 0x7dff8a, 3, 8);
+    this.oneUp = { theta, h, spr };
+  }
+  updateOneUp() {
+    const U = this.oneUp, P = this.pl; if (!U) return;
+    const bob = Math.sin(this.t * 3) * 5;
+    this.place(U.spr, U.theta, U.h + bob, Math.sin(this.t * 2) * 0.15);
+    if (this.state === 'play' && dist2(U.theta, U.h + bob, P.theta, P.h + 22) < 30 * 30) {
+      this.registry.set('oneup_' + this.levelId, true);
+      this.burst(U.theta, U.h, 'spark', 14, 1); this.bang(U.theta, U.h, 20);
+      U.spr.destroy(); this.oneUp = null; this.gainLife();
+    }
+  }
 
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
@@ -627,7 +667,7 @@ class Level1 extends Phaser.Scene {
   // ------------------------------------------------------------- game flow
   startGame() {
     this.hideOverlay();
-    this.placeWheels();
+    this.placeWheels(); this.placeOneUp();
     this.state = 'play';
     Sound.init();
     this.waveText.setText('LEVEL ' + this.levelId);
@@ -976,8 +1016,10 @@ class Level1 extends Phaser.Scene {
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
     this.deaths++;
+    this.registry.set('lives', this.lives - 1);
+    if (this.lives <= 0) { this.hideOverlay(); this.gameOver(); return; }
     const quips = ['The rats got away with Bessie.', 'Chris has been grated.', 'That was cheesy.', 'Bessie is NOT impressed.', 'Squeak squeak. (The rats are laughing.)', 'Brie-lliant effort. Not really.', 'You got Camem-BURNT.'];
-    this.showOverlay('CHRIS IS TOAST', quips[(this.deaths - 1) % quips.length] + '\n\n' + (this.cp ? 'Tap to retry from the checkpoint' : 'Tap to try again'));
+    this.showOverlay('CHRIS IS TOAST', quips[(this.deaths - 1) % quips.length] + '\n\nLIVES LEFT: ' + this.lives + '\n\n' + (this.cp ? 'Tap to retry from the checkpoint' : 'Tap to try again'));
   }
 
   // the big rank letter that slams onto the clear screen
@@ -991,6 +1033,103 @@ class Level1 extends Phaser.Scene {
       this.cameras.main.shake(180, 0.008); Sound.sfx(r === 'S' ? 'reveal' : 'clunk'); buzz(40); this.tweens.add({ targets: lab, alpha: 1, duration: 200 });
       if (r === 'S') this.tweens.add({ targets: t, scale: 1.12, yoyo: true, repeat: -1, duration: 420 });
     } });
+  }
+
+  // GAME OVER: the camera pushes in on Chris where he fell and the world goes dark around him (a spotlight).
+  // In the spotlight: his helmet glass cracks... and shatters, he keels over flat on his back with stars circling,
+  // and far off in the sky the rat UFO whisks Bessie away. Then black, a big old-school GAME OVER drops in letter
+  // by letter, and it all fades out back to the menu.
+  gameOver() {
+    const P = this.pl, rig = this.rig, dirn = P.facing || 1, cam = this.cameras.main;
+    this.state = 'gameover'; this.cp = null;
+    this.registry.set('lives', 0);
+    Sound.jet(false); Sound.music(null);
+    if (P.buff) this.endBuff();
+    this.clearEBullets(); P.invuln = 0; P.thrusting = false; P.vx = 0; P.duck = false; P.firing = 0;
+    this.slowT = 1.2; this.hitStop = 0.25;
+    if (this.ctrlG) this.ctrlG.setVisible(false); for (const k in (this.btnLabels || {})) this.btnLabels[k].setVisible(false);
+    const at = (ms, fn) => this.time.delayedCall(ms, () => { if (this.state === 'gameover') fn(); });
+    const fx = P.spr.x, fy = P.spr.y - 34 * this.zoom;                         // centre of Chris on screen
+    // 0. push in + spotlight
+    if (!this.textures.exists('go_spot')) {
+      const ct = this.textures.createCanvas('go_spot', 256, 256), c = ct.getContext(), g = c.createRadialGradient(128, 128, 0, 128, 128, 128);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(0.13, 'rgba(0,0,0,0)'); g.addColorStop(0.24, 'rgba(4,2,10,0.85)'); g.addColorStop(1, 'rgba(4,2,10,0.97)');
+      c.fillStyle = g; c.fillRect(0, 0, 256, 256); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
+    }
+    const spot = this.add.image(fx, fy - 20, 'go_spot').setDepth(25).setDisplaySize(1000, 1000).setAlpha(0);
+    this.tweens.add({ targets: spot, alpha: 1, duration: 900 });
+    this.goCam = { z: 1, x: this.W / 2, y: this.H / 2 };
+    this.tweens.add({ targets: this.goCam, z: 1.9, x: fx, y: fy, duration: 1000, ease: 'Sine.easeInOut' });
+    // 1. crack
+    at(700, () => { rig.crack.setVisible(true); Sound.sfx('clang'); buzz(40); cam.shake(120, 0.004); });
+    at(1150, () => { rig.crack.setScale(1.15); Sound.sfx('clang'); });
+    // 2. shatter
+    at(1600, () => {
+      rig.crack.setVisible(false); rig.head.setTexture('c_head_bare');
+      this.burst(P.theta, P.h + 50, 'shard', 16, 1.1); this.bang(P.theta, P.h + 50, 24);
+      Sound.sfx('crash'); buzz([60, 40, 120]); cam.flash(160, 255, 255, 255); cam.shake(250, 0.008);
+    });
+    // 3. timber! keels over backwards
+    at(2100, () => {
+      this.ko = { rot: 0 };
+      Sound.sfx('sigh');
+      rig.gunArm.setVisible(false); P.aimA = 0;                               // the gun clatters away
+      const gun = this.add.image(0, 0, rig.gun.texture.key).setDepth(7).setFlipX(dirn < 0); gun.bsx = gun.bsy = 1.2;
+      this.parts.push({ theta: wrap(P.theta + dirn * 20 / R), h: 40, vt: dirn * 90, vh: 260, life: 30, spr: gun, rot: 0, rv: dirn * 9, stay: true });
+      this.tweens.add({ targets: this.ko, rot: -dirn * 1.5, duration: 650, ease: 'Bounce.easeOut', onComplete: () => {
+        Sound.sfx('clunk'); this.burst(P.theta, 6, 'spark', 8, 0.6); cam.shake(160, 0.006);
+        this.koStars = this.add.text(0, 0, '* * *', { fontFamily: PIXEL, fontSize: '8px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(19);
+      } });
+    });
+    // 4. far off in the night sky above him, the rat UFO whisks Bessie away (small, drifting up and away into the dark)
+    at(3000, () => {
+      const sx = fx + dirn * 70, sy = fy - 70;
+      const ship = this.add.image(sx, sy, 'ratship').setDepth(5.5).setScale(0.32);
+      const beam = this.add.image(sx, sy + 4, 'beam0').setDepth(5.4).setOrigin(0.5, 0).setScale(0.22, 0.2).setAlpha(0.8);
+      const cow = this.add.image(sx, sy + 20, 'bessie').setDepth(5.5).setScale(0.2).setOrigin(0.5, 0);
+      Sound.sfx('beam'); this.time.delayedCall(400, () => Sound.sfx('moo')); this.time.delayedCall(1300, () => Sound.sfx('ufoFly'));
+      const T = { k: 0 };
+      this.tweens.add({ targets: T, k: 1, duration: 2600, ease: 'Quad.easeIn', onUpdate: () => {
+        const k = T.k, x = sx - dirn * 120 * k, y = sy - 70 * k - Math.sin(k * 9) * 4, sc = 1 - 0.85 * k;
+        ship.setPosition(x, y).setScale(0.32 * sc).setRotation(-0.15 * Math.sin(k * 14));
+        beam.setPosition(x, y + 4 * sc).setScale(0.22 * sc, 0.2 * sc).setAlpha(0.8 * (1 - k));
+        cow.setPosition(x, y + 20 * sc).setScale(0.2 * sc).setRotation(Math.sin(k * 22) * 0.4);
+        for (const o of [ship, cow]) o.setAlpha(1 - Math.max(0, k - 0.8) * 5);
+      }, onComplete: () => { ship.destroy(); cow.destroy(); beam.destroy(); } });
+      const moo = this.add.text(sx, sy - 14, 'moooo...', { fontFamily: PIXEL, fontSize: '6px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 2 }).setOrigin(0.5).setDepth(26).setResolution(3);
+      this.tweens.add({ targets: moo, x: sx - dirn * 70, y: sy - 50, alpha: 0, duration: 1800, onComplete: () => moo.destroy() });
+    });
+    // 5. black... and the big GAME OVER
+    at(5900, () => {
+      const W = this.W, H = this.H;
+      const black = this.add.rectangle(-W, -H, W * 3, H * 3, 0x000000, 1).setOrigin(0).setDepth(40).setAlpha(0).setScrollFactor(0);
+      this.tweens.add({ targets: black, alpha: 1, duration: 600, onComplete: () => {
+        this.goCam = null;                                                    // reset the push-in behind the black
+        Sound.music('lose');
+        const word = 'GAME OVER', cx = W / 2, cy = H * 0.42, sp = Math.min(34, W / 12), x0 = cx - (word.length - 1) * sp / 2;
+        [...word].forEach((ch, i) => {
+          if (ch === ' ') return;
+          const t = this.add.text(x0 + i * sp, -40, ch, { fontFamily: PIXEL, fontSize: '32px', color: '#ff3a3a', stroke: '#ffd23f', strokeThickness: 4 }).setOrigin(0.5).setDepth(41).setScrollFactor(0);
+          t.setShadow(4, 4, '#5a0a0a', 0, true, true);
+          this.tweens.add({ targets: t, y: cy, delay: 300 + i * 110, duration: 520, ease: 'Bounce.easeOut', onStart: () => Sound.sfx('clunk') });
+        });
+        const sub = this.add.text(cx, cy + 46, 'BESSIE IS STILL OUT THERE...', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff' }).setOrigin(0.5).setDepth(41).setAlpha(0).setScrollFactor(0);
+        this.tweens.add({ targets: sub, alpha: 1, delay: 1700, duration: 500 });
+        const fin = this.add.text(cx, cy + 66, 'FINAL SCORE ' + String(this.score).padStart(7, '0'), { fontFamily: PIXEL, fontSize: '8px', color: '#ffd23f' }).setOrigin(0.5).setDepth(41).setAlpha(0).setScrollFactor(0);
+        this.tweens.add({ targets: fin, alpha: 1, delay: 2100, duration: 500 });
+        this.time.delayedCall(2300, () => { this.goReady = true; });
+      } });
+    });
+    // 6. fade out, back to the start
+    at(11500, () => this.leaveGameOver());
+  }
+  leaveGameOver() {
+    if (this.leavingGO) return;
+    this.leavingGO = true;
+    for (const k of Object.keys(this.registry.getAll())) if (k.startsWith('oneup_')) this.registry.remove(k);   // a fresh game next time
+    this.registry.set('lives', CFG.startLives);
+    this.cameras.main.fadeOut(900, 0, 0, 0);
+    this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('menu'); });
   }
 
   // straight back in: from the last checkpoint if one was reached this attempt
@@ -1088,7 +1227,7 @@ class Level1 extends Phaser.Scene {
       this.updatePlayerBullets(dt);
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
-      this.updateWheels(dt);
+      this.updateWheels(dt); this.updateOneUp();
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1660,8 +1799,8 @@ class Level1 extends Phaser.Scene {
     K.x += K.vx * dt; K.y += K.vy * dt;
     this.punch = Math.max(0, this.punch - dt * 0.35);
     const cam = this.cameras.main;
-    cam.setScroll(Math.round(K.x), Math.round(K.y));
-    cam.setZoom(1 + this.punch);
+    if (this.goCam) { cam.setZoom(this.goCam.z); cam.centerOn(this.goCam.x, this.goCam.y); }     // game over push-in
+    else { cam.setScroll(Math.round(K.x), Math.round(K.y)); cam.setZoom(1 + this.punch); }
     for (let i = this.lights.length - 1; i >= 0; i--) { this.lights[i].life -= dt; if (this.lights[i].life <= 0) this.lights.splice(i, 1); }
     for (const e of this.enemies) if (e.spr.hsq > 0) e.spr.hsq = Math.max(0, e.spr.hsq - dt * 7);
   }
@@ -1912,8 +2051,7 @@ class Level1 extends Phaser.Scene {
         if (e.bombCd <= 0 && distP < 230) {
           if (e.type === 'stinkfly') {                   // spore bomb: a lob that leads Chris, and a stink puff either side
             this.addEBullet('spore', e.theta, e.h, dirP * 70 + (P.vx || 0) * 0.35, -150, 11, 3).grav = 120;
-            for (const sd of [-1, 1]) this.addEBullet('spore', e.theta, e.h, sd * 90, -60, 8, 1.6).grav = 160;
-            e.bombCd = rnd(1.3, 2.1);
+            e.bombCd = rnd(2.0, 3.0);
           } else {
             this.addEBullet('cube', e.theta, e.h, dirP * 40, -190, 9, 3);
             e.bombCd = rnd(1.5, 2.5);
@@ -1945,11 +2083,11 @@ class Level1 extends Phaser.Scene {
         e.hopCd -= dt;
         if (grounded && e.hopCd <= 0) { e.vh = mini ? rnd(260, 360) : rnd(340, 500); e.hopCd = mini ? rnd(0.4, 0.9) : rnd(0.9, 1.7); }
         if (!mini) {                                     // big germs spit an arcing spore glob at Chris (a red flash warns first)
-          e.spitCd = (e.spitCd === undefined ? rnd(1.5, 3) : e.spitCd) - dt;
-          if (e.spitCd < 0.35 && e.spitCd + dt >= 0.35 && distP < 320) { e.spr.setTintFill(0xff6060); e.flash = 0.12; }
+          e.spitCd = (e.spitCd === undefined ? rnd(2.5, 4.5) : e.spitCd) - dt;
+          if (e.spitCd < 0.35 && e.spitCd + dt >= 0.35 && distP < 280) { e.spr.setTintFill(0xff6060); e.flash = 0.12; }
           if (e.spitCd <= 0) {
-            e.spitCd = rnd(2.2, 3.4);
-            if (distP < 320 && !fooled) {
+            e.spitCd = rnd(3.4, 5);
+            if (distP < 280 && !fooled) {
               const ex = toP * R, air = 1.0, vt = Math.max(-260, Math.min(260, ex / air)), vh = 300;
               this.addEBullet('spore', e.theta, e.h + e.ch, vt, vh, 10, 3).grav = 2 * vh / air;
               Sound.sfx('cube'); e.spr.hsq = 1;
@@ -1966,8 +2104,8 @@ class Level1 extends Phaser.Scene {
         const grounded = e.h <= 0 && e.vh <= 0;
         if (grounded) {
           if (e.state === 'air') {                       // lands with a squelch: a pair of spores skid out along the ground
-            e.state = 'idle'; e.cd = rnd(0.5, 1.0); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
-            if (Math.abs(toP) * R < 400) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
+            e.state = 'idle'; e.cd = rnd(0.7, 1.3); e.leapV = 0; Sound.sfx('squeak'); this.cameras.main.shake(60, 0.003);
+            if (Math.abs(toP) * R < 400 && Math.random() < 0.5) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 190, 0, 9, 1.2);
           }
           e.cd -= dt; e.dir = dirP;
           if (e.cd <= 0) {                               // leaps to where Chris is heading
@@ -2051,7 +2189,7 @@ class Level1 extends Phaser.Scene {
           e.slamCd = Math.max(0, (e.slamCd || 0) - dt);
           const under = Math.abs(toP) * R < 70 && P.h < e.h;
           e.underT = under ? (e.underT || 0) + dt : Math.max(0, (e.underT || 0) - dt * 2);
-          if (!e.slam && e.slamCd <= 0 && e.underT > (phase2 ? 0.9 : 1.4)) {
+          if (!e.slam && e.slamCd <= 0 && e.underT > (phase2 ? 1.2 : 1.7)) {
             e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h }; e.charge = 1; e.underT = 0; Sound.sfx('grind');
           }
           if (e.slam) {
@@ -2070,9 +2208,8 @@ class Level1 extends Phaser.Scene {
                 this.burst(e.theta, 6, 'crumb', 22, 1.5); this.bang(e.theta, 10, 40);
                 for (const sd of [-1, 1]) {                          // shockwaves skimming the floor both ways
                   this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);
-                  if (phase2) this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 170, 0, 11, 2.8);
                 }
-                if (phase2) for (let k = 0; k < 6; k++) { const a = (k - 2.5) * 0.35; this.addEBullet('meatball', e.theta, 80, 260 * Math.sin(a), 420 * Math.cos(a) * 0.8, 9, 3).grav = 500; }   // meatballs spray up and rain back down
+                if (phase2) for (let k = 0; k < 4; k++) { const a = (k - 1.5) * 0.45; this.addEBullet('meatball', e.theta, 80, 260 * Math.sin(a), 420 * Math.cos(a) * 0.8, 9, 3).grav = 500; }   // meatballs spray up and rain back down
               }
             } else if (SL.st === 'land') {
               if (SL.t > (phase2 ? 0.8 : 1.1)) SL.st = 'up';
@@ -2082,7 +2219,7 @@ class Level1 extends Phaser.Scene {
             }
           } else {
             if (e.rainCd <= 0) {          // side cannons fire meatballs straight at him (both at once when it's angry)
-              e.rainCd = phase2 ? 0.42 : 0.62;
+              e.rainCd = phase2 ? 0.7 : 0.85;
               const facing = toP >= 0 ? 1 : -1, v = phase2 ? 290 : 245;
               for (const side of (phase2 ? [-1, 1] : [facing])) {
                 const c = this.bossGun(e, side * 80, 56);
@@ -2093,34 +2230,34 @@ class Level1 extends Phaser.Scene {
               Sound.sfx('cube');
             }
             if (e.fanCd <= 0) {           // belly turret: a spread of toast crumbs fired downwards
-              e.fanCd = phase2 ? 2.6 : 3.8;
+              e.fanCd = phase2 ? 3.4 : 4.6;
               Sound.sfx('fan');
-              const c = this.bossGun(e, 0, 93), n = phase2 ? 7 : 5;
+              const c = this.bossGun(e, 0, 93), n = phase2 ? 5 : 4;
               for (let k = 0; k < n; k++) {
-                const a = (k - (n - 1) / 2) * 0.32;
-                this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5);
+                const a = (k - (n - 1) / 2) * 0.36;
+                this.addEBullet('crumb', c.theta, c.h, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
               }
               this.muzzleFlash(c.theta, c.h);
             }
           }
         } else if (e.ai === 'baron') {
           if (e.rainCd <= 0) {          // spore globs rain down around (and just ahead of) Chris
-            e.rainCd = phase2 ? 0.75 : 1.05;
-            const lead = (P.vx || 0) * 0.8 / R, n = phase2 ? 5 : 4;
+            e.rainCd = phase2 ? 1.0 : 1.35;
+            const lead = (P.vx || 0) * 0.5 / R, n = phase2 ? 4 : 3;
             for (let k = 0; k < n; k++) this.addEBullet('spore', P.theta + lead + (k - (n - 1) / 2) * 0.12 + rnd(-0.03, 0.03), 300, rnd(-30, 30), -185, 12, 2.8);
             Sound.sfx('cube');
           }
           if (e.fanCd <= 0) {           // ring of spores (two staggered rings when angry)
-            e.fanCd = phase2 ? 3.2 : 4.4;
+            e.fanCd = phase2 ? 3.8 : 5;
             Sound.sfx('fan');
-            const n = phase2 ? 14 : 11, off = rnd(0, 1);
+            const n = phase2 ? 12 : 9, off = rnd(0, 1);
             for (let k = 0; k < n; k++) { const a = ((k + off) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 165 * Math.sin(a), 165 * Math.cos(a), 11, 2.4); }
             if (phase2) this.time.delayedCall(450, () => { if (e.hp > 0) for (let k = 0; k < n; k++) { const a = ((k + off + 0.5) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 125 * Math.sin(a), 125 * Math.cos(a), 11, 2.8); } });
           }
           e.spitCd = (e.spitCd === undefined ? 2 : e.spitCd) - dt;
           if (e.spitCd <= 0) {          // the Baron's monocle glints, then he spits a fast aimed triple at Chris
-            e.spitCd = phase2 ? 1.6 : 2.4;
-            const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - e.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 300 : 260, a0 = Math.atan2(ey, ex);
+            e.spitCd = phase2 ? 2.2 : 3.2;
+            const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - e.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 250 : 220, a0 = Math.atan2(ey, ex);
             for (const da of [-0.18, 0, 0.18]) this.addEBullet('spore', e.theta, e.h, Math.cos(a0 + da) * v, Math.sin(a0 + da) * v, 10, 3);
             this.muzzleFlash(e.theta, e.h); Sound.sfx('zing');
           }
@@ -2486,6 +2623,7 @@ class Level1 extends Phaser.Scene {
       p.life -= dt;
       if (p.rv) p.rot += p.rv * dt;
       if (p.flashT > 0) { p.flashT -= dt; if (p.flashT <= 0) p.spr.setTint(0xff9d9d); }
+      if (p.stay && p.h < 0) { p.h = 0; p.vh = Math.abs(p.vh) > 120 ? -p.vh * 0.35 : 0; p.vt *= 0.5; p.rv *= 0.5; if (!p.vh) { p.vt = 0; p.rv = 0; } if (Math.abs(p.vh) > 0) Sound.sfx('clang'); }
       if (p.corpse && p.h < 0 && p.vh < 0) { this.burst(p.theta, 4, 'spark', 3, 0.4); p.h = 0; p.life = 0; }    // a little poof as it lands
       if (p.life <= 0 || p.h < 0) { p.spr.destroy(); this.parts.splice(i, 1); }
     }
@@ -2855,6 +2993,11 @@ class Level1 extends Phaser.Scene {
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
     this.drawBuff();
+    if (this.ko) {                                           // game over: flat on his back (rotates about his feet), little stars circling
+      const r = this.rig.root; r.setRotation(this.ko.rot); r.y -= Math.abs(this.ko.rot) * 7 * this.zoom; r.x += this.ko.rot * 4 * this.zoom;   // lies ON the ground
+      if (this.koStars) { const a = this.t * 5; this.koStars.setPosition(r.x - (P.facing || 1) * 52 * this.zoom + Math.cos(a) * 10, r.y - 12 * this.zoom + Math.sin(a) * 4); }
+    }
+    this.livesText.setText('x' + this.lives);
     if (this.warp && this.warp.entering) this.rig.root.setRotation(this.rig.root.rotation + this.warp.t * 9);
     { // where the gun's muzzle actually is this frame (after recoil, crouch and facing), in world terms
       const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();

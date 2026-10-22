@@ -528,3 +528,30 @@ Bessie is snatched back at the end of every level until Level 9.
 - **Cape knot:** a red bow with a gold clasp (`c_collar`) sits in front of the neck, so the cape wraps over him.
 - **The apron** now sits over the FRONT of the suit instead of hiding behind it. It's split into a bib ("KISS THE") and a skirt ("COOK"). The skirt hangs on a springy hinge: it swings back when running, flips up when falling and whumps on landing, with angles snapped to 1/32-turn steps.
 - The old apron-to-cape swap on jumping is gone: he now wears both all the time.
+
+### v0.84 — Lives, GAME OVER, rebalance, chef-to-astronaut in the intro, a homely cabin
+- **Rebalance (v0.81 went too far):**
+  - Croque Monsieur: health 140; cannon every 0.85s, or 0.7s with both cannons when angry; crumb fan of 4–5; the slam needs 1.7s under it (1.2s angry); fewer meatballs and shockwaves.
+  - L2 enemies: germs spit every 3.4–5s within 280px; frogs pause longer and only splash half the time; stink-flies bomb every 2–3s with no side puffs.
+  - Baron von Blue: health 160; lighter spore rain; smaller rings; slower spit.
+- **Battle Chris has no apron:** the rig has chef mode (apron, no cape) and battle mode (cape and knot, no apron). Battle mode is the default; cutscene Chris with the spatula is in chef mode.
+- **Intro transformation:** in the cabin, after he grabs the Mac-Grinder he hops and the apron whips round faster and faster on the spot and becomes the cape ("OFF COMES THE APRON... ON GOES THE CAPE!"). Handled by `ChrisRig.spinToCape()`.
+- **The cabin is a home now:**
+  - kitchen corner: a chef's range with a steaming pot of cheese sauce, and pans on a rail;
+  - a potted plant, a squashy sofa with cow-print cushions and a coffee table (cocoa, cheese magazine);
+  - a "HOME" cross-stitch and a cuckoo clock with a swinging pendulum;
+  - a CRT telly with rabbit ears flicking between a cooking show, a cow documentary and static, casting a blue glow;
+  - a fringed floor lamp with a warm glow, a bookshelf (books, a jar of Mad Cheese, a trophy, a model rocket);
+  - the space dog asleep on the hearth with floating z's.
+- **Lives:**
+  - 3 lives per game, kept for the session (`registry.lives`), shown as "x3" on the portrait.
+  - A death costs a life; the death screen shows LIVES LEFT. While lives remain, retry continues from the checkpoint.
+  - **1UP:** one floats high above the second-highest ledge of each level (it takes the jetpack). Once taken it's gone until GAME OVER.
+  - A bonus life every 40,000 points. The cap is 9 lives.
+- **GAME OVER** when the last life goes:
+  1. The camera pushes in on Chris (zoom 1.9) and everything goes dark around him in a spotlight.
+  2. His helmet glass cracks, cracks more, then shatters (glass shards; the bare head has X'd-out eyes).
+  3. He keels over backwards onto his back with stars circling, and his gun clatters away.
+  4. Small and far off in the sky, the rat UFO whisks Bessie away ("moooo...").
+  5. The screen cuts to black and a red-and-gold GAME OVER drops in letter by letter, with "BESSIE IS STILL OUT THERE..." and the final score.
+  6. It fades to black and returns to the main menu with lives reset to 3. Tapping once the text is up skips ahead.
