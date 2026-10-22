@@ -601,3 +601,22 @@ The telekinesis ray is **saved for later**: `psyRayStart(e, toP)` and `psyRayUpd
   - goop drips off the boots.
 - Jetting out takes about a second and burns about 40% of the fuel tank. The two weak jumps are usually the better way out.
 - A hop out of the goop arms the jetpack at once, so holding jump starts the slow struggle straight away instead of never lighting.
+
+### v0.90 — Baron von Blue rebuilt
+- **Gone:** the spore rain falling from the sky. Every attack now comes from the Baron himself.
+- **Bigger:** boss scale 1.35, up from 1.12 (`boss.scale`).
+- **Fast:** he hunts Chris at 225 units/s (270 when angry, about Chris's own run speed), weaving over his head at a lower height (165). You can't stand off and plink him.
+- **Evil animated face (overlays, `drawBaron`):**
+  - 3 mouth frames: `baron_m0` hooked-up sneer with fangs, `baron_m1` snarl, `baron_m2` dropped-jaw ROAR with long fangs, tongue, uvula and drool;
+  - red slit pupils (`baron_pupil`) that follow Chris;
+  - green drool dripping;
+  - he CACKLES every 4.5–7s ("nyeh-heh-heh", jaw flapping) and after landing a flail hit;
+  - he growls and ROARS wide 0.45s before spitting (the tell).
+- **Spiked flail** (`spikeball` on a drawn chain):
+  - **Hang:** swings like a pendulum 95px under his fist. It clips you standing but misses you ducked, so duck under it or keep moving.
+  - **Whirl (tell):** 0.85s (0.65s angry) of whirling it over his head, faster and faster with swishes.
+  - **Throw:** hurled straight at where Chris is heading (up to 300px), a clang at full reach, then reeled back. When angry he throws twice in a row.
+- **Other attacks:**
+  - roar-telegraphed aimed spore triple from the mouth (every 3.4s, 2.4s angry);
+  - a spore ring every 6.5s (5s angry);
+  - germ and stink-fly pals only in phase 2.

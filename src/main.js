@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v0.89';
+const BUILD = 'v0.90';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1784,6 +1784,101 @@ class Level1 extends Phaser.Scene {
     else { e.spr.sqx = 1; e.spr.sqy = 1 + Math.max(0, Math.min(0.15, e.vh / 3500)); }
   }
 
+  // BARON VON BLUE: fast, in your face, with a spiked flail on a chain and an evil animated mouth.
+  //  * the flail swings under him (don't camp below him)
+  //  * WHIRL (0.8s, he grins, ball circles over his head) -> THROW straight at where you're going -> reels back in
+  //  * he ROARS wide (mouth tell) then spits an aimed triple of spores; every so often he cackles
+  //  * a spore ring now and then, and germ pals when angry (stink-flies too in phase 2)
+  baronAI(e, dt, phase2, toP, distP) {
+    const P = this.pl;
+    if (!e.fl) e.fl = { st: 'hang', t: 0, a: 0, len: 95, cd: 2.5, n: 0 };
+    if (!e.mouth) e.mouth = { f: 0, t: 0, cackleCd: 3 };
+    const F = e.fl, M = e.mouth;
+    F.t += dt; F.cd -= dt;
+    const anchor = { theta: e.theta, h: e.h - 26 * (e.spr.bsy || 1) };          // his fist, under the body
+    if (F.st === 'hang') {                                       // swinging pendulum below him
+      F.len += (95 - F.len) * Math.min(1, dt * 6);          // low enough to clip him standing - DUCK under it
+      F.a = Math.sin(F.t * 2.6) * 1.0 + (e.vx || 0) * -0.002;     // (trails behind as he moves)
+      F.dx = Math.sin(F.a) * F.len; F.dy = -Math.cos(F.a) * F.len;
+      if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.st = 'whirl'; F.t = 0; M.f = 0; Sound.sfx('swish'); }
+    } else if (F.st === 'whirl') {                               // the tell: whirling it over his head, faster and faster
+      const sp = 6 + F.t * 12; F.a = (F.a || 0) + sp * dt; F.len = 62;
+      F.dx = Math.cos(F.a) * F.len; F.dy = 30 + Math.sin(F.a) * F.len * 0.45;
+      if (Math.floor(F.t * 6) !== Math.floor((F.t - dt) * 6)) Sound.sfx('swish');
+      if (F.t > (phase2 ? 0.65 : 0.85)) {                         // HURL it at where Chris is heading
+        const lead = (P.vx || 0) * 0.35, tx = angDiff(P.theta, e.theta) * R + lead, ty = (P.h + 20) - anchor.h;
+        const d = Math.hypot(tx, ty) || 1, reach = Math.min(300, d + 30);
+        F.st = 'throw'; F.t = 0; F.ux = tx / d; F.uy = ty / d; F.reach = reach; F.ox = F.dx; F.oy = F.dy;
+        Sound.sfx('whoosh'); M.f = 2; M.t = 0.5;
+      }
+    } else if (F.st === 'throw') {
+      const out = 0.32, hold = 0.18, back = 0.45;
+      const k = F.t < out ? 1 - Math.pow(1 - F.t / out, 2) : (F.t < out + hold ? 1 : Math.max(0, 1 - (F.t - out - hold) / back));
+      F.dx = F.ux * F.reach * k + F.ox * (1 - k); F.dy = F.uy * F.reach * k + F.oy * (1 - k); F.len = Math.hypot(F.dx, F.dy);
+      if (F.t > out && F.t - dt <= out) { this.cameras.main.shake(90, 0.004); Sound.sfx('clang'); }
+      if (F.t >= out + hold + back) {
+        F.n++;
+        if (phase2 && F.n % 2 === 1) { F.st = 'whirl'; F.t = 0.35; }          // angry: a second throw straight after
+        else { F.st = 'hang'; F.t = 0; F.cd = phase2 ? 2.4 : 3.4; }
+      }
+    }
+    // the ball: where it is, and does it hit Chris?
+    F.theta = wrap(anchor.theta + F.dx / (R + anchor.h)); F.h = anchor.h + F.dy; F.ath = anchor.theta; F.ah = anchor.h;
+    if (P.invuln <= 0 && this.state === 'play' && dist2(F.theta, F.h, P.theta, P.h + (P.duck ? 10 : 22)) < (15 + (P.duck ? 9 : 12)) ** 2) { this.hurt(); M.f = 1; M.cackle = 1.0; }
+
+    // mouth: sneer by default; cackles now and then; roars wide before he spits
+    M.t -= dt; M.cackleCd -= dt;
+    if (M.cackle > 0) { M.cackle -= dt; M.f = Math.floor(M.cackle * 12) % 2 ? 1 : 2; if (M.cackle <= 0) M.f = 0; }
+    else if (M.cackleCd <= 0 && F.st === 'hang') { M.cackle = 0.9; M.cackleCd = rnd(4.5, 7); Sound.sfx('cackle'); }
+    else if (M.t <= 0 && M.f !== 0 && !(M.roar > 0)) M.f = 0;
+    e.spitCd = (e.spitCd === undefined ? 3 : e.spitCd) - dt;
+    if (e.spitCd <= 0.45 && !(M.roar > 0) && e.spitCd > 0) { M.roar = 0.45; M.f = 2; Sound.sfx('growl'); }    // the tell: jaw drops
+    if (M.roar > 0) M.roar -= dt;
+    if (e.spitCd <= 0) {                                         // from the mouth: an aimed triple of spores
+      e.spitCd = phase2 ? 2.4 : 3.4; M.roar = 0; M.t = 0.25;
+      const mh = e.h - 18 * (e.spr.bsy || 1), ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - mh, v = phase2 ? 250 : 220, a0 = Math.atan2(ey, ex);
+      for (const da of [-0.2, 0, 0.2]) this.addEBullet('spore', e.theta, mh, Math.cos(a0 + da) * v, Math.sin(a0 + da) * v, 10, 3);
+      Sound.sfx('zing');
+    }
+    if (e.fanCd <= 0) {                                          // a spore ring
+      e.fanCd = phase2 ? 5 : 6.5; Sound.sfx('fan'); M.f = 1; M.t = 0.4;
+      const n = phase2 ? 10 : 8, off = rnd(0, 1);
+      for (let k = 0; k < n; k++) { const a = ((k + off) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 150 * Math.sin(a), 150 * Math.cos(a), 11, 2.4); }
+    }
+    if (e.sumCd <= 0 && phase2 && this.enemies.length < 6) {     // angry: calls in pals
+      e.sumCd = 7;
+      for (const sd of [-1, 1]) { const c = this.makeEnemy(sd > 0 ? 'stinkfly' : 'germ', wrap(e.theta + sd * 0.08), sd); if (c.kind !== 'flyer') { c.h = e.h; c.vh = 120; } this.enemies.push(c); }
+    }
+    e.rainCd = 99;                                               // (no more spore rain from the sky)
+    // drool
+    e.droolT = (e.droolT || 0) - dt;
+    if (e.droolT <= 0) { e.droolT = rnd(0.5, 1.2); const im = this.add.image(0, 0, 'goopbub').setDepth(6.3); im.bsx = im.bsy = 0.7; this.parts.push({ theta: wrap(e.theta + 14 / R), h: e.h - 26 * (e.spr.bsy || 1), vt: 0, vh: -20, life: 0.6, spr: im }); }
+  }
+
+  // the Baron's overlays: animated mouth, pupils that follow Chris, chain + spiked ball
+  drawBaron(e) {
+    const k = e.spr.bsx || 1, z = this.zoom, P = this.pl;
+    if (!e.ov) {
+      e.ov = { mouth: this.add.image(0, 0, 'baron_m0').setDepth(6.1), pl: this.add.image(0, 0, 'baron_pupil').setDepth(6.1), pr: this.add.image(0, 0, 'baron_pupil').setDepth(6.1),
+        ball: this.add.image(0, 0, 'spikeball').setDepth(6.3), chain: this.add.graphics().setDepth(5.9) };
+    }
+    const O = e.ov, rot = Math.sin(e.t * 1.5) * 0.08, M = e.mouth || { f: 0 };
+    const atOff = (o, ox, oy, extra) => { this.place(o, wrap(e.theta + ox * k / (R + e.h)), e.h - oy * k, rot + (extra || 0)); o.setScale(o.scaleX * k, o.scaleY * k); };
+    O.mouth.setTexture('baron_m' + (M.f || 0)).setOrigin(0.5, 0.3);
+    atOff(O.mouth, 1, 18 + (M.f === 2 ? 1 : 0) + (M.cackle > 0 ? Math.sin(this.t * 40) : 0));
+    const lookX = Math.max(-3, Math.min(3, angDiff(P.theta, e.theta) * R * 0.03)), lookY = Math.max(-2, Math.min(3, (e.h - P.h) * 0.02));
+    atOff(O.pl, -16 + lookX, 3 + lookY); atOff(O.pr, 18 + lookX, 3 + lookY);
+    for (const o of [O.mouth, O.pl, O.pr]) { o.setAlpha(e.spr.alpha); if (e.flash > 0) o.setTintFill(0xffffff); else o.clearTint(); }
+    const F = e.fl;
+    O.chain.clear();
+    if (F && F.theta !== undefined) {
+      this.place(O.ball, F.theta, F.h, F.t * 8);
+      const a = this.screenPos(F.ath, F.ah), b = this.screenPos(F.theta, F.h), n = Math.max(3, Math.ceil(F.len / 9));
+      for (let i = 1; i < n; i++) { const t = i / n, x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t + Math.sin(t * Math.PI) * (F.st === 'hang' ? 4 : 1) * z;
+        O.chain.fillStyle(0x1a1020, 1).fillCircle(x, y, 3.2 * z).fillStyle(0xa8b0c0, 1).fillCircle(x, y, 2.2 * z); }
+    }
+  }
+
   // tongues + throat sacs (drawn along the curve of the planet)
   drawTongues() {
     if (!this.tongueG) this.tongueG = this.add.graphics().setDepth(5.5);
@@ -2172,7 +2267,7 @@ class Level1 extends Phaser.Scene {
     let st, tex, oy, k;
     if (type === 'boss') {
       const b = this.def.boss;
-      st = { hp: b.hp, r: 54, ch: 0, drop: 0 }; tex = b.tex; oy = 0.5; k = 1.12;
+      st = { hp: b.hp, r: 54, ch: 0, drop: 0 }; tex = b.tex; oy = 0.5; k = b.scale || 1.12;
     } else {
       st = ENEMY[type]; tex = st.tex; oy = st.oy; k = 1.22;
     }
@@ -2345,11 +2440,12 @@ class Level1 extends Phaser.Scene {
       } else if (e.type === 'boss') {
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
         if (e.ai !== 'wheel') {
-          const target = P.theta + Math.sin(e.t * 0.5) * 0.3;
-          const maxV = e.hp < e.maxHp * 0.5 ? 0.3 : 0.24;          // radians per second (about 100-125 units/s)
+          const baron = e.ai === 'baron';
+          const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head
+          const maxV = baron ? (e.hp < e.maxHp * 0.5 ? 270 : 225) / R : (e.hp < e.maxHp * 0.5 ? 0.3 : 0.24);   // (the Baron runs about as fast as Chris)
           const step = Math.max(-maxV, Math.min(maxV, angDiff(target, e.theta) * 0.9));
           if (!(e.charge > 0)) e.theta = wrap(e.theta + step * dt);
-          if (!(e.charge > 0)) e.h = (e.ai === 'paladin' ? 130 : 175) + Math.sin(e.t * 1.3) * 30;       // low enough to hit with a jump (shots fly straight)
+          if (!(e.charge > 0)) e.h = (e.ai === 'paladin' ? 130 : (baron ? 165 : 175)) + Math.sin(e.t * (baron ? 2.2 : 1.3)) * (baron ? 18 : 30);       // low enough to hit with a jump (shots fly straight)
         }
         const phase2 = e.hp < e.maxHp * 0.5;
 
@@ -2419,30 +2515,7 @@ class Level1 extends Phaser.Scene {
             }
           }
         } else if (e.ai === 'baron') {
-          if (e.rainCd <= 0) {          // spore globs rain down around (and just ahead of) Chris
-            e.rainCd = phase2 ? 1.0 : 1.35;
-            const lead = (P.vx || 0) * 0.5 / R, n = phase2 ? 4 : 3;
-            for (let k = 0; k < n; k++) this.addEBullet('spore', P.theta + lead + (k - (n - 1) / 2) * 0.12 + rnd(-0.03, 0.03), 300, rnd(-30, 30), -185, 12, 2.8);
-            Sound.sfx('cube');
-          }
-          if (e.fanCd <= 0) {           // ring of spores (two staggered rings when angry)
-            e.fanCd = phase2 ? 3.8 : 5;
-            Sound.sfx('fan');
-            const n = phase2 ? 12 : 9, off = rnd(0, 1);
-            for (let k = 0; k < n; k++) { const a = ((k + off) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 165 * Math.sin(a), 165 * Math.cos(a), 11, 2.4); }
-            if (phase2) this.time.delayedCall(450, () => { if (e.hp > 0) for (let k = 0; k < n; k++) { const a = ((k + off + 0.5) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 125 * Math.sin(a), 125 * Math.cos(a), 11, 2.8); } });
-          }
-          e.spitCd = (e.spitCd === undefined ? 2 : e.spitCd) - dt;
-          if (e.spitCd <= 0) {          // the Baron's monocle glints, then he spits a fast aimed triple at Chris
-            e.spitCd = phase2 ? 2.2 : 3.2;
-            const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - e.h, len = Math.hypot(ex, ey) || 1, v = phase2 ? 250 : 220, a0 = Math.atan2(ey, ex);
-            for (const da of [-0.18, 0, 0.18]) this.addEBullet('spore', e.theta, e.h, Math.cos(a0 + da) * v, Math.sin(a0 + da) * v, 10, 3);
-            this.muzzleFlash(e.theta, e.h); Sound.sfx('zing');
-          }
-          if (e.sumCd <= 0 && this.enemies.length < (phase2 ? 7 : 5)) {   // calls in pals: germs, and stink-flies once he's angry
-            e.sumCd = phase2 ? 5 : 8;
-            for (const sd of [-1, 1]) { const c = this.makeEnemy(phase2 && sd > 0 ? 'stinkfly' : 'germ', wrap(e.theta + sd * 0.08), sd); c.h = Math.max(c.h, 0); if (c.kind !== 'flyer') { c.h = e.h; c.vh = 120; } this.enemies.push(c); }
-          }
+          this.baronAI(e, dt, phase2, toP, distP);
         } else if (e.ai === 'mandoline') {
           if (e.rainCd <= 0) {          // a slicing disc skimming the floor: jump it
             e.rainCd = phase2 ? 1.6 : 2.4;
@@ -2621,6 +2694,7 @@ class Level1 extends Phaser.Scene {
       }
       e.spr.destroy();
       if (e.jet) e.jet.destroy();
+      if (e.ov) for (const o of Object.values(e.ov)) o.destroy();
       this.enemies.splice(i, 1);
     }
   }
@@ -3224,6 +3298,7 @@ class Level1 extends Phaser.Scene {
 
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h, e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
+      if (e.ai === 'baron') this.drawBaron(e);
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
       if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
         if (!e.jet) e.jet = this.add.image(0, 0, 'ratjet0').setOrigin(0.5, 0).setDepth(4.9);

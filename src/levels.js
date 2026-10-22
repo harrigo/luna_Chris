@@ -63,7 +63,7 @@ const LEVELS = {
       { name: 'WAVE 4', spawns: [S('frog', 0), S('frog', 0.6), S('stinkfly', 1.2), S('germ', 1.6), S('germ', 2), S('stinkfly', 2.4), S('frog', 3), S('germ', 3.4), S('stinkfly', 3.8), S('germ', 4.2), S('frog', 4.8), S('frog', 5.4), S('stinkfly', 6), S('germ', 6.4), S('germ', 6.8), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.4), S('stinkfly', 9)] }
     ],
     goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
-    boss: { tex: 'baron', hp: 160, ai: 'baron' },
+    boss: { tex: 'baron', hp: 160, ai: 'baron', scale: 1.35 },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
@@ -325,12 +325,43 @@ function makeLevelTextures(scene) {
     for (const [x, y, r] of [[26, 62, 7], [86, 50, 8], [70, 78, 5.5], [40, 77, 4.5], [96, 68, 5], [20, 44, 4]]) { a.ell(x, y, r, r * 0.8, 0x3d57a8); a.ell(x + 1, y + 1, r * 0.5, r * 0.4, 0x2a3a80); }   // mould veins
     a.line([[30, 66], [24, 74]], 0x3d57a8, 2); a.line([[88, 56], [96, 50]], 0x3d57a8, 2);
     a.ell(42, 44, 13, 13, 0xffffff); a.ell(76, 44, 13, 13, 0xffffff);
-    a.rect(43, 44, 49, 51, OUTPX); a.rect(69, 44, 75, 51, OUTPX); a.rect(44, 45, 45, 46, 0xffffff); a.rect(70, 45, 71, 46, 0xffffff);
+    a.ell(42, 50, 13, 4, [0xe8f0ff, 0xc8d4f0, 0x9aa8d0]); a.ell(76, 50, 13, 4, [0xe8f0ff, 0xc8d4f0, 0x9aa8d0]);   // (pupils + mouth are animated overlays)
     a.line([[28, 29], [54, 38]], OUTPX, 4); a.line([[90, 29], [64, 38]], OUTPX, 4);                           // angry brows
-    a.rrect(36, 62, 82, 78, 5, 0x1b2a55); a.rect(42, 62, 47, 68, 0xffffff); a.rect(56, 62, 61, 68, 0xffffff); a.rect(70, 62, 75, 68, 0xffffff); a.rect(49, 73, 53, 78, 0xffffff); a.rect(63, 73, 67, 78, 0xffffff);
+    a.ell(58, 72, 24, 9, [0x9ab8f0, 0x6a8ad8, 0x3a5aa8]);                                                     // jowls round the mouth
     a.poly([[30, 25], [36, 4], [46, 16], [58, 0], [70, 16], [80, 4], [86, 25]], [0xfff09a, 0xffd23f, 0xc9901a]);   // crown
     a.ell(58, 18, 3, 3, 0xff3a5a); a.ell(42, 20, 2, 2, 0x4ab0ff); a.ell(74, 20, 2, 2, 0x4ab0ff);
   }, 2);
+
+  // Baron von Blue's animated bits: 3 mouth frames (evil sneer / snarl / roar), pupils, and his spiked flail
+  const MOUTH = 0x1b0a2a, FANG = [0xffffff, 0xf0f0e0, 0xc8c8b0], TONGUE = [0xff8a9a, 0xe0405a, 0x90203a];
+  pixSprite(scene, 'baron_m0', 54, 22, a => {                     // a nasty sneer: wide grin, corners hooked UP, clenched teeth
+    a.poly([[1, 3], [8, 8], [27, 10], [46, 8], [53, 2], [49, 12], [27, 17], [5, 12]], MOUTH);
+    for (let x = 9; x < 46; x += 6) a.rect(x, 9, x + 4, 12, FANG[0]);
+    a.poly([[14, 9], [18, 9], [16, 15]], FANG); a.poly([[37, 9], [41, 9], [39, 15]], FANG);                  // two fangs
+    a.px(50, 4, 0xffffff);
+  });
+  pixSprite(scene, 'baron_m1', 54, 26, a => {                     // snarling, half open
+    a.poly([[1, 2], [10, 6], [27, 7], [44, 6], [53, 1], [48, 16], [27, 23], [6, 16]], MOUTH);
+    for (let x = 8; x < 46; x += 6) a.poly([[x, 6], [x + 5, 6], [x + 2.5, 11]], FANG);                       // top teeth
+    for (let x = 11; x < 43; x += 7) a.poly([[x, 21], [x + 5, 21], [x + 2.5, 16]], FANG);                   // bottom teeth
+    a.ell(27, 19, 8, 3, TONGUE);
+  });
+  pixSprite(scene, 'baron_m2', 56, 34, a => {                     // ROAR: jaw dropped, big fangs, tongue, drool
+    a.poly([[1, 1], [12, 5], [28, 6], [44, 5], [55, 0], [50, 22], [28, 33], [6, 22]], MOUTH);
+    for (let x = 7; x < 48; x += 7) a.poly([[x, 5], [x + 6, 5], [x + 3, 12]], FANG);
+    a.poly([[10, 5], [16, 5], [13, 17]], FANG); a.poly([[40, 5], [46, 5], [43, 17]], FANG);                  // long fangs
+    for (let x = 12; x < 44; x += 8) a.poly([[x, 30], [x + 6, 29], [x + 3, 23]], FANG);
+    a.ell(28, 26, 11, 5, TONGUE); a.line([[28, 23], [28, 29]], 0x90203a);
+    a.ell(28, 9, 2, 3, [0xff8a9a, 0xe0405a, 0x90203a]);                                                     // uvula
+    a.line([[48, 18], [49, 26]], 0x8ae86a, 2); a.px(49, 27, 0xc8ffa8);                                     // drool
+  });
+  pixSprite(scene, 'baron_pupil', 9, 9, a => { a.ell(4, 4, 3.5, 3.5, [0xff6a3a, 0xd62020, 0x6a0a0a]); a.rect(4, 2, 4, 6, 0x1a0a0a); a.px(3, 2, 0xffffff); });
+  pixSprite(scene, 'spikeball', 36, 36, a => {                    // a spiked iron ball (mouldy blue rust patches)
+    for (let k = 0; k < 8; k++) { const t = k * Math.PI / 4, c = Math.cos(t), s2 = Math.sin(t); a.poly([[18 + c * 11 - s2 * 4, 18 + s2 * 11 + c * 4], [18 + c * 17, 18 + s2 * 17], [18 + c * 11 + s2 * 4, 18 + s2 * 11 - c * 4]], [0xe8eef8, 0xa8b0c0, 0x5a6272]); }
+    a.ell(18, 18, 12, 12, [0x8a92a2, 0x5a6272, 0x2e3442]);
+    a.ell(14, 21, 3, 2, 0x3d57a8); a.ell(22, 14, 2, 2, 0x3d57a8); a.px(13, 13, 0xffffff); a.px(14, 12, 0xffffff);
+  });
+  pixSprite(scene, 'chainlink', 8, 8, a => { a.ell(4, 4, 3, 3, [0xc8d0dc, 0x8a92a2, 0x4a5262]); a.ell(4, 4, 1.2, 1.2, -1); });
 
   // boss: the Mega-Mandoline, a giant steel grater with spinning slicer blades
   pixSprite(scene, 'mandoline', 130, 96, a => {

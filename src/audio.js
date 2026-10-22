@@ -152,6 +152,8 @@ const Sound = (() => {
     charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
     squelch: () => { wobble({ type: 'square', f: 110, f2: 60, dur: 0.25, vol: 0.16, rate: 30, depth: 25, lp: 700 }); noise({ ft: 'lowpass', f1: 500, f2: 120, dur: 0.2, vol: 0.2 }); },
     psy:     () => wobble({ type: 'sine', f: 600, f2: 1400, dur: 0.45, vol: 0.12, rate: 18, depth: 120 }),
+    cackle:  () => { for (let i = 0; i < 6; i++) tone({ type: 'square', f: 520 - i * 40 + (i % 2) * 90, f2: 380 - i * 30, dur: 0.09, vol: 0.12, t: ctx.currentTime + i * 0.13 }); },   // "NYEH-HEH-HEH-HEH"
+    growl:   () => { wobble({ type: 'sawtooth', f: 90, f2: 70, dur: 0.45, vol: 0.2, rate: 25, depth: 18, lp: 700 }); },
     beat:    () => { tone({ type: 'sine', f: 70, f2: 40, dur: 0.12, vol: 0.4 }); tone({ type: 'sine', f: 62, f2: 38, dur: 0.12, vol: 0.3, t: ctx.currentTime + 0.18 }); },   // low-health heartbeat
     combo:   () => arp([660, 990], 0.04, { type: 'pulse', duty: 0.25, vol: 0.08 }),
     blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter
