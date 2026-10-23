@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.02';
+const BUILD = 'v1.03';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -495,7 +495,7 @@ class Level1 extends Phaser.Scene {
     if (this.input.keyboard) ['P', 'ESC'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (this.state === 'play' || this.state === 'rescue' || this.paused) this.togglePause(); }));
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
-      if (this.paused) return;                          // taps go to the pause menu
+      if (this.paused || Board.open) return;            // taps go to the pause menu / the high-score box
       if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
@@ -507,6 +507,7 @@ class Level1 extends Phaser.Scene {
     });
     // controller: A/Start = start / retry / continue, View (back) = level menu
     const padOff = Pad.on(b => {
+      if (Board.open) return;                           // the high-score box has the controller
       if (b === 'back') { this.scene.start('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
       if (this.paused) return;                          // the pause menu handles its own buttons
@@ -518,6 +519,7 @@ class Level1 extends Phaser.Scene {
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     this.events.once('shutdown', padOff);
+    this.events.once('shutdown', () => Board.close(true));
     // cheat mode: H / phone shake gives a heart
     const cheatOff = Cheat.on_(type => {
       if (type === 'mode') { this.cheatText.setVisible(Cheat.on); return; }
@@ -745,6 +747,7 @@ class Level1 extends Phaser.Scene {
   // ------------------------------------------------------------- game flow
   startGame() {
     this.hideOverlay();
+    try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
     this.placeWheels(); this.placeOneUp();
     this.state = 'play';
     Sound.init();
@@ -1076,12 +1079,18 @@ class Level1 extends Phaser.Scene {
     const stats = 'TIME ' + mm + ':' + ss + '   HITS ' + this.hurtCount + (this.deaths ? '   DEATHS ' + this.deaths : '') + '   BEST COMBO ' + this.maxCombo +
       '\nCHEESE WHEELS ' + Progress.wheelCount(this.levelId) + '/3' + (prev && 'SABCD'.indexOf(RK.r) < 'SABCD'.indexOf(prev) ? '   NEW BEST!' : '');
     this.time.delayedCall(700, () => this.showRank(RK.r));
+    // made the level's online top 10? the name box pops up once the rank has landed
+    const score = this.score, title = 'LEVEL ' + this.levelId + ' ' + (this.def.short || this.def.name);
+    const offerBoard = (then) => this.time.delayedCall(1700, () => { if (this.state === 'won') Board.offer(this.levelId, score, title, () => { this.endT = this.t; if (then) then(); }); });
     if (this.levelId === CFG.finalLevel) {               // the whole game is done: on to the ending
       Sound.music('win'); this.endT = this.t;
       this.showOverlay('YOU DID IT!', 'Bessie is safe at last...\n\n' + stats);
-      this.time.delayedCall(2600, () => { this.cameras.main.fadeOut(600, 0, 0, 0); this.time.delayedCall(650, () => this.scene.start('ending')); });
+      const toEnding = () => { if (this.state !== 'won' || this.toEnding) return; this.toEnding = true; this.cameras.main.fadeOut(600, 0, 0, 0); this.time.delayedCall(650, () => this.scene.start('ending')); };
+      offerBoard(() => this.time.delayedCall(400, toEnding));
+      this.time.delayedCall(2600, () => { if (!Board.open) toEnding(); });
       return;
     }
+    offerBoard();
     if (this.levelId < CFG.finalLevel) Sound.music('win');
     this.endT = this.t;
     this.showOverlay('LEVEL ' + this.levelId + ' CLEAR!', this.def.win + '\n\n' + stats + '\n\nTap for level select');
@@ -1196,11 +1205,15 @@ class Level1 extends Phaser.Scene {
         this.tweens.add({ targets: sub, alpha: 1, delay: 1700, duration: 500 });
         const fin = this.add.text(cx, cy + 66, 'FINAL SCORE ' + String(this.score).padStart(7, '0'), { fontFamily: PIXEL, fontSize: '8px', color: '#ffd23f' }).setOrigin(0.5).setDepth(41).setAlpha(0).setScrollFactor(0);
         this.tweens.add({ targets: fin, alpha: 1, delay: 2100, duration: 500 });
-        this.time.delayedCall(2300, () => { this.goReady = true; });
+        this.time.delayedCall(2300, () => {
+          this.goReady = true;
+          // the run's score still counts if it made the level's online top 10
+          Board.offer(this.levelId, this.score, 'LEVEL ' + this.levelId + ' ' + (this.def.short || this.def.name), () => { if (this.goLeaveLater) this.time.delayedCall(300, () => this.leaveGameOver()); });
+        });
       } });
     });
     // 6. fade out, back to the start
-    at(11500, () => this.leaveGameOver());
+    at(11500, () => { if (Board.open) this.goLeaveLater = true; else this.leaveGameOver(); });
   }
   leaveGameOver() {
     if (this.leavingGO) return;

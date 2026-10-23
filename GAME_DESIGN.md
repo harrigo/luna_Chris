@@ -811,3 +811,9 @@ Built from the brief (`makeGorgeTextures`):
 - **Which device you're on:** `inputDevice()` remembers the last thing you used (key or mouse press, touch, or pad button), falling back to pad if one is connected, then touch if the device has a touchscreen, otherwise keyboard.
 - **Pause > CONTROLS:** shows the scheme for that device as a tidy two-column list (keys in yellow, right-aligned; actions left-aligned), plus tips about bashing, stomp refuels and Swiss charging. A **SHOW** line flips between keyboard, controller and touch. The main menu's CONTROLS page works the same way (`CONTROL_SETS`, `controlItems`; `makeMenu` info lines can now take a `key`).
 - **Level-start card:** shows the short version for your device and points to PAUSE > CONTROLS.
+
+## v1.03 — Online high scores (onlimey.com)
+- Each level has its own top 10 on the onlimey.com leaderboard (`luna-chris-1` … `luna-chris-9`, `luna-chris-5-5`), since the score starts from zero every level. Client: `src/board.js`.
+- A run token is fetched when a level starts from scratch and kept through checkpoint retries, so the server can check the score was reachable in the time played.
+- On LEVEL CLEAR (after the rank slams in) and on GAME OVER, a score that makes the top 10 pops a pixel name box over the game: the board with YOU? slotted in, a name field (remembered), SAVE / SKIP, then the updated board with your row highlighted. Controller: A saves (remembered name or CHRIS), B skips. Keys typed in the box don't reach the game or the cheat code; phones only get the keyboard when they tap the field.
+- Cheat-mode scores are never offered. If the server can't be reached, nothing shows.
