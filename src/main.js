@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.01';
+const BUILD = 'v1.02';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -482,7 +482,7 @@ class Level1 extends Phaser.Scene {
     this.buildOverlay();
 
     this.keys = this.input.keyboard
-      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X', down: 'DOWN', s: 'S', f: 'F', v: 'V' })
+      ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', a: 'A', d: 'D', up: 'UP', w: 'W', space: 'SPACE', z: 'Z', x: 'X', down: 'DOWN', s: 'S', f: 'F', v: 'V', shift: 'SHIFT', j: 'J', k: 'K' })
       : null;
 
     if (this.wantFs === undefined) this.wantFs = false;
@@ -490,7 +490,8 @@ class Level1 extends Phaser.Scene {
 
     // on-screen buttons only on touch devices (a PC uses keyboard / controller); they appear if a touch ever happens
     this.touchUI = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
-    if (this.input.keyboard) ['Q', 'C'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (!this.paused && (this.state === 'play' || this.state === 'rescue')) this.switchWeapon(1); }));
+    if (this.input.keyboard) ['Q', 'C', 'E'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (!this.paused && (this.state === 'play' || this.state === 'rescue')) this.switchWeapon(k === 'Q' ? -1 : 1); }));
+    if (this.input.keyboard) ['ONE', 'TWO', 'THREE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => { if (!this.paused && (this.state === 'play' || this.state === 'rescue')) this.pickWeapon(i); }));
     if (this.input.keyboard) ['P', 'ESC'].forEach(k => this.input.keyboard.on('keydown-' + k, () => { if (this.state === 'play' || this.state === 'rescue' || this.paused) this.togglePause(); }));
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
@@ -567,12 +568,11 @@ class Level1 extends Phaser.Scene {
     } else {
       this.showOverlay(
         'LEVEL ' + this.levelId,
-        this.def.name + '\n\n' + (this.touchUI
-          ? 'LEFT: drag to run, tap or push up to jump,\nhold up to fly   RIGHT: drag to aim + fire   BASH button'
-          : (Pad.state.connected
-            ? 'L-stick run  R-stick aim + fire  A jump (hold = jet)\nRT fire (pressure!)  B bash  LT jetpack  Y swap'
-            : 'WASD / arrows run   SPACE jump (hold = jet)\nMOUSE aim  CLICK fire  RIGHT-CLICK bash  WHEEL swap')) +
-          '\nOut of pasta? BASH them!\n\nTap to start'
+        this.def.name + '\n\n' + ({
+          touch: 'LEFT: drag to run, tap or push up to jump,\nhold up to fly   RIGHT: drag to aim + fire   BASH button',
+          pad: 'L-stick run  R-stick aim + fire  A jump (hold = jet)\nRT fire (pressure!)  B bash  LT jetpack  Y swap',
+          kb: 'A/D run  SPACE jump (hold = jet)  SHIFT jetpack\nMOUSE aim  CLICK fire  RIGHT-CLICK bash  Q/E/WHEEL swap'
+        }[inputDevice()]) + '\nAll controls: PAUSE > CONTROLS\n\nTap to start'
       );
     }
   }
@@ -1361,6 +1361,11 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  pickWeapon(i) {                                          // 1 / 2 / 3: straight to that gun (if you've got it)
+    if (i >= WEAPONS.length || i === this.weaponIdx || !weaponUnlocked(WEAPONS[i], this.levelId)) return;
+    this.weaponIdx = (i - 1 + WEAPONS.length) % WEAPONS.length; this.switchWeapon(1);
+  }
+
   switchWeapon(dirn) {
     const n = WEAPONS.length;
     for (let k = 1; k <= n; k++) {
@@ -1387,10 +1392,20 @@ class Level1 extends Phaser.Scene {
     if (this.paused) {
       this.pauseMenu = makeMenu(this, { title: 'PAUSED', depth: 40, items: [
         { label: () => 'RESUME', act: d => { if (!d) this.togglePause(); } },
+        { label: () => 'CONTROLS', act: d => { if (!d) this.showPauseControls(inputDevice()); } },
         ...optionItems(() => this.applyGfx()),
         { label: () => 'QUIT TO MENU', act: d => { if (!d) { this.togglePause(); this.scene.start('menu'); } } }
       ] });
     } else if (this.pauseMenu) { this.pauseMenu.destroy(); this.pauseMenu = null; }
+  }
+
+  // the controls for whatever you're playing with (cycle through the others with left/right on the SHOW line)
+  showPauseControls(dev) {
+    const I = (text, color) => ({ info: true, text, color }), back = () => { this.pauseMenu.destroy(); this.paused = false; this.togglePause(); };
+    this.pauseMenu.setItems(controlItems(dev, I).concat([
+      { label: () => 'SHOW: ' + { kb: 'KEYBOARD', pad: 'CONTROLLER', touch: 'TOUCH' }[dev] + '  >', act: d => { const o = ['kb', 'pad', 'touch']; this.showPauseControls(o[(o.indexOf(dev) + (d || 1) + 3) % 3]); } },
+      { label: () => 'BACK', act: d => { if (!d) back(); } }
+    ]), 'CONTROLS');
   }
 
   // graphics setting changed mid-level: drop shader glows if they're now off (lights follow the setting live)
@@ -1447,9 +1462,10 @@ class Level1 extends Phaser.Scene {
       if (k.left.isDown || k.a.isDown) d.left = true;
       if (k.right.isDown || k.d.isDown) d.right = true;
       if (k.space.isDown || k.up.isDown || k.w.isDown) d.jump = true;
-      if (k.z.isDown || k.x.isDown) { d.fire = true; d.fireP = 1; }
+      if (k.z.isDown || k.x.isDown || k.j.isDown) { d.fire = true; d.fireP = 1; }
       if (k.down.isDown || k.s.isDown) d.down = true;
-      if (k.f.isDown || k.v.isDown) d.melee = true;
+      if (k.f.isDown || k.v.isDown || k.k.isDown) d.melee = true;
+      if (k.shift.isDown) { d.jump = true; d.jetNow = true; }          // SHIFT: straight onto the jetpack (like LT on a pad)
     }
     const g = Pad.state;
     if (g.connected) {

@@ -799,3 +799,15 @@ Built from the brief (`makeGorgeTextures`):
   - normal shots barely scratch the core (×0.12). Only a **charged Swiss-Shot blast into the eye** does real damage (45, "BULLSEYE!").
 - **Jalapeño Boost** (new power-up, from L6): a green-hot jet (×1.7 climb, unlimited fuel) with a flame trail that scorches enemies behind and below and **stalls the wheel** if it gets close.
 - **Look:** small ruined citadel spires with lit windows on the skyline (`bg_spires`) and dark rocks. The orange pitted planet, cosmic sky and distant UFO stay.
+
+### v1.02 — Better keyboard + mouse controls, context-aware controls help
+- **New keyboard/mouse bindings:**
+  - **SHIFT**: jetpack right away (like LT on a pad);
+  - **E** / **Q**: swap gun forwards / backwards (C and the mouse wheel still work);
+  - **1 2 3**: pick a gun directly;
+  - **J**: fire and **K**: bash, for keyboard-only play (Z/X and F/V still work).
+
+  The full set is A/D or arrows run, SPACE/W jump (hold = jet), S/down duck or dive, mouse aim, left click fire (hold = charge Swiss), right click bash, ESC/P pause.
+- **Which device you're on:** `inputDevice()` remembers the last thing you used (key or mouse press, touch, or pad button), falling back to pad if one is connected, then touch if the device has a touchscreen, otherwise keyboard.
+- **Pause > CONTROLS:** shows the scheme for that device as a tidy two-column list (keys in yellow, right-aligned; actions left-aligned), plus tips about bashing, stomp refuels and Swiss charging. A **SHOW** line flips between keyboard, controller and touch. The main menu's CONTROLS page works the same way (`CONTROL_SETS`, `controlItems`; `makeMenu` info lines can now take a `key`).
+- **Level-start card:** shows the short version for your device and points to PAUSE > CONTROLS.

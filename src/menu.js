@@ -30,6 +30,38 @@ function optionItems(onGfx) {
     { label: () => 'RUMBLE: ' + (Settings.rumble ? 'ON' : 'OFF'), act: () => { Settings.set('rumble', !Settings.rumble); if (Settings.rumble) buzzAll(120); } }
   ];
 }
+// what the player is using right now: the last thing they touched (kb = keyboard + mouse)
+let LAST_INPUT = null;
+function inputDevice() {
+  if (LAST_INPUT) return LAST_INPUT;
+  if (typeof Pad !== 'undefined' && Pad.state.connected) return 'pad';
+  return ((navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window)) ? 'touch' : 'kb';
+}
+window.addEventListener('keydown', () => { LAST_INPUT = 'kb'; }, true);
+window.addEventListener('mousedown', () => { LAST_INPUT = 'kb'; }, true);
+window.addEventListener('touchstart', () => { LAST_INPUT = 'touch'; }, { capture: true, passive: true });
+if (typeof Pad !== 'undefined') Pad.on(() => { LAST_INPUT = 'pad'; });
+
+// the controls for each way of playing (shared by the main menu, the pause menu and the level-start card)
+const CONTROL_SETS = {
+  kb: { title: 'KEYBOARD + MOUSE', lines: [
+    ['A D / ARROWS', 'run'], ['SPACE / W', 'jump (hold = jetpack)'], ['SHIFT', 'jetpack right away'], ['S / DOWN', 'duck (in the air: dive)'],
+    ['MOUSE', 'aim'], ['LEFT CLICK / J', 'fire (hold = charge Swiss)'], ['RIGHT CLICK / F / K', 'bash'],
+    ['WHEEL / Q / E', 'swap gun'], ['1 2 3', 'pick a gun'], ['ESC / P', 'pause']] },
+  pad: { title: 'CONTROLLER', lines: [
+    ['LEFT STICK', 'run (down = duck)'], ['A', 'jump (hold = jetpack)'], ['LT', 'jetpack right away'], ['RIGHT STICK', 'aim + fire'],
+    ['RT', 'fire (squeeze = stronger)'], ['B', 'bash'], ['Y', 'swap gun'], ['START', 'pause']] },
+  touch: { title: 'TOUCH', lines: [
+    ['LEFT: DRAG', 'run'], ['LEFT: TAP / UP', 'jump (hold up = jetpack)'], ['LEFT: PUSH TO TOP', 'jetpack right away'],
+    ['RIGHT: DRAG', 'aim + fire (further = longer)'], ['BASH BUTTON', 'bash'], ['TAP GUN BOX', 'swap gun'], ['PAUSE BUTTON', 'pause']] }
+};
+function controlItems(dev, I) {
+  const C = CONTROL_SETS[dev] || CONTROL_SETS.kb;
+  return [I(C.title, '#ffd23f')].concat(C.lines.map(([key, text]) => ({ info: true, key, text }))).concat([
+    I('Out of pasta? BASH them. Stomp heads to refuel the jet.', '#9fd8ff'),
+    I('SWISS-SHOT: hold fire to charge, let go to throw', '#9fd8ff')]);
+}
+
 function buzzAll(ms) {
   try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignore */ }
   try { if (typeof Pad !== 'undefined' && Pad.state.connected) Pad.rumble(ms); } catch (e) { /* ignore */ }
@@ -46,7 +78,7 @@ function makeMenu(scene, opt) {
     // size the box to what's in it: no empty title band, width from the longest line
     const rowH = 26, infoH = 15, top = opt.title ? 50 : 14;
     const rows = items.map(it => it.info ? infoH : rowH), bodyH = rows.reduce((a, b) => a + b, 0);
-    const longest = Math.max(...items.map(it => it.info ? String(it.text).length * 8.2 : (it.label().length + 6) * 10.4), opt.title ? opt.title.length * 16 : 0);
+    const longest = Math.max(...items.map(it => it.key ? Math.max(String(it.key).length, String(it.text).length) * 2 * 8.2 + 24 : (it.info ? String(it.text).length * 8.2 : (it.label().length + 6) * 10.4)), opt.title ? opt.title.length * 16 : 0);
     const w = Math.min(W - 24, Math.max(opt.minWidth || 200, Math.round(longest + 44))), h = top + bodyH + 6;
     const x = Math.round(opt.x !== undefined ? opt.x : (W - w) / 2);
     const y = Math.round(opt.y !== undefined ? Math.max(8, Math.min(opt.y, H - h - 10)) : (H - h) / 2);
@@ -58,6 +90,10 @@ function makeMenu(scene, opt) {
     let yy = y + top;
     texts = items.map((it, i) => {
       const ty = yy; yy += rows[i];
+      if (it.key) {                                        // a two-column line: KEY (right-aligned) | what it does (left-aligned)
+        const k = scene.add.text(x + w / 2 - 8, ty, it.key, f(8, '#ffd23f')).setOrigin(1, 0).setStroke('#1a1020', 3);
+        const t = scene.add.text(x + w / 2 + 8, ty, it.text, f(8, '#e8ecf8')).setOrigin(0, 0).setStroke('#1a1020', 3); c.add([k, t]); return t;
+      }
       if (it.info) { const t = scene.add.text(x + w / 2, ty, it.text, f(8, it.color || '#c9cde0')).setOrigin(0.5, 0).setStroke('#1a1020', 3); c.add(t); return t; }   // a line of info, not selectable
       const t = scene.add.text(x + w / 2, ty, '', f(10, '#ffffff')).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
       t.on('pointerover', () => { sel = i; render(); });
@@ -120,20 +156,11 @@ class MenuScene extends Phaser.Scene {
     ].concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
     const opts = () => optionItems().concat([{ label: () => 'BACK', act: toMain }]);
     const I = (text, color) => ({ info: true, text, color });
-    const controls = () => [
-      I('TOUCH', '#ffd23f'),
-      I('LEFT: drag to run, tap or push up to jump, hold up to fly'),
-      I('RIGHT: drag to aim + fire   BUTTON: BASH'),
-      I('CONTROLLER', '#ffd23f'),
-      I('L-STICK run   R-STICK aim + fire   A jump (hold = jet)'),
-      I('RT fire (squeeze harder = stronger)   B bash   LT jetpack'),
-      I('Y swap gun   START pause'),
-      I('KEYBOARD + MOUSE', '#ffd23f'),
-      I('WASD / ARROWS run   SPACE jump (hold = jet)   S duck'),
-      I('MOUSE aim   CLICK fire   RIGHT-CLICK bash   WHEEL / Q swap'),
-      I('SWISS-SHOT: hold fire to charge, let go to throw', '#9fd8ff'),
+    let dev = inputDevice();
+    const controls = () => controlItems(dev, I).concat([
+      { label: () => 'SHOW: ' + { kb: 'KEYBOARD', pad: 'CONTROLLER', touch: 'TOUCH' }[dev] + '  >', act: d => { const o = ['kb', 'pad', 'touch']; dev = o[(o.indexOf(dev) + (d || 1) + 3) % 3]; this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'BACK', act: toMain }
-    ];
+    ]);
     this.menu = makeMenu(this, { items: main(), title: '', dim: false, y: Math.round(this.scale.height * 0.5), minWidth: 220, depth: 5,
       onBack: toMain });
   }
