@@ -829,3 +829,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.06 — Music tiers retuned
 - Three arrangements instead of four, picked by the wave's place in the level (`musicTier`): the first wave is lead, bass and drums; the middle waves bring in the arpeggio, the octave-up sparkle on the lead, running 16th hats and four-on-the-floor kicks all at once (a clear lift); the last wave before the boss gets the key change (+2 semitones), 6% tempo and the echo. The boss keeps its own unchanged tune.
+
+## v1.07 — Big-enemy bounce can't be cancelled
+- Holding down (drop / ground-pound) used to clamp Chris to falling every frame, which swallowed the bounce off a big enemy. A big-enemy stomp now sets a 0.45 s bounce window in which diving is off, and the bounce is a bit stronger (480, 560 from a ground-pound).

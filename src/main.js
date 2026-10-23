@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.06';
+const BUILD = 'v1.07';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1609,7 +1609,8 @@ class Level1 extends Phaser.Scene {
     if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
 
-    P.diving = !grounded && !!inp.down;                       // duck in mid-air = tuck and drop fast (cuts the jetpack)
+    if (P.bounceT > 0) P.bounceT -= dt;
+    P.diving = !grounded && !!inp.down && !(P.bounceT > 0);  // duck in mid-air = tuck and drop fast (cuts the jetpack); not while bouncing off a big one
     P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     // goop suction: just above a pool the muck clings to the jet boots - weak thrust, slow climb, and it drags you back down
@@ -3077,7 +3078,7 @@ class Level1 extends Phaser.Scene {
           e.stompCd = 0.45;
           if (e.type === 'boss') e.hp -= pound ? 12 : 6;
           else { e.stomps = (e.stomps || 0) + 1; if (e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - (pound ? 5 : 3)); }   // big ones always take two
-          P.vh = pound ? 520 : 440; P.h = top + 1;
+          P.vh = pound ? 560 : 480; P.h = top + 1; P.diving = false; P.bounceT = 0.45;   // a real bounce: holding down can't cancel it
           if (e.hp > 0) P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 170;   // bounced back off them, not down onto them again
           this.stompBoost();                                          // a head-bounce tops up the jetpack and re-arms it
           P.invuln = Math.max(P.invuln, 0.2);
