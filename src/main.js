@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.05';
+const BUILD = 'v1.06';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1009,7 +1009,7 @@ class Level1 extends Phaser.Scene {
     if (this.waveIdx > 0 && !this.resumed) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;
     this.clearT = 0; this.fillAsked = false; this.fillDone = false;
-    Sound.intensity(Math.min(3, this.waveIdx));                               // the tune builds wave by wave (already there if a fill led in)
+    Sound.intensity(this.musicTier(this.waveIdx));                            // the tune builds wave by wave (already there if a fill led in)
     // checkpoints: halfway through the waves, and just before the boss
     const half = Math.max(1, Math.floor((this.waves.length - 1) / 2)), isCp = this.waveIdx === half || this.waveIdx === this.waves.length - 1 || (Settings.diff === 'easy' && this.waveIdx > 0);
     if (isCp && !this.resumed && (!this.cp || this.cp.wave < this.waveIdx)) {
@@ -1025,6 +1025,8 @@ class Level1 extends Phaser.Scene {
   }
 
   win() { this.startRescue(); }
+  // which arrangement of the level tune a wave gets: 0 the first wave, 2 the last before the boss, 1 the ones between
+  musicTier(i) { const n = this.def.waves.length; return i <= 0 ? 0 : i >= n - 1 ? 2 : 1; }
 
   // ---- golden cheese wheels: 3 hidden per level, remembered on the device
   //  #1 sits on the highest ledge (or floats mid-air), #2 hangs right up at the jetpack ceiling on the far side,
@@ -2582,7 +2584,7 @@ class Level1 extends Phaser.Scene {
       if (!this.fillAsked && this.clearT > 0.3) {
         this.fillAsked = true; this.fillDone = false;
         const more = this.waveIdx >= 0 && this.waveIdx + 1 < this.waves.length;   // not before the first wave: the level starts snappily
-        if (!more || !Sound.fill(() => { this.fillDone = true; }, Math.min(3, this.waveIdx + 1))) this.fillDone = 'none';
+        if (!more || !Sound.fill(() => { this.fillDone = true; }, this.musicTier(this.waveIdx + 1))) this.fillDone = 'none';
       }
       if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) this.nextWave();
     } else {

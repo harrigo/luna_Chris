@@ -420,15 +420,17 @@ const Sound = (() => {
     else if (kind === 'h') noise({ ft: 'highpass', f1: 7000, dur: 0.035, vol: 0.11 * v, t, bus });
   }
 
-  // ---- wave progression for the level tracks. Each wave the same tune builds:
-  //   wave 1: lead, bass and drums only   wave 2: + the arpeggio   wave 3: + a sparkly octave-up double of the lead
-  //   and running hi-hats   wave 4 on: the whole thing lifts a whole tone and a touch faster, with an echo on the lead.
+  // ---- wave progression for the level tracks. Three tiers (the game picks one per wave; the boss keeps its own tune):
+  //   0, the first wave: lead, bass and drums only
+  //   1, the middle waves: the arpeggio comes in, a sparkly octave-up double on the lead, running 16th hi-hats
+  //      and four-on-the-floor kicks
+  //   2, the last wave before the boss: all that, lifted a whole tone, 6% faster, with an echo on the lead
   // When a wave is cleared the game asks for a FILL: the tune carries on to the bar line that leaves room for one,
   // the melody drops out under a snare roll and tom run, then a crash lands on the downbeat, the song restarts
   // from the top at the next intensity, and the game launches the next wave on that beat.
   let intensity = 0;
   const isLevelTrack = n => /^level|^final$/.test(n || '');
-  const TEMPO = [1, 1, 1, 1.06];
+  const TEMPO = [1, 1, 1.06];
   const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
   function fillDrum(left, at) {                                           // `left` steps before the downbeat
     if (left <= 4) return ['l', 'l', 'm', 't'][left - 1];               // toms tumbling down into the crash
@@ -436,22 +438,24 @@ const Sound = (() => {
     return FILL_BAR[at % 16] === '.' ? null : FILL_BAR[at % 16];
   }
   function playStep(c) {
-    const t = c.next, lvl = c.level ? intensity : 3, F = c.fill;
+    const t = c.next, lvl = c.level ? intensity : 2, F = c.fill;
     const inFill = F && c.step >= F.from && c.step < F.to, left = inFill ? F.to - c.step : 0;
-    const shift = c.level && lvl >= 3 ? 2 : 0;
+    const shift = c.level && lvl >= 2 ? 2 : 0;
     if (inFill) {
       const d = fillDrum(left, c.step);
       if (d) drum(d, t, c.bus, 0.7 + 0.5 * (1 - left / (F.to - F.from)));   // the roll swells into the downbeat
       if (left <= 4) noise({ ft: 'bandpass', f1: 600 + (5 - left) * 900, dur: c.dur * 1.1, vol: 0.05 + (5 - left) * 0.02, t, bus: c.bus });   // a rising whoosh
     }
     if (c.crash) { drum('c', t, c.bus, 1); c.crash = false; }
-    const hatFill = c.level && lvl >= 2 && !inFill;
+    const lift = c.level && lvl >= 1 && !inFill;
     for (const ch of c.tr.chans) {
       const st = c.step % ch.steps, evs = ch.by[st];
       if (ch.drums) {
         if (inFill) continue;
+        const has = d => evs && evs.some(e => e.d === d);
         if (evs) for (const e of evs) drum(e.d, t, c.bus, ch.vol || 1);
-        else if (hatFill && st % 2 === 1) drum('h', t, c.bus, 0.7);
+        if (lift && st % 4 === 0 && !has('k')) drum('k', t, c.bus, 0.85);           // four on the floor
+        if (lift && !has('h') && !has('s')) drum('h', t, c.bus, st % 2 ? 0.6 : 0.85); // running 16ths
         continue;
       }
       if (!evs) continue;
@@ -461,8 +465,8 @@ const Sound = (() => {
         const f = 440 * Math.pow(2, (e.note + shift - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
         tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
         if (!c.level || ch.pluck || ch.w === 'triangle' || ch !== c.lead) continue;
-        if (lvl >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
-        if (lvl >= 3) tone({ type: ch.w, duty: ch.duty, f, dur: dur * 0.8, vol: ch.vol * 0.35, t: t + c.dur * 3, bus: c.bus, sustain: true });   // dotted echo
+        if (lvl >= 1) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
+        if (lvl >= 2) tone({ type: ch.w, duty: ch.duty, f, dur: dur * 0.8, vol: ch.vol * 0.35, t: t + c.dur * 3, bus: c.bus, sustain: true });   // dotted echo
       }
     }
   }
@@ -478,7 +482,7 @@ const Sound = (() => {
     return true;
   }
   function setIntensity(n) {
-    n = Math.max(0, Math.min(3, n | 0));
+    n = Math.max(0, Math.min(2, n | 0));
     if (n === intensity) return;
     intensity = n;
     if (cur && cur.level) cur.dur = 60 / (cur.tr.bpm * TEMPO[n]) / 4;

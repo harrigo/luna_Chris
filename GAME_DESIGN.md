@@ -826,3 +826,6 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.05 — Plough the small fry, bounce off the big ones
 - Stomping a little enemy (mice, flyers, germs, drones...) squashes it and Chris keeps falling (faster in a ground-pound) straight into the next one: no bounce. It still refuels and re-arms the jetpack, and gives 0.3 s of safety so landing in a pack doesn't hurt.
 - Big enemies (golems, frogs, magma golems, paladins) bounce Chris back up and away (a sideways shove so he doesn't drop straight back on), always take two stomps (a ground-pound only hits harder), and each has a 0.45 s stomp cooldown so one landing can never count twice.
+
+## v1.06 — Music tiers retuned
+- Three arrangements instead of four, picked by the wave's place in the level (`musicTier`): the first wave is lead, bass and drums; the middle waves bring in the arpeggio, the octave-up sparkle on the lead, running 16th hats and four-on-the-floor kicks all at once (a clear lift); the last wave before the boss gets the key change (+2 semitones), 6% tempo and the echo. The boss keeps its own unchanged tune.
