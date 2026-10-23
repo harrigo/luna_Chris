@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.04';
+const BUILD = 'v1.05';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3032,6 +3032,7 @@ class Level1 extends Phaser.Scene {
       }
 
       if (e.flashCd > 0) e.flashCd -= dt;
+      if (e.stompCd > 0) e.stompCd -= dt;
       if (e.flash > 0) { e.flash -= dt; if (e.flash <= 0) { if (e.baseTint) e.spr.setTint(e.baseTint); else e.spr.clearTint(); } }
       if (e.state === 'tele') e.spr.setTint(0xff6060);               // drone warning colour wins over the hit flash
       if (e.flipP !== undefined) {                                   // coin-flip spin around the vertical axis
@@ -3043,7 +3044,7 @@ class Level1 extends Phaser.Scene {
       e.dh = (e.h - ph) / idt;
 
       // touching Chris
-      // stomp: landing on an enemy's head hurts it and bounces Chris up (big ones need two, or one ground-pound)
+      // stomp: little enemies get squashed and Chris ploughs on down through them; big ones bounce him back off and take two
       if (P.vh < -40 && e.hp > 0 && this.state === 'play') {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
@@ -3059,10 +3060,23 @@ class Level1 extends Phaser.Scene {
             Sound.sfx('zing'); buzz(30); this.banner('CLANG!');
             continue;
           }
+          if (!e.big && e.type !== 'boss') {                              // little ones: Chris ploughs straight through, squashing as he goes
+            e.hp = 0;
+            P.vh = Math.min(P.vh, pound ? -520 : -260);                    // no bounce: keep falling into the next one
+            this.stompBoost();                                            // still tops up and re-arms the jetpack
+            P.invuln = Math.max(P.invuln, 0.3);                           // landing in the middle of a pack doesn't hurt
+            e.flash = 0.08; e.spr.setTintFill(0xffffff); e.spr.hsq = 1.6; this.hitStop = Math.max(this.hitStop || 0, 0.03);
+            this.burst(e.theta, top, 'spark', pound ? 12 : 7, 0.8); this.cameras.main.shake(50, 0.003);
+            Sound.sfx('jump'); buzz(14);
+            this.addScore(50);
+            continue;
+          }
+          if (e.stompCd > 0) continue;                                    // one stomp per landing: no double hits
+          e.stompCd = 0.45;
           if (e.type === 'boss') e.hp -= pound ? 12 : 6;
-          else if (e.big) { e.stomps = (e.stomps || 0) + 1; if (pound || e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - 3); }
-          else e.hp = 0;
+          else { e.stomps = (e.stomps || 0) + 1; if (e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - (pound ? 5 : 3)); }   // big ones always take two
           P.vh = pound ? 520 : 440; P.h = top + 1;
+          if (e.hp > 0) P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 170;   // bounced back off them, not down onto them again
           this.stompBoost();                                          // a head-bounce tops up the jetpack and re-arms it
           P.invuln = Math.max(P.invuln, 0.2);
           e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1.4; this.hitStop = Math.max(this.hitStop || 0, 0.06); this.camKick(0, 5);
