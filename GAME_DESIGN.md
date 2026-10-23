@@ -817,3 +817,8 @@ Built from the brief (`makeGorgeTextures`):
 - A run token is fetched when a level starts from scratch and kept through checkpoint retries, so the server can check the score was reachable in the time played.
 - On LEVEL CLEAR (after the rank slams in) and on GAME OVER, a score that makes the top 10 pops a pixel name box over the game: the board with YOU? slotted in, a name field (remembered), SAVE / SKIP, then the updated board with your row highlighted. Controller: A saves (remembered name or CHRIS), B skips. Keys typed in the box don't reach the game or the cheat code; phones only get the keyboard when they tap the field.
 - Cheat-mode scores are never offered. If the server can't be reached, nothing shows.
+
+## v1.04 — Aim anywhere, music that builds wave by wave
+- Twin-stick, mouse and touch aim now cover the full half-circle, straight down to straight up (was -34° to +72°). Shots aimed into the ground spark off it; the spaghetti beam stops at the ground and is hit-tested as a segment, so steep aims connect.
+- Level tunes build with each wave: wave 1 is lead, bass and drums; wave 2 adds the arpeggio; wave 3 adds an octave-up sparkle on the lead and running hi-hats; wave 4 on lifts the key a whole tone, 6% faster, with an echo on the lead.
+- Clearing a wave asks the music for a FILL: the tune carries on to the bar line that leaves room for one (12–27 steps away), the melody drops out under a snare roll and a tom run with a rising whoosh, a crash lands on the downbeat, the song restarts from the top at the next intensity, and the next wave launches on that beat. No fill before wave 1, into the end of the level, or with sound muted/off (then the old 1.4 s gap); a 6 s safety net if the music never answers.

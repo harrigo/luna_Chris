@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.03';
+const BUILD = 'v1.04';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1008,7 +1008,8 @@ class Level1 extends Phaser.Scene {
     this.waveTotal = Math.max(1, this.queue.length);
     if (this.waveIdx > 0 && !this.resumed) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;
-    this.clearT = 0;
+    this.clearT = 0; this.fillAsked = false; this.fillDone = false;
+    Sound.intensity(Math.min(3, this.waveIdx));                               // the tune builds wave by wave (already there if a fill led in)
     // checkpoints: halfway through the waves, and just before the boss
     const half = Math.max(1, Math.floor((this.waves.length - 1) / 2)), isCp = this.waveIdx === half || this.waveIdx === this.waves.length - 1 || (Settings.diff === 'easy' && this.waveIdx > 0);
     if (isCp && !this.resumed && (!this.cp || this.cp.wave < this.waveIdx)) {
@@ -1557,7 +1558,7 @@ class Level1 extends Phaser.Scene {
     if (inp.aim) {                                      // twin-stick: face and aim where the right stick points, whatever way you run
       if (Math.abs(inp.aim.x) > 0.2) P.facing = inp.aim.x > 0 ? 1 : -1;
       const up = Math.atan2(-inp.aim.y, Math.abs(inp.aim.x));
-      P.aimA = Math.max(-0.6, Math.min(1.25, up));
+      P.aimA = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, up));          // anywhere from straight down to straight up
     } else P.aimA = (P.aimA || 0) * Math.max(0, 1 - dt * 10);
 
     const hPrev = P.h;
@@ -2510,18 +2511,24 @@ class Level1 extends Phaser.Scene {
   beamGeom(W) {
     const P = this.pl, dir = P.facing || 1, M = this.muzzle;
     const gh = M ? M.h : P.h + (P.duck ? 29 : 40);
-    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R)), rng = W.range * (P.beamReach || 1), span = rng * Math.cos(aa) / (R + gh);
+    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R));
+    let rng = W.range * (P.beamReach || 1);
+    if (Math.sin(aa) < -0.05) rng = Math.min(rng, Math.max(12, gh - 2) / -Math.sin(aa));    // aimed down: the noodle stops at the ground
+    const span = rng * Math.cos(aa) / (R + gh);
     return { dir, gh, t0, span, rise: rng * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
+  }
+  // how far a point is from the noodle (flattened locally; the droop is applied where along it the point sits)
+  beamMiss(B, W, theta, h) {
+    const x = angDiff(theta, B.t0) * B.dir * (R + B.gh), ex = B.span * (R + B.gh), ey = B.rise;
+    const f = Math.max(0, Math.min(1, (x * ex + (h - B.gh) * ey) / (ex * ex + ey * ey || 1)));
+    return Math.hypot(x - ex * f, h - (B.gh + ey * f - f * f * (W.droop || 0)));
   }
   beamHit(W) {
     const B = this.beamGeom(W);
     let hitAny = false;
     for (const e of this.enemies) {
       if (e.hp <= 0 || e.phased) continue;
-      const a = angDiff(e.theta, B.t0) * B.dir;
-      if (a < -e.r / R || a > B.span) continue;
-      const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);       // the noodle droops, so check its height there
-      if (Math.abs(e.h + e.ch - (B.gh + B.rise * f - sag)) > e.r + B.band) continue;
+      if (this.beamMiss(B, W, e.theta, e.h + e.ch) > e.r + B.band) continue;
       if (this.hitK(e) === 0) { this.deflect(e, e.theta, e.h + e.ch); hitAny = true; continue; }
       e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = true; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
@@ -2529,10 +2536,7 @@ class Level1 extends Phaser.Scene {
     }
     for (const r of this.relics) {
       if (r.hp <= 0) continue;
-      const a = angDiff(r.theta, B.t0) * B.dir;
-      if (a < -r.r / R || a > B.span) continue;
-      const f = Math.max(0, a / B.span), sag = f * f * (W.droop || 0);
-      if (Math.abs(r.h - (B.gh + B.rise * f - sag)) <= r.r + B.band) this.relicHit(r.theta, r.h, 1, W.dmg);
+      if (this.beamMiss(B, W, r.theta, r.h) <= r.r + B.band) this.relicHit(r.theta, r.h, 1, W.dmg);
     }
     if (hitAny) Sound.sfx('hit');
     this.reapEnemies();
@@ -2574,7 +2578,13 @@ class Level1 extends Phaser.Scene {
     while (this.queue.length && this.queue[0].t <= this.waveT) this.spawnEnemy(this.queue.shift().type);
     if (!this.queue.length && this.enemies.length === 0) {
       this.clearT += dt;
-      if (this.clearT > 1.4) this.nextWave();
+      // wave cleared: the music plays a fill to the next bar line and the next wave drops on the downbeat
+      if (!this.fillAsked && this.clearT > 0.3) {
+        this.fillAsked = true; this.fillDone = false;
+        const more = this.waveIdx >= 0 && this.waveIdx + 1 < this.waves.length;   // not before the first wave: the level starts snappily
+        if (!more || !Sound.fill(() => { this.fillDone = true; }, Math.min(3, this.waveIdx + 1))) this.fillDone = 'none';
+      }
+      if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) this.nextWave();
     } else {
       this.clearT = 0;
     }
@@ -3149,6 +3159,7 @@ class Level1 extends Phaser.Scene {
         b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
       }
       let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
+      if (b.h < 0 && !b.blast && Math.random() < 0.6) this.burst(b.theta, 2, 'spark', 2, 0.35);   // shots aimed down spark off the ground
       if (!dead && this.chaser) {                         // shooting the rolling Pepper Jack slows it a touch
         const C = this.chaser;
         if (dist2(b.theta, b.h, C.theta, C.r) < (C.r + 6) * (C.r + 6)) { dead = true; C.v *= 0.9; this.burst(b.theta, b.h, 'crumb', 3, 0.6); }

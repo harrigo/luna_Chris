@@ -413,24 +413,75 @@ const Sound = (() => {
   };
 
   function drum(kind, t, bus, v) {
-    if (kind === 'k') tone({ type: 'sine', f: 150, f2: 45, dur: 0.13, vol: 0.5 * v, t, bus });
+    if (kind === 'c') { noise({ ft: 'highpass', f1: 5000, dur: 0.9, vol: 0.16 * v, t, bus }); tone({ type: 'sine', f: 150, f2: 45, dur: 0.16, vol: 0.55 * v, t, bus }); }   // crash + kick: the new wave's downbeat
+    else if (kind === 't' || kind === 'm' || kind === 'l') tone({ type: 'triangle', f: { t: 260, m: 190, l: 130 }[kind], f2: { t: 150, m: 110, l: 70 }[kind], dur: 0.14, vol: 0.3 * v, t, bus });   // toms, high to low
+    else if (kind === 'k') tone({ type: 'sine', f: 150, f2: 45, dur: 0.13, vol: 0.5 * v, t, bus });
     else if (kind === 's') { noise({ ft: 'highpass', f1: 1500, dur: 0.11, vol: 0.26 * v, t, bus }); tone({ type: 'triangle', f: 220, f2: 120, dur: 0.06, vol: 0.12 * v, t, bus }); }
     else if (kind === 'h') noise({ ft: 'highpass', f1: 7000, dur: 0.035, vol: 0.11 * v, t, bus });
   }
 
+  // ---- wave progression for the level tracks. Each wave the same tune builds:
+  //   wave 1: lead, bass and drums only   wave 2: + the arpeggio   wave 3: + a sparkly octave-up double of the lead
+  //   and running hi-hats   wave 4 on: the whole thing lifts a whole tone and a touch faster, with an echo on the lead.
+  // When a wave is cleared the game asks for a FILL: the tune carries on to the bar line that leaves room for one,
+  // the melody drops out under a snare roll and tom run, then a crash lands on the downbeat, the song restarts
+  // from the top at the next intensity, and the game launches the next wave on that beat.
+  let intensity = 0;
+  const isLevelTrack = n => /^level|^final$/.test(n || '');
+  const TEMPO = [1, 1, 1, 1.06];
+  const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
+  function fillDrum(left, at) {                                           // `left` steps before the downbeat
+    if (left <= 4) return ['l', 'l', 'm', 't'][left - 1];               // toms tumbling down into the crash
+    if (left <= 8) return 's';                                             // snare roll
+    return FILL_BAR[at % 16] === '.' ? null : FILL_BAR[at % 16];
+  }
   function playStep(c) {
-    const t = c.next;
+    const t = c.next, lvl = c.level ? intensity : 3, F = c.fill;
+    const inFill = F && c.step >= F.from && c.step < F.to, left = inFill ? F.to - c.step : 0;
+    const shift = c.level && lvl >= 3 ? 2 : 0;
+    if (inFill) {
+      const d = fillDrum(left, c.step);
+      if (d) drum(d, t, c.bus, 0.7 + 0.5 * (1 - left / (F.to - F.from)));   // the roll swells into the downbeat
+      if (left <= 4) noise({ ft: 'bandpass', f1: 600 + (5 - left) * 900, dur: c.dur * 1.1, vol: 0.05 + (5 - left) * 0.02, t, bus: c.bus });   // a rising whoosh
+    }
+    if (c.crash) { drum('c', t, c.bus, 1); c.crash = false; }
+    const hatFill = c.level && lvl >= 2 && !inFill;
     for (const ch of c.tr.chans) {
-      const evs = ch.by[c.step % ch.steps];
+      const st = c.step % ch.steps, evs = ch.by[st];
+      if (ch.drums) {
+        if (inFill) continue;
+        if (evs) for (const e of evs) drum(e.d, t, c.bus, ch.vol || 1);
+        else if (hatFill && st % 2 === 1) drum('h', t, c.bus, 0.7);
+        continue;
+      }
       if (!evs) continue;
+      if (c.level && ch.pluck && lvl < 1) continue;                       // the arpeggio comes in on wave 2
+      if (inFill && ch.w !== 'triangle') continue;                        // only the bass rides through the fill
       for (const e of evs) {
-        if (ch.drums) { drum(e.d, t, c.bus, ch.vol || 1); continue; }
-        tone({
-          type: ch.w, duty: ch.duty, f: 440 * Math.pow(2, (e.note - 69) / 12),
-          dur: Math.max(0.05, e.len * c.dur * (ch.gate || 0.9)), vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck
-        });
+        const f = 440 * Math.pow(2, (e.note + shift - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
+        tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
+        if (!c.level || ch.pluck || ch.w === 'triangle' || ch !== c.lead) continue;
+        if (lvl >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
+        if (lvl >= 3) tone({ type: ch.w, duty: ch.duty, f, dur: dur * 0.8, vol: ch.vol * 0.35, t: t + c.dur * 3, bus: c.bus, sustain: true });   // dotted echo
       }
     }
+  }
+
+  // Ask for a fill into the next wave. Calls `go` on the new wave's downbeat; false if there's no level tune to do it.
+  function fill(go, next) {
+    if (!ctx || ctx.state !== 'running' || !cur || !cur.level || muted) return false;
+    if (cur.fill && !cur.fill.done) { cur.fill.go = go; cur.fill.next = next; return true; }
+    const s = cur.step;
+    let to = Math.ceil(s / 16) * 16;
+    if (to - s < 12) to += 16;                                             // room for at least most of a bar
+    cur.fill = { from: Math.max(s, to - 16), to, go, next, done: false };
+    return true;
+  }
+  function setIntensity(n) {
+    n = Math.max(0, Math.min(3, n | 0));
+    if (n === intensity) return;
+    intensity = n;
+    if (cur && cur.level) cur.dur = 60 / (cur.tr.bpm * TEMPO[n]) / 4;
   }
 
   function tick() {
@@ -441,6 +492,13 @@ const Sound = (() => {
       playStep(cur);
       cur.step++;
       cur.next += cur.dur;
+      const F = cur.fill;
+      if (F && !F.done && cur.step >= F.to) {                              // the downbeat: back to the top, one notch up
+        F.done = true; cur.fill = null;
+        setIntensity(F.next); cur.step = 0; cur.crash = true;
+        const go = F.go, wait = Math.max(0, (cur.next - ctx.currentTime) * 1000);
+        if (go) setTimeout(go, wait);
+      }
       if (!cur.tr.loop && cur.step >= cur.tr.total) {
         const old = cur;
         cur = null;
@@ -470,7 +528,9 @@ const Sound = (() => {
     const bus = ctx.createGain();
     bus.gain.value = 1;
     bus.connect(musicBus);
-    cur = { name, tr, bus, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / tr.bpm / 4 };
+    const level = isLevelTrack(name);
+    if (level) intensity = 0;
+    cur = { name, tr, bus, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / tr.bpm / 4, level, lead: tr.chans.find(c => !c.drums && !c.pluck && c.w !== 'triangle') };
   }
 
   // ------------------------------------------------------------ browser plumbing
@@ -486,7 +546,7 @@ const Sound = (() => {
   }
 
   return {
-    init, sfx, jet, music,
+    init, sfx, jet, music, fill, intensity: setIntensity,
     pause(on) { if (musicBus) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.5, ctx.currentTime, 0.05); if (on) jet(false); },
     jingle: music,
     isMuted: () => muted,
@@ -501,6 +561,7 @@ const Sound = (() => {
       return Math.sqrt(s / a.length);
     },
     _state: () => (ctx ? ctx.state : 'none'),
-    _track: () => (cur ? cur.name : null)
+    _track: () => (cur ? cur.name : null),
+    _music: () => (cur ? { step: cur.step, lvl: intensity, fill: cur.fill ? { from: cur.fill.from, to: cur.fill.to } : null, dur: cur.dur } : null)
   };
 })();
