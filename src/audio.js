@@ -422,16 +422,15 @@ const Sound = (() => {
 
   // ---- wave progression for the level tracks. Three tiers (the game picks one per wave; the boss keeps its own tune):
   //   0, the first wave: lead, bass and drums only
-  //   1, the middle waves: the arpeggio comes in, a sparkly octave-up double on the lead, running 16th hi-hats
-  //      and four-on-the-floor kicks
-  //   2, the last wave before the boss: all that, lifted a whole tone, 6% faster, with an echo on the lead
+  //   1, the middle waves: + the arpeggio and running 16th hi-hats
+  //   2, the last wave before the boss: + a sparkly octave-up double on the lead and four-on-the-floor kicks
+  // Same key and tempo throughout (layers, not a new song): the big change is saved for the boss's own tune.
   // When a wave is cleared the game asks for a FILL: the tune carries on to the bar line that leaves room for one,
   // the melody drops out under a snare roll and tom run, then a crash lands on the downbeat, the song restarts
   // from the top at the next intensity, and the game launches the next wave on that beat.
   let intensity = 0;
   const isLevelTrack = n => /^level|^final$/.test(n || '');
-  const TEMPO = [1, 1, 1.06];
-  const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
+    const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
   function fillDrum(left, at) {                                           // `left` steps before the downbeat
     if (left <= 4) return ['l', 'l', 'm', 't'][left - 1];               // toms tumbling down into the crash
     if (left <= 8) return 's';                                             // snare roll
@@ -440,52 +439,50 @@ const Sound = (() => {
   function playStep(c) {
     const t = c.next, lvl = c.level ? intensity : 2, F = c.fill;
     const inFill = F && c.step >= F.from && c.step < F.to, left = inFill ? F.to - c.step : 0;
-    const shift = c.level && lvl >= 2 ? 2 : 0;
     if (inFill) {
       const d = fillDrum(left, c.step);
       if (d) drum(d, t, c.bus, 0.7 + 0.5 * (1 - left / (F.to - F.from)));   // the roll swells into the downbeat
       if (left <= 4) noise({ ft: 'bandpass', f1: 600 + (5 - left) * 900, dur: c.dur * 1.1, vol: 0.05 + (5 - left) * 0.02, t, bus: c.bus });   // a rising whoosh
     }
     if (c.crash) { drum('c', t, c.bus, 1); c.crash = false; }
-    const lift = c.level && lvl >= 1 && !inFill;
+    const hats = c.level && lvl >= 1 && !inFill, floor = c.level && lvl >= 2 && !inFill;
     for (const ch of c.tr.chans) {
       const st = c.step % ch.steps, evs = ch.by[st];
       if (ch.drums) {
         if (inFill) continue;
         const has = d => evs && evs.some(e => e.d === d);
         if (evs) for (const e of evs) drum(e.d, t, c.bus, ch.vol || 1);
-        if (lift && st % 4 === 0 && !has('k')) drum('k', t, c.bus, 0.85);           // four on the floor
-        if (lift && !has('h') && !has('s')) drum('h', t, c.bus, st % 2 ? 0.6 : 0.85); // running 16ths
+        if (floor && st % 4 === 0 && !has('k')) drum('k', t, c.bus, 0.85);           // four on the floor
+        if (hats && !has('h') && !has('s')) drum('h', t, c.bus, st % 2 ? 0.6 : 0.85); // running 16ths
         continue;
       }
       if (!evs) continue;
       if (c.level && ch.pluck && lvl < 1) continue;                       // the arpeggio comes in on wave 2
       if (inFill && ch.w !== 'triangle') continue;                        // only the bass rides through the fill
       for (const e of evs) {
-        const f = 440 * Math.pow(2, (e.note + shift - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
+        const f = 440 * Math.pow(2, (e.note - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
         tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
         if (!c.level || ch.pluck || ch.w === 'triangle' || ch !== c.lead) continue;
-        if (lvl >= 1) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
-        if (lvl >= 2) tone({ type: ch.w, duty: ch.duty, f, dur: dur * 0.8, vol: ch.vol * 0.35, t: t + c.dur * 3, bus: c.bus, sustain: true });   // dotted echo
+        if (lvl >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
       }
     }
   }
 
   // Ask for a fill into the next wave. Calls `go` on the new wave's downbeat; false if there's no level tune to do it.
-  function fill(go, next) {
+  // `end`: this is the run-in to the boss, so the downbeat is a lone crash and then silence until the boss tune.
+  function fill(go, next, end) {
     if (!ctx || ctx.state !== 'running' || !cur || !cur.level || muted) return false;
-    if (cur.fill && !cur.fill.done) { cur.fill.go = go; cur.fill.next = next; return true; }
+    if (cur.fill && !cur.fill.done) { cur.fill.go = go; cur.fill.next = next; cur.fill.end = end; return true; }
     const s = cur.step;
     let to = Math.ceil(s / 16) * 16;
     if (to - s < 12) to += 16;                                             // room for at least most of a bar
-    cur.fill = { from: Math.max(s, to - 16), to, go, next, done: false };
+    cur.fill = { from: Math.max(s, to - 16), to, go, next, end, done: false };
     return true;
   }
   function setIntensity(n) {
     n = Math.max(0, Math.min(2, n | 0));
     if (n === intensity) return;
     intensity = n;
-    if (cur && cur.level) cur.dur = 60 / (cur.tr.bpm * TEMPO[n]) / 4;
   }
 
   function tick() {
@@ -499,9 +496,16 @@ const Sound = (() => {
       const F = cur.fill;
       if (F && !F.done && cur.step >= F.to) {                              // the downbeat: back to the top, one notch up
         F.done = true; cur.fill = null;
-        setIntensity(F.next); cur.step = 0; cur.crash = true;
         const go = F.go, wait = Math.max(0, (cur.next - ctx.currentTime) * 1000);
         if (go) setTimeout(go, wait);
+        if (F.end) {                                                       // into the boss: one crash, let it ring, then hush
+          const old = cur; cur = null;
+          drum('c', old.next, old.bus, 1);
+          old.bus.gain.setValueAtTime(1, old.next + 0.5); old.bus.gain.linearRampToValueAtTime(0.0001, old.next + 1.1);
+          setTimeout(() => { try { old.bus.disconnect(); } catch (e) { /* gone */ } }, wait + 1600);
+          break;
+        }
+        setIntensity(F.next); cur.step = 0; cur.crash = true;
       }
       if (!cur.tr.loop && cur.step >= cur.tr.total) {
         const old = cur;

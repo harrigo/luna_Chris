@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.07';
+const BUILD = 'v1.08';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -148,7 +148,7 @@ class Level1 extends Phaser.Scene {
     this.runT0 = (data && data.runT) || 0;                       // time already spent before the last death
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
-    this.waves = this.def.waves.concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 1.5 }] }]);
+    this.waves = this.def.waves.concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);   // the boss (and its tune) lands just after the fill's crash
   }
 
   // ------------------------------------------------------------------ setup
@@ -2585,7 +2585,7 @@ class Level1 extends Phaser.Scene {
       if (!this.fillAsked && this.clearT > 0.3) {
         this.fillAsked = true; this.fillDone = false;
         const more = this.waveIdx >= 0 && this.waveIdx + 1 < this.waves.length;   // not before the first wave: the level starts snappily
-        if (!more || !Sound.fill(() => { this.fillDone = true; }, this.musicTier(this.waveIdx + 1))) this.fillDone = 'none';
+        if (!more || !Sound.fill(() => { this.fillDone = true; }, this.musicTier(this.waveIdx + 1), this.waveIdx + 1 === this.waves.length - 1)) this.fillDone = 'none';   // the last fill leads into the boss
       }
       if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) this.nextWave();
     } else {

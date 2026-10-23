@@ -832,3 +832,7 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.07 — Big-enemy bounce can't be cancelled
 - Holding down (drop / ground-pound) used to clamp Chris to falling every frame, which swallowed the bounce off a big enemy. A big-enemy stomp now sets a 0.45 s bounce window in which diving is off, and the bounce is a bit stronger (480, 560 from a ground-pound).
+
+## v1.08 — Music: layers, not a new song
+- Dropped the key change, tempo bump and echo. Same key and tempo all level; the waves only add layers: wave 1 lead/bass/drums, middle waves + arpeggio and running 16th hats, last wave + octave sparkle on the lead and four-on-the-floor kicks. The climax is left to the boss's own tune.
+- The fill into the boss ends on a lone crash that rings out into silence; the boss now spawns 0.6 s into its wave (was 1.5 s), so its tune hits right after the hush.
