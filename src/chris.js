@@ -201,11 +201,19 @@ function makeChrisTextures(scene) {
     for (let x = 3; x <= 33; x += 5) a.px(x, 4 + Math.round(Math.sin(x / 34 * Math.PI * 3) * 2.4) - 1, 0xfff4b0);
   });
   // the belly: hangs out under the front of the suit (drawn behind the suit, so only the front-bottom shows)
-  pixSprite(scene, 'c_belly', 22, 9, a => {                                             // just a little overhang peeking out under the hem
-    a.ell(12, 1, 10, 6.5, SKIN);                                                        // the bottom curve of the belly (top hides under the suit)
-    a.rect(4, 0, 20, 1, 0xc9805e);                                                      // shadow crease under the hem
-    a.px(15, 4, 0xb06a4a);                                                              // navel
-    a.rect(17, 3, 18, 3, 0xffe8dc);                                                     // shine
+  // a round, bare belly bulging out from under the stretched suit: the hem rides up over it (so it's clearly part of
+  // him, not stuck on), the bulge pushes out a little past the front of the suit, navel and a shine
+  pixSprite(scene, 'c_belly', 26, 16, a => {
+    a.ell(14, 5.5, 11.5, 10, SKIN); a.ell(19, 6, 6, 7, [0xffe4d4, 0xf5bea0, 0xd08a68]);   // the bulge, rounder and pushing forward
+    for (let x = 1; x <= 25; x++) {                                                     // the suit hem stretched over it, bowing down where it's tightest
+      const bow = Math.round(Math.sin(Math.PI * Math.min(1, Math.max(0, (x - 1) / 24))) * 2);
+      for (let y = 0; y <= bow; y++) a.px(x, y, SUIT[1]);
+      a.px(x, bow + 1, 0xd62828); a.px(x, bow + 2, 0x93a8cc);                           // red hem trim + the stretched edge
+      a.px(x, bow + 3, 0xc9805e);                                                       // a shadow where the hem digs in
+    }
+    a.px(17, 9, 0xb06a4a); a.px(17, 10, 0x8a4a34);                                      // navel
+    a.rect(20, 6, 21, 7, 0xffe8dc); a.px(22, 8, 0xffe8dc);                              // shine on the curve
+    a.line([[6, 13], [12, 14], [18, 13]], 0xc9805e);                                    // the underside crease
   });
   // gun arm: suit sleeve, red cuff, big white glove
   pixSprite(scene, 'c_arm', 18, 11, a => {
@@ -255,7 +263,7 @@ class ChrisRig {
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
     this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
-    this.belly = img('c_belly', 7, -10, 0.5, 0);                    // a slight overhang under the front of the hem
+    this.belly = img('c_belly', 8, -12, 0.5, 0);                    // the belly bulging out under the front of the hem (its top is the hem itself)
     this.armB = img('c_arm', -3, -22, 0, 0.5);
     this.apron = img('c_apronT', 5, -33, 0.5, 0);                    // the apron over the FRONT of the suit...
     this.apronB = img('c_apronB', 5, -14, 0.5, 0);                   // ...with a skirt that flaps on a spring
@@ -275,7 +283,7 @@ class ChrisRig {
     this.auger = img('auger0', 44 - GX, 1 - GY, 0, 0.5).setScale(1.25);
     this.gunPivot.add([this.gun, this.auger]);
     this.gunArm.add([this.gArm, this.gunPivot]);
-    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.torso, this.legF, this.bootF, this.gunArm]);
+    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.torso, this.gunArm]);   // (legs behind the torso, so the belly hangs over them)
 
     this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
     this.tinted = false;
@@ -419,7 +427,7 @@ class ChrisRig {
     const drive = run * Math.sin(this.wp * 2) * 3;
     this.bv += (-this.bo * 170 - this.bv * 8 + drive * 55) * dt;
     this.bo = Math.max(-1.4, Math.min(1.4, this.bo + this.bv * dt));
-    this.belly.setScale((1 - this.bo * 0.05) * (1 + 0.1 * dk), (1 + this.bo * 0.14) * (1 + 0.16 * dk)).setPosition(7 + this.bo * 0.3, -10 + this.bo * 0.8);
+    this.belly.setScale((1 - this.bo * 0.04) * (1 + 0.08 * dk), (1 + this.bo * 0.1) * (1 + 0.12 * dk)).setPosition(8, -12);   // jiggles from the hem down, but stays attached
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));

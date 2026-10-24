@@ -929,3 +929,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.29 — Stick-up jump for controllers
 - New option PAD STICK-UP JUMP (pause menu and main menu options, off by default, saved on the device): pushing the left stick clearly up jumps, holding it up keeps the jetpack going, and pushing it right to the top fires the jetpack straight away, just like the touch stick. It needs a clear upward push (not a sloppy diagonal while running) and has hysteresis, so wobbling the stick can't double-jump. A still works as normal.
 - The controller page of CONTROLS lists it.
+
+## v1.30 — The belly, attached
+- Chris's belly is now a round, bare belly bulging out from under his stretched suit: the hem (white, red trim) is part of the belly sprite and bows down over it where it's tightest, with a shadow where it digs in, a navel, a shine and an underside crease, pushing a little past the front of the suit. It's a bit smaller than the reference.
+- It jiggles from the hem down but no longer slides about, so it stays attached; and the legs are now drawn behind the torso, so the belly hangs over them instead of being hidden by the front leg.
