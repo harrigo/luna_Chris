@@ -406,48 +406,81 @@ function makeLevelTextures(scene) {
     a.ell(23, 23, 5, 5, [0xff8a8a, 0xff3030, 0xa01010]); a.rect(21, 21, 22, 22, 0xffffff);
   });
 
-  // boss: Baron von Blue, a giant crowned blue-cheese blob with frog legs
+  // boss: Baron von Blue, a lopsided, rotting mass of fuzzy blue cheese: pulsing veins, cratered mould, slime dripping
+  // off his underside, a rusty tin-can lid smashed into his head, one huge bloodshot bulging eye and one tiny twitchy one.
+  // (pupils, mouth, claws, the jiggle and the drips are animated in main.js: drawBaron)
   pixSprite(scene, 'baron', 116, 100, a => {
-    a.rrect(8, 74, 38, 96, 8, [0x5aa046, 0x3d7230, 0x24481a]); a.rrect(78, 74, 108, 96, 8, [0x5aa046, 0x3d7230, 0x24481a]);   // frog feet
-    a.ell(58, 54, 49, 37, [0xb8d0ff, 0x7fa4e8, 0x4a6ab8]);                                                     // blue-cheese body
-    for (const [x, y, r] of [[26, 62, 7], [86, 50, 8], [70, 78, 5.5], [40, 77, 4.5], [96, 68, 5], [20, 44, 4]]) { a.ell(x, y, r, r * 0.8, 0x3d57a8); a.ell(x + 1, y + 1, r * 0.5, r * 0.4, 0x2a3a80); }   // mould veins
-    a.line([[30, 66], [24, 74]], 0x3d57a8, 2); a.line([[88, 56], [96, 50]], 0x3d57a8, 2);
-    a.ell(42, 44, 13, 13, 0xffffff); a.ell(76, 44, 13, 13, 0xffffff);
-    a.ell(42, 50, 13, 4, [0xe8f0ff, 0xc8d4f0, 0x9aa8d0]); a.ell(76, 50, 13, 4, [0xe8f0ff, 0xc8d4f0, 0x9aa8d0]);   // (pupils + mouth are animated overlays)
-    a.line([[28, 29], [54, 38]], OUTPX, 4); a.line([[90, 29], [64, 38]], OUTPX, 4);                           // angry brows
-    a.ell(58, 72, 24, 9, [0x9ab8f0, 0x6a8ad8, 0x3a5aa8]);                                                     // jowls round the mouth
-    a.poly([[30, 25], [36, 4], [46, 16], [58, 0], [70, 16], [80, 4], [86, 25]], [0xfff09a, 0xffd23f, 0xc9901a]);   // crown
-    a.ell(58, 18, 3, 3, 0xff3a5a); a.ell(42, 20, 2, 2, 0x4ab0ff); a.ell(74, 20, 2, 2, 0x4ab0ff);
+    const BL = [0xa8c4ff, 0x6a8ae0, 0x34509e], rz = rng(4242);
+    // the lumpy body: a big saggy mass, a swollen lump on the left, a knot of mould up on the right, a belly that hangs low
+    a.ell(58, 56, 48, 34, BL); a.ell(22, 48, 19, 21, BL); a.ell(90, 34, 20, 18, BL); a.ell(60, 80, 36, 14, BL); a.ell(96, 66, 14, 14, BL);
+    // fuzzy, furry mould on the edges
+    for (let n = 0; n < 260; n++) { const t = rz() * Math.PI * 2, x = 58 + Math.cos(t) * (46 + rz() * 8), y = 54 + Math.sin(t) * (34 + rz() * 6); if (rz() < 0.5) a.px(x, y, rz() < 0.5 ? 0xd8e4ff : 0x8aa8f0); }
+    // cratered mould spots (dark pits with teal mould in them)
+    for (const [x, y, r] of [[18, 56, 6], [30, 34, 4], [72, 60, 5], [92, 52, 4.5], [50, 86, 4], [84, 78, 5], [10, 42, 3], [100, 30, 3.5], [66, 30, 3]]) {
+      a.ell(x, y, r + 1, r * 0.8 + 1, 0x8aa8f0); a.ell(x, y, r, r * 0.8, 0x1e2a6a); a.ell(x + 0.5, y + 0.5, r * 0.55, r * 0.45, 0x3ac0a0); a.px(x - r * 0.4, y - r * 0.3, 0x9affe0);
+    }
+    // pulsing veins (purple-pink, branching)
+    for (const pts of [[[6, 60], [16, 64], [24, 72], [22, 82]], [[24, 72], [34, 74]], [[104, 44], [96, 48], [98, 58], [92, 64]], [[96, 48], [108, 54]], [[44, 92], [52, 88], [62, 92]], [[54, 22], [60, 26], [58, 32]]])
+      a.line(pts, 0xc04a9a, 1);
+    // the tin-can lid, smashed in at an angle: rusty, jagged edge, ring pull sticking up
+    a.poly([[56, 18], [62, 6], [86, 0], [104, 6], [106, 14], [92, 22], [70, 24]], [0xd0d0d8, 0x9a9aa8, 0x5a5a68]);
+    for (const [x, y] of [[60, 10], [66, 4], [74, 2], [84, 1], [94, 3], [102, 6]]) a.poly([[x, y], [x + 3, y - 4], [x + 5, y]], 0x9a9aa8);   // jagged rim
+    for (const [x, y, w] of [[66, 12, 6], [84, 8, 5], [94, 14, 4], [76, 18, 5]]) a.rect(x, y, x + w, y + 1, 0xa0502a);                  // rust streaks
+    a.ell(90, 6, 4, 2.5, 0x5a5a68); a.ell(90, 6, 2, 1.2, -1);                                                                          // ring pull
+    a.line([[60, 20], [56, 26]], 0x8ae84a, 2); a.px(56, 28, 0xc8ffa8);                                                                 // slime oozing round it
+    // the eyes: one huge, bulging and bloodshot; one tiny and squinting (pupils are overlays)
+    a.ell(38, 44, 17, 17, 0x34509e); a.ell(38, 44, 15, 15, [0xfff8f0, 0xf0e0d0, 0xd8b8a8]);
+    for (const pts of [[[24, 40], [30, 42], [33, 46]], [[38, 30], [38, 35], [41, 38]], [[50, 50], [45, 49], [43, 46]], [[28, 54], [32, 50]], [[48, 36], [44, 40]]]) a.line(pts, 0xd8303a, 1);
+    a.ell(80, 40, 7, 6, 0x34509e); a.ell(80, 41, 5, 4, [0xfff0b0, 0xe8d090, 0xb89a5a]);
+    a.line([[71, 35], [89, 37]], OUTPX, 3);                                                                                             // heavy lid over the little one
+    a.line([[20, 24], [34, 27], [50, 22]], OUTPX, 3);                                                                                  // a wild brow over the big one
+    a.ell(58, 72, 24, 10, [0x8aa8f0, 0x5a7ad0, 0x2e4490]);                                                                             // jowls round the mouth
+    // slime dripping off his underside (more animated drips in main.js)
+    for (const [x, y0, y1] of [[34, 86, 96], [46, 90, 99], [70, 90, 97], [82, 84, 93], [58, 92, 99]]) { a.line([[x, y0], [x, y1]], 0x6ad83a, 2); a.ell(x, y1, 1.6, 1.6, 0xb8ff8a); }
   }, 2);
 
-  // Baron von Blue's animated bits: 3 mouth frames (evil sneer / snarl / roar), pupils, and his spiked flail
-  const MOUTH = 0x1b0a2a, FANG = [0xffffff, 0xf0f0e0, 0xc8c8b0], TONGUE = [0xff8a9a, 0xe0405a, 0x90203a];
-  pixSprite(scene, 'baron_m0', 54, 22, a => {                     // a nasty sneer: wide grin, corners hooked UP, clenched teeth
-    a.poly([[1, 3], [8, 8], [27, 10], [46, 8], [53, 2], [49, 12], [27, 17], [5, 12]], MOUTH);
-    for (let x = 9; x < 46; x += 6) a.rect(x, 9, x + 4, 12, FANG[0]);
-    a.poly([[14, 9], [18, 9], [16, 15]], FANG); a.poly([[37, 9], [41, 9], [39, 15]], FANG);                  // two fangs
-    a.px(50, 4, 0xffffff);
+  // his mouths: broken, yellowed chunks of bone and a rusty shard for teeth, at awkward angles
+  const MOUTH = 0x1b0a2a, BONE = [0xfff2b0, 0xe0c870, 0x9a8a3a], RUST = [0xd08a5a, 0xa0502a, 0x5a2a14], TONGUE = [0xff8a9a, 0xe0405a, 0x90203a];
+  const brokenTeeth = (a, top, bot) => {
+    for (const [x, y, w, h, kind, lean] of top) a.poly([[x, y], [x + w, y], [x + w / 2 + lean, y + h]], kind ? RUST : BONE);
+    for (const [x, y, w, h, kind, lean] of bot) a.poly([[x, y], [x + w, y], [x + w / 2 + lean, y - h]], kind ? RUST : BONE);
+  };
+  pixSprite(scene, 'baron_m0', 54, 22, a => {                     // a lopsided sneer, teeth like a smashed fence
+    a.poly([[1, 6], [10, 9], [27, 11], [44, 7], [53, 1], [49, 13], [26, 18], [5, 13]], MOUTH);
+    brokenTeeth(a, [[8, 9, 5, 5, 0, 1], [15, 10, 4, 3, 0, -1], [22, 11, 6, 6, 1, 2], [32, 10, 4, 4, 0, 0], [40, 8, 5, 6, 0, -2]], [[12, 16, 4, 3, 0, 1], [28, 17, 5, 4, 0, -1], [44, 13, 4, 3, 1, 0]]);
   });
   pixSprite(scene, 'baron_m1', 54, 26, a => {                     // snarling, half open
-    a.poly([[1, 2], [10, 6], [27, 7], [44, 6], [53, 1], [48, 16], [27, 23], [6, 16]], MOUTH);
-    for (let x = 8; x < 46; x += 6) a.poly([[x, 6], [x + 5, 6], [x + 2.5, 11]], FANG);                       // top teeth
-    for (let x = 11; x < 43; x += 7) a.poly([[x, 21], [x + 5, 21], [x + 2.5, 16]], FANG);                   // bottom teeth
-    a.ell(27, 19, 8, 3, TONGUE);
+    a.poly([[1, 4], [10, 7], [27, 8], [44, 5], [53, 1], [48, 17], [27, 24], [6, 17]], MOUTH);
+    brokenTeeth(a, [[7, 7, 6, 7, 0, 2], [16, 8, 4, 4, 0, -1], [24, 8, 7, 9, 1, 1], [35, 7, 4, 5, 0, 0], [42, 5, 6, 7, 0, -2]], [[10, 20, 5, 5, 0, 1], [20, 23, 4, 3, 0, 0], [33, 22, 6, 6, 0, -2], [42, 17, 4, 4, 1, 1]]);
+    a.ell(27, 20, 8, 3, TONGUE);
   });
-  pixSprite(scene, 'baron_m2', 56, 34, a => {                     // ROAR: jaw dropped, big fangs, tongue, drool
-    a.poly([[1, 1], [12, 5], [28, 6], [44, 5], [55, 0], [50, 22], [28, 33], [6, 22]], MOUTH);
-    for (let x = 7; x < 48; x += 7) a.poly([[x, 5], [x + 6, 5], [x + 3, 12]], FANG);
-    a.poly([[10, 5], [16, 5], [13, 17]], FANG); a.poly([[40, 5], [46, 5], [43, 17]], FANG);                  // long fangs
-    for (let x = 12; x < 44; x += 8) a.poly([[x, 30], [x + 6, 29], [x + 3, 23]], FANG);
+  pixSprite(scene, 'baron_m2', 56, 34, a => {                     // ROAR / COUGH: jaw dropped, broken teeth everywhere, tongue, drool
+    a.poly([[1, 2], [12, 5], [28, 6], [44, 4], [55, 0], [50, 22], [28, 33], [6, 22]], MOUTH);
+    brokenTeeth(a, [[6, 5, 6, 9, 0, 2], [15, 6, 4, 5, 0, -1], [22, 6, 7, 12, 1, 2], [33, 5, 4, 6, 0, 0], [40, 4, 6, 10, 0, -2], [48, 2, 4, 5, 0, 1]], [[11, 28, 5, 6, 0, 1], [22, 31, 4, 4, 0, -1], [32, 30, 6, 7, 0, 2], [42, 25, 4, 5, 1, 0]]);
     a.ell(28, 26, 11, 5, TONGUE); a.line([[28, 23], [28, 29]], 0x90203a);
-    a.ell(28, 9, 2, 3, [0xff8a9a, 0xe0405a, 0x90203a]);                                                     // uvula
     a.line([[48, 18], [49, 26]], 0x8ae86a, 2); a.px(49, 27, 0xc8ffa8);                                     // drool
   });
   pixSprite(scene, 'baron_pupil', 9, 9, a => { a.ell(4, 4, 3.5, 3.5, [0xff6a3a, 0xd62020, 0x6a0a0a]); a.rect(4, 2, 4, 6, 0x1a0a0a); a.px(3, 2, 0xffffff); });
-  pixSprite(scene, 'spikeball', 36, 36, a => {                    // a spiked iron ball (mouldy blue rust patches)
-    for (let k = 0; k < 8; k++) { const t = k * Math.PI / 4, c = Math.cos(t), s2 = Math.sin(t); a.poly([[18 + c * 11 - s2 * 4, 18 + s2 * 11 + c * 4], [18 + c * 17, 18 + s2 * 17], [18 + c * 11 + s2 * 4, 18 + s2 * 11 - c * 4]], [0xe8eef8, 0xa8b0c0, 0x5a6272]); }
-    a.ell(18, 18, 12, 12, [0x8a92a2, 0x5a6272, 0x2e3442]);
-    a.ell(14, 21, 3, 2, 0x3d57a8); a.ell(22, 14, 2, 2, 0x3d57a8); a.px(13, 13, 0xffffff); a.px(14, 12, 0xffffff);
+  // a grotesque mutated rat claw (points right): fleshy pink, knuckly fingers, long dirty yellow talons, mould patches
+  pixSprite(scene, 'ratclaw', 34, 28, a => {
+    const SK = [0xffb8c0, 0xe07a8a, 0x9a4050];
+    a.ell(10, 14, 9, 8, SK);                                                                              // palm / wrist
+    for (const [y0, y1, len] of [[6, 2, 16], [11, 9, 19], [16, 17, 18], [20, 25, 13]]) {                    // four bony fingers, splayed
+      a.line([[14, y0], [14 + len * 0.6, (y0 + y1) / 2], [14 + len, y1]], SK[2], 4); a.line([[14, y0], [14 + len * 0.6, (y0 + y1) / 2], [14 + len, y1]], SK[0], 2);
+      a.poly([[14 + len, y1 - 2], [14 + len + 6, y1 + 1], [14 + len, y1 + 2]], [0xfff0a0, 0xd8c060, 0x8a7a2a]);   // talon
+      a.px(14 + len * 0.6, (y0 + y1) / 2 - 1, SK[2]);                                                     // knuckle
+    }
+    a.ell(7, 11, 3, 2, 0x3d57a8); a.ell(12, 18, 2, 1.5, 0x3ac0a0); a.px(5, 16, 0x3d57a8);                // mould creeping over it
+  });
+  // the globes he coughs up: big bubbling balls of toxic blue cheese
+  pixSprite(scene, 'cheeseglobe', 26, 26, a => {
+    a.ell(13, 13, 12, 12, [0x9affe8, 0x3ac0b8, 0x1a6a80]);
+    for (const [x, y, r] of [[8, 9, 3], [16, 16, 2.5], [17, 7, 2], [9, 17, 1.6]]) { a.ell(x, y, r, r, 0x2a5aa8); a.px(x - 1, y - 1, 0xc8fff0); }
+    a.px(7, 5, 0xffffff); a.px(8, 5, 0xffffff); a.px(7, 6, 0xffffff);
+  });
+  // ribcage debris shaken loose by his scream
+  pixSprite(scene, 'bonechunk', 18, 14, a => {
+    a.poly([[1, 9], [6, 3], [16, 1], [17, 6], [11, 12], [3, 13]], [0xf0ecd8, 0xc8c0a0, 0x8a8268]); a.line([[5, 9], [13, 4]], 0x8a8268);
   });
   pixSprite(scene, 'chainlink', 8, 8, a => { a.ell(4, 4, 3, 3, [0xc8d0dc, 0x8a92a2, 0x4a5262]); a.ell(4, 4, 1.2, 1.2, -1); });
 

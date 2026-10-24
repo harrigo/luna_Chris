@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.20';
+const BUILD = 'v1.22';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -166,7 +166,7 @@ class Level1 extends Phaser.Scene {
     this.enemies = [];
     this.pBullets = [];
     this.eBullets = [];
-    this.parts = [];
+    this.parts = []; this.acidPools = []; this.acidG = null;
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];
@@ -1271,6 +1271,7 @@ class Level1 extends Phaser.Scene {
   updateWorld(dt) {
     const d = this.def, P = this.pl;
     if (d.conveyor) this.convPhase = wrap(this.convPhase + d.conveyor / R * dt);
+    if (this.acidPools.length) this.updateAcid(dt);
     for (const g of (this.goops || [])) {                   // goop bubbles plop up near Chris
       if (Math.abs(angDiff(g.theta, P.theta)) > 1.2) continue;
       g.bubT -= dt;
@@ -2056,56 +2057,77 @@ class Level1 extends Phaser.Scene {
     }
     if (hunting) { F.cd = Math.max(F.cd, 0.4); e.spitCd = Math.max(e.spitCd === undefined ? 0.5 : e.spitCd, 0.5); e.fanCd = Math.max(e.fanCd, 0.5); }
     F.t += dt; F.cd -= dt;
-    const anchor = { theta: e.theta, h: e.h - 26 * (e.spr.bsy || 1) };          // his fist, under the body
-    if (F.st === 'hang') {                                       // swinging pendulum below him
-      F.len += (95 - F.len) * Math.min(1, dt * 6);          // low enough to clip him standing - DUCK under it
-      F.a = Math.sin(F.t * 2.6) * 1.0 + (e.vx || 0) * -0.002;     // (trails behind as he moves)
-      F.dx = Math.sin(F.a) * F.len; F.dy = -Math.cos(F.a) * F.len;
-      if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.st = 'whirl'; F.t = 0; M.f = 0; Sound.sfx('swish'); }
-    } else if (F.st === 'whirl') {                               // the tell: whirling it over his head, faster and faster
-      const sp = 6 + F.t * 12; F.a = (F.a || 0) + sp * dt; F.len = 62;
-      F.dx = Math.cos(F.a) * F.len; F.dy = 30 + Math.sin(F.a) * F.len * 0.45;
-      if (Math.floor(F.t * 6) !== Math.floor((F.t - dt) * 6)) Sound.sfx('swish');
-      if (F.t > (phase2 ? 0.65 : 0.85)) {                         // HURL it at where Chris is heading
-        const lead = (P.vx || 0) * 0.35, tx = angDiff(P.theta, e.theta) * R + lead, ty = (P.h + 20) - anchor.h;
-        const d = Math.hypot(tx, ty) || 1, reach = Math.min(300, d + 30);
+    // RAT-CLAW PUNCH (replaces the old flail): mutated rat claws on long elastic strands of mould. One claw winds back
+    // and trembles (the tell), then PUNCHES out at where Chris is heading, holds, and snaps back like a rubber band.
+    if (F.side === undefined) F.side = 1;
+    const kk = e.spr.bsx || 1, anchor = { theta: wrap(e.theta + F.side * 46 * kk / (R + e.h)), h: e.h - 4 * kk };   // the shoulder on the punching side
+    if (F.st === 'hang') {                                       // claws hovering at his sides, flexing
+      F.dx = F.side * 26 + Math.sin(F.t * 2.2) * 4; F.dy = -18 + Math.sin(F.t * 3.1) * 5; F.len = Math.hypot(F.dx, F.dy);
+      if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.side = toP >= 0 ? 1 : -1; F.st = 'whirl'; F.t = 0; M.f = 1; Sound.sfx('growl'); }
+    } else if (F.st === 'whirl') {                               // the tell: the claw pulls right back, trembling
+      const tell = phase2 ? 0.6 : 0.8, k2 = Math.min(1, F.t / tell);
+      F.dx = F.side * (26 - 30 * k2) + Math.sin(F.t * 60) * 2.5 * k2; F.dy = -18 + 14 * k2 + Math.cos(F.t * 55) * 2 * k2; F.len = Math.hypot(F.dx, F.dy);
+      if (F.t > tell) {                                          // PUNCH at where Chris is heading
+        const lead = (P.vx || 0) * 0.35, tx = angDiff(P.theta, anchor.theta) * R + lead, ty = (P.h + 20) - anchor.h;
+        const d = Math.hypot(tx, ty) || 1, reach = Math.min(320, d + 30);
         F.st = 'throw'; F.t = 0; F.ux = tx / d; F.uy = ty / d; F.reach = reach; F.ox = F.dx; F.oy = F.dy;
-        Sound.sfx('whoosh'); M.f = 2; M.t = 0.5;
+        Sound.sfx('whoosh'); Sound.sfx('stretch'); M.f = 2; M.t = 0.5;
       }
     } else if (F.st === 'throw') {
-      const out = 0.32, hold = 0.18, back = 0.45;
-      const k = F.t < out ? 1 - Math.pow(1 - F.t / out, 2) : (F.t < out + hold ? 1 : Math.max(0, 1 - (F.t - out - hold) / back));
-      F.dx = F.ux * F.reach * k + F.ox * (1 - k); F.dy = F.uy * F.reach * k + F.oy * (1 - k); F.len = Math.hypot(F.dx, F.dy);
-      if (F.t > out && F.t - dt <= out) { this.cameras.main.shake(90, 0.004); Sound.sfx('clang'); }
+      const out = 0.24, hold = 0.16, back = 0.42;
+      let k2;
+      if (F.t < out) k2 = 1 - Math.pow(1 - F.t / out, 3);
+      else if (F.t < out + hold) k2 = 1;
+      else { const u = Math.min(1, (F.t - out - hold) / back); k2 = 1 - u - Math.sin(u * Math.PI) * 0.18; }   // SNAP back, overshooting a touch like elastic
+      F.dx = F.ux * F.reach * k2 + F.ox * (1 - k2); F.dy = F.uy * F.reach * k2 + F.oy * (1 - k2); F.len = Math.hypot(F.dx, F.dy);
+      if (F.t > out && F.t - dt <= out) { this.cameras.main.shake(90, 0.004); Sound.sfx('squelch'); }
       if (F.t >= out + hold + back) {
         F.n++;
-        if (phase2 && F.n % 2 === 1) { F.st = 'whirl'; F.t = 0.35; }          // angry: a second throw straight after
+        if (phase2 && F.n % 2 === 1) { F.side = -F.side; F.st = 'whirl'; F.t = 0.3; }   // angry: the other claw straight after
         else { F.st = 'hang'; F.t = 0; F.cd = phase2 ? 2.4 : 3.4; }
       }
     }
-    // the ball: where it is, and does it hit Chris?
+    // the claw: where it is, and does it hit Chris? (only while it's punching: hovering at his sides it's harmless)
     F.theta = wrap(anchor.theta + F.dx / (R + anchor.h)); F.h = anchor.h + F.dy; F.ath = anchor.theta; F.ah = anchor.h;
-    if (P.invuln <= 0 && this.state === 'play' && dist2(F.theta, F.h, P.theta, P.h + (P.duck ? 10 : 22)) < (15 + (P.duck ? 9 : 12)) ** 2) { this.hurt(); M.f = 1; M.cackle = 1.0; }
+    if (F.st === 'throw' && P.invuln <= 0 && this.state === 'play' && dist2(F.theta, F.h, P.theta, P.h + (P.duck ? 10 : 22)) < (16 + (P.duck ? 9 : 12)) ** 2) { this.hurt(); M.f = 1; M.cackle = 1.0; }
 
     // mouth: sneer by default; cackles now and then; roars wide before he spits
     M.t -= dt; M.cackleCd -= dt;
     if (M.cackle > 0) { M.cackle -= dt; M.f = Math.floor(M.cackle * 12) % 2 ? 1 : 2; if (M.cackle <= 0) M.f = 0; }
     else if (M.cackleCd <= 0 && F.st === 'hang') { M.cackle = 0.9; M.cackleCd = rnd(4.5, 7); Sound.sfx('cackle'); }
     else if (M.t <= 0 && M.f !== 0 && !(M.roar > 0)) M.f = 0;
+    // INHALE... COUGH: he sucks in air and swells up (the tell), then hacks out big bubbling globes of toxic blue cheese
+    // that lob over and SPLAT on the ground into pools of acid that linger: jetpack over them.
     e.spitCd = (e.spitCd === undefined ? 3 : e.spitCd) - dt;
-    if (e.spitCd <= 0.45 && !(M.roar > 0) && e.spitCd > 0) { M.roar = 0.45; M.f = 2; Sound.sfx('growl'); }    // the tell: jaw drops
-    if (M.roar > 0) M.roar -= dt;
-    if (e.spitCd <= 0) {                                         // from the mouth: an aimed triple of spores
-      e.spitCd = phase2 ? 2.4 : 3.4; M.roar = 0; M.t = 0.25;
-      const mh = e.h - 18 * (e.spr.bsy || 1), ex = angDiff(P.theta, e.theta) * R, ey = P.h + 24 - mh, v = phase2 ? 250 : 220, a0 = Math.atan2(ey, ex);
-      for (const da of (st >= 3 ? [-0.36, -0.18, 0, 0.18, 0.36] : [-0.2, 0, 0.2])) this.addEBullet('spore', e.theta, mh, Math.cos(a0 + da) * v, Math.sin(a0 + da) * v, 10, 3);
-      Sound.sfx('zing');
+    if (e.spitCd <= 0.75 && e.spitCd > 0 && !e.inhaling) { e.inhaling = true; Sound.sfx('sigh'); Sound.sfx('stretch'); }
+    e.swell = e.inhaling ? Math.min(1, (e.swell || 0) + dt / 0.75) : Math.max(0, (e.swell || 0) - dt * 5);
+    if (e.inhaling) M.f = 0;
+    if (e.spitCd <= 0) {
+      e.inhaling = false; e.spitCd = st >= 3 ? 2.8 : st === 2 ? 3.3 : 4; M.roar = 0; M.f = 2; M.t = 0.45;
+      const mh = e.h - 18 * (e.spr.bsy || 1), n = st >= 3 ? 4 : st === 2 ? 3 : 2;
+      for (let k = 0; k < n; k++) {
+        const land = angDiff(P.theta, e.theta) * R + (k - (n - 1) / 2) * 70 + rnd(-15, 15), air = rnd(0.95, 1.2);
+        const vh = 320 + rnd(0, 60), b = this.addEBullet('cheeseglobe', e.theta, mh, land / air, vh, 12, 4);
+        b.grav = 2 * (vh * air + mh) / (air * air); b.acid = true; b.spinV = rnd(-3, 3);
+      }
+      Sound.sfx('squelch'); Sound.sfx('growl'); this.cameras.main.shake(140, 0.005);
+      this.burst(e.theta, mh, 'spark', 8, 0.8);
     }
-    if (e.fanCd <= 0) {                                          // a spore ring
-      e.fanCd = phase2 ? 5 : 6.5; Sound.sfx('fan'); M.f = 1; M.t = 0.4;
-      const n = phase2 ? 10 : 8, off = rnd(0, 1);
-      for (let k = 0; k < n; k++) { const a = ((k + off) / n) * TAU; this.addEBullet('spore', e.theta, e.h, 150 * Math.sin(a), 150 * Math.cos(a), 11, 2.4); }
+    // the SCREAM: jaw wide, the whole graveyard shakes, the giant ribcages on the skyline rattle, and bones rain down
+    // (each one throws a shadow first: watch the ground)
+    e.fanCd = Math.min(e.fanCd, 99);
+    if (e.fanCd <= 0 && !e.slam) {
+      e.fanCd = st >= 3 ? 7 : st === 2 ? 9 : 11; M.f = 2; M.t = 1.1; e.screamT = 1.1;
+      Sound.sfx('growl'); Sound.sfx('crash'); buzz([60, 40, 120]); this.cameras.main.shake(700, 0.012);
+      for (const q of this.props) if (q.spr.texture && (q.spr.texture.key === 'bg_ribcage' || q.spr.texture.key === 'bg_skull')) q.shakeT = 1.4;
+      const nb = st >= 3 ? 7 : 5;
+      for (let k = 0; k < nb; k++) {
+        const th = wrap(P.theta + (rnd(-1, 1) * 220 + (k === 0 ? 0 : 0)) / R);
+        this.time.delayedCall(250 + k * 160, () => { if (this.state !== 'play') return; const b = this.addEBullet('bonechunk', th, 420, 0, -40, 10, 3); b.grav = 650; b.shadow = true; b.spinV = rnd(-8, 8); });
+      }
+      if (!this.screamTip) { this.screamTip = true; this.banner('WATCH FOR THE SHADOWS!'); }
     }
+    if (e.screamT > 0) { e.screamT -= dt; M.f = 2; }
     if (e.sumCd <= 0 && st >= 3 && this.enemies.length < 6) {     // rotting: calls in pals
       e.sumCd = 7;
       for (const sd of [-1, 1]) { const c = this.makeEnemy(sd > 0 ? 'stinkfly' : 'germ', wrap(e.theta + sd * 0.08), sd); if (c.kind !== 'flyer') { c.h = e.h; c.vh = 120; } this.enemies.push(c); }
@@ -2113,31 +2135,98 @@ class Level1 extends Phaser.Scene {
     e.rainCd = 99;                                               // (no more spore rain from the sky)
     // drool
     e.droolT = (e.droolT || 0) - dt;
-    if (e.droolT <= 0) { e.droolT = rnd(0.5, 1.2); const im = this.add.image(0, 0, 'goopbub').setDepth(6.3); im.bsx = im.bsy = 0.7; this.parts.push({ theta: wrap(e.theta + 14 / R), h: e.h - 26 * (e.spr.bsy || 1), vt: 0, vh: -20, life: 0.6, spr: im }); }
+    if (e.droolT <= 0) {                                         // toxic slime dripping off his underside all the time
+      e.droolT = rnd(0.12, 0.3); const kb = e.spr.bsy || 1, im = this.add.image(0, 0, 'goopbub').setDepth(6.3).setTint(0x8ae84a); im.bsx = im.bsy = rnd(0.5, 0.9);
+      this.parts.push({ theta: wrap(e.theta + rnd(-34, 34) * kb / (R + e.h)), h: e.h - rnd(34, 44) * kb, vt: 0, vh: -rnd(20, 60), life: 0.8, spr: im, grav: 500 });
+    }
+  }
+
+  // ---- acid pools from the Baron's cheese globes: lie on the ground for a few seconds and burn Chris's boots
+  acidSplat(theta) {
+    const boss = this.enemies.find(e => e.type === 'boss'), st = (boss && boss.stage) || 1;
+    this.acidPools.push({ theta, half: 32 / R, life: st >= 3 ? 6 : 5, max: st >= 3 ? 6 : 5, t: 0 });
+    this.burst(theta, 6, 'spark', 10, 0.9); this.bang(theta, 6, 12); Sound.sfx('squelch'); this.cameras.main.shake(80, 0.004);
+    if (!this.acidTip) { this.acidTip = true; this.banner('ACID! JETPACK OVER IT!'); }
+  }
+  updateAcid(dt) {
+    const P = this.pl;
+    for (let i = this.acidPools.length - 1; i >= 0; i--) {
+      const A = this.acidPools[i]; A.life -= dt; A.t += dt;
+      if (A.life <= 0) { this.acidPools.splice(i, 1); continue; }
+      if (Math.random() < dt * 4) this.burst(wrap(A.theta + rnd(-A.half, A.half) * 0.8), 6, 'spark', 1, 0.3);
+      if (this.state === 'play' && P.invuln <= 0 && P.h < 6 && !(P.floor > 0) && Math.abs(angDiff(P.theta, A.theta)) < A.half * 0.9) { this.hurt(); Sound.sfx('hiss'); }
+    }
+  }
+  drawAcid() {
+    if (!this.acidG) this.acidG = this.add.graphics().setDepth(7.55);
+    const g = this.acidG, t = this.t, z = this.zoom; g.clear();
+    for (const A of this.acidPools) {
+      if (Math.abs(angDiff(A.theta, this.pl.theta)) > this.visHalf + 0.2) continue;
+      const fade = Math.min(1, A.life / 0.6, A.t / 0.15), W = A.half * R, n = 14, top = [], bot = [];
+      for (let i = 0; i <= n; i++) {
+        const x = -W + 2 * W * i / n, e = x / W, th = wrap(A.theta + x / R), bump = Math.sqrt(Math.max(0, 1 - e * e));
+        top.push(this.screenPos(th, bump * (4 + Math.sin(t * 9 + i) * 1.2) * fade));
+        bot.unshift(this.screenPos(th, -bump * 5));
+      }
+      g.fillStyle(0x1a5a60, 0.9 * fade).fillPoints(top.concat(bot), true);
+      g.lineStyle(Math.max(1, 2 * z), 0x9affe8, fade).beginPath(); top.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.strokePath();
+      for (let k = 0; k < 3; k++) { const u = (k * 0.33 + t * 0.7 + A.theta) % 1, x = -W * 0.8 + u * W * 1.6, p = this.screenPos(wrap(A.theta + x / R), 5 + (u * 13 % 4)); g.fillStyle(0xc8fff0, fade).fillCircle(p.x, p.y, (1.2 + (u * 7 % 1.5)) * z); }
+    }
+    for (const b of this.eBullets) if (b.shadow && b.h > 0) {     // a falling bone throws a shadow that grows as it nears the ground
+      const k = 1 - Math.min(1, b.h / 420), p = this.screenPos(b.theta, 1);
+      g.fillStyle(0x000000, 0.25 + 0.4 * k).fillEllipse(p.x, p.y, (8 + 16 * k) * z, (3 + 4 * k) * z);
+    }
   }
 
   // the Baron's overlays: animated mouth, pupils that follow Chris, chain + spiked ball
   drawBaron(e) {
-    const k = e.spr.bsx || 1, z = this.zoom, P = this.pl;
+    const k = e.spr.bsx || 1, z = this.zoom, P = this.pl, t = this.t;
     if (!e.ov) {
       e.ov = { mouth: this.add.image(0, 0, 'baron_m0').setDepth(6.1), pl: this.add.image(0, 0, 'baron_pupil').setDepth(6.1), pr: this.add.image(0, 0, 'baron_pupil').setDepth(6.1),
-        ball: this.add.image(0, 0, 'spikeball').setDepth(6.3), chain: this.add.graphics().setDepth(5.9) };
+        clawA: this.add.image(0, 0, 'ratclaw').setDepth(6.3), clawB: this.add.image(0, 0, 'ratclaw').setDepth(5.95), chain: this.add.graphics().setDepth(5.9) };
+      e.ov.clawA.bsx = e.ov.clawA.bsy = e.ov.clawB.bsx = e.ov.clawB.bsy = 1.3;
     }
-    const O = e.ov, rot = Math.sin(e.t * 1.5) * 0.08, M = e.mouth || { f: 0 };
-    const atOff = (o, ox, oy, extra) => { this.place(o, wrap(e.theta + ox * k / (R + e.h)), e.h - oy * k, rot + (extra || 0)); o.setScale(o.scaleX * k, o.scaleY * k); };
+    // the jiggle: he wobbles and warps like a sack of jelly, sloshes when he moves, swells up when he inhales
+    const sw = e.swell || 0, mv = Math.max(-1, Math.min(1, (e.vx || 0) / 300)), slam = e.slam && e.slam.st === 'land' ? 0.25 : 0;
+    e.spr.sqx = 1 + 0.045 * Math.sin(t * 7.3) + 0.03 * Math.sin(t * 13.1 + 1) + Math.abs(mv) * 0.06 + sw * 0.16 + slam;
+    e.spr.sqy = 1 + 0.045 * Math.sin(t * 7.3 + Math.PI) + 0.02 * Math.sin(t * 11.7) - Math.abs(mv) * 0.04 + sw * 0.12 - slam * 0.6;
+    const O = e.ov, rot = Math.sin(t * 1.5) * 0.08 - mv * 0.06, M = e.mouth || { f: 0 }, gx = e.spr.sqx, gy = e.spr.sqy;
+    const atOff = (o, ox, oy, extra) => { this.place(o, wrap(e.theta + ox * k * gx / (R + e.h)), e.h - oy * k * gy, rot + (extra || 0)); o.setScale(o.scaleX * k, o.scaleY * k); };
     O.mouth.setTexture('baron_m' + (M.f || 0)).setOrigin(0.5, 0.3);
-    atOff(O.mouth, 1, 18 + (M.f === 2 ? 1 : 0) + (M.cackle > 0 ? Math.sin(this.t * 40) : 0));
+    const scream = e.screamT > 0 ? Math.sin(t * 60) * 1.5 : 0;
+    atOff(O.mouth, 1 + scream, 18 + (M.f === 2 ? 1 : 0) + (M.cackle > 0 ? Math.sin(t * 40) : 0));
     const lookX = Math.max(-3, Math.min(3, angDiff(P.theta, e.theta) * R * 0.03)), lookY = Math.max(-2, Math.min(3, (e.h - P.h) * 0.02));
-    atOff(O.pl, -16 + lookX, 3 + lookY); atOff(O.pr, 18 + lookX, 3 + lookY);
-    for (const o of [O.mouth, O.pl, O.pr]) { o.setAlpha(e.spr.alpha); if (e.flash > 0) o.setTintFill(0xffffff); else o.clearTint(); }
+    atOff(O.pl, -20 + lookX * 1.4, -6 + lookY * 1.4); O.pl.setScale(O.pl.scaleX * 1.9, O.pl.scaleY * 1.9);          // the big bulging one, staring
+    const tw = Math.floor(t * 9 + e.seed) % 7 === 0 ? rnd(-1.5, 1.5) : 0;                                            // the tiny one twitches
+    atOff(O.pr, 22 + lookX * 0.4 + tw, -9 + lookY * 0.4 + tw * 0.5); O.pr.setScale(O.pr.scaleX * 0.55, O.pr.scaleY * 0.55);
+    for (const o of [O.mouth, O.pl, O.pr, O.clawA, O.clawB]) { o.setAlpha(e.spr.alpha); if (e.flash > 0) o.setTintFill(0xffffff); else if (e.baseTint && o !== O.mouth && o !== O.pl && o !== O.pr) o.setTint(e.baseTint); else o.clearTint(); }
+    // the claws on their stretchy, bubbling strands of mould
     const F = e.fl;
     O.chain.clear();
-    if (F && F.theta !== undefined) {
-      this.place(O.ball, F.theta, F.h, F.t * 8);
-      const a = this.screenPos(F.ath, F.ah), b = this.screenPos(F.theta, F.h), n = Math.max(3, Math.ceil(F.len / 9));
-      for (let i = 1; i < n; i++) { const t = i / n, x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t + Math.sin(t * Math.PI) * (F.st === 'hang' ? 4 : 1) * z;
-        O.chain.fillStyle(0x1a1020, 1).fillCircle(x, y, 3.2 * z).fillStyle(0xa8b0c0, 1).fillCircle(x, y, 2.2 * z); }
-    }
+    if (!F || F.theta === undefined) return;
+    const strand = (a, b, taut) => {                               // three wobbly strands, thinner the further they stretch, with bubbles along them
+      const len = Math.hypot(b.x - a.x, b.y - a.y), th = Math.max(1, (taut ? 2.2 : 3.4) * z * Math.max(0.5, 1 - len / 500));
+      for (let s2 = -1; s2 <= 1; s2++) {
+        O.chain.lineStyle(th + (s2 === 0 ? 1 : 0), s2 === 0 ? 0x5a7ad0 : 0x3ac0a0, 1).beginPath();
+        const n = 10;
+        for (let i = 0; i <= n; i++) {
+          const u = i / n, sag = Math.sin(u * Math.PI) * (taut ? 2 : 7) * z, wob = Math.sin(u * 9 + t * 8 + s2 * 2) * (taut ? 1 : 2.5) * z;
+          const x = a.x + (b.x - a.x) * u + (-(b.y - a.y) / (len || 1)) * (s2 * 3 * z + wob), y = a.y + (b.y - a.y) * u + ((b.x - a.x) / (len || 1)) * (s2 * 3 * z + wob) + sag;
+          if (i) O.chain.lineTo(x, y); else O.chain.moveTo(x, y);
+        }
+        O.chain.strokePath();
+      }
+      for (let i = 1; i < 4; i++) { const u = ((i / 4 + t * 0.6) % 1), x = a.x + (b.x - a.x) * u, y = a.y + (b.y - a.y) * u + Math.sin(u * Math.PI) * (taut ? 2 : 7) * z; O.chain.fillStyle(0x9affe0, 0.9).fillCircle(x, y, 1.6 * z); }
+    };
+    // the punching claw (F), and the other one hovering on the far side
+    const sA = this.screenPos(F.ath, F.ah), cA = this.screenPos(F.theta, F.h);
+    strand(sA, cA, F.st === 'throw');
+    const ang = Math.atan2(cA.y - sA.y, cA.x - sA.x);
+    O.clawA.setPosition(cA.x, cA.y).setRotation(F.st === 'hang' ? (F.side > 0 ? 0.6 : Math.PI - 0.6) : ang).setFlipY(F.st === 'hang' ? F.side < 0 : Math.cos(ang) < 0).setScale(1.3 * k * z * 0.75);
+    const oSide = -F.side, oth = wrap(e.theta + oSide * 46 * k / (R + e.h)), oh = e.h - 4 * k;
+    const sB = this.screenPos(oth, oh), cB = this.screenPos(wrap(oth + (oSide * 26 + Math.sin(t * 2.4 + 1) * 4) / (R + oh)), oh - 18 + Math.cos(t * 3.3) * 5);
+    strand(sB, cB, false);
+    O.clawB.setVisible(true).setPosition(cB.x, cB.y).setRotation(oSide > 0 ? 0.6 : Math.PI - 0.6).setFlipY(oSide < 0).setScale(1.3 * k * z * 0.75);
   }
 
   // WELDER RAT (L3). Learnable rules:
@@ -3513,6 +3602,8 @@ class Level1 extends Phaser.Scene {
           b.life = 0;
         }
       }
+      if (b.acid && b.h <= 6) { this.acidSplat(b.theta); b.life = 0; }            // the Baron's cheese globe splats into a pool of acid
+      if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
       if (!dead && P.invuln <= 0) {
         const rr = b.r + (P.duck ? 8 : 12);
@@ -3992,7 +4083,9 @@ class Level1 extends Phaser.Scene {
       }
     }
     for (const q of this.props) {
-      this.place(q.spr, q.theta, q.h, q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0);
+      let jit = 0;
+      if (q.shakeT > 0) { q.shakeT -= this.lastDt || 0.016; jit = Math.sin(this.t * 55 + q.theta * 9) * 0.05 * q.shakeT; }   // rattled by the Baron's scream
+      this.place(q.spr, q.theta, q.h, (q.sway >= 0 ? Math.sin(this.t * 1.6 + q.sway) * 0.07 : 0) + jit);
       if (q.halo) {
         if (q.halo.blink) {                              // warning beacon: the light flashes on and off
           const on = ((this.t * q.halo.blink / 2 + q.halo.blinkOff) % 1) < 0.5;
@@ -4099,6 +4192,7 @@ class Level1 extends Phaser.Scene {
     for (const F of (this.fogFg || [])) { F.theta = wrap(F.theta + F.v * this.lastDt); this.place(F.spr, F.theta, F.h + Math.sin(this.t * 0.4 + F.ph) * 14, 0); F.spr.setAlpha(0.32 + 0.12 * Math.sin(this.t * 0.5 + F.ph)); }
     for (const g of this.goops) if (g.halo) this.place(g.halo, g.theta, 4, 0);
     if (this.goopG) this.drawGoop();
+    if (this.acidPools.length || this.eBullets.some(b => b.shadow) || this.acidG) this.drawAcid();
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
     this.updatePopups(this.lastDt || 0.016);

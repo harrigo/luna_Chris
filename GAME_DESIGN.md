@@ -894,3 +894,11 @@ Built from the brief (`makeGorgeTextures`):
 - Wellies redrawn as wellies: tall green rubber shafts up the shin with a rolled rim, round toes, chunky tread, a rubbery shine and mud caked round the feet (on Chris at home, and the pair by the back door, one slouching).
 - Speech bubbles can follow whoever's talking: the dog's ARF! / WOOF! WOOF! (intro and ending) now stay over the dog as it bounds about.
 - The "rotate your phone" screen says RETIRED CHEF, EX-ASTRONAUT, HERO too.
+
+## v1.22 — Baron von Blue, rotten
+- New look: a lopsided mass of fuzzy, rotting blue cheese (a swollen lump on one side, a knot of mould on the other, a belly that sags), cratered mould pits with teal mould in them, pulsing purple-pink veins, slime dripping off his underside (and constantly dripping as he moves), a rusty jagged tin-can lid smashed into his head at an angle with its ring pull sticking up, one huge bulging bloodshot eye that stares at Chris and one tiny squinting one that twitches, and broken yellowed bone-chunk teeth (and a rusty shard) at awkward angles in all three mouths.
+- He jiggles: the whole body wobbles and warps like jelly, sloshes when he moves, squashes when he flops, swells when he inhales.
+- The spiked flail is gone. He has two grotesque mutated rat claws on long, elastic, bubbling strands of mould: they hover at his sides; one pulls back and trembles (the tell), then PUNCHES out at where Chris is heading and snaps back like a rubber band (in act 2+ the other claw follows straight after). Only a punching claw hurts.
+- INHALE... COUGH replaces the spore spit: he sucks in (a sigh, and he visibly swells), then hacks out 2/3/4 (by act) big bubbling globes of toxic blue cheese that lob over and SPLAT into pools of acid on the ground for 5-6 s. Standing in one hurts: jetpack over them. First time: "ACID! JETPACK OVER IT!"
+- The SCREAM replaces the spore ring (every 11/9/7 s by act): jaw wide, a big shake, the giant ribcages and skulls on the skyline rattle, and 5-7 chunks of bone rain down near Chris, each throwing a shadow that grows as it falls (first time: "WATCH FOR THE SHADOWS!").
+- Still has the three acts, the hunt-and-belly-flop and the shootable mould rockets.
