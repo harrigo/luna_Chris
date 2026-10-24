@@ -870,3 +870,7 @@ Built from the brief (`makeGorgeTextures`):
 - Rat-frogs retreat properly again: if Chris gets within 150 px they hop back out to their spot (and further if needed), faster hops; rush one mid-tell (under 95 px) and it bails and hops away. Up close with its pounce ready it still POUNCES.
 - The goop trap is now what was asked: only a frog that's RUNNING AWAY from Chris while he's shooting lands badly in a pool and gets stuck (1.3 s). Otherwise frogs hop straight out of goop.
 - Tougher: frog hp 5 → 6; their open moments (tongue out, pounce, stuck) now take 1.5x instead of 2x (flipped over still 2x); the pack lashes a little more often; an extra frog in wave 2 and two in wave 3; Baron hp 160 → 175.
+
+## v1.16 — Goop that's part of the planet
+- The goop pools (L2 purple quicksand, L4 string cheese) are no longer a flat sprite laid on the curve: each is drawn every frame along the planet's curve as a pit cut into the ground (dark banks level with the ground, flat bottom, steep sides) filled with layered murk and a glossy skin that sits just below ground level and meets it flush at both ends.
+- The surface is alive: a slow swell all the time, a churning wobble round anything standing in it, and rings that spread out when something splashes in or wades about (Chris, frogs, germs...; bigger for big enemies). Murky swirls drift in the depths and glints slide along the top.

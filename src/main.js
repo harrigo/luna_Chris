@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.15';
+const BUILD = 'v1.16';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -376,12 +376,13 @@ class Level1 extends Phaser.Scene {
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
     // L2: green quicksand goop pools (drawn IN FRONT of Chris, so he visibly sinks into them)
     this.goops = (this.def.goop || []).map(g => {
-      const spr = this.add.image(0, 0, this.def.goopTex || 'goop').setOrigin(0.5, this.def.goopMode === 'string' ? 0.14 : 0.12).setDepth(7.6);   // surface sits flush with the ground
+      const spr = this.add.image(0, 0, this.def.goopTex || 'goop').setOrigin(0.5, this.def.goopMode === 'string' ? 0.14 : 0.12).setDepth(7.6).setVisible(false);   // (old flat sprite: the pool is drawn along the curve now, drawGoop)
       let halo = null;
       if (Settings.lights) { halo = this.add.image(0, 0, 'halo').setDepth(2.4).setTint(this.def.goopGlow || 0xb05aff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35); halo.bsx = (2 * g.half * R) / 128 * 1.6; halo.bsy = 0.7; }
       spr.bsx = (2 * g.half * R) / 64 * 1.1; spr.bsy = 1.7;
-      return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1) });
+      return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1), rip: [], inside: new Set() });
     });
+    this.goopG = this.goops.length ? this.add.graphics().setDepth(7.6) : null;
     // L6: bottomless pits / speed-bump craters (drawn in front, flush with the ground) and razor tortilla chips
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
@@ -2257,6 +2258,81 @@ class Level1 extends Phaser.Scene {
   }
 
   // craters cut into the curved surface: a pit is a black void with a crusty lip, a speed bump is a shallow bowl
+  // Goop pools (L2 purple quicksand, L4 string cheese) drawn along the planet's curve, so they sit IN the ground: a pit
+  // that's deepest in the middle and meets the surface flush at both ends, layered murk, a glossy top. The surface is
+  // alive: a slow swell all the time, a wobble round anything standing in it, and rings that spread out when something
+  // splashes in or wades about (Chris, frogs, germs...).
+  drawGoop() {
+    const g = this.goopG, P = this.pl, t = this.t, dt = this.lastDt || 0.016, z = this.zoom;
+    const PAL = this.def.goopPal || (this.def.goopMode === 'string'
+      ? { edge: 0x2a0e04, deep: 0x8a2a08, mid: 0xd0601a, top: 0xffa030, gloss: 0xffe8a0 }
+      : { edge: 0x12061e, deep: 0x3e1470, mid: 0x7a32c0, top: 0xb468f0, gloss: 0xf0c8ff });
+    const D = this.def.goopMode === 'string' ? 22 : 26;
+    g.clear();
+    for (const G of this.goops) {
+      if (Math.abs(angDiff(G.theta, P.theta)) > this.visHalf + G.half + 0.1) continue;
+      const W = G.half * R;
+      // who's in it: things at the surface over the pool make it wobble, and splash rings when they arrive or move
+      const occ = [];
+      const visit = (key, theta, h, vx, vh, big) => {
+        const x = angDiff(theta, G.theta) * R;
+        if (Math.abs(x) > W * 0.95 || h > 26) { G.inside.delete(key); return; }
+        occ.push({ x, k: big ? 1.6 : 1 });
+        if (!G.inside.has(key)) { G.inside.add(key); G.rip.push({ x, t: 0, a: 6 * (big ? 1.4 : 1) }); if (vh < -150) this.burst(theta, 4, 'spark', 4, 0.5); }
+        else if ((Math.abs(vx) > 40 || Math.abs(vh) > 60) && Math.random() < dt * 7) G.rip.push({ x, t: 0, a: 3 });
+      };
+      visit('P', P.theta, P.h, P.vx || 0, P.vh || 0, false);
+      for (const e of this.enemies) if (e.hp > 0 && e.type !== 'boss') visit(e, e.theta, e.h, e.vx || 0, e.vh || 0, !!e.big);
+      for (let i = G.rip.length - 1; i >= 0; i--) { G.rip[i].t += dt; if (G.rip[i].t > 1.6) G.rip.splice(i, 1); }
+      if (G.rip.length > 10) G.rip.splice(0, G.rip.length - 10);
+      const wave = x => {
+        let y = 1.3 * Math.sin(x * 0.09 + t * 2.2 + G.theta * 7) + 0.8 * Math.sin(x * 0.19 - t * 3.1);     // the slow swell
+        for (const o of occ) { const d = (x - o.x) / 18; y += o.k * 2.6 * Math.sin(t * 11 + o.x) * Math.exp(-d * d); }   // churned up round whoever's in it
+        for (const r of G.rip) { const d = Math.abs(x - r.x), front = r.t * 95; if (d < front) y += r.a * Math.exp(-r.t * 2.4) * Math.exp(-d / 90) * Math.sin((d - front) * 0.26); }
+        const e = x / W, taper = Math.max(0, 1 - e * e * e * e);                                             // pinned flush at the ends
+        return y * taper;
+      };
+      const n = Math.max(16, Math.round(W / 5)), top = [], bot = [], lay = [];
+      for (let i = 0; i <= n; i++) {
+        const x = -W + (2 * W * i) / n, th = wrap(G.theta + x / R), e = x / W, dep = D * Math.sqrt(Math.max(0, 1 - Math.pow(Math.abs(e), 5)));   // flat-bottomed, steep banks
+        const y = wave(x) - 2.5 * Math.min(1, (1 - Math.abs(e)) * 6);                                                            // the surface sits just below ground level
+        top.push({ th, y, dep });
+      }
+      const pt = (th, h) => { const p = this.screenPos(th, h); return { x: Math.round(p.x), y: Math.round(p.y) }; };
+      const band = (fromK, toK, col, off) => {          // a layer from depth fraction fromK (0 = surface) to toK (1 = floor)
+        const pts = [];
+        for (const T of top) pts.push(pt(T.th, T.y - T.dep * fromK + (off || 0)));
+        for (let i = top.length - 1; i >= 0; i--) { const T = top[i]; pts.push(pt(T.th, -T.dep * toK)); }
+        g.fillStyle(col, 1).fillPoints(pts, true);
+      };
+      // outline (a hair wider and deeper), then the murk in layers, then the glossy surface
+      { const pts = [], ex = 3 / R;                      // the hole in the ground: dark banks, level with the ground at the top
+        pts.push(pt(wrap(top[0].th - ex), 0));
+        for (const T of top) pts.push(pt(T.th, Math.max(0, T.y + 1)));
+        pts.push(pt(wrap(top[top.length - 1].th + ex), 0));
+        for (let i = top.length - 1; i >= 0; i--) { const T = top[i]; pts.push(pt(T.th, -T.dep - 2)); }
+        g.fillStyle(PAL.edge, 1).fillPoints(pts, true); }
+      band(0, 1, PAL.deep);
+      band(0, 0.45, PAL.mid);
+      band(0, 0.14, PAL.top);
+      // murky swirls drifting in the depths
+      for (let k = 0; k < 4; k++) {
+        const fx = ((k * 0.31 + t * 0.05 * (k % 2 ? 1 : -1) + G.theta) % 1 + 1) % 1, x = -W * 0.8 + fx * W * 1.6, e = x / W, dep = D * Math.sqrt(Math.max(0, 1 - e * e));
+        const p = pt(wrap(G.theta + x / R), -dep * (0.55 + 0.15 * Math.sin(t + k)));
+        g.fillStyle(PAL.mid, 0.8).fillRect(p.x - 3 * z, p.y, 6 * z, 2 * z);
+      }
+      // the glossy skin: a bright line riding the waves, with glints that slide along
+      g.lineStyle(Math.max(1, 2 * z), PAL.gloss, 1).beginPath();
+      top.forEach((T, i) => { const p = pt(T.th, T.y); if (i) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); });
+      g.strokePath();
+      for (let k = 0; k < 3; k++) {
+        const fx = ((t * 0.12 + k / 3 + G.theta) % 1 + 1) % 1, i = Math.round(fx * n), T = top[Math.min(n, Math.max(0, i))];
+        const p = pt(T.th, T.y - 3);
+        g.fillStyle(0xffffff, 0.8).fillRect(p.x - 2 * z, p.y, 4 * z, Math.max(1, z));
+      }
+    }
+  }
+
   drawCraters() {
     if (!this.craters || !this.craters.length) return;
     if (!this.crG) this.crG = this.add.graphics().setDepth(7.6);
@@ -4021,7 +4097,8 @@ class Level1 extends Phaser.Scene {
     this.drawCraters();
     for (const L of (this.specLights || [])) { L.theta = wrap(L.theta + L.v * this.lastDt); this.place(L.spr, L.theta, 10, 0); L.spr.setAlpha(0.18 + 0.12 * Math.sin(this.t * 1.3 + L.ph)); }
     for (const F of (this.fogFg || [])) { F.theta = wrap(F.theta + F.v * this.lastDt); this.place(F.spr, F.theta, F.h + Math.sin(this.t * 0.4 + F.ph) * 14, 0); F.spr.setAlpha(0.32 + 0.12 * Math.sin(this.t * 0.5 + F.ph)); }
-    for (const g of this.goops) { if (g.halo) this.place(g.halo, g.theta, 4, 0); this.place(g.spr, g.theta, 0, 0); g.spr.setScale(g.spr.scaleX * (1 + 0.015 * Math.sin(this.t * 3 + g.theta * 5)), g.spr.scaleY); }
+    for (const g of this.goops) if (g.halo) this.place(g.halo, g.theta, 4, 0);
+    if (this.goopG) this.drawGoop();
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
     this.updatePopups(this.lastDt || 0.016);
