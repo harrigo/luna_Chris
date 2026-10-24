@@ -23,7 +23,7 @@
     @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
     #mute { display: none !important; position: fixed; top: 22px; right: 8px; z-index: 6; width: 34px; height: 28px; padding: 0; border: 1px solid #3a4266; border-radius: 6px; background: rgba(11,16,32,.6); color: #fff; font-size: 16px; line-height: 1; opacity: .75; touch-action: manipulation; }
     #rotate .logo { font-size: 40px; line-height: 1; color: #ffd23f; letter-spacing: 2px; text-shadow: 0 4px 0 #1a1020, 3px 0 0 #1a1020, -3px 0 0 #1a1020, 0 -3px 0 #1a1020; margin-bottom: 6px; }
-    #rotate .sub { font-size: 10px; color: #fff; margin-bottom: 26px; }
+    #rotate .sub { font-size: 10px; color: #fff; margin-bottom: 26px; padding: 0 16px; line-height: 1.7; }
     #rotate .hint { font-size: 9px; color: #6b7390; margin-top: 18px; }
     #ver { position: fixed; bottom: 4px; right: 6px; color: #6b7390; font: 9px 'Press Start 2P', monospace; z-index: 5; pointer-events: none; }
   </style>
@@ -32,7 +32,7 @@
   <div id="game"></div>
   <div id="ver"></div>
   <button id="mute" aria-label="Sound on/off">&#128266;</button>
-  <div id="rotate"><div><div class="logo">LUNA<br>CHRIS</div><div class="sub">SPACE-RANCH HERO</div>&#8635;<br>Rotate your phone<br>to landscape<div class="hint">tap for music</div></div></div>
+  <div id="rotate"><div><div class="logo">LUNA<br>CHRIS</div><div class="sub">RETIRED CHEF, EX-ASTRONAUT, HERO</div>&#8635;<br>Rotate your phone<br>to landscape<div class="hint">tap for music</div></div></div>
   <pre id="err"></pre>
 
   <script>

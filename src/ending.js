@@ -327,7 +327,7 @@ class EndingScene extends IntroScene {
         });
       } });
       this.at(1600, () => { this.P.facing = 1; this.bubble(this.cx + 4, GY - 104, 'OH, COME ON!!', 1800, '#d0302a'); this.shake(150, 0.004); });
-      this.at(2400, () => { Sound.sfx('flap'); this.bubble(this.folk.dog.x + 4, GY - 32, 'WOOF!', 1000); });
+      this.at(2400, () => { Sound.sfx('flap'); this.bubble(this.folk.dog.x + 4, GY - 32, 'WOOF!', 1000, undefined, this.folk.dog); });
     });
     this.at(13200, () => this.cut(this.shotCredits));
   }

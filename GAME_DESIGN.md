@@ -889,3 +889,8 @@ Built from the brief (`makeGorgeTextures`):
 - The cabin scene starts with the back door swinging open (night sky outside) and Chris walking in from the right in his muddy green wellies. He kicks them off by the door (they stay there, by the muddy footprints) and pads over to the fireplace in red-toed woolly socks.
 - His space boots are in the armoury behind the fireplace with the guns: when it spins round they hop out onto his feet ("ON GO THE SPACE BOOTS..."), then he grabs the Mac-Grinder.
 - Narration now matches the animation: "AND THE APRON SPINS ROUND... INTO A CAPE!"
+
+## v1.20 — Proper wellies, a dog that keeps its words
+- Wellies redrawn as wellies: tall green rubber shafts up the shin with a rolled rim, round toes, chunky tread, a rubbery shine and mud caked round the feet (on Chris at home, and the pair by the back door, one slouching).
+- Speech bubbles can follow whoever's talking: the dog's ARF! / WOOF! WOOF! (intro and ending) now stay over the dog as it bounds about.
+- The "rotate your phone" screen says RETIRED CHEF, EX-ASTRONAUT, HERO too.

@@ -40,10 +40,14 @@ function makeChrisTextures(scene) {
     a.rect(2, 9, 21, 10, 0xd9d9e0); a.rect(2, 10, 21, 10, 0x8a8a98);                    // sole
     a.rect(14, 3, 17, 3, 0xc4d4ff);                                                     // toe shine
   });
-  pixSprite(scene, 'c_welly', 24, 13, a => {                                         // green wellies (at home on the farm)
-    a.rrect(2, 0, 21, 10, 3, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]);
-    a.rect(2, 9, 21, 10, 0x3a2a1a); a.rect(3, 7, 9, 8, 0x6a4424); a.px(17, 8, 0x6a4424);    // a muddy sole
-    a.rect(15, 2, 17, 2, 0x9af08a);
+  pixSprite(scene, 'c_welly', 24, 19, a => {                                         // green wellies (at home on the farm): a tall rubber shaft up the shin
+    const G = [0x6ad05a, 0x2f8f2f, 0x1a5a1e];
+    a.rrect(4, 0, 15, 15, 2, G);                                                        // the shaft
+    a.rect(4, 0, 15, 1, 0x9af08a); a.rect(4, 2, 15, 2, 0x1a5a1e);                      // rolled top rim
+    a.rrect(3, 9, 22, 17, 4, G);                                                        // the foot, a big round toe
+    a.rect(7, 3, 7, 12, 0xb8ffa8);                                                      // rubbery shine
+    a.rect(3, 16, 22, 18, 0x2a2018); for (let x = 4; x < 22; x += 3) a.px(x, 18, 0x4a3a2a);   // chunky tread
+    a.rect(3, 13, 9, 15, 0x6a4424); a.px(18, 15, 0x6a4424); a.px(12, 14, 0x7a5030); a.px(5, 11, 0x6a4424);   // caked in mud
   });
   pixSprite(scene, 'c_sock', 24, 13, a => {                                          // woolly socks (between wellies and space boots)
     a.rrect(4, 3, 19, 10, 3, [0xf4ece0, 0xd8ccb8, 0xa89880]);

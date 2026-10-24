@@ -285,10 +285,15 @@ function makeIntroPix(scene) {
     p.rrect(1, 3, 14, 9, 2, [0x5a8ad8, 0x2a5ab0, 0x1a3a7a]); p.rect(2, 5, 13, 6, 0xffd23f);
     p.rrect(0, 0, 13, 3, 1, [0x6a9ae8, 0x3a6ac0, 0x1a3a7a]); p.ell(12, 2, 2.4, 1.6, [0xe8b070, 0xc08a4a, 0x8a5a2a]);
   });
-  pixSprite(scene, 'ix_wellies', 22, 18, p => {                       // muddy green wellies by the door
-    for (const x of [1, 11]) {
-      p.rrect(x + 1, 0, x + 6, 15, 1, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]); p.rrect(x, 12, x + 9, 17, 2, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]);
-      p.rect(x, 13, x + 9, 17, 0x6a4424); p.rect(x + 1, 9, x + 5, 12, 0x6a4424); p.px(x + 3, 7, 0x6a4424); p.px(x + 2, 5, 0x7a5030); p.px(x + 7, 11, 0x7a5030);   // caked in mud
+  pixSprite(scene, 'ix_wellies', 26, 24, p => {                       // a pair of muddy green wellies by the door: tall shafts, round toes
+    const G = [0x6ad05a, 0x2f8f2f, 0x1a5a1e];
+    for (const [x, lean] of [[1, 0], [12, 1]]) {
+      p.rrect(x + 1 + lean, 0 + lean, x + 8 + lean, 18, 2, G);                          // shaft (the second one slouching a bit)
+      p.rect(x + 1 + lean, lean, x + 8 + lean, lean, 0x9af08a); p.rect(x + 1 + lean, lean + 2, x + 8 + lean, lean + 2, 0x1a5a1e);   // rolled rim
+      p.rrect(x, 14, x + 12, 21, 3, G);                                                 // foot
+      p.rect(x + 3 + lean, 3 + lean, x + 3 + lean, 13, 0xb8ffa8);                      // shine
+      p.rect(x, 21, x + 12, 23, 0x2a2018);                                              // sole
+      p.rect(x, 17, x + 5, 20, 0x6a4424); p.px(x + 9, 19, 0x6a4424); p.px(x + 4, 12, 0x7a5030); p.px(x + 2, 15, 0x6a4424);   // mud
     }
   });
   pixSprite(scene, 'ix_door', 36, 74, p => {                          // the back door, with a coat on a hook
@@ -559,7 +564,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   // pixel speech bubble, in shot coordinates
-  bubble(x, y, txt, life = 1500, col = '#1a1020') {
+  bubble(x, y, txt, life = 1500, col = '#1a1020', follow = null) {   // follow: keep the bubble over a moving thing (the dog)
     const t = this.add.text(0, -1, txt, { fontFamily: PIXEL, fontSize: '8px', color: col }).setOrigin(0.5).setResolution(Math.max(2, Math.ceil(this.s * 1.5)));
     const w = Math.ceil(t.width / 2) * 2 + 12, h = 16, L = -w / 2, T = -h / 2;
     const g = this.add.graphics();
@@ -568,6 +573,7 @@ class IntroScene extends Phaser.Scene {
     g.fillStyle(0xdde3f0, 1).fillRect(L + 2, T + h - 3, w - 4, 1);
     const c = this.add2(this.add.container(Math.round(x), Math.round(y), [g, t])).setScale(0);
     this.tweens.add({ targets: c, scale: 1, duration: 180, ease: 'Back.easeOut' });
+    if (follow) { const dx = x - follow.x; this.acts.push(() => { if (c.active && follow.active !== false) c.x = Math.round(follow.x + dx); }); }
     this.tweens.add({ targets: c, y: c.y - 3, yoyo: true, repeat: -1, duration: 500, ease: 'Sine.easeInOut' });
     this.at(life, () => this.tweens.add({ targets: c, scale: 0, duration: 140, onComplete: () => c.destroy() }));
     return c;
@@ -802,14 +808,14 @@ class IntroScene extends Phaser.Scene {
       this.bubble(-124, GY - 50, 'HI CHRIS!', 1500);
       this.tweens.add({ targets: F.arm, angle: { from: -30, to: 30 }, yoyo: true, repeat: 5, duration: 140 });
     });
-    this.at(5400, () => { if (!F.panic) { Sound.sfx('flap'); this.bubble(F.dog.x + 4, GY - 32, 'ARF!', 900); } });
+    this.at(5400, () => { if (!F.panic) { Sound.sfx('flap'); this.bubble(F.dog.x + 4, GY - 32, 'ARF!', 900, undefined, F.dog); } });
   }
 
   // everyone reacts when the alarm goes off
   folkPanic() {
     const F = this.folk; if (!F) return;
     F.panic = true;
-    this.bubble(F.dog.x + 4, GY - 32, 'WOOF! WOOF!', 1600);
+    this.bubble(F.dog.x + 4, GY - 32, 'WOOF! WOOF!', 1600, undefined, F.dog);
     this.tweens.add({ targets: F.dog, x: this.cx - 34, duration: 500, ease: 'Quad.easeOut', onComplete: () => this.tweens.add({ targets: F.dog, x: F.dog.x + 1.5, yoyo: true, repeat: -1, duration: 40 }) });   // hides behind Chris, shivering
     F.dog.setFlipX(true);
     F.chicks.forEach((c, i) => {                                                     // chickens bolt off, feathers everywhere
