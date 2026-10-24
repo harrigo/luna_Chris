@@ -56,6 +56,7 @@ const Pad = (() => {
     // right stick = twin-stick aim: push it to aim and fire that way while the left stick moves
     const rx = gp ? (gp.axes[2] || 0) : 0, ry = gp ? (gp.axes[3] || 0) : 0, rm = Math.hypot(rx, ry);
     state.aimOn = rm > 0.45; state.aimX = rx; state.aimY = ry;
+    state.lx = gp ? (gp.axes[0] || 0) : 0; state.ly = gp ? (gp.axes[1] || 0) : 0;   // raw left stick (for the stick-up-to-jump option)
     state.held = now;
     requestAnimationFrame(poll);
   }

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.28';
+const BUILD = 'v1.29';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1494,6 +1494,12 @@ class Level1 extends Phaser.Scene {
       if (g.down) d.down = true;
       if (g.melee) d.melee = true;
       if (g.jet) { d.jump = true; d.jetNow = true; }
+      if (Settings.padUpJump) {                     // option: push the left stick UP to jump (hold = jetpack, all the way = jet now), like the touch stick
+        const ly = g.ly || 0, upish = -ly > Math.abs(g.lx || 0) * 0.6;
+        if (this.padUp) { if (ly > -0.3) this.padUp = false; } else if (ly < -0.6 && upish) this.padUp = true;   // (hysteresis: no accidental double jumps)
+        if (this.padUp) d.jump = true;
+        if (ly < -0.92 && upish) d.jetNow = true;
+      }
       if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); }   // twin-stick: aiming fires
     }
     if (d.fire) { d.fireP = d.fireP || 1; d.reach = d.reach || d.fireP; }

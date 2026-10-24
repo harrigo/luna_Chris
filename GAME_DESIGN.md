@@ -925,3 +925,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.28 — Snappier escape
 - Breaking free now happens the instant the second jump is pressed (handled right in the jump input, not on the rat's next update).
 - The flip is quicker: a lower toss, the somersault done in 0.5 s, and about 1.15 s stunned in all before it's back on its feet.
+
+## v1.29 — Stick-up jump for controllers
+- New option PAD STICK-UP JUMP (pause menu and main menu options, off by default, saved on the device): pushing the left stick clearly up jumps, holding it up keeps the jetpack going, and pushing it right to the top fires the jetpack straight away, just like the touch stick. It needs a clear upward push (not a sloppy diagonal while running) and has hysteresis, so wobbling the stick can't double-jump. A still works as normal.
+- The controller page of CONTROLS lists it.
