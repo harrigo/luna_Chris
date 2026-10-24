@@ -262,7 +262,7 @@ class EndingScene extends IntroScene {
 
   // ============================================================= 4: the party back at the ranch
   shotParty() {
-    this.chapter.setText('BACK HOME  -  SPACE RANCH 9');
+    this.chapter.setText('BACK HOME  -  SPACE FARM NO. 9');
     Sound.music('ranch');
     this.img(0, GY + 12, 'ix_sky_night');
     this.twinkles(-360, 360, -300, -20);
@@ -290,7 +290,7 @@ class EndingScene extends IntroScene {
       const bg = this.img(-30, GY - 24, 'burger', 0.5, 0.5).setScale(0.45);
       this.tweens.add({ targets: bg, y: GY - 70, angle: 360, yoyo: true, duration: 380, ease: 'Quad.easeOut', onComplete: () => bg.destroy() });
     } }));
-    // Chris, flipping pancakes onto a stack that keeps growing
+    // Chris, flipping burgers onto a stack that keeps growing
     this.makeChris(-110, 1, 'spatula');
     const stack = []; const stackX = -78;
     this.partyLoops.push(this.time.addEvent({ delay: 700, loop: true, callback: () => {
@@ -349,7 +349,7 @@ class EndingScene extends IntroScene {
     const lines = [
       ['STARRING', '#9fd8ff'], ['LUNA CHRIS', '#ffffff'], ['AND BESSIE THE COW', '#ffffff'], ['', ''],
       ['ALSO STARRING', '#9fd8ff'], ['THE GRAND RAT-KING (IN HIS PANTS)', '#ffffff'], ['THE DOG', '#ffffff'], ['THE CHICKENS', '#ffffff'], ['', ''],
-      ['PANCAKE CONSULTANT', '#9fd8ff'], ['THE DOG AGAIN', '#ffffff'], ['', ''],
+      ['BURGER CONSULTANT', '#9fd8ff'], ['THE DOG AGAIN', '#ffffff'], ['', ''],
       ['ALL CHEESE SUPPLIED BY', '#9fd8ff'], ['BESSIE', '#ffffff'], ['', ''],
       ['NO RATS WERE HARMED', '#9fd8ff'], ['MOST OF THEM WERE CURED', '#ffffff'], ['', ''],
       ['MADE BY', '#9fd8ff'], ['HARRIGO', '#ffd23f'], ['', ''], ['MOO.', '#ffd23f']

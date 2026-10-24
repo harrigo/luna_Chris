@@ -874,3 +874,9 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.16 — Goop that's part of the planet
 - The goop pools (L2 purple quicksand, L4 string cheese) are no longer a flat sprite laid on the curve: each is drawn every frame along the planet's curve as a pit cut into the ground (dark banks level with the ground, flat bottom, steep sides) filled with layered murk and a glossy skin that sits just below ground level and meets it flush at both ends.
 - The surface is alive: a slow swell all the time, a churning wobble round anything standing in it, and rings that spread out when something splashes in or wades about (Chris, frogs, germs...; bigger for big enemies). Murky swirls drift in the depths and glints slide along the top.
+
+## v1.17 — A bit more British
+- Title and menu subtitle: "RETIRED CHEF, EX-ASTRONAUT, HERO" (was "SPACE-RANCH HERO").
+- The ranch is a farm: "SPACE FARM NO. 9" in the intro and ending, "the whole farm is overflowing".
+- Chris flips burgers, not flapjacks: the flipped (and helmet-landing) pancake is now a sizzling burger with a drip of cheese, the telly's cooking show flips a burger, the ending's stack is burgers, and the credits have a BURGER CONSULTANT.
+- The cabin's homelier: a brown betty teapot in a red, white and blue knitted cosy (steaming) on the coffee table, a mug of tea instead of cocoa, red-white-and-blue bunting along the beams, a dartboard, a biscuit tin on the bookshelf, green wellies by the stove, and a Union Jack cushion on the sofa.

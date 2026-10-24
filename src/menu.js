@@ -143,7 +143,7 @@ class MenuScene extends Phaser.Scene {
     Sound.init(); Sound.music('title');
     this.bg = this.textures.exists('titleArt') ? this.add.image(0, 0, 'titleArt').setAlpha(0.45) : null;
     this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5);
-    this.sub = this.add.text(0, 0, 'SPACE-RANCH HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
+    this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
     this.fit();
     this.scale.on('resize', this.fit, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.fit, this));
