@@ -933,3 +933,8 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.30 — The belly, attached
 - Chris's belly is now a round, bare belly bulging out from under his stretched suit: the hem (white, red trim) is part of the belly sprite and bows down over it where it's tightest, with a shadow where it digs in, a navel, a shine and an underside crease, pushing a little past the front of the suit. It's a bit smaller than the reference.
 - It jiggles from the hem down but no longer slides about, so it stays attached; and the legs are now drawn behind the torso, so the belly hangs over them instead of being hidden by the front leg.
+
+## v1.31 — Hand-pixelled body
+- Chris's body is now hand-pixelled (44x42, facing right, outline included) and stored in src/chris.js as rows of palette letters (pixArt in src/textures.js draws it as-is, no automatic outline). A long white top with the red hem running unbroken from the back, rising over a small round belly at the front, with a 2x2 belly button faded into the skin. The belly is part of the body: no separate belly sprite and no wobble; the running bounce on the body is gone too.
+- Legs are blue trousers with a red-and-white knee stripe, drawn behind the torso.
+- To change it: edit the letters, or send a 44x42 PNG/GIF (pure black or transparent background) and it gets converted.

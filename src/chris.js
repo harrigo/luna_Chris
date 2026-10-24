@@ -53,17 +53,56 @@ function makeChrisTextures(scene) {
     a.rrect(4, 3, 19, 10, 3, [0xf4ece0, 0xd8ccb8, 0xa89880]);
     a.rect(16, 6, 19, 10, 0xc04a3a); a.rect(4, 7, 6, 10, 0xc04a3a);                     // red toe and heel
   });
+  const PANTS = [0x9ab4ff, 0x5a78d8, 0x2e3e8a];                                      // blue suit trousers
   pixSprite(scene, 'c_leg', 16, 18, a => {
-    a.rrect(1, 0, 14, 17, 4, SUIT);
-    a.rect(2, 9, 13, 9, 0xd62828); a.rect(2, 10, 13, 11, 0x4a6ad8);                     // red + blue knee trim
+    a.rrect(1, 0, 14, 17, 4, PANTS);
+    a.rect(2, 10, 13, 10, 0xd62828); a.rect(2, 11, 13, 11, 0xc4d4ff);                   // red + white knee trim
   });
-  // suit torso with a slight belly overhang under the hem
-  pixSprite(scene, 'c_body', 44, 42, a => {
-    a.rrect(5, 1, 38, 31, 10, SUIT);                                                    // the suit, a size too small
-    a.rect(6, 27, 37, 28, 0xd62828); a.rect(7, 29, 36, 30, 0x93a8cc);                   // red hem trim + stretched hem
-    a.ell(14, 11, 4, 4, BLUE); a.px(14, 10, 0xffffff); a.px(13, 11, 0xffffff); a.px(15, 11, 0xffffff); a.px(14, 12, 0xffd23f);   // mission patch
-    a.rect(30, 4, 33, 6, 0xd62828); a.rect(30, 7, 33, 8, 0x4a6ad8);                     // shoulder flag
-  }, 1);
+  // Chris's body: hand-pixelled (44x42, facing right, outline included). Edit the rows: each letter is a colour in the palette.
+  pixArt(scene, 'c_body', {a: 0x1a1020, b: 0xffffff, c: 0xd6e2f4, d: 0xd52828, e: 0x8aa8fe, f: 0x4a69d7, g: 0x2a398f, h: 0x92a8cc, i: 0xf2b592, j: 0xf0ddd6, k: 0xfed9c4, l: 0xf2b593, m: 0xc8805e, n: 0x50211b, o: 0x37191c}, [
+    '............................................',
+    '............................................',
+    '...........aaaaaaaaaaaaaaaaaaa..............',
+    '.........aabbbbbbbbbbbbbbbbbbbaa............',
+    '........abbbbbbbbbbbbbbbbbbbbbbca...........',
+    '.......abbbbbbbbbbbbbbbbbbbbbcccca..........',
+    '......abbbbbbbbbbbbbbbbbbbbbddddcca.........',
+    '.....abbbbbbbbbbbbbbbbbbbbccddddccca........',
+    '.....abbbbbbbbbbbbbbbbbbccccddddccca........',
+    '....abbbbbbeeeebbbbbbbbcccccffffcccca.......',
+    '....abbbbbeeeeffbbbbbcccccccffffcccca.......',
+    '....abbbbeeeeffffbbccccccccccccccccca.......',
+    '....abbbbeeefbffgbcccccccccccccccccha.......',
+    '....abbbbeffbfbggcccccccccccccccchhha.......',
+    '....abbbbffffigggcccccccccccccchhhhha.......',
+    '....abbbbbffggggcccccccccccccchhhhhha.......',
+    '....abbbbbbggggccccccccccccchhhhhhhha.......',
+    '....abbbbccccccccccccccccchhhhhhhhhha.......',
+    '....abbbccccccccccccccccchhhhhhhhhhha.......',
+    '....abccccccccccccccccchhhhhhhhhhhhha.......',
+    '....acccccccccccccccchhhhhhhhhhhhhhha.......',
+    '....accccccccccccccchhhhhhhhhhhhhhhha.......',
+    '.....accccccccccccccccccccccchhhhhha........',
+    '.....accccccccccccccccccccccccccccha........',
+    '......accccccccccccccccccccccccccccca.......',
+    '.......accccccccccccccccccccccccccccca......',
+    '........accccccccccccccccccccccccccccca.....',
+    '........acccccccccccccccccccccccccccccca....',
+    '.......acccccccccccccccccccccccddddddcca....',
+    '.......accccccccccccccccccccdddddddddddda...',
+    '......accccccccccccccccccdddddjjkkkkkkdda...',
+    '......acccccccccccccccccdddlllllkkkkkkkma...',
+    '......accccccccccccccdddddllllimmikkkkkka...',
+    '......acccccccccccdddddlllllllmonmllkkkka...',
+    '......acccccccccdddddlllllllllmnnillllkka...',
+    '.......adddddddddddmmmllllllllikklllllla....',
+    '......adddddddddmmmmmmmmllllllllllllllla....',
+    '......aammmmmmmmmaammmmmmmlllllllllllla.....',
+    '.......aammmmmmmmmaammmmmmmmlllaaaalla......',
+    '........aaammmmaaa.aammmmmmmmaaa...aa.......',
+    '..........aaaaaa....aaaaaaaaaa..............',
+    '.............aa.............................'
+  ]);
   // the apron: "KISS THE COOK", cream with red lettering and macaroni-cheese stains
   pixSprite(scene, 'c_apron', 28, 38, a => {
     a.poly([[8, 1], [20, 1], [24, 12], [27, 35], [1, 35], [4, 12]], CREAM);
@@ -263,7 +302,7 @@ class ChrisRig {
     this.bootB = img('c_boot', -6, 0, 0.5, 1);
     this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
-    this.belly = img('c_belly', 8, -12, 0.5, 0);                    // the belly bulging out under the front of the hem (its top is the hem itself)
+    this.belly = img('c_belly', 8, -12, 0.5, 0).setVisible(false);   // (the belly is part of c_body now)
     this.armB = img('c_arm', -3, -22, 0, 0.5);
     this.apron = img('c_apronT', 5, -33, 0.5, 0);                    // the apron over the FRONT of the suit...
     this.apronB = img('c_apronB', 5, -14, 0.5, 0);                   // ...with a skirt that flaps on a spring
@@ -421,13 +460,13 @@ class ChrisRig {
     if (dk > 0) this.torso.setScale(this.torso.scaleX * (1 + 0.04 * dk), this.torso.scaleY * (1 - 0.05 * dk));   // only a hint of squash
 
     // belly jiggle on every footfall
-    this.body.setScale(1, 1 + Math.abs(Math.cos(this.wp)) * 0.05 * run);
+
     // belly jiggle: a little spring driven by the waddle and by landings
     this.bo = this.bo || 0; this.bv = this.bv || 0;
     const drive = run * Math.sin(this.wp * 2) * 3;
     this.bv += (-this.bo * 170 - this.bv * 8 + drive * 55) * dt;
     this.bo = Math.max(-1.4, Math.min(1.4, this.bo + this.bv * dt));
-    this.belly.setScale((1 - this.bo * 0.04) * (1 + 0.08 * dk), (1 + this.bo * 0.1) * (1 + 0.12 * dk)).setPosition(8, -12);   // jiggles from the hem down, but stays attached
+    // (no belly wobble)
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
