@@ -884,3 +884,8 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.18 — Hints, not flags
 - No Union Jack: the sofa's back to two cow-print cushions, the tea cosy is mustard with cream and green stripes, and the bunting is a faded village-fete mix.
 - A back door on the right of the cabin with a waxed jacket on the hook, and muddy green wellies kicked off in front of it, with muddy footprints.
+
+## v1.19 — In through the back door
+- The cabin scene starts with the back door swinging open (night sky outside) and Chris walking in from the right in his muddy green wellies. He kicks them off by the door (they stay there, by the muddy footprints) and pads over to the fireplace in red-toed woolly socks.
+- His space boots are in the armoury behind the fireplace with the guns: when it spins round they hop out onto his feet ("ON GO THE SPACE BOOTS..."), then he grabs the Mac-Grinder.
+- Narration now matches the animation: "AND THE APRON SPINS ROUND... INTO A CAPE!"

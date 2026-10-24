@@ -297,6 +297,11 @@ function makeIntroPix(scene) {
     p.ell(28, 40, 2, 2, [0xfff0a0, 0xffc83a, 0xb07a1a]);
     p.line([[6, 12], [9, 12]], 0x2a1a10); p.rrect(3, 12, 12, 40, 3, [0x6a7a5a, 0x4a5a3a, 0x2e3a24]);   // waxed jacket on the hook
   });
+  pixSprite(scene, 'ix_doorway', 36, 74, p => {                       // the back door, open: night and stars outside
+    p.rect(0, 0, 35, 73, 0x3a2616); p.rect(3, 3, 32, 73, 0x141a3a);
+    p.rect(3, 50, 32, 73, 0x1e2a1a); for (const [x, y] of [[8, 10], [20, 18], [26, 8], [12, 30], [28, 34]]) p.px(x, y, 0xfff6c0);
+    p.rect(30, 3, 32, 73, 0x7a5236);
+  });
   pixSprite(scene, 'ix_mud', 40, 4, p => { for (const [x, w] of [[2, 6], [12, 4], [20, 7], [31, 5]]) p.ell(x + w / 2, 2, w / 2, 1.5, [0x8a6040, 0x6a4424, 0x4a2e1a]); });   // muddy footprints
   pixSprite(scene, 'ix_sampler', 34, 22, p => {                       // "HOME" cross-stitch with a little cow
     p.rrect(0, 0, 33, 21, 1, WD); p.rect(3, 3, 30, 18, 0xfff6e0);
@@ -629,7 +634,7 @@ class IntroScene extends Phaser.Scene {
     this.shot.add(this.rig.root);
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing };
     this.cx = x; this.walkTo = null;
-    if (tool === 'spatula') { this.rig.gun.setTexture('ix_spatula'); this.rig.auger.setVisible(false); this.rig.setChef(true); }   // at home he's a chef in his apron
+    if (tool === 'spatula') { this.rig.gun.setTexture('ix_spatula'); this.rig.auger.setVisible(false); this.rig.setChef(true); this.rig.bootF.setTexture('c_welly'); this.rig.bootB.setTexture('c_welly'); }   // at home: chef's apron and wellies
     else this.rig.setWeapon(WEAPONS[0]);
     this.rigUpdate(0.016);
   }
@@ -960,9 +965,10 @@ class IntroScene extends Phaser.Scene {
     this.img(-30, -80, 'ix_ukbunting', 0.5, 0); this.img(130, -80, 'ix_ukbunting', 0.5, 0).setFlipX(true);   // bunting along the beams
     this.img(122, -40, 'ix_darts', 0.5, 0.5);
     this.img(176, GY + 1 - 66, 'ix_biscuits');                          // biscuit tin on top of the bookshelf
-    this.img(240, GY + 1, 'ix_door');
+    this.backDoor = this.img(240, GY + 1, 'ix_door');
+    this.doorway = this.img(240, GY + 1, 'ix_doorway').setVisible(false);
     this.img(214, GY + 2, 'ix_mud', 0.5, 1);
-    this.img(210, GY + 1, 'ix_wellies');                                 // kicked off by the back door
+    this.wellies = this.img(210, GY + 1, 'ix_wellies').setVisible(false);   // he kicks them off by the back door
     // the telly, angled at the sofa, flicking between a cooking show, a cow documentary and static
     this.img(-42, GY + 1, 'ix_tv').setFlipX(true);
     const tvScr = this.img(-39, GY - 10, 'ix_tv0', 0.5, 1).setFlipX(true);
@@ -1003,9 +1009,19 @@ class IntroScene extends Phaser.Scene {
       const g = this.img(x, y, k, 0.5, 1).setScale(0, 1).setVisible(false);
       return g;
     });
+    this.spaceBoots = [FX + 30, FX + 42].map(x => this.img(x, GY - 2, 'c_boot', 0.5, 1).setScale(0, 1).setVisible(false));   // his space boots, behind the fireplace too
+    this.guns.push(...this.spaceBoots);
 
-    this.makeChris(-300, 1, 'spatula');
-    this.walkSpeed = 90; this.walkTo = FX + 72;
+    this.makeChris(244, -1, 'spatula'); this.rig.root.setVisible(false);
+    this.doorway.setVisible(true); this.backDoor.setVisible(false); Sound.sfx('clunk');   // the back door swings open...
+    this.at(250, () => { this.rig.root.setVisible(true); this.walkSpeed = 90; this.walkTo = 206; });
+    this.at(800, () => { this.doorway.setVisible(false); this.backDoor.setVisible(true); Sound.sfx('clunk'); });
+    this.at(950, () => {                                                 // ...and he kicks off his muddy wellies
+      Sound.sfx('squelch'); this.hop = true; this.P.vh = 120;
+      this.rig.bootF.setTexture('c_sock'); this.rig.bootB.setTexture('c_sock');            // down to his socks
+      this.wellies.setVisible(true).setScale(1, 0.4); this.tweens.add({ targets: this.wellies, scaleY: 1, duration: 200, ease: 'Back.easeOut' });
+    });
+    this.at(1350, () => { this.walkSpeed = 90; this.walkTo = FX + 72; });
     this.say('BACK AT THE CABIN, CHRIS STARES AT THE PHOTO OF HIS BEST FRIEND...');
     this.at(2300, () => { this.P.facing = -1; Sound.sfx('sigh'); this.bubble(this.cx, GY - 96, '*SIGH*', 1300); });
     this.at(3600, () => { this.say('...THEN GIVES THE OLD PEPPER GRINDER A TWIST.'); this.hop = true; this.P.vh = 210; Sound.sfx('jump'); });
@@ -1014,8 +1030,21 @@ class IntroScene extends Phaser.Scene {
       this.tweens.add({ targets: this.grinder, angle: { from: -28, to: 28 }, yoyo: true, repeat: 4, duration: 110, onComplete: () => this.grinder.setAngle(0) });
     });
     this.at(5000, () => this.flipWall());
-    this.at(7200, () => this.grabGun());
-    this.at(11000, () => this.cut(this.shotLaunch));
+    this.at(6700, () => this.bootsOn());
+    this.at(8000, () => this.grabGun());
+    this.at(11800, () => this.cut(this.shotLaunch));
+  }
+
+  // the space boots hop out of the armoury onto his (socked) feet
+  bootsOn() {
+    this.say('ON GO THE SPACE BOOTS...');
+    this.spaceBoots.forEach((b, i) => {
+      const to = this.cx + (i ? -6 : 7) * (this.P.facing || 1);
+      this.tweens.add({ targets: b, x: to, duration: 420, delay: i * 120, ease: 'Sine.easeInOut' });
+      this.tweens.add({ targets: b, y: b.y - 30, duration: 210, delay: i * 120, yoyo: true, ease: 'Quad.easeOut', onComplete: () => {
+        b.setVisible(false); (i ? this.rig.bootB : this.rig.bootF).setTexture('c_boot'); Sound.sfx('clunk'); this.dust(to, GY, 3, 'ix_dust', 8, 8);
+      } });
+    });
   }
 
   flipWall() {
@@ -1048,7 +1077,7 @@ class IntroScene extends Phaser.Scene {
       this.dust(this.cx, GY - 40, 6, 'ix_dust', 16, 20);
       this.hop = true; this.P.vh = 300;                              // a triumphant hop, and the apron whips round into a CAPE
       this.rig.spinToCape(); Sound.sfx('swish'); this.at(300, () => Sound.sfx('swish')); this.at(600, () => { Sound.sfx('shine'); this.flash(0.4, 250); });
-      this.say('OFF COMES THE APRON... ON GOES THE CAPE!');
+      this.say('AND THE APRON SPINS ROUND... INTO A CAPE!');
       this.at(700, () => { this.P.power = 0; });
       this.at(900, () => {
         this.P.facing = 1;

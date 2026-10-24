@@ -40,6 +40,15 @@ function makeChrisTextures(scene) {
     a.rect(2, 9, 21, 10, 0xd9d9e0); a.rect(2, 10, 21, 10, 0x8a8a98);                    // sole
     a.rect(14, 3, 17, 3, 0xc4d4ff);                                                     // toe shine
   });
+  pixSprite(scene, 'c_welly', 24, 13, a => {                                         // green wellies (at home on the farm)
+    a.rrect(2, 0, 21, 10, 3, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]);
+    a.rect(2, 9, 21, 10, 0x3a2a1a); a.rect(3, 7, 9, 8, 0x6a4424); a.px(17, 8, 0x6a4424);    // a muddy sole
+    a.rect(15, 2, 17, 2, 0x9af08a);
+  });
+  pixSprite(scene, 'c_sock', 24, 13, a => {                                          // woolly socks (between wellies and space boots)
+    a.rrect(4, 3, 19, 10, 3, [0xf4ece0, 0xd8ccb8, 0xa89880]);
+    a.rect(16, 6, 19, 10, 0xc04a3a); a.rect(4, 7, 6, 10, 0xc04a3a);                     // red toe and heel
+  });
   pixSprite(scene, 'c_leg', 16, 18, a => {
     a.rrect(1, 0, 14, 17, 4, SUIT);
     a.rect(2, 9, 13, 9, 0xd62828); a.rect(2, 10, 13, 11, 0x4a6ad8);                     // red + blue knee trim
