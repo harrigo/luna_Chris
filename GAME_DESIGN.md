@@ -902,3 +902,6 @@ Built from the brief (`makeGorgeTextures`):
 - INHALE... COUGH replaces the spore spit: he sucks in (a sigh, and he visibly swells), then hacks out 2/3/4 (by act) big bubbling globes of toxic blue cheese that lob over and SPLAT into pools of acid on the ground for 5-6 s. Standing in one hurts: jetpack over them. First time: "ACID! JETPACK OVER IT!"
 - The SCREAM replaces the spore ring (every 11/9/7 s by act): jaw wide, a big shake, the giant ribcages and skulls on the skyline rattle, and 5-7 chunks of bone rain down near Chris, each throwing a shadow that grows as it falls (first time: "WATCH FOR THE SHADOWS!").
 - Still has the three acts, the hunt-and-belly-flop and the shootable mould rockets.
+
+## v1.23 — No stragglers after the boss
+- When a boss dies, every other enemy still about pops with it (and germs no longer split once the boss is down), its acid pools dry up, and the level completes straight away. Before, the Baron's act-3 pals (germs that split into mini-germs, stink-flies) could be left over and had to be hunted down before the level would finish.

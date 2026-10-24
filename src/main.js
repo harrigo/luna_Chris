@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.22';
+const BUILD = 'v1.23';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -166,7 +166,7 @@ class Level1 extends Phaser.Scene {
     this.enemies = [];
     this.pBullets = [];
     this.eBullets = [];
-    this.parts = []; this.acidPools = []; this.acidG = null;
+    this.parts = []; this.acidPools = []; this.acidG = null; this.bossDown = false;
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];
@@ -3455,8 +3455,11 @@ class Level1 extends Phaser.Scene {
       else this.hitStop = Math.max(this.hitStop || 0, 0.035);
       this.addLight(e.theta, e.h + e.ch, e.type === 'boss' ? 260 : (e.big ? 110 : 70), 0xffc060, e.type === 'boss' ? 1 : 0.7, 0.35);
       this.burst(e.theta, e.h + e.ch, e.type === 'boss' ? 'crumb' : 'spark', e.type === 'boss' ? 40 : 8, e.type === 'boss' ? 2 : 1);
-      if (e.type === 'boss') { this.clearEBullets(); this.cameras.main.shake(300, 0.012); }
-      if (e.type === 'germ') {          // bacteria split in two
+      if (e.type === 'boss') {
+        this.clearEBullets(); this.cameras.main.shake(300, 0.012); this.acidPools.length = 0; this.bossDown = true;
+        for (const o of this.enemies) if (o !== e && o.hp > 0) { o.hp = 0; this.burst(o.theta, o.h + o.ch, 'spark', 6, 0.8); }   // his minions go pop with him: no stragglers to hunt down
+      }
+      if (e.type === 'germ' && !this.bossDown) {          // bacteria split in two (not once the boss is dead)
         for (const sd of [-1, 1]) { const c = this.makeEnemy('minigerm', wrap(e.theta + sd * 0.03), sd); c.h = e.h + e.ch * 0.5; c.vh = 260; this.enemies.push(c); }
       }
       const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
