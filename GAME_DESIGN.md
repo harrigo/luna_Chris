@@ -943,3 +943,6 @@ Built from the brief (`makeGorgeTextures`):
 - assets/sprites/ now holds 284 sprites as PNGs (all the characters, enemies, bosses, props, pickups, HUD bits, intro scenery...), plus index.json listing them and a README. A PNG there replaces the drawn-in-code sprite with the same name; delete it to fall back to the code version. The big procedural textures (planet surfaces, nebulae, skies) and the auto-made glow variants stay generated.
 - The deploy workflow packs them into one sprite sheet (tools/pack_sprites.py, Pillow: sheet0.png + sheet.json with a content hash for caching), so the live game loads them in two requests and adopts each frame straight onto the shared texture sheet. Without a sheet (running from the repo), each PNG is loaded on its own.
 - Generators skip any sprite that came from a file (SPRITE_FILES / madeTex in textures.js), which also cut start-up texture generation roughly in half.
+
+## v1.33 — Safe after the boss
+- Once a boss is beaten, nothing can hurt or kill Chris for the rest of the level (volcano blasts, geysers, falling debris, pits, being squashed...): hurt() and die() both bail out while the boss is down. Before, a stray hazard could kill him between the boss dying and the rescue.

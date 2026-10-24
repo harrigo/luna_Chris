@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.32';
+const BUILD = 'v1.33';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1101,6 +1101,7 @@ class Level1 extends Phaser.Scene {
   }
 
   die() {
+    if (this.bossDown && this.state === 'play') { this.pl.hp = Math.max(1, this.pl.hp); this.updateHearts(); return; }   // (squashed, pits... nothing kills him after the boss)
     buzz([120, 60, 250]);
     this.state = 'dead';
     Sound.jet(false); Sound.music('lose');
@@ -1237,6 +1238,7 @@ class Level1 extends Phaser.Scene {
     this.camKick((Math.random() < 0.5 ? -1 : 1) * 7, -4);
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
+    if (this.bossDown) return;                                // the boss is beaten: nothing can hurt Chris on the way to the rescue
     if (this.buffOn('giant')) return;                        // too big to hurt
     if (this.buffOn('shield') && P.buff.charges > 0) {       // the Fondue Shield soaks it
       P.buff.charges--; P.invuln = 0.8;
