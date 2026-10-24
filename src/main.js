@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.25';
+const BUILD = 'v1.26';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1656,7 +1656,7 @@ class Level1 extends Phaser.Scene {
     P.ammoHold = Math.max(0, P.ammoHold - dt);
     if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
-    const want = (CFG.autoFire && tgt) || inp.fire;
+    const want = !P.grabbed && ((CFG.autoFire && tgt) || inp.fire);      // caught on a rat's tongue: the gun's useless (he waves it about)
     const W = this.weapon;
     // ---- MELEE: gun-butt bash (Halo style). B / F / V / right-click / the BASH button. Never automatic.
     P.bashCd = Math.max(0, P.bashCd - dt);
@@ -1930,7 +1930,7 @@ class Level1 extends Phaser.Scene {
       const pc = P.h + (P.duck ? 10 : 22), pr = P.duck ? 9 : 12;
       if (e.tongueT < ext + hold && along > 0 && along < e.tongue + 6 && Math.abs(th - pc) < pr + 3 && P.invuln <= 0 && !P.grabbed && this.state === 'play') {
         e.state = 'grab'; P.grabbed = e; P.mash = 0; e.grabHp = e.hp; Sound.sfx('squelch'); buzz([40, 30, 40]);
-        this.banner('GRABBED! MASH JUMP!');
+        this.banner('GRABBED! DOUBLE JUMP!');
       }
       if (e.tongueT >= ext + hold + back) { e.state = 'sit'; e.lashCd = rnd(1.4, 2.2); e.tongue = 0; }
     } else if (e.state === 'grab') {
@@ -1938,10 +1938,8 @@ class Level1 extends Phaser.Scene {
       const along = Math.abs(angDiff(P.theta, e.theta)) * R;
       e.tongue = along;
       P.theta = wrap(P.theta - e.lashDir * 175 / R * dt); P.vx = 0; P.vh = Math.min(P.vh, 0); P.h = Math.max(0, P.h - 300 * dt);
-      if (P.mash >= 3) {                                          // broke free!
-        this.releaseGrab(false); P.vh = 360; this.frogStun(e, 0.9); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
-      } else if (e.hp <= e.grabHp - 2) {                          // shot in the open mouth: lets go
-        this.releaseGrab(false); this.frogStun(e, 1.1); this.banner('LET GO!');
+      if (P.mash >= 2) {                                          // a double jump tears him free!
+        this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogStun(e, 0.9); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
       } else if (along < e.r + 16) {                              // CHOMP
         this.releaseGrab(true); this.hurt(); e.state = 'sit'; e.lashCd = 2.2; Sound.sfx('bonk');
       }

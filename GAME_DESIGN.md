@@ -914,3 +914,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.25 — Tongue out of the mouth
 - The tongue is drawn BEHIND the rat and starts inside its open mouth, rising from the mouth to strike height, so the open jaw unveils it as it shoots out (before, it sat on top of the rat and read as the rat bloating).
 - The swelling throat-sac circle in the tell is gone; the tell is now the open mouth plus the posture (squats flat for a low lash, rears up tall for a high one).
+
+## v1.26 — Caught on a tongue
+- When a rat grabs Chris with its tongue his gun is out of action: it won't fire (or charge), and he waves it about hysterically, flapping his other arm too, so it's obvious.
+- Break free with a DOUBLE JUMP (two jump presses): he tears loose, springs up with the jetpack re-armed, and the rat flops over stunned. The banner says "GRABBED! DOUBLE JUMP!". (Shooting it in the mouth no longer makes it let go: you can't shoot.)
