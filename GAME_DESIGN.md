@@ -910,3 +910,7 @@ Built from the brief (`makeGorgeTextures`):
 - Redrawn as mangy mutant swamp rats that pop off the dark ground: lighter purple-brown fur with a toxic neon-green rim light and spiky mangy fur along the spine and head, glowing purple veins, raw bald patches with green pustules, a long naked pink tail, claws dug into the turf, yellow buck teeth and fangs, ropes of drool, and a HUGE red-veined yellow eye that glows (a halo behind it, brighter when it attacks). Open-mouthed it lunges forward with its snout thrust out.
 - While it reels Chris in, its pin-prick pupil twitches about and its body strains (hunched and trembling).
 - The tongue is fat, wet and elastic: thick at the mouth tapering to a sticky blob, rippling as it shoots out and sagging under its own weight, taut and trembling while it reels you in, with a wet shine and drool dripping off it.
+
+## v1.25 — Tongue out of the mouth
+- The tongue is drawn BEHIND the rat and starts inside its open mouth, rising from the mouth to strike height, so the open jaw unveils it as it shoots out (before, it sat on top of the rat and read as the rat bloating).
+- The swelling throat-sac circle in the tell is gone; the tell is now the open mouth plus the posture (squats flat for a low lash, rears up tall for a high one).

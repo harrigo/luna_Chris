@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.24';
+const BUILD = 'v1.25';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2474,28 +2474,25 @@ class Level1 extends Phaser.Scene {
 
   // tongues + throat sacs (drawn along the curve of the planet)
   drawTongues() {
-    if (!this.tongueG) { this.tongueG = this.add.graphics().setDepth(5.5); this.eyeG = this.add.graphics().setDepth(4.95).setBlendMode(Phaser.BlendModes.ADD); }   // (eye glow sits behind the rat, so it haloes round the eye)
+    if (!this.tongueG) { this.tongueG = this.add.graphics().setDepth(4.9);   // BEHIND the rats: the tongue comes out of the open mouth
+      this.eyeG = this.add.graphics().setDepth(4.95).setBlendMode(Phaser.BlendModes.ADD); }   // (eye glow sits behind the rat, so it haloes round the eye)
     const g = this.tongueG; g.clear(); this.eyeG.clear();
     for (const e of this.enemies) {
       if (e.kind !== 'frog' || e.hp <= 0) continue;
       const mouthH = e.low ? 14 : 32;
-      if (e.state === 'tell' && e.sacK > 0) {                    // the throat sac swells: green = low, pink = high
-        const s = this.screenPos(wrap(e.theta + e.lashDir * 12 / R), e.low ? 10 : 26); if (!s.vis) continue;
-        const r = (3 + 8 * e.sacK) * this.zoom;
-        g.fillStyle(0x1a1020, 1).fillCircle(s.x, s.y, r + 1.5);
-        g.fillStyle(e.low ? 0x8aff6a : 0xff7ab0, 1).fillCircle(s.x, s.y, r);
-        g.fillStyle(0xffffff, 0.8).fillCircle(s.x - r * 0.35, s.y - r * 0.35, r * 0.25);
-      }
       if ((e.state === 'lash' || e.state === 'grab') && e.tongue > 2) {
         // a fat, wet, elastic tongue: thick at the mouth, tapering to a sticky blob, rippling as it shoots out and
         // sagging under its own weight; taut and trembling while it reels Chris in. Drool drips off it.
         const grab = e.state === 'grab', n = Math.max(4, Math.ceil(e.tongue / 9)), pts = [], z = this.zoom;
         const out = grab ? 1 : Math.min(1, e.tongueT / 0.16), slack = grab ? 0 : 1 - out;
+        const ks = e.spr.bsx || 1, mx = 24 * ks * (e.spr.sqx || 1), mh = (e.low ? 8 : 12) * ks * (e.spr.sqy || 1);   // starts inside the open mouth
+        const L0 = Math.max(mx + 2, e.tongue);
         for (let k = 0; k <= n; k++) {
-          const u = k / n, a = wrap(e.theta + e.lashDir * (12 + (e.tongue - 12) * u) / R);
-          const ripple = Math.sin(u * 7 - this.t * 26) * (grab ? 1.2 : 4 * (1 - u * 0.5)) * (grab ? 1 : 0.4 + slack);
+          const u = k / n, a = wrap(e.theta + e.lashDir * (mx + (L0 - mx) * u) / R);
+          const ripple = Math.sin(u * 7 - this.t * 26) * (grab ? 1.2 : 4 * (1 - u * 0.5)) * (grab ? 1 : 0.4 + slack) * Math.min(1, u * 4);
           const sag = Math.sin(u * Math.PI) * (grab ? 2 : 6 + 10 * slack);
-          pts.push(this.screenPos(a, mouthH + ripple - sag));
+          const hh = mh + (mouthH - mh) * Math.min(1, u * 3);                       // rises from the mouth to strike height
+          pts.push(this.screenPos(a, hh + ripple - sag));
         }
         if (grab) pts[n] = this.screenPos(this.pl.theta, this.pl.h + (this.pl.duck ? 10 : 22));
         for (const [extra, col] of [[3, 0x1a1020], [0, 0xff5a8a], [-2.6, 0xffa0bc]]) {      // outline, flesh, wet shine (tapering)
