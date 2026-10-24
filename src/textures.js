@@ -207,6 +207,14 @@ function makeTextures(scene) {
     a.ell(7, 7, 6, 6, [0xb06a3a, 0x7a3a1a, 0x4a200c]);
     a.px(5, 5, 0xd08a5a); a.px(8, 9, 0x3a1808); a.px(4, 9, 0x3a1808); a.px(9, 4, 0xffc070);
   });
+  // the Croque's homing toast missile (points right; drawn turned to face where it flies)
+  pixSprite(scene, 'toastmissile', 22, 10, a => {
+    a.rrect(4, 1, 17, 8, 2, [0xf0b860, 0xc8823a, 0x8a5420]);          // a crust-brown body
+    a.rect(6, 3, 15, 6, 0xe8a850); a.rect(8, 4, 13, 5, 0xffd86a);       // golden toast, melted cheese stripe
+    a.poly([[17, 1], [21, 5], [17, 8]], [0xffe27a, 0xffc040, 0xc88a20]); // cheese nose cone
+    a.poly([[4, 1], [1, -1], [1, 3]], 0xb04030); a.poly([[4, 8], [1, 10], [1, 6]], 0xb04030);   // fins
+    a.rect(0, 4, 2, 5, 0xff7a2a);                                         // exhaust glow
+  });
   mk('wedge', 22, 18, g => {
     g.fillStyle(0xffd23f, 1).fillTriangle(0, 17, 22, 17, 22, 2);
     g.fillStyle(0xe3a21a, 1).fillCircle(15, 12, 2.5).fillCircle(9, 15, 1.5);

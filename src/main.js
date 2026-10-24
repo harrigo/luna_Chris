@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.11';
+const BUILD = 'v1.12';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -698,7 +698,7 @@ class Level1 extends Phaser.Scene {
 
   banner(text) {
     this.tweens.killTweensOf(this.bannerText);
-    this.bannerText.setText(text).setAlpha(1);
+    this.bannerText.setText(text).setAlpha(1).setY(this.H * (this.enemies && this.enemies.some(e => e.type === 'boss') ? 0.34 : 0.22));   // below the boss bar in a boss fight
     this.tweens.add({ targets: this.bannerText, alpha: 0, delay: 1400, duration: 500 });
   }
 
@@ -2417,6 +2417,41 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // The Croque Monsieur's acts: at 2/3 and 1/3 health it roars, cracks and changes how it fights (see the croque AI).
+  croqueStage(e, P) {
+    const f = e.hp / e.maxHp, want = f > 0.66 ? 1 : f > 0.33 ? 2 : 3;
+    if (!e.stage) e.stage = 1;
+    if (want <= e.stage || e.hp <= 0) return;
+    e.stage = want; e.rage = 1.3; e.rageTh = e.theta; e.slam = null; e.charge = 0; e.huntV = 0;
+    e.baseTint = want === 2 ? 0xffc8b8 : 0xff9a88;                       // angrier and redder
+    Sound.sfx('growl'); Sound.sfx('crash'); buzz([80, 40, 160]);
+    this.cameras.main.shake(500, 0.016); this.camPunch(0.05); this.hitStop = Math.max(this.hitStop || 0, 0.12);
+    this.burst(e.theta, e.h, 'crumb', 30, 1.6); this.bang(e.theta, e.h, 30);
+    this.banner(want === 2 ? 'THE CROQUE IS FURIOUS!\nDON\'T LET IT GET OVER YOU!' : 'IT\'S FALLING APART!\nSHOOT DOWN THE MISSILES!');
+    if (want === 2 && !e.healed) {                                        // a cheese wedge drops in to help
+      e.healed = true;
+      this.pickups.push({ kind: 'heal', theta: wrap(P.theta + 0.12), h: 320, vh: 0, life: 14, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+    }
+  }
+  // cracks across the toast, following the sprite (act 2: dark; act 3: more of them, glowing and smoking)
+  drawCroqueCracks(e, st) {
+    if (!e.crackG) { e.crackG = this.add.graphics().setDepth((e.spr.depth || 5) + 0.05); e.spr.once('destroy', () => e.crackG.destroy()); }
+    const g = e.crackG; g.clear();
+    if (st < 2 || e.hp <= 0) return;
+    const CR = [[[-40, 30], [-30, 40], [-34, 52], [-22, 60]], [[22, 24], [32, 36], [27, 47]], [[-8, 70], [2, 78], [-4, 86]]];
+    if (st >= 3) CR.push([[-62, 48], [-50, 57], [-55, 70]], [[44, 40], [56, 50], [50, 64], [60, 74]], [[2, 18], [8, 32], [-3, 43], [5, 58]]);
+    const z = this.zoom * (e.spr.bsx || 1), glow = st >= 3 ? (Math.floor(this.t * 6) % 2 ? 0xff7a2a : 0xffc040) : null;
+    for (const line of CR) {
+      const pts = line.map(([tx, ty]) => { const w = this.bossGun(e, tx, ty); return this.screenPos(w.theta, w.h); });
+      for (const [wd, c] of glow ? [[3.2, 0x1a1020], [1.2, glow]] : [[2.6, 0x1a1020]]) {
+        g.lineStyle(Math.max(1, wd * z), c, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y);
+        for (let k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+        g.strokePath();
+      }
+      if (st >= 3 && Math.random() < 0.05) this.fxHaze.emitParticleAt(pts[1].x, pts[1].y, 1);   // smoke curling out of the cracks
+    }
+  }
+
   // world position of a point on the boss sprite (texture pixels from its top-left), so shots leave real cannons
   bossGun(e, tx, ty) {
     const k = e.spr.bsx || 1, ox = tx * k, oy = -(ty - 48) * k;            // croque texture is 160x96, origin at its centre
@@ -2858,8 +2893,9 @@ class Level1 extends Phaser.Scene {
         e.vh -= this.gAt(e.theta) * dt; e.h += e.vh * dt; if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
 
       } else if (e.type === 'boss') {
+        if (e.ai === 'croque') this.croqueStage(e, P);
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
-        if (e.ai !== 'wheel') {
+        if (e.ai !== 'wheel' && !(e.ai === 'croque' && e.stage >= 2)) {
           const baron = e.ai === 'baron';
           const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head
           const maxV = baron ? (e.hp < e.maxHp * 0.5 ? 270 : 225) / R : (e.hp < e.maxHp * 0.5 ? 0.3 : 0.24);   // (the Baron runs about as fast as Chris)
@@ -2877,61 +2913,96 @@ class Level1 extends Phaser.Scene {
         e.fanCd -= dt;
         e.sumCd -= dt;
         if (e.ai === 'croque') {
-          // BODY SLAM: punishes camping underneath it. Stay below it too long and it shudders, lifts slightly (the tell),
-          // then drops straight down like a brick, sending crumb shockwaves along the ground (jump them).
-          // While it sits on the ground afterwards it's low and easy to hit - the reward for getting out of the way.
+          // THE CROQUE MONSIEUR, in three acts:
+          //  1 (full to 2/3 health): drifts slowly, meatballs from a side cannon, a crumb fan from the belly, and a BODY SLAM
+          //    if you camp underneath it for too long (a shudder and a lift first: the tell).
+          //  2 ANGRY (2/3 to 1/3): it roars, cracks and turns red, then HUNTS: races across the sky to get right over your
+          //    head, shudders and slams down. Get out from under it during the shudder. After each slam it sits low on
+          //    the ground (hit it!) and lobs meatballs from both cannons while it gets its breath back.
+          //  3 FALLING APART (last third): cracks glow and smoke; upgraded triple-spread cannons, homing toast missiles
+          //    from the top hatches (shoot them down!), and it still hunts and slams, a little slower.
+          const st = e.stage || 1, toast = this.def.boss;
           e.slamCd = Math.max(0, (e.slamCd || 0) - dt);
-          const under = Math.abs(toP) * R < 70 && P.h < e.h;
-          e.underT = under ? (e.underT || 0) + dt : Math.max(0, (e.underT || 0) - dt * 2);
-          if (!e.slam && e.slamCd <= 0 && e.underT > (phase2 ? 1.2 : 1.7)) {
-            e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h }; e.charge = 1; e.underT = 0; Sound.sfx('grind');
-          }
-          if (e.slam) {
-            const SL = e.slam; SL.t += dt;
-            if (SL.st === 'rise') {                      // the tell: a nervous shudder and a little lift
-              const tell = phase2 ? 0.55 : 0.75, k = Math.min(1, SL.t / tell);
-              e.h = SL.h0 + 30 * Math.sin(k * Math.PI / 2);
-              e.theta = wrap(SL.th + Math.sin(SL.t * 70) * (2 + 3 * k) / R);
-              if (Math.floor(SL.t * 14) % 2) e.spr.setTint(0xffb0a0); else e.spr.clearTint();
-              if (SL.t > tell) { SL.st = 'drop'; SL.t = 0; SL.v = 0; e.theta = SL.th; e.spr.clearTint(); Sound.sfx('whoosh'); }
-            } else if (SL.st === 'drop') {
-              SL.v += 2600 * dt; e.h -= SL.v * dt;
-              if (e.h <= 62) {
-                e.h = 62; SL.st = 'land'; SL.t = 0;
-                Sound.sfx('boom'); buzz([60, 30, 90]); this.cameras.main.shake(260, 0.014); this.camPunch(0.04);
-                this.burst(e.theta, 6, 'crumb', 22, 1.5); this.bang(e.theta, 10, 40);
-                for (const sd of [-1, 1]) {                          // shockwaves skimming the floor both ways
-                  this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);
-                }
-                if (phase2) for (let k = 0; k < 4; k++) { const a = (k - 1.5) * 0.45; this.addEBullet('meatball', e.theta, 80, 260 * Math.sin(a), 420 * Math.cos(a) * 0.8, 9, 3).grav = 500; }   // meatballs spray up and rain back down
-              }
-            } else if (SL.st === 'land') {
-              if (SL.t > (phase2 ? 0.8 : 1.1)) SL.st = 'up';
-            } else if (SL.st === 'up') {
-              e.h += 190 * dt;
-              if (e.h >= 170) { e.slam = null; e.charge = 0; e.slamCd = phase2 ? 2.5 : 3.5; e.rainCd = 0.6; }
-            }
+          this.drawCroqueCracks(e, st);
+          if (e.rage > 0) {                                                 // the roar: shakes in place, no attacks
+            e.rage -= dt;
+            e.theta = wrap(e.rageTh + Math.sin(e.t * 80) * 4 / R); e.h += (175 - e.h) * Math.min(1, dt * 4);
+            e.spr.setTint(Math.floor(e.t * 16) % 2 ? 0xff5a4a : 0xffffff);
+            if (e.rage <= 0) { e.spr.setTint(e.baseTint); e.rainCd = 0.8; e.fanCd = 2; e.missCd = 1.5; e.slamCd = 0.6; }
           } else {
-            if (e.rainCd <= 0) {          // side cannons fire meatballs straight at him (both at once when it's angry)
-              e.rainCd = phase2 ? 0.7 : 0.85;
-              const facing = toP >= 0 ? 1 : -1, v = phase2 ? 290 : 245;
-              for (const side of (phase2 ? [-1, 1] : [facing])) {
-                const c = this.bossGun(e, side * 80, 56);
-                const ex = angDiff(P.theta, c.theta) * R + (P.vx || 0) * 0.18, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1;   // leads Chris a little
-                this.addEBullet('meatball', c.theta, c.h, ex / len * v, ey / len * v, 9, 3);
+            if (st >= 2 && !e.slam) {                                       // hunting: race over Chris's head
+              const top = (st === 2 ? 330 : 270) / R, want = Math.max(-top, Math.min(top, angDiff(P.theta, e.theta) * 6));
+              e.huntV = (e.huntV || 0) + (want - (e.huntV || 0)) * Math.min(1, dt * (st === 2 ? 5 : 3.5));
+              e.theta = wrap(e.theta + e.huntV * dt);
+              e.h += (185 + Math.sin(e.t * 3) * 10 - e.h) * Math.min(1, dt * 3);
+              if (e.slamCd <= 0 && Math.abs(toP) * R < 28) e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h };
+            }
+            if (st === 1) {                                                 // act 1: slams only if you camp underneath
+              const under = Math.abs(toP) * R < 70 && P.h < e.h;
+              e.underT = under ? (e.underT || 0) + dt : Math.max(0, (e.underT || 0) - dt * 2);
+              if (!e.slam && e.slamCd <= 0 && e.underT > 1.7) e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h };
+            }
+            if (e.slam && !e.slam.started) { e.slam.started = true; e.charge = 1; e.underT = 0; e.huntV = 0; Sound.sfx('grind'); }
+            if (e.slam) {
+              const SL = e.slam; SL.t += dt;
+              if (SL.st === 'rise') {                      // the tell: a nervous shudder and a little lift
+                const tell = st === 1 ? 0.75 : st === 2 ? 0.5 : 0.55, k = Math.min(1, SL.t / tell);
+                e.h = SL.h0 + 30 * Math.sin(k * Math.PI / 2);
+                e.theta = wrap(SL.th + Math.sin(SL.t * 70) * (2 + 3 * k) / R);
+                if (Math.floor(SL.t * 14) % 2) e.spr.setTint(0xffb0a0); else e.spr.setTint(e.baseTint);
+                if (SL.t > tell) { SL.st = 'drop'; SL.t = 0; SL.v = 0; e.theta = SL.th; e.spr.setTint(e.baseTint); Sound.sfx('whoosh'); }
+              } else if (SL.st === 'drop') {
+                SL.v += 2600 * dt; e.h -= SL.v * dt;
+                if (e.h <= 62) {
+                  e.h = 62; SL.st = 'land'; SL.t = 0;
+                  Sound.sfx('boom'); buzz([60, 30, 90]); this.cameras.main.shake(260, 0.014); this.camPunch(0.04);
+                  this.burst(e.theta, 6, 'crumb', 22, 1.5); this.bang(e.theta, 10, 40);
+                  for (const sd of [-1, 1]) this.addEBullet('crumb', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);   // shockwaves skimming the floor both ways
+                  if (st >= 2) for (let k = 0; k < 4; k++) { const a = (k - 1.5) * 0.45; this.addEBullet('meatball', e.theta, 80, 260 * Math.sin(a), 420 * Math.cos(a) * 0.8, 9, 3).grav = 500; }   // meatballs spray up and rain back down
+                }
+              } else if (SL.st === 'land') {
+                if (SL.t > (st === 1 ? 1.1 : st === 2 ? 1.0 : 0.85)) SL.st = 'up';   // sat on the ground: hit it now
+              } else if (SL.st === 'up') {
+                e.h += 190 * dt;
+                if (e.h >= 170) { e.slam = null; e.charge = 0; e.slamCd = st === 1 ? 3.5 : st === 2 ? 1.8 : 2.6; e.rainCd = 0.5; }
+              }
+            } else {
+              const hunting = st >= 2 && e.slamCd <= 0;                   // while racing in for a slam it doesn't stop to shoot
+              if (e.rainCd <= 0 && !hunting) {      // side cannons fire meatballs at him (both in act 2, triple spreads in act 3)
+                e.rainCd = st === 1 ? 0.85 : st === 2 ? 0.75 : 1.05;
+                const facing = toP >= 0 ? 1 : -1, v = st === 1 ? 245 : 290;
+                for (const side of (st === 1 ? [facing] : [-1, 1])) {
+                  const c = this.bossGun(e, side * 80, 56);
+                  const ex = angDiff(P.theta, c.theta) * R + (P.vx || 0) * 0.18, ey = P.h + 24 - c.h, len = Math.hypot(ex, ey) || 1;   // leads Chris a little
+                  for (const sp of (st === 3 ? [-0.22, 0, 0.22] : [0])) {
+                    const ux = ex / len, uy = ey / len, cs = Math.cos(sp), sn = Math.sin(sp);
+                    this.addEBullet('meatball', c.theta, c.h, (ux * cs - uy * sn) * v, (ux * sn + uy * cs) * v, 9, 3);
+                  }
+                  this.muzzleFlash(c.theta, c.h);
+                }
+                Sound.sfx('cube');
+              }
+              if (e.fanCd <= 0 && !hunting) {           // belly turret: a spread of toast crumbs fired downwards
+                e.fanCd = st === 1 ? 4.6 : st === 2 ? 3.6 : 3.2;
+                Sound.sfx('fan');
+                const c = this.bossGun(e, 0, 93), n = st === 1 ? 4 : st === 2 ? 5 : 7;
+                for (let k = 0; k < n; k++) {
+                  const a = (k - (n - 1) / 2) * 0.36;
+                  this.addEBullet('crumb', c.theta, c.h, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
+                }
                 this.muzzleFlash(c.theta, c.h);
               }
-              Sound.sfx('cube');
             }
-            if (e.fanCd <= 0) {           // belly turret: a spread of toast crumbs fired downwards
-              e.fanCd = phase2 ? 3.4 : 4.6;
-              Sound.sfx('fan');
-              const c = this.bossGun(e, 0, 93), n = phase2 ? 5 : 4;
-              for (let k = 0; k < n; k++) {
-                const a = (k - (n - 1) / 2) * 0.36;
-                this.addEBullet('crumb', c.theta, c.h, 210 * Math.sin(a), -210 * Math.cos(a), 7, 2.5);
+            if (st === 3) {                                                 // homing toast missiles out of the top hatches: shoot them down
+              e.missCd = (e.missCd === undefined ? 1.5 : e.missCd) - dt;
+              if (e.missCd <= 0 && !(e.slam && e.slam.st !== 'up')) {
+                e.missCd = 3.4;
+                for (const sd of [-1, 1]) {
+                  const c = this.bossGun(e, sd * 34, 6), b = this.addEBullet('toastmissile', c.theta, c.h, sd * 120, 230, 9, 5.5);
+                  b.home = 3.2; b.homeV = 175; b.face = true; b.shootable = true; b.smoke = 0; this.muzzleFlash(c.theta, c.h);
+                }
+                Sound.sfx('alarm'); Sound.sfx('whoosh');
               }
-              this.muzzleFlash(c.theta, c.h);
             }
           }
         } else if (e.ai === 'baron') {
@@ -3176,6 +3247,14 @@ class Level1 extends Phaser.Scene {
         b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
       }
       let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
+      if (!dead) for (let j = this.eBullets.length - 1; j >= 0; j--) {      // shootable enemy shots (the Croque's missiles)
+        const m = this.eBullets[j];
+        if (!m.shootable || dist2(b.theta, b.h, m.theta, m.h) > (m.r + 9) * (m.r + 9)) continue;
+        this.bang(m.theta, m.h, 18); this.burst(m.theta, m.h, 'flame', 6, 0.8); Sound.sfx('kill'); buzz(20);
+        this.addScore(100); this.popup(m.theta, m.h + 14, '+100', '#ffd23f', false);
+        m.spr.destroy(); this.eBullets.splice(j, 1);
+        if (!b.plough) { dead = true; break; }
+      }
       if (b.h < 0 && !b.blast && Math.random() < 0.6) this.burst(b.theta, 2, 'spark', 2, 0.35);   // shots aimed down spark off the ground
       if (!dead && this.chaser) {                         // shooting the rolling Pepper Jack slows it a touch
         const C = this.chaser;
@@ -3240,6 +3319,7 @@ class Level1 extends Phaser.Scene {
       b.theta = wrap(b.theta + (b.vt / R) * dt);
       b.h += b.vh * dt;
       b.life -= dt;
+      if (b.smoke !== undefined && (b.smoke -= dt) <= 0) { b.smoke = 0.06; const L = Math.hypot(b.vt, b.vh) || 1; this.burst(wrap(b.theta - b.vt / L * 10 / R), b.h - b.vh / L * 10, 'spark', 1, 0.25); }   // rocket trail
       if (this.buffOn('magnet')) {                       // Magnet Fork: shots bend away
         const ex = angDiff(b.theta, P.theta) * R, ey = b.h - (P.h + 22), dd = Math.hypot(ex, ey);
         if (dd < 110 && dd > 1) { b.vt += ex / dd * 420 * dt; b.vh += ey / dd * 420 * dt; }
@@ -3831,7 +3911,7 @@ class Level1 extends Phaser.Scene {
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     this.drawBeam();
     this.drawLights();
-    for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.spin);
+    for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
     if (this.chaser) {                                   // spinning rind, upright furious face (dizzy wobble when stunned)
       const C = this.chaser; this.place(C.spr, C.theta, C.r, C.roll);
@@ -3967,20 +4047,19 @@ Level1.prototype.drawRadar = function (g) {
   }
   // -- planet radar (landscape only: there's room under the cow track)
   if (!this.landscape || !this.hud) return;
-  const rx = W - 39, ry = 36, rr = 14;
-  const bx = rx - 29, by = ry - 28, bw = 58, bh = 56;                 // a chunky HUD panel in the top-right corner
+  const bx = W - 58, by = 10, bw = 48, bh = 48, rx = bx + 24, ry = by + 24, rr = 11;   // mirrors Chris's portrait box on the left
   g.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
   g.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-  g.fillStyle(0x0c0a24, 0.94).fillRect(bx, by, bw, bh);
+  g.fillStyle(0x2a1f5a, 1).fillRect(bx, by, bw, bh);
   this.drawMiniPlanet(g, rx, ry, rr, -P.theta);
   g.lineStyle(3, 0x5ce1ff, 0.9).beginPath().arc(rx, ry, rr + 2, -Math.PI / 2 - this.visHalf, -Math.PI / 2 + this.visHalf).strokePath();   // what's on screen
   for (const e of this.enemies) {
     if (e.hp <= 0) continue;
-    const d = angDiff(e.theta, P.theta), r = rr + 4 + Math.min(1, Math.max(0, e.h) / 320) * 6;
-    const x = Math.round(rx + r * Math.sin(d)), y = Math.round(ry - r * Math.cos(d)), q = e.type === 'boss' ? 6 : e.big ? 4 : 3;
+    const d = angDiff(e.theta, P.theta), r = rr + 3 + Math.min(1, Math.max(0, e.h) / 320) * 6;
+    const x = Math.round(rx + r * Math.sin(d)), y = Math.round(ry - r * Math.cos(d)), q = e.type === 'boss' ? 5 : e.big ? 3 : 2;
     g.fillStyle(0x1a1020, 1).fillRect(x - q / 2 - 1, y - q / 2 - 1, q + 2, q + 2); g.fillStyle(col(e), 1).fillRect(x - q / 2, y - q / 2, q, q);
   }
-  const cy0 = ry - rr - 4 - Math.min(1, Math.max(0, P.h) / 320) * 6;
+  const cy0 = ry - rr - 3 - Math.min(1, Math.max(0, P.h) / 320) * 6;
   g.fillStyle(0x1a1020, 1).fillRect(rx - 3, cy0 - 3, 6, 6);
   g.fillStyle(Math.floor(t * 4) % 2 ? 0x5ce1ff : 0xffffff, 1).fillRect(rx - 2, cy0 - 2, 4, 4);   // Chris
 };

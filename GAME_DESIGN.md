@@ -848,3 +848,10 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.11 — Tidier top right
 - Sound lives only in the pause menu (and main menu): the HUD speaker is gone.
 - The radar moves into the top-right corner (a 58px panel); the cow track shifts left to make room, MENU and PAUSE sit under the radar, and the version number moves to the bottom-right corner.
+
+## v1.12 — The Croque Monsieur in three acts; shootable missiles
+- Act 1 (full to 2/3 health) is the old fight: slow drift, side-cannon meatballs, belly crumb fan, body slam if you camp underneath.
+- At 2/3 it ROARS (shakes, flashes red, screen shake, banner), cracks and turns redder. Act 2: it hunts, racing across the sky to get over Chris's head, shudders (0.5 s tell) and slams; shockwaves and a meatball spray on landing, then it sits low (the window to hit it) and fires both cannons while it recovers. It doesn't shoot while it's hunting. The halfway cheese wedge now drops here.
+- At 1/3 it roars again and starts falling apart: more cracks, glowing and smoking. Act 3: triple-spread cannons, a 7-crumb belly fan, a pair of homing toast missiles from the top hatches every 3.4 s, and it still hunts and slams (a little slower).
+- The toast missiles can be shot down (+100). Ordinary bullets still can't: dodging them is the game; only the big, slow, homing things are targets.
+- Radar panel now mirrors Chris's portrait box (48 px, 10 px in from the corner). Banners drop below the boss health bar during a boss fight.
