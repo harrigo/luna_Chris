@@ -861,3 +861,7 @@ Built from the brief (`makeGorgeTextures`):
 - Baron von Blue gets the same three acts as the Croque. At 2/3 health he roars (jaw wide, green flashing, shake), cracks with mouldy fissures and goes greener; act 2 he hunts, racing over Chris's head, shudders and BELLY-FLOPS: a spore wash skims the floor both ways (jump it) and spores spray up and rain down, then he sits in the muck for a second (hit him). No flail or spitting while he's diving in. At 1/3 he roars again and the cracks glow; act 3 adds double flail throws, a five-spore spit, pals, and a pair of homing mould rockets every 3.6 s that you can shoot down (+100).
 - Rat-frogs and goop: a frog that lands in a goop pool hops straight back out, unless Chris is shooting, when it panics and gets STUCK for 1.8 s, sunk to the armpits and struggling, with no slime shield (double damage). First time: "STUCK IN THE GOOP!" banner.
 - Shields are obvious now: a shot that hits a shield ricochets back the way it came and up, turned pale green and harmless, and a ring of shield flashes round the enemy, with the clang.
+
+## v1.14 — Level 3 fix and trim
+- Fixed a crash ("face.destroy is not a function") when a welder rat died: its `face` is the way it's looking (a number), not a sprite, and the clean-up tried to destroy it.
+- Level 3 drops its fourth wave: three waves, then the Mega-Mandoline.

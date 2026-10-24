@@ -109,7 +109,6 @@ const LEVELS = {
       { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
-      { name: 'WAVE 4', spawns: [S('gogglerat', 0), S('gogglerat', 0.5), S('slicer', 1.2), S('drone', 1.8), S('drone', 2.3), S('gogglerat', 3), S('slicer', 3.6), S('drone', 4.2), S('gogglerat', 4.8), S('gogglerat', 5.2), S('slicer', 5.8), S('drone', 6.4), S('drone', 6.8), S('gogglerat', 7.4), S('slicer', 8), S('drone', 8.6), S('gogglerat', 9.2)] }
     ],
     boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'

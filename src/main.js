@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.13';
+const BUILD = 'v1.14';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3304,7 +3304,7 @@ class Level1 extends Phaser.Scene {
       e.spr.destroy();
       if (e.jet) e.jet.destroy();
       if (e.ov) for (const o of Object.values(e.ov)) o.destroy();
-      if (e.face) e.face.destroy();
+      if (e.face && e.face.destroy) e.face.destroy();          // (a welder's face is just which way it looks)
       this.enemies.splice(i, 1);
     }
   }
