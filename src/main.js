@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.27';
+const BUILD = 'v1.28';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1597,7 +1597,12 @@ class Level1 extends Phaser.Scene {
       P.wasOnRind = onRind; P.sink = onRind ? Math.min(5, (P.sink || 0) + dt * 30) : Math.max(0, (P.sink || 0) - dt * 60);
     }
     P.jumpBufT = Math.max(0, (P.jumpBufT || 0) - dt); P.coyT = grounded ? CFG.coyoteTime : Math.max(0, (P.coyT || 0) - dt);
-    if (inp.jump && !P.jumpWas) { if (P.grabbed || P.cheese) { P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5); } else P.jumpBufT = CFG.jumpBuffer; }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
+    if (inp.jump && !P.jumpWas) {
+      if (P.grabbed || P.cheese) {
+        P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5);
+        if (P.grabbed && P.mash >= 2) { const fe = P.grabbed; this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(fe); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30); }   // the second press tears him free, right then
+      } else P.jumpBufT = CFG.jumpBuffer;
+    }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
     if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
       if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
@@ -1866,8 +1871,8 @@ class Level1 extends Phaser.Scene {
   // lands flat on its back with its legs kicking in the air, dizzy, before it rolls back over (1.7 s: free hits)
   frogFlip(e) {
     if (this.pl.grabbed === e) this.releaseGrab(false);
-    e.state = 'stun'; e.stunT = 1.9; e.tongue = 0; e.flip = { t: 0, dir: -(e.lashDir || 1), landed: false };
-    e.vh = 360; e.leapV = -(e.lashDir || 1) * 70; e.spr.setOrigin(0.5, 0.5); e.lift = 23 * (e.spr.bsy || 1.22);
+    e.state = 'stun'; e.stunT = 1.15; e.tongue = 0; e.flip = { t: 0, dir: -(e.lashDir || 1), landed: false };
+    e.vh = 300; e.leapV = -(e.lashDir || 1) * 70; e.spr.setOrigin(0.5, 0.5); e.lift = 23 * (e.spr.bsy || 1.22);
     Sound.sfx('squeak'); Sound.sfx('bonk'); this.burst(e.theta, 20, 'spark', 8, 0.8); this.hitStop = Math.max(this.hitStop || 0, 0.05);
   }
   frogStun(e, t) {
@@ -1960,8 +1965,8 @@ class Level1 extends Phaser.Scene {
     } else if (e.state === 'stun' && e.flip) {                     // the somersault (frogFlip)
       const Fp = e.flip; Fp.t += dt; e.stunT -= dt;
       if (!Fp.landed) {
-        e.roll = Fp.dir * Math.PI * 3 * Math.min(1, Fp.t / 0.8);    // one and a half turns, ending on its back
-        if (e.h <= 0 && Fp.t > 0.25) { Fp.landed = true; e.roll = Math.PI; e.leapV = 0; Sound.sfx('squelch'); this.burst(e.theta, 4, 'crumb', 8, 0.8); this.cameras.main.shake(80, 0.004); e.spr.hsq = 1; }
+        e.roll = Fp.dir * Math.PI * 3 * Math.min(1, Fp.t / 0.5);    // one and a half turns, ending on its back
+        if (e.h <= 0 && Fp.t > 0.15) { Fp.landed = true; e.roll = Math.PI; e.leapV = 0; Sound.sfx('squelch'); this.burst(e.theta, 4, 'crumb', 8, 0.8); this.cameras.main.shake(80, 0.004); e.spr.hsq = 1; }
       } else {
         e.leapV = 0; e.roll = Math.PI + Math.sin(Fp.t * 14) * 0.08;  // rocking on its back
         if (Math.random() < dt * 5) this.burst(e.theta, 34, 'spark', 1, 0.4);   // dizzy stars

@@ -921,3 +921,7 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.27 — The rat goes head over heels
 - When Chris double-jumps free, the tongue snaps back and yanks the rat clean off its feet: it's flung up and backwards, somersaults one and a half times (spinning round its middle), and lands flat on its back with a squelch, a puff of dirt and a squash. It lies there rocking with its legs kicking in the air and dizzy stars over it for about 1.9 s (shots do double damage), then rolls back onto its feet with a hop.
+
+## v1.28 — Snappier escape
+- Breaking free now happens the instant the second jump is pressed (handled right in the jump input, not on the rat's next update).
+- The flip is quicker: a lower toss, the somersault done in 0.5 s, and about 1.15 s stunned in all before it's back on its feet.
