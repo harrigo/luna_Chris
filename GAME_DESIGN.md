@@ -844,3 +844,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.10 — HUD speaker + planet mini-maps
 - The floating emoji sound button is gone. Sound is a little pixel speaker in the HUD, top right above MENU (tap or click it; red cross when muted), and still SOUND in the pause and main menus.
 - The radar now sits in a chunky HUD panel, and its planet is drawn in each level's style, spinning as Chris walks: L1 a lumpy yellow cheese moon with holes, L2 slate with blue veins, a neon moss rim and glowing mushrooms, L3 a steel cog with grater slots, L4 a pizza (crust, sauce, mozzarella, pepperoni) with a smoking volcano, L5 a soft, slightly squashed brie wheel in purple haze with its triangle. Other levels keep the plain planet for now.
+
+## v1.11 — Tidier top right
+- Sound lives only in the pause menu (and main menu): the HUD speaker is gone.
+- The radar moves into the top-right corner (a 58px panel); the cow track shifts left to make room, MENU and PAUSE sit under the radar, and the version number moves to the bottom-right corner.

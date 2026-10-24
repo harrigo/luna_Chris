@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.10';
+const BUILD = 'v1.11';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -496,10 +496,9 @@ class Level1 extends Phaser.Scene {
     this.input.on('pointerdown', p => {
       if (p.wasTouch) this.touchUI = true;
       if (this.paused || Board.open) return;            // taps go to the pause menu / the high-score box
-      if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
+      if (p.x > this.W - 74 && p.y > 92 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
-      if (p.x > this.W - 46 && p.y >= 26 && p.y <= 50) { Settings.toggleSound(); return; }   // the speaker in the HUD
-      if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
+      if (p.x > this.W - 74 && p.y > 70 && p.y <= 92) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
@@ -621,14 +620,14 @@ class Level1 extends Phaser.Scene {
     this.nameText.setPosition(66, 8);
     this.cheeseIcons.forEach((c, i) => c.setPosition(66 + i * 28, 20));
     this.macIcons.forEach((c, i) => c.setPosition(96 + i * 20, 61));
-    this.hud = { dx0: W - 262, dx1: W - 74, dy: 24 };
+    this.hud = { dx0: W - 280, dx1: W - 96, dy: 24 };      // the cow track, left of the radar in the corner
     this.distText.setPosition(this.hud.dx0, 8);
     this.cowIcon.setPosition(this.hud.dx1 + 14, this.hud.dy + 1);
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
     this.jetText.setPosition(66, 46);
     this.macText.setPosition(66, 63);
-    this.menuText.setPosition(W - 10, 58);
-    this.pauseBtnText.setPosition(W - 10, 94);
+    this.menuText.setPosition(W - 10, 76);
+    this.pauseBtnText.setPosition(W - 10, 98);
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(10, 66);
     this.cheatText.setPosition(10, 76);
@@ -3899,13 +3898,6 @@ class Level1 extends Phaser.Scene {
       hg.fillStyle(fill, 1).fillRect(x, y, w, h);
     };
     if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);
-    { // sound on/off: a little pixel speaker top right (tap or click it; also SOUND in the pause menu)
-      const sx = this.W - 34, sy = 32, on = Settings.soundOn();
-      pix(sx, sy, 22, 14, 0x2a1f5a);
-      hg.fillStyle(on ? 0xffffff : 0x8a7fb0, 1).fillRect(sx + 3, sy + 5, 3, 4).fillTriangle(sx + 6, sy + 5, sx + 10, sy + 1, sx + 10, sy + 13).fillRect(sx + 6, sy + 5, 4, 4);
-      if (on) { hg.fillStyle(0x5ce1ff, 1).fillRect(sx + 13, sy + 5, 2, 4).fillRect(sx + 16, sy + 3, 2, 8); }
-      else { hg.fillStyle(0xff5a5a, 1); for (let i = 0; i < 6; i++) { hg.fillRect(sx + 12 + i, sy + 4 + i, 2, 2).fillRect(sx + 17 - i, sy + 4 + i, 2, 2); } }
-    }
     pix(244, 42, 44, 28, 0x2a1f5a);                                              // weapon box (tap / Q / Y to swap)
     const flash = Math.floor(this.t * 8) % 2;
     const gx = 96, gy = 46, gw = 136, gh = 8;
@@ -3975,8 +3967,8 @@ Level1.prototype.drawRadar = function (g) {
   }
   // -- planet radar (landscape only: there's room under the cow track)
   if (!this.landscape || !this.hud) return;
-  const rx = Math.round(this.hud.dx0 + 30), ry = 72, rr = 18;
-  const bx = rx - 32, by = ry - 31, bw = 64, bh = 62;                 // a chunky HUD panel like the others
+  const rx = W - 39, ry = 36, rr = 14;
+  const bx = rx - 29, by = ry - 28, bw = 58, bh = 56;                 // a chunky HUD panel in the top-right corner
   g.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
   g.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, bh + 2);
   g.fillStyle(0x0c0a24, 0.94).fillRect(bx, by, bw, bh);
@@ -3984,11 +3976,11 @@ Level1.prototype.drawRadar = function (g) {
   g.lineStyle(3, 0x5ce1ff, 0.9).beginPath().arc(rx, ry, rr + 2, -Math.PI / 2 - this.visHalf, -Math.PI / 2 + this.visHalf).strokePath();   // what's on screen
   for (const e of this.enemies) {
     if (e.hp <= 0) continue;
-    const d = angDiff(e.theta, P.theta), r = rr + 5 + Math.min(1, Math.max(0, e.h) / 320) * 7;
+    const d = angDiff(e.theta, P.theta), r = rr + 4 + Math.min(1, Math.max(0, e.h) / 320) * 6;
     const x = Math.round(rx + r * Math.sin(d)), y = Math.round(ry - r * Math.cos(d)), q = e.type === 'boss' ? 6 : e.big ? 4 : 3;
     g.fillStyle(0x1a1020, 1).fillRect(x - q / 2 - 1, y - q / 2 - 1, q + 2, q + 2); g.fillStyle(col(e), 1).fillRect(x - q / 2, y - q / 2, q, q);
   }
-  const cy0 = ry - rr - 5 - Math.min(1, Math.max(0, P.h) / 320) * 7;
+  const cy0 = ry - rr - 4 - Math.min(1, Math.max(0, P.h) / 320) * 6;
   g.fillStyle(0x1a1020, 1).fillRect(rx - 3, cy0 - 3, 6, 6);
   g.fillStyle(Math.floor(t * 4) % 2 ? 0x5ce1ff : 0xffffff, 1).fillRect(rx - 2, cy0 - 2, 4, 4);   // Chris
 };
