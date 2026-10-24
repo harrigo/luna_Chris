@@ -219,12 +219,7 @@ function makeIntroPix(scene) {
     p.rrect(1, 12, 15, 30, 4, SF); p.rrect(61, 12, 75, 30, 4, SF);   // arms
     p.rrect(12, 18, 64, 30, 3, [0xd88a5e, 0xb0603e, 0x7a3a22]);      // seat
     p.line([[38, 19], [38, 29]], 0x7a3a22);
-    { const cx = 22; p.rrect(cx - 7, 9, cx + 7, 20, 3, [0xffffff, 0xf0f0f0, 0xb8b8c0]); p.ell(cx - 2, 13, 2, 1.6, 0x1a1020); p.ell(cx + 3, 16, 1.6, 1.3, 0x1a1020); }
-    { const x0 = 47, y0 = 9, w = 14, h = 11;                       // a Union Jack cushion
-      p.rect(x0, y0, x0 + w, y0 + h, 0x1a3a8a);
-      for (let i = 0; i <= w; i++) { const y = Math.round(y0 + i * h / w), y2 = Math.round(y0 + h - i * h / w); p.px(x0 + i, y, 0xffffff); p.px(x0 + i, y - 1, 0xffffff); p.px(x0 + i, y2, 0xffffff); p.px(x0 + i, y2 + 1, 0xffffff); p.px(x0 + i, y, 0xd8202a); p.px(x0 + i, y2, 0xd8202a); }
-      p.rect(x0 + 5, y0, x0 + 9, y0 + h, 0xffffff); p.rect(x0, y0 + 4, x0 + w, y0 + 7, 0xffffff);
-      p.rect(x0 + 6, y0, x0 + 8, y0 + h, 0xd8202a); p.rect(x0, y0 + 5, x0 + w, y0 + 6, 0xd8202a); }
+    for (const cx of [22, 54]) { p.rrect(cx - 7, 9, cx + 7, 20, 3, [0xffffff, 0xf0f0f0, 0xb8b8c0]); p.ell(cx - 2, 13, 2, 1.6, 0x1a1020); p.ell(cx + 3, 16, 1.6, 1.3, 0x1a1020); }
     p.rect(4, 30, 7, 33, DK[2]); p.rect(69, 30, 72, 33, DK[2]);
   });
   pixSprite(scene, 'ix_table', 40, 16, p => {                        // coffee table: a mug of tea and a cheese magazine
@@ -269,14 +264,14 @@ function makeIntroPix(scene) {
     p.ell(10, 10, 8, 6, [0x9a5a3a, 0x6e3a22, 0x4a2214]);           // a brown betty
     p.line([[17, 9], [21, 5]], 0x6e3a22, 2); p.ell(2, 9, 2, 3, 0x6e3a22); p.ell(2, 9, 1, 2, -1);   // spout and handle
     p.rect(3, 15, 17, 15, 0x4a2214);
-    p.ell(10, 7, 7, 5, [0xff8a8a, 0xd8202a, 0x8a1018]);              // the knitted cosy: red, white and blue stripes
-    for (const [y, c] of [[4, 0xffffff], [6, 0x1a3a8a], [8, 0xffffff]]) for (let x = 4; x <= 16; x++) if (Math.hypot((x - 10) / 7, (y - 7) / 5) < 0.95) p.px(x, y, c);
+    p.ell(10, 7, 7, 5, [0xf0c860, 0xd8a030, 0x9a6a18]);              // the knitted cosy: mustard, with cream and green stripes
+    for (const [y, c] of [[4, 0xfff0d0], [6, 0x5a8a3a], [8, 0xfff0d0]]) for (let x = 4; x <= 16; x++) if (Math.hypot((x - 10) / 7, (y - 7) / 5) < 0.95) p.px(x, y, c);
     p.ell(10, 2, 2, 1.6, [0xffffff, 0xe8e8f0, 0xb8b8c0]);             // pom-pom
   });
-  pixSprite(scene, 'ix_ukbunting', 160, 14, p => {                      // red, white and blue bunting
+  pixSprite(scene, 'ix_ukbunting', 160, 14, p => {                      // faded village-fete bunting
     for (let x = 0; x < 160; x++) p.px(x, Math.round(2 + 3 * Math.sin(x / 159 * Math.PI)), 0xe8e0d0);
-    const C = [0xd8202a, 0xffffff, 0x1a3a8a];
-    for (let i = 0; i < 13; i++) { const x = 4 + i * 12, y = Math.round(2 + 3 * Math.sin(x / 159 * Math.PI)); p.poly([[x, y], [x + 8, y], [x + 4, y + 8]], C[i % 3]); }
+    const C = [0xd86a5a, 0xf0e0b0, 0x6a9ac8, 0x8ab86a, 0xe8b85a];
+    for (let i = 0; i < 13; i++) { const x = 4 + i * 12, y = Math.round(2 + 3 * Math.sin(x / 159 * Math.PI)); p.poly([[x, y], [x + 8, y], [x + 4, y + 8]], C[i % 5]); }
   });
   pixSprite(scene, 'ix_darts', 22, 22, p => {                         // a dartboard with a couple of darts in it
     p.ell(11, 11, 10, 10, 0x1a1020);
@@ -290,9 +285,19 @@ function makeIntroPix(scene) {
     p.rrect(1, 3, 14, 9, 2, [0x5a8ad8, 0x2a5ab0, 0x1a3a7a]); p.rect(2, 5, 13, 6, 0xffd23f);
     p.rrect(0, 0, 13, 3, 1, [0x6a9ae8, 0x3a6ac0, 0x1a3a7a]); p.ell(12, 2, 2.4, 1.6, [0xe8b070, 0xc08a4a, 0x8a5a2a]);
   });
-  pixSprite(scene, 'ix_wellies', 20, 18, p => {                       // muddy green wellies by the door
-    for (const x of [1, 10]) { p.rrect(x + 1, 0, x + 6, 15, 1, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]); p.rrect(x, 12, x + 9, 17, 2, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]); p.rect(x, 15, x + 9, 17, 0x5a3a20); }
+  pixSprite(scene, 'ix_wellies', 22, 18, p => {                       // muddy green wellies by the door
+    for (const x of [1, 11]) {
+      p.rrect(x + 1, 0, x + 6, 15, 1, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]); p.rrect(x, 12, x + 9, 17, 2, [0x5ac04a, 0x2a8a2a, 0x1a5a1a]);
+      p.rect(x, 13, x + 9, 17, 0x6a4424); p.rect(x + 1, 9, x + 5, 12, 0x6a4424); p.px(x + 3, 7, 0x6a4424); p.px(x + 2, 5, 0x7a5030); p.px(x + 7, 11, 0x7a5030);   // caked in mud
+    }
   });
+  pixSprite(scene, 'ix_door', 36, 74, p => {                          // the back door, with a coat on a hook
+    p.rect(0, 0, 35, 73, 0x3a2616); p.rect(3, 3, 32, 73, 0x7a5236);
+    for (const [y0, y1] of [[7, 30], [36, 68]]) p.rrect(7, y0, 28, y1, 1, [0x8a5e3e, 0x6a4428, 0x4a2e1a]);
+    p.ell(28, 40, 2, 2, [0xfff0a0, 0xffc83a, 0xb07a1a]);
+    p.line([[6, 12], [9, 12]], 0x2a1a10); p.rrect(3, 12, 12, 40, 3, [0x6a7a5a, 0x4a5a3a, 0x2e3a24]);   // waxed jacket on the hook
+  });
+  pixSprite(scene, 'ix_mud', 40, 4, p => { for (const [x, w] of [[2, 6], [12, 4], [20, 7], [31, 5]]) p.ell(x + w / 2, 2, w / 2, 1.5, [0x8a6040, 0x6a4424, 0x4a2e1a]); });   // muddy footprints
   pixSprite(scene, 'ix_sampler', 34, 22, p => {                       // "HOME" cross-stitch with a little cow
     p.rrect(0, 0, 33, 21, 1, WD); p.rect(3, 3, 30, 18, 0xfff6e0);
     const L = { H: ['1.1', '111', '1.1'], O: ['111', '1.1', '111'], M: ['1.1', '111', '1.1'], E: ['11', '1.', '11'] };
@@ -952,10 +957,12 @@ class IntroScene extends Phaser.Scene {
     this.img(-92, GY + 6, 'ix_table');
     this.img(-84, GY - 4, 'ix_teapot');                                 // tea's brewing
     const teaSteam = this.add2(this.add.particles(-74, GY - 16, 'ix_smoke', { lifespan: 1400, speedY: { min: -14, max: -6 }, speedX: { min: -3, max: 3 }, scale: { start: 0.15, end: 0.45 }, alpha: { start: 0.45, end: 0 }, frequency: 420 }));
-    this.img(-30, -80, 'ix_ukbunting', 0.5, 0); this.img(130, -80, 'ix_ukbunting', 0.5, 0).setFlipX(true);   // red, white and blue bunting along the beams
+    this.img(-30, -80, 'ix_ukbunting', 0.5, 0); this.img(130, -80, 'ix_ukbunting', 0.5, 0).setFlipX(true);   // bunting along the beams
     this.img(122, -40, 'ix_darts', 0.5, 0.5);
     this.img(176, GY + 1 - 66, 'ix_biscuits');                          // biscuit tin on top of the bookshelf
-    this.img(-182, GY + 1, 'ix_wellies');
+    this.img(240, GY + 1, 'ix_door');
+    this.img(214, GY + 2, 'ix_mud', 0.5, 1);
+    this.img(210, GY + 1, 'ix_wellies');                                 // kicked off by the back door
     // the telly, angled at the sofa, flicking between a cooking show, a cow documentary and static
     this.img(-42, GY + 1, 'ix_tv').setFlipX(true);
     const tvScr = this.img(-39, GY - 10, 'ix_tv0', 0.5, 1).setFlipX(true);

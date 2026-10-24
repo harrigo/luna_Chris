@@ -880,3 +880,7 @@ Built from the brief (`makeGorgeTextures`):
 - The ranch is a farm: "SPACE FARM NO. 9" in the intro and ending, "the whole farm is overflowing".
 - Chris flips burgers, not flapjacks: the flipped (and helmet-landing) pancake is now a sizzling burger with a drip of cheese, the telly's cooking show flips a burger, the ending's stack is burgers, and the credits have a BURGER CONSULTANT.
 - The cabin's homelier: a brown betty teapot in a red, white and blue knitted cosy (steaming) on the coffee table, a mug of tea instead of cocoa, red-white-and-blue bunting along the beams, a dartboard, a biscuit tin on the bookshelf, green wellies by the stove, and a Union Jack cushion on the sofa.
+
+## v1.18 — Hints, not flags
+- No Union Jack: the sofa's back to two cow-print cushions, the tea cosy is mustard with cream and green stripes, and the bunting is a faded village-fete mix.
+- A back door on the right of the cabin with a waxed jacket on the hook, and muddy green wellies kicked off in front of it, with muddy footprints.
