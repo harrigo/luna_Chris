@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.09';
+const BUILD = 'v1.10';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -498,6 +498,7 @@ class Level1 extends Phaser.Scene {
       if (this.paused || Board.open) return;            // taps go to the pause menu / the high-score box
       if (p.x > this.W - 74 && p.y > 86 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
+      if (p.x > this.W - 46 && p.y >= 26 && p.y <= 50) { Settings.toggleSound(); return; }   // the speaker in the HUD
       if (p.x > this.W - 74 && p.y > 50 && p.y < 84) { this.scene.start('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
@@ -3898,6 +3899,13 @@ class Level1 extends Phaser.Scene {
       hg.fillStyle(fill, 1).fillRect(x, y, w, h);
     };
     if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);
+    { // sound on/off: a little pixel speaker top right (tap or click it; also SOUND in the pause menu)
+      const sx = this.W - 34, sy = 32, on = Settings.soundOn();
+      pix(sx, sy, 22, 14, 0x2a1f5a);
+      hg.fillStyle(on ? 0xffffff : 0x8a7fb0, 1).fillRect(sx + 3, sy + 5, 3, 4).fillTriangle(sx + 6, sy + 5, sx + 10, sy + 1, sx + 10, sy + 13).fillRect(sx + 6, sy + 5, 4, 4);
+      if (on) { hg.fillStyle(0x5ce1ff, 1).fillRect(sx + 13, sy + 5, 2, 4).fillRect(sx + 16, sy + 3, 2, 8); }
+      else { hg.fillStyle(0xff5a5a, 1); for (let i = 0; i < 6; i++) { hg.fillRect(sx + 12 + i, sy + 4 + i, 2, 2).fillRect(sx + 17 - i, sy + 4 + i, 2, 2); } }
+    }
     pix(244, 42, 44, 28, 0x2a1f5a);                                              // weapon box (tap / Q / Y to swap)
     const flash = Math.floor(this.t * 8) % 2;
     const gx = 96, gy = 46, gw = 136, gh = 8;
@@ -3968,11 +3976,11 @@ Level1.prototype.drawRadar = function (g) {
   // -- planet radar (landscape only: there's room under the cow track)
   if (!this.landscape || !this.hud) return;
   const rx = Math.round(this.hud.dx0 + 30), ry = 72, rr = 18;
-  g.fillStyle(0x1a1020, 0.92).fillCircle(rx, ry, rr + 14);
-  g.lineStyle(2, 0xc9cde0, 0.8).strokeCircle(rx, ry, rr + 14);
-  const SF = this.def.surface || {};
-  g.fillStyle((SF.rim && SF.rim[1]) || (SF.pal && SF.pal[3]) || 0x8a6a2a, 1).fillCircle(rx, ry, rr);   // the planet's own colour
-  g.fillStyle(0xffffff, 0.12).fillCircle(rx - 4, ry - 4, rr * 0.55);
+  const bx = rx - 32, by = ry - 31, bw = 64, bh = 62;                 // a chunky HUD panel like the others
+  g.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+  g.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+  g.fillStyle(0x0c0a24, 0.94).fillRect(bx, by, bw, bh);
+  this.drawMiniPlanet(g, rx, ry, rr, -P.theta);
   g.lineStyle(3, 0x5ce1ff, 0.9).beginPath().arc(rx, ry, rr + 2, -Math.PI / 2 - this.visHalf, -Math.PI / 2 + this.visHalf).strokePath();   // what's on screen
   for (const e of this.enemies) {
     if (e.hp <= 0) continue;
@@ -3983,6 +3991,51 @@ Level1.prototype.drawRadar = function (g) {
   const cy0 = ry - rr - 5 - Math.min(1, Math.max(0, P.h) / 320) * 7;
   g.fillStyle(0x1a1020, 1).fillRect(rx - 3, cy0 - 3, 6, 6);
   g.fillStyle(Math.floor(t * 4) % 2 ? 0x5ce1ff : 0xffffff, 1).fillRect(rx - 2, cy0 - 2, 4, 4);   // Chris
+};
+
+// The radar's planet, in the style of the level (the first five have their own look; it spins as Chris walks).
+Level1.prototype.drawMiniPlanet = function (g, x, y, r, rot) {
+  const id = this.levelId, t = this.t, SF = this.def.surface || {}, pal = SF.pal || [];
+  const at = (a, d) => [Math.round(x + d * Math.sin(a + rot)), Math.round(y - d * Math.cos(a + rot))];   // a point on the spinning planet
+  const dots = (list, col, al) => { for (const [a, d, q] of list) { const [px, py] = at(a, d * r); g.fillStyle(col, al === undefined ? 1 : al).fillCircle(px, py, q); } };
+  if (id === 1) {                       // The Gruyère Globe: a yellow cheese moon, lumpy edge, holes
+    dots([[0.3, 1, 3], [1.4, 1, 2.5], [2.6, 1, 3], [3.7, 1, 2.5], [4.9, 1, 3], [5.8, 1, 2]], 0xf0cb52);
+    g.fillStyle(0xf0cb52, 1).fillCircle(x, y, r);
+    g.fillStyle(0xffe27a, 1).fillCircle(x - 3, y - 3, r * 0.7);
+    dots([[0.6, 0.45, 3], [2.1, 0.6, 2.5], [3.3, 0.3, 2], [4.4, 0.62, 3], [5.5, 0.4, 2]], 0xb8761a);
+    dots([[1.2, 0.95, 2.5], [4.0, 0.97, 2]], 0x0c0a24);                // bites out of the rim
+  } else if (id === 2) {                // Gorgonzola Gulch: dark slate, blue veins, neon green moss rim, glowing mushrooms
+    g.fillStyle(0x7ee05a, 0.25 + 0.1 * Math.sin(t * 3)).fillCircle(x, y, r + 3);
+    g.fillStyle(0x3a9a3a, 1).fillCircle(x, y, r);
+    g.fillStyle(0x34506e, 1).fillCircle(x, y, r - 3);
+    g.fillStyle(0x4a6a8a, 1).fillCircle(x - 3, y - 3, r * 0.5);
+    g.lineStyle(1, 0x5aa0d8, 0.8);
+    for (const [a0, a1] of [[0.4, 1.6], [2.4, 3.3], [4.2, 5.4]]) { const [x0, y0] = at(a0, r * 0.2), [x1, y1] = at(a1, r * 0.7); g.lineBetween(x0, y0, x1, y1); }
+    for (const a of [0.9, 3.0, 5.0]) { const [px, py] = at(a, r + 2); g.fillStyle(0x7ee05a, 1).fillRect(px - 1, py, 3, 3); g.fillStyle(0x5ce1ff, 1).fillRect(px - 2, py - 3, 5, 3); }   // glowing mushrooms
+  } else if (id === 3) {                // The Great Grater: a steel cog with grater slots
+    for (let i = 0; i < 12; i++) { const [px, py] = at(i * TAU / 12, r + 1.5); g.fillStyle(0xaab6c8, 1).fillRect(px - 2, py - 2, 4, 4); }
+    g.fillStyle(0x76839a, 1).fillCircle(x, y, r);
+    g.fillStyle(0xaab6c8, 1).fillCircle(x - 3, y - 3, r * 0.65);
+    for (const [a, d] of [[0.5, 0.5], [1.9, 0.55], [3.1, 0.35], [4.3, 0.6], [5.6, 0.45]]) { const [px, py] = at(a, d * r); g.fillStyle(0x2a3242, 1).fillRect(px - 2, py - 1, 5, 2); }
+    g.fillStyle(0x2a3242, 1).fillCircle(x, y, 3);                     // the axle
+  } else if (id === 4) {                // Mount Mozzarella: a pizza, crust rim, sauce, pepperoni, and a smoking volcano
+    const [vx, vy] = at(2.6, r + 1);
+    g.fillStyle(0xb06a30, 1).fillTriangle(vx, vy - 6, vx - 6, vy + 4, vx + 6, vy + 4);
+    g.fillStyle(0xff7a2a, 0.6 + 0.4 * Math.sin(t * 6)).fillRect(vx - 1, vy - 6, 3, 3);
+    g.fillStyle(0xb06a30, 1).fillCircle(x, y, r);
+    g.fillStyle(0xd8402a, 1).fillCircle(x, y, r - 3);
+    dots([[0.4, 0.5, 3], [1.8, 0.35, 2.5], [2.9, 0.62, 3], [4.6, 0.45, 3], [5.6, 0.2, 2]], 0xf6ead2);   // mozzarella
+    dots([[1.1, 0.6, 2], [3.6, 0.3, 2], [5.1, 0.7, 2]], 0x7a1a14);                                  // pepperoni
+  } else if (id === 5) {                // The Brie-muda Triangle: a soft, slightly squashed wheel of brie in purple haze
+    g.fillStyle(0x8a5ad8, 0.25 + 0.1 * Math.sin(t * 2)).fillEllipse(x, y + 1, (r + 5) * 2, (r + 3) * 2);
+    g.fillStyle(0xd8d4e0, 1).fillEllipse(x, y + 1, r * 2 + 2, r * 2 - 2);
+    g.fillStyle(0xf8f4ea, 1).fillEllipse(x - 1, y, r * 2 - 4, r * 2 - 7);
+    dots([[0.7, 0.5, 2], [2.3, 0.4, 1.5], [3.9, 0.55, 2], [5.3, 0.3, 1.5]], 0xe0d4b0);           // the mottled rind
+    const [px, py] = at(2.0, r * 0.45); g.fillStyle(0x8a5ad8, 0.8).fillTriangle(px, py - 3, px - 3, py + 2, px + 3, py + 2);   // the triangle
+  } else {
+    g.fillStyle((SF.rim && SF.rim[1]) || pal[3] || 0x8a6a2a, 1).fillCircle(x, y, r);
+    g.fillStyle(0xffffff, 0.12).fillCircle(x - 4, y - 4, r * 0.55);
+  }
 };
 
 const startPhaser = () => { window.game = new Phaser.Game({

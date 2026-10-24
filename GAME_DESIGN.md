@@ -840,3 +840,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.09 — Where are they? Edge arrows + planet radar
 - Every enemy off screen gets a chunky pixel arrow on the side it's coming from, at the height it's flying (a flyer up high shows near the top, a ground rat near the horizon). Closer = bigger and brighter; about to come into view = blinking. Yellow = small fry, orange = big ones, red = the boss.
 - Landscape screens also get a little planet radar under the cow track: the planet in its own colour, Chris blinking on top, the slice of the world you can see lit cyan on the rim, and a dot for every enemy round the world (further out the higher it flies, bigger for big ones and the boss).
+
+## v1.10 — HUD speaker + planet mini-maps
+- The floating emoji sound button is gone. Sound is a little pixel speaker in the HUD, top right above MENU (tap or click it; red cross when muted), and still SOUND in the pause and main menus.
+- The radar now sits in a chunky HUD panel, and its planet is drawn in each level's style, spinning as Chris walks: L1 a lumpy yellow cheese moon with holes, L2 slate with blue veins, a neon moss rim and glowing mushrooms, L3 a steel cog with grater slots, L4 a pizza (crust, sauce, mozzarella, pepperoni) with a smoking volcano, L5 a soft, slightly squashed brie wheel in purple haze with its triangle. Other levels keep the plain planet for now.
