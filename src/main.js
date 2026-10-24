@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.23';
+const BUILD = 'v1.24';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1975,7 +1975,7 @@ class Level1 extends Phaser.Scene {
     if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; if (e.state === 'approach') e.leapV *= 0.5; }
     // which frame: leaping in the air, crouched just before a hop, mouth open for the tongue, blinking now and then
     let fr = 'frog';
-    if (e.state === 'tell' || e.state === 'lash' || e.state === 'grab') fr = e.low ? 'frog_open_c' : 'frog_open';
+    if (e.state === 'tell' || e.state === 'lash' || e.state === 'grab') { const tw = e.state === 'grab' && Math.floor(this.t * 14 + e.seed) % 3 === 0; fr = e.low ? (tw ? 'frog_open_ct' : 'frog_open_c') : (tw ? 'frog_open_t' : 'frog_open'); }   // (the pupil twitches while it reels you in)
     else if (e.h > 2 || e.state === 'pounce') fr = 'frog_leap';
     else if (e.state === 'approach' && (e.hopT || 0) < 0.08) fr = 'frog_crouch';
     else if (e.state === 'stun' || e.state === 'goop') fr = 'frog_blink';
@@ -1983,7 +1983,7 @@ class Level1 extends Phaser.Scene {
     if (e.spr.texture.key !== fr) e.spr.setTexture(fr);
     // body language: low tell = squat flat, high tell = rear up tall
     if (e.state === 'tell') { const k = e.sacK; e.spr.sqx = e.low ? 1 + 0.22 * k : 1 - 0.1 * k; e.spr.sqy = e.low ? 1 - 0.3 * k : 1 + 0.28 * k; }
-    else if (e.state === 'lash' || e.state === 'grab') { e.spr.sqx = e.low ? 1.18 : 0.92; e.spr.sqy = e.low ? 0.75 : 1.22; }
+    else if (e.state === 'lash' || e.state === 'grab') { const strain = e.state === 'grab' ? Math.sin(this.t * 42) * 0.04 : 0; e.spr.sqx = (e.low ? 1.3 : 1.08) + strain; e.spr.sqy = (e.low ? 0.7 : 1.2) - strain; }   // hunched and straining
     else if (e.state === 'goop') { e.spr.sqx = 1.15 + 0.06 * Math.sin(e.t * 18); e.spr.sqy = 0.62 + 0.06 * Math.sin(e.t * 18 + 1); }   // sunk to the armpits, struggling
     else { e.spr.sqx = 1; e.spr.sqy = 1 + Math.max(0, Math.min(0.15, e.vh / 3500)); }
   }
@@ -2474,8 +2474,8 @@ class Level1 extends Phaser.Scene {
 
   // tongues + throat sacs (drawn along the curve of the planet)
   drawTongues() {
-    if (!this.tongueG) this.tongueG = this.add.graphics().setDepth(5.5);
-    const g = this.tongueG; g.clear();
+    if (!this.tongueG) { this.tongueG = this.add.graphics().setDepth(5.5); this.eyeG = this.add.graphics().setDepth(4.95).setBlendMode(Phaser.BlendModes.ADD); }   // (eye glow sits behind the rat, so it haloes round the eye)
+    const g = this.tongueG; g.clear(); this.eyeG.clear();
     for (const e of this.enemies) {
       if (e.kind !== 'frog' || e.hp <= 0) continue;
       const mouthH = e.low ? 14 : 32;
@@ -2487,13 +2487,36 @@ class Level1 extends Phaser.Scene {
         g.fillStyle(0xffffff, 0.8).fillCircle(s.x - r * 0.35, s.y - r * 0.35, r * 0.25);
       }
       if ((e.state === 'lash' || e.state === 'grab') && e.tongue > 2) {
-        const n = Math.max(2, Math.ceil(e.tongue / 12)), pts = [];
-        for (let k = 0; k <= n; k++) { const a = wrap(e.theta + e.lashDir * (12 + (e.tongue - 12) * k / n) / R); pts.push(this.screenPos(a, mouthH + Math.sin(k * 0.9 + this.t * 30) * (e.state === 'grab' ? 1.5 : 0))); }
-        if (e.state === 'grab') pts[n] = this.screenPos(this.pl.theta, this.pl.h + (this.pl.duck ? 10 : 22));
-        g.lineStyle(7 * this.zoom, 0x1a1020, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath();
-        g.lineStyle(4.5 * this.zoom, 0xff6a96, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y); g.strokePath();
-        g.lineStyle(1.5 * this.zoom, 0xffb8cc, 1).beginPath(); g.moveTo(pts[0].x, pts[0].y); for (const p of pts) g.lineTo(p.x, p.y - 1); g.strokePath();
-        const t = pts[n]; g.fillStyle(0x1a1020, 1).fillCircle(t.x, t.y, 6 * this.zoom); g.fillStyle(0xff4a7a, 1).fillCircle(t.x, t.y, 4.5 * this.zoom);
+        // a fat, wet, elastic tongue: thick at the mouth, tapering to a sticky blob, rippling as it shoots out and
+        // sagging under its own weight; taut and trembling while it reels Chris in. Drool drips off it.
+        const grab = e.state === 'grab', n = Math.max(4, Math.ceil(e.tongue / 9)), pts = [], z = this.zoom;
+        const out = grab ? 1 : Math.min(1, e.tongueT / 0.16), slack = grab ? 0 : 1 - out;
+        for (let k = 0; k <= n; k++) {
+          const u = k / n, a = wrap(e.theta + e.lashDir * (12 + (e.tongue - 12) * u) / R);
+          const ripple = Math.sin(u * 7 - this.t * 26) * (grab ? 1.2 : 4 * (1 - u * 0.5)) * (grab ? 1 : 0.4 + slack);
+          const sag = Math.sin(u * Math.PI) * (grab ? 2 : 6 + 10 * slack);
+          pts.push(this.screenPos(a, mouthH + ripple - sag));
+        }
+        if (grab) pts[n] = this.screenPos(this.pl.theta, this.pl.h + (this.pl.duck ? 10 : 22));
+        for (const [extra, col] of [[3, 0x1a1020], [0, 0xff5a8a], [-2.6, 0xffa0bc]]) {      // outline, flesh, wet shine (tapering)
+          for (let k = 0; k < n; k++) {
+            const w = Math.max(1, ((7.5 - 4 * k / n) + extra) * z);
+            g.lineStyle(w, col, 1).lineBetween(pts[k].x, pts[k].y - (extra < 0 ? 1.5 * z : 0), pts[k + 1].x, pts[k + 1].y - (extra < 0 ? 1.5 * z : 0));
+          }
+        }
+        const t = pts[n]; g.fillStyle(0x1a1020, 1).fillCircle(t.x, t.y, 7 * z); g.fillStyle(0xff3a6a, 1).fillCircle(t.x, t.y, 5.5 * z); g.fillStyle(0xffc0d4, 1).fillCircle(t.x - 1.5 * z, t.y - 2 * z, 1.6 * z);
+        if (Math.random() < 0.35) {                                // drool dripping off the tongue
+          const k = 1 + Math.floor(Math.random() * (n - 1)), a = wrap(e.theta + e.lashDir * (12 + (e.tongue - 12) * k / n) / R);
+          const im = this.add.image(0, 0, 'goopbub').setDepth(5.6).setTint(0xb8ffe0); im.bsx = im.bsy = rnd(0.35, 0.6);
+          this.parts.push({ theta: a, h: mouthH - 3, vt: 0, vh: -rnd(20, 60), life: 0.5, spr: im });
+        }
+      }
+      // the big yellow eye glows (brighter while it's attacking)
+      if (e.spr.visible) {
+        const k = e.spr.bsx || 1, sgn = e.spr.flipX ? -1 : 1, ox = 15 * k * (e.spr.sqx || 1) * sgn, oh = 27 * k * (e.spr.sqy || 1);
+        const p = this.screenPos(wrap(e.theta + ox / (R + e.h)), e.h + oh), hot = (e.state === 'tell' || e.state === 'lash' || e.state === 'grab') ? 1 : 0;
+        const r = (10 + 1.5 * Math.sin(this.t * 6 + e.seed) + hot * 3) * this.zoom * k;
+        this.eyeG.fillStyle(0xc8a020, 0.25 + hot * 0.2).fillCircle(p.x, p.y, r * 1.4); this.eyeG.fillStyle(0xffe23a, 0.3 + hot * 0.25).fillCircle(p.x, p.y, r);
       }
     }
   }

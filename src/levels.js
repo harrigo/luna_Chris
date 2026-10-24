@@ -330,51 +330,64 @@ function makeLevelTextures(scene) {
   // rat-frog hybrid: green skin, rat ears and tail, big eyes. Faces right.
   // the rat-frog: a hunched, mottled brown-green body, a huge bulging yellow eye, rat snout + buck teeth, a curly pink
   // worm tail and long froggy legs. Several frames (idle / blink / crouch / leap / mouth open) swapped by its AI.
+  // the L2 "rat-frog": a mangy mutant swamp rat. Dark purple-brown fur with a toxic neon-green rim light along its back
+  // so it pops off the dark ground, glowing purple veins, bald pink patches with green pustules, a long naked pink tail,
+  // a huge bloodshot yellow eye, yellow buck teeth, drool. Open-mouthed it hunches harder, digs its claws in and
+  // thrusts its snout forward (the tongue is drawn in main.js).
   const drawFrog = (a, o) => {
-    const SKIN = [0xa0a862, 0x6a7038, 0x383c1e], LEG = [0x9ad070, 0x5a9a40, 0x2e5a22], BROWN = 0x6e5434, BROWN2 = 0x8a6a40, TAIL = [0xffb8c8, 0xe07890, 0x9a4058];
-    const dy = o.crouch ? 4 : 0;
-    if (o.leap) {                                                   // stretched out mid-leap, body tilted up, legs trailing
-      a.line([[14, 26], [6, 22], [2, 14], [5, 8], [10, 9]], TAIL[1], 3); a.line([[14, 25], [6, 21], [3, 14]], TAIL[0]);
-      a.line([[20, 30], [10, 36], [2, 42]], LEG[1], 4); a.line([[24, 32], [16, 40], [8, 45]], LEG[2], 3);       // back legs kicked out
-      a.poly([[2, 42], [0, 45], [5, 45]], LEG); a.poly([[8, 45], [4, 45], [10, 44]], LEG);
-      a.ell(30, 24, 16, 10, SKIN);
-      for (const [x, y, r] of [[24, 19, 4], [32, 22, 3], [20, 26, 3], [36, 17, 2.5]]) a.ell(x, y, r, r * 0.7, BROWN);
-      a.ell(32, 30, 9, 4, [0xe0e8a8, 0xbcc884, 0x8a9a5a]);
-      a.line([[40, 30], [48, 38], [52, 40]], LEG[1], 3);                                                          // arms reaching forward
+    const FUR = [0xb08ab0, 0x7a5a80, 0x3e2a48], SKIN = [0xffb8c8, 0xe07890, 0x9a4058], NEON = 0xb8ff5a, NEON2 = 0x6ae83a, VEIN = 0xc070ff;
+    const dy = o.crouch ? 4 : 0, push = o.open ? 4 : 0;                                         // open: lunging forward
+    const rim = (cx, cy, rx, ry, x0, x1) => { for (let x = Math.ceil(cx - rx * 0.92); x <= Math.floor(cx + rx * 0.92); x++) { if (x < x0 || x > x1) continue; const u = (x - cx) / rx, y = Math.round(cy - ry * Math.sqrt(Math.max(0, 1 - u * u))); a.px(x, y, NEON); a.px(x, y + 1, NEON2); } };
+    if (o.leap) {                                                   // stretched out mid-leap, tail streaming behind, claws forward
+      a.line([[16, 24], [8, 26], [2, 22], [0, 16]], SKIN[1], 3); a.line([[16, 23], [8, 25], [2, 21]], SKIN[0]);
+      a.line([[20, 30], [12, 36], [6, 40]], FUR[1], 4); a.poly([[6, 40], [2, 42], [8, 42]], SKIN);   // hind legs kicked back
+      a.ell(30, 24, 17, 9, FUR); rim(30, 24, 17, 9, 14, 46);
+      a.ell(26, 22, 4, 3, SKIN[1]); a.px(26, 22, NEON); a.px(33, 20, NEON);                         // a bald patch + pustules
+      a.line([[20, 22], [28, 26], [36, 24]], VEIN);
+      a.line([[40, 28], [48, 34], [53, 36]], FUR[1], 3); for (const [x, y] of [[53, 36], [55, 34], [54, 38]]) a.px(x, y, 0xfff0a0);   // claws out front
     } else {
-      a.line([[14, 36 + dy], [6, 32 + dy], [2, 24 + dy], [4, 15], [10, 11], [14, 14], [12, 18]], TAIL[1], 3);  // the curly pink tail
-      a.line([[14, 35 + dy], [6, 31 + dy], [3, 24 + dy], [5, 16]], TAIL[0]);
-      for (let k = 0; k < 5; k++) a.px(4 + (k % 2), 18 + k * 3 + dy * 0.5, TAIL[2]);                           // tail rings
-      a.ell(16, 34 + dy * 0.6, 10, 8 - dy * 0.3, LEG);                                                          // big frog thigh
-      a.poly([[10, 41 + dy * 0.2], [30, 41], [33, 45], [8, 45]], LEG); for (const x of [24, 28, 32]) a.px(x, 45, LEG[2]);   // long foot + toes
-      a.ell(26, 28 + dy, 17, 13 - dy * 0.4, SKIN);                                                             // the hunched body
-      a.ell(22, 21 + dy, 12, 6, [0x9a7a4a, 0x7a5a34, 0x4a3420]);                                              // brown back
-      for (const [x, y, r] of [[18, 22, 5], [27, 19, 4], [33, 26, 3.5], [16, 30, 3], [24, 32, 2.5], [35, 18, 2.5]]) a.ell(x, y + dy, r, r * 0.75, BROWN);   // mottling
-      for (const [x, y] of [[21, 24], [30, 22], [26, 28], [14, 26], [33, 31]]) { a.px(x, y + dy, 0x2a3218); a.px(x + 1, y + dy, BROWN2); }   // warts
-      a.ell(31, 36 + dy * 0.5, 9, 4.5, [0xe0e8a8, 0xbcc884, 0x8a9a5a]);                                        // pale belly
-      a.line([[38, 34 + dy * 0.6], [40, 40], [41, 44]], LEG[1], 3); a.poly([[38, 44], [45, 44], [46, 45], [37, 45]], LEG);   // front leg
+      // the long naked tail, curling round behind
+      a.line([[16, 40 + dy * 0.5], [8, 42], [2, 38], [1, 30], [4, 24], [9, 22]], SKIN[1], 3); a.line([[16, 39 + dy * 0.5], [8, 41], [3, 37], [2, 30]], SKIN[0]);
+      for (let k = 0; k < 6; k++) a.px(3 + (k % 2), 26 + k * 2.4, SKIN[2]);
+      a.ell(18, 36 + dy * 0.6, 10, 8 - dy * 0.3, FUR);                                                          // haunch
+      a.poly([[12, 42], [28, 42], [30, 45], [10, 45]], FUR); for (const x of [26, 29, 31]) a.poly([[x, 44], [x + 2, 45], [x, 45]], 0xfff0a0);   // big hind foot, claws dug in
+      a.ell(26 + push * 0.5, 28 + dy, 17, 13 - dy * 0.4 - push * 0.3, FUR);                                   // the hunched body
+      rim(26 + push * 0.5, 28 + dy, 17, 13 - dy * 0.4 - push * 0.3, 10, 40);                                   // toxic neon rim light along the spine
+      for (let x = 12; x < 38; x += 3) a.px(x, Math.round(28 + dy - (13 - dy * 0.4 - push * 0.3) * Math.sqrt(Math.max(0, 1 - ((x - 26 - push * 0.5) / 17) ** 2))) - 1, NEON2);   // spiky, mangy fur
+      for (const [x, y, r] of [[18, 24, 4], [30, 32, 3], [22, 33, 2.5]]) { a.ell(x, y + dy, r, r * 0.75, SKIN[1]); a.ell(x, y + dy, r * 0.6, r * 0.45, SKIN[0]); }   // bald, raw patches
+      for (const [x, y] of [[17, 23], [20, 25], [29, 31], [31, 33], [23, 33]]) { a.px(x, y + dy, NEON); a.px(x, y - 1 + dy, 0xf0ffe0); }   // green pustules
+      a.line([[12, 30 + dy], [18, 28 + dy], [22, 31 + dy], [30, 27 + dy]], VEIN); a.line([[22, 31 + dy], [24, 36 + dy]], VEIN);   // glowing purple veins
+      a.ell(32 + push, 36 + dy * 0.5, 8, 4, [0xc8a0b0, 0x9a7080, 0x6a4050]);                                 // scrawny belly
+      a.line([[38 + push, 34 + dy * 0.6], [41 + push, 40], [43 + push, 44]], FUR[1], 3);                    // front leg
+      for (const x of [41, 44, 46]) a.poly([[x + push, 43], [x + push + 2, 45], [x + push - 1, 45]], 0xfff0a0);   // front claws gripping the turf
     }
-    const hx = o.leap ? 46 : 44, hy = (o.leap ? 16 : 21) + dy;                                                // head + rat snout
-    a.ell(hx - 9, hy - 7, 3.5, 4, TAIL); a.ell(hx - 9, hy - 7, 1.5, 2, TAIL[2]);                               // little ear
-    a.ell(hx, hy, 10, 9, SKIN);
-    a.poly([[hx + 4, hy - 3], [hx + 14, hy + 1], [hx + 15, hy + 4], [hx + 12, hy + 7], [hx + 3, hy + 7]], SKIN);   // snout
-    a.ell(hx + 14, hy + 2, 2, 1.8, [0xffb0c0, 0xe0607a, 0x9a3048]);                                           // nose
-    a.line([[hx + 13, hy + 4], [hx + 19, hy + 2]], 0xd8c8a0); a.line([[hx + 13, hy + 5], [hx + 19, hy + 7]], 0xd8c8a0);   // whiskers
-    if (o.open) {                                                     // jaw dropped: dark mouth, pink tongue, drool
-      a.poly([[hx + 1, hy + 6], [hx + 14, hy + 6], [hx + 12, hy + 14], [hx + 3, hy + 14]], 0x2a0a14);
+    const hx = (o.leap ? 46 : 44) + push, hy = (o.leap ? 16 : 21) + dy - (o.open ? 1 : 0);                    // head + long rat snout
+    a.ell(hx - 9, hy - 8, 4, 5, SKIN); a.ell(hx - 9, hy - 8, 2, 3, SKIN[2]); a.px(hx - 11, hy - 12, NEON);    // tatty ear
+    a.ell(hx, hy, 10, 9, FUR); rim(hx, hy, 10, 9, hx - 8, hx + 6);
+    a.poly([[hx + 3, hy - 3], [hx + 15 + push * 0.5, hy + 1], [hx + 16 + push * 0.5, hy + 4], [hx + 12, hy + 7], [hx + 3, hy + 7]], FUR);   // snout
+    a.ell(hx + 15 + push * 0.5, hy + 2, 2, 1.8, SKIN);                                                       // nose
+    a.line([[hx + 13, hy + 4], [hx + 20, hy + 2]], 0xd8c8a0); a.line([[hx + 13, hy + 5], [hx + 20, hy + 7]], 0xd8c8a0);   // whiskers
+    if (o.open) {                                                     // jaw wide: dark throat, yellow fangs, ropes of drool
+      a.poly([[hx + 1, hy + 6], [hx + 16, hy + 5], [hx + 13, hy + 15], [hx + 3, hy + 15]], 0x2a0a14);
       a.ell(hx + 7, hy + 12, 4, 2, [0xff8aa0, 0xe0405a, 0x90203a]);
-      a.rect(hx + 9, hy + 6, hx + 11, hy + 9, 0xfff6e0);                                                        // buck teeth (top)
-      a.rect(hx + 3, hy + 13, hx + 3, hy + 16, 0xb8f0ff);                                                       // drool
-      a.ell(hx + 7, hy + 16, 6, 2, SKIN);                                                                      // lower jaw
+      a.rect(hx + 10, hy + 5, hx + 12, hy + 10, 0xfff0a0); a.rect(hx + 13, hy + 5, hx + 14, hy + 8, 0xe8d070);   // buck teeth
+      a.poly([[hx + 4, hy + 15], [hx + 6, hy + 15], [hx + 5, hy + 11]], 0xfff0a0);                          // lower fang
+      a.line([[hx + 3, hy + 14], [hx + 3, hy + 19]], 0xb8ffe0); a.px(hx + 3, hy + 20, 0xe0fff0);            // drool rope
+      a.line([[hx + 12, hy + 14], [hx + 12, hy + 17]], 0xb8ffe0);
+      a.ell(hx + 7, hy + 17, 6, 2, FUR);                                                                     // lower jaw
     } else {
-      a.line([[hx + 2, hy + 7], [hx + 12, hy + 7]], 0x2a3218);                                                  // mouth line
-      a.rect(hx + 8, hy + 6, hx + 11, hy + 10, 0xfff6e0); a.line([[hx + 9, hy + 7], [hx + 9, hy + 10]], 0xc8bca0);   // buck teeth, tucked under the snout
+      a.line([[hx + 2, hy + 7], [hx + 12, hy + 7]], 0x2a0a14);
+      a.rect(hx + 8, hy + 6, hx + 11, hy + 10, 0xfff0a0); a.line([[hx + 9, hy + 7], [hx + 9, hy + 10]], 0xc8b060);   // yellow buck teeth
+      a.px(hx + 6, hy + 9, 0xb8ffe0); a.px(hx + 6, hy + 10, 0xb8ffe0);
     }
-    const ex = hx + 1, ey = hy - 6;                                                                           // the big bulging eye
-    a.ell(ex, ey, 7.5, 7.5, 0xc04a3a); a.ell(ex, ey, 6.5, 6.5, [0xfff4b0, 0xffc83a, 0xc0801a]);             // red-rimmed bulging eye
-    a.px(ex - 5, ey - 1, 0xe04a3a); a.px(ex + 5, ey + 2, 0xe04a3a); a.px(ex - 3, ey + 4, 0xe04a3a);             // bloodshot
-    if (o.blink) { a.ell(ex, ey - 2, 7, 4.5, SKIN); a.line([[ex - 6, ey + 1], [ex + 6, ey + 1]], 0x2a3218); }
-    else { a.ell(ex + 1, ey, 2.4, 3.2, 0x14080a); a.px(ex - 1, ey - 3, 0xffffff); a.px(ex, ey - 3, 0xffffff); }
+    const ex = hx + 1, ey = hy - 6, er = o.open ? 8 : 7.5;                                                    // the HUGE bulging eye
+    a.ell(ex, ey, er + 1, er + 1, 0xc04a3a); a.ell(ex, ey, er, er, [0xfff8a0, 0xffd23a, 0xc08a1a]);
+    for (const pts of [[[ex - 7, ey - 1], [ex - 4, ey]], [[ex + 6, ey + 2], [ex + 3, ey + 1]], [[ex - 3, ey + 6], [ex - 2, ey + 3]], [[ex + 2, ey - 7], [ex + 1, ey - 4]], [[ex + 6, ey - 4], [ex + 4, ey - 3]]]) a.line(pts, 0xe0302a);   // red veins
+    if (o.blink) { a.ell(ex, ey - 2, 7.5, 5, FUR); a.line([[ex - 6, ey + 1], [ex + 6, ey + 1]], 0x2a0a14); }
+    else {
+      const px2 = o.twitch ? ex + 3 : ex + 1, py2 = o.twitch ? ey - 2 : ey, pr = o.open ? 1.6 : 2.4;         // pin-prick pupil when it's lashing; twitching about
+      a.ell(px2, py2, pr, pr + 0.8, 0x14080a); a.px(ex - 2, ey - 4, 0xffffff); a.px(ex - 1, ey - 4, 0xffffff); a.px(ex - 2, ey - 3, 0xffffff);
+    }
   };
   pixSprite(scene, 'frog', 60, 46, a => drawFrog(a, {}));
   pixSprite(scene, 'frog_blink', 60, 46, a => drawFrog(a, { blink: true }));
@@ -382,6 +395,8 @@ function makeLevelTextures(scene) {
   pixSprite(scene, 'frog_leap', 60, 46, a => drawFrog(a, { leap: true }));
   pixSprite(scene, 'frog_open', 60, 46, a => drawFrog(a, { open: true }));
   pixSprite(scene, 'frog_open_c', 60, 46, a => drawFrog(a, { open: true, crouch: true }));
+  pixSprite(scene, 'frog_open_t', 60, 46, a => drawFrog(a, { open: true, twitch: true }));          // grab: the pupil twitches about
+  pixSprite(scene, 'frog_open_ct', 60, 46, a => drawFrog(a, { open: true, crouch: true, twitch: true }));
 
   // cheese-slicing drone: steel disc, rotor, blade underneath, angry red eye
   pixSprite(scene, 'drone', 50, 38, a => {

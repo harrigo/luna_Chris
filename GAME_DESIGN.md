@@ -905,3 +905,8 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.23 — No stragglers after the boss
 - When a boss dies, every other enemy still about pops with it (and germs no longer split once the boss is down), its acid pools dry up, and the level completes straight away. Before, the Baron's act-3 pals (germs that split into mini-germs, stink-flies) could be left over and had to be hunted down before the level would finish.
+
+## v1.24 — The rat-frogs, mangier
+- Redrawn as mangy mutant swamp rats that pop off the dark ground: lighter purple-brown fur with a toxic neon-green rim light and spiky mangy fur along the spine and head, glowing purple veins, raw bald patches with green pustules, a long naked pink tail, claws dug into the turf, yellow buck teeth and fangs, ropes of drool, and a HUGE red-veined yellow eye that glows (a halo behind it, brighter when it attacks). Open-mouthed it lunges forward with its snout thrust out.
+- While it reels Chris in, its pin-prick pupil twitches about and its body strains (hunched and trembling).
+- The tongue is fat, wet and elastic: thick at the mouth tapering to a sticky blob, rippling as it shoots out and sagging under its own weight, taut and trembling while it reels you in, with a wet shine and drool dripping off it.
