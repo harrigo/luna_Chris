@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.14';
+const BUILD = 'v1.15';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1839,7 +1839,8 @@ class Level1 extends Phaser.Scene {
     if (e.kind === 'welder') return (Math.sign(angDiff(this.pl.theta, e.theta)) || 1) === e.face && e.state !== 'flame' ? 0 : 1;   // riot shield faces you (it drops its guard while torching)
     if (e.kind === 'drone') return e.state === 'stuck' ? 2 : 1;
     if (e.kind !== 'frog') return 1;
-    return (e.state === 'lash' || e.state === 'grab' || e.state === 'stun' || e.state === 'pounce' || e.state === 'goop') ? 2 : 0;   // stuck in goop: no shield either
+    if (e.state === 'stun') return 2;                            // flipped over: wide open
+    return (e.state === 'lash' || e.state === 'grab' || e.state === 'pounce' || e.state === 'goop') ? 1.5 : 0;   // attacking or stuck in goop: no shield
   }
   // a shot glances off a shield (frog slime, riot shields...): it ricochets away up into the air, harmless and green,
   // and a bubble of shield flashes round the enemy so it's obvious the hit didn't count
@@ -1896,7 +1897,7 @@ class Level1 extends Phaser.Scene {
       if (grounded) {
         e.hopT = (e.hopT || 0) - dt;
         if (Math.abs(off) < 25 && distP < 320) { e.state = 'sit'; e.leapV = 0; }
-        else if (e.hopT <= 0) { e.vh = rnd(240, 300); e.leapV = Math.sign(off) * Math.min(260, Math.abs(off) * 2.2 + 80); e.hopT = 0.12; Sound.sfx('squeak'); }
+        else if (e.hopT <= 0) { e.vh = rnd(250, 310); e.leapV = Math.sign(off) * Math.min(320, Math.abs(off) * 2.6 + 100); e.lastHop = e.leapV; e.hopT = 0.1; Sound.sfx('squeak'); }
       }
     } else if (e.state === 'sit') {
       e.leapV = 0;
@@ -1907,15 +1908,16 @@ class Level1 extends Phaser.Scene {
         e.leapV = Math.max(-420, Math.min(420, (toP * R + (P.vx || 0) * air * 0.5) / air)) || dirP * 200;
         Sound.sfx('ribbit'); e.spr.hsq = 1;
       }
-      else if (Math.abs(off) > 70 || distP > 340) e.state = 'approach';
+      else if (Math.abs(off) > 40 || distP > 340 || distP < 150) e.state = 'approach';      // Chris comes closer: it hops back to keep its distance
       else if (e.lashCd <= 0 && distP < 245 && this.t >= (this.frogNextLash || 0) && this.state === 'play') {
         this.frogLow = !this.frogLow;                              // the pack alternates low / high
         e.state = 'tell'; e.tellT = 0.65; e.low = this.frogLow; e.lashDir = dirP;
-        this.frogNextLash = this.t + 1.0;
+        this.frogNextLash = this.t + 0.8;
         Sound.sfx('ribbit');
       }
     } else if (e.state === 'tell') {
       e.tellT -= dt; e.sacK = Math.min(1, 1 - e.tellT / 0.65);
+      if (distP < 95 && !fooled) { e.state = 'approach'; e.sacK = 0; this.frogNextLash = Math.min(this.frogNextLash || 0, this.t + 0.4); }   // rushed mid-tell: it bails and hops away
       if (e.tellT <= 0) { e.state = 'lash'; e.tongue = 0; e.tongueT = 0; Sound.sfx('stretch'); }
     } else if (e.state === 'lash') {
       e.tongueT += dt;
@@ -1928,7 +1930,7 @@ class Level1 extends Phaser.Scene {
         e.state = 'grab'; P.grabbed = e; P.mash = 0; e.grabHp = e.hp; Sound.sfx('squelch'); buzz([40, 30, 40]);
         this.banner('GRABBED! MASH JUMP!');
       }
-      if (e.tongueT >= ext + hold + back) { e.state = 'sit'; e.lashCd = rnd(1.8, 2.6); e.tongue = 0; }
+      if (e.tongueT >= ext + hold + back) { e.state = 'sit'; e.lashCd = rnd(1.4, 2.2); e.tongue = 0; }
     } else if (e.state === 'grab') {
       // reel him in
       const along = Math.abs(angDiff(P.theta, e.theta)) * R;
@@ -1955,11 +1957,13 @@ class Level1 extends Phaser.Scene {
       if (Math.random() < dt * 6) this.burst(e.theta, 2, 'spark', 1, 0.3);
       if (e.goopT <= 0) { e.state = 'approach'; e.vh = 420; e.leapV = (Math.sign(angDiff(e.theta, e.pool.theta)) || 1) * 230; e.hopT = 0.4; Sound.sfx('squelch'); }   // hauls itself out
     }
-    // goop pools: a frog landing in one jumps straight back out... unless Chris is shooting, when it panics and gets stuck
+    // goop pools: a frog landing in one jumps straight back out... unless it was RUNNING AWAY from Chris while he's
+    // shooting at it: then it panics, lands badly and gets stuck
     if (grounded && e.state !== 'goop' && e.state !== 'pounce' && e.state !== 'grab' && e.state !== 'lash' && this.goops && this.goops.length && !this.def.goopMode) {
       const pool = this.goops.find(g => Math.abs(angDiff(e.theta, g.theta)) < g.half * 0.9);
       if (pool) {
-        if (P.firing > 0 || P.beamOn) { e.state = 'goop'; e.goopT = 1.8; e.pool = pool; e.tongue = 0; e.spr.setFlipY(false); Sound.sfx('squelch'); this.burst(e.theta, 4, 'spark', 6, 0.6); if (!this.goopTip) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nNO SHIELD - LET IT HAVE IT!'); } }
+        const fleeing = e.state === 'approach' && Math.sign(e.lastHop || 0) === side;
+        if (fleeing && (P.firing > 0 || P.beamOn)) { e.state = 'goop'; e.goopT = 1.3; e.pool = pool; e.tongue = 0; e.spr.setFlipY(false); Sound.sfx('squelch'); this.burst(e.theta, 4, 'spark', 6, 0.6); if (!this.goopTip) { this.goopTip = true; this.banner('STUCK IN THE GOOP!\nNO SHIELD - LET IT HAVE IT!'); } }
         else if (e.state !== 'stun') { e.vh = 380; e.leapV = (Math.sign(angDiff(e.theta, pool.theta)) || 1) * 220; Sound.sfx('squeak'); }   // hop clear
       }
     }

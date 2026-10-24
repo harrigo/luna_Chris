@@ -11,7 +11,7 @@ const ENEMY = {
   golem:    { hp: 14, r: 26, ch: 28, tex: 'golem',    oy: 1,       drop: 0.65, big: true },
   germ:     { hp: 3,  r: 17, ch: 15, tex: 'germ',     oy: 0.85,    drop: 0.18 },
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
-  frog:     { hp: 5,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
+  frog:     { hp: 6,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
   miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel' },             // L6: little wheels the Pepper Jack spits out
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer' },             // L5 phantom pirate: triangle-zigzag bolts
@@ -76,11 +76,11 @@ const LEVELS = {
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
-      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('germ', 8.2)] },
-      { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6)] },
+      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('germ', 8.2), S('frog', 8.8), S('germ', 9.4)] },
+      { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6), S('frog', 9.2), S('stinkfly', 9.6), S('frog', 10.2)] },
     ],
     goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
-    boss: { tex: 'baron', hp: 160, ai: 'baron', scale: 1.35 },
+    boss: { tex: 'baron', hp: 175, ai: 'baron', scale: 1.35 },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 

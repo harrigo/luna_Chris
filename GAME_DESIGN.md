@@ -865,3 +865,8 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.14 — Level 3 fix and trim
 - Fixed a crash ("face.destroy is not a function") when a welder rat died: its `face` is the way it's looking (a number), not a sprite, and the clean-up tried to destroy it.
 - Level 3 drops its fourth wave: three waves, then the Mega-Mandoline.
+
+## v1.15 — Level 2 harder: frogs that keep their distance
+- Rat-frogs retreat properly again: if Chris gets within 150 px they hop back out to their spot (and further if needed), faster hops; rush one mid-tell (under 95 px) and it bails and hops away. Up close with its pounce ready it still POUNCES.
+- The goop trap is now what was asked: only a frog that's RUNNING AWAY from Chris while he's shooting lands badly in a pool and gets stuck (1.3 s). Otherwise frogs hop straight out of goop.
+- Tougher: frog hp 5 → 6; their open moments (tongue out, pounce, stuck) now take 1.5x instead of 2x (flipped over still 2x); the pack lashes a little more often; an extra frog in wave 2 and two in wave 3; Baron hp 160 → 175.
