@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.26';
+const BUILD = 'v1.27';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1862,6 +1862,14 @@ class Level1 extends Phaser.Scene {
     this.tweens.add({ targets: ring, alpha: 0, scale: 1.25, duration: 260, onComplete: () => ring.destroy() });
     if (!this.slimeTip) { this.slimeTip = true; this.banner('SLIME SHIELD!\nHIT THEM WHILE THEY ATTACK - OR BASH!'); }
   }
+  // Chris tears free: the tongue snaps back and yanks the rat clean off its feet: it's flung up, somersaults, and
+  // lands flat on its back with its legs kicking in the air, dizzy, before it rolls back over (1.7 s: free hits)
+  frogFlip(e) {
+    if (this.pl.grabbed === e) this.releaseGrab(false);
+    e.state = 'stun'; e.stunT = 1.9; e.tongue = 0; e.flip = { t: 0, dir: -(e.lashDir || 1), landed: false };
+    e.vh = 360; e.leapV = -(e.lashDir || 1) * 70; e.spr.setOrigin(0.5, 0.5); e.lift = 23 * (e.spr.bsy || 1.22);
+    Sound.sfx('squeak'); Sound.sfx('bonk'); this.burst(e.theta, 20, 'spark', 8, 0.8); this.hitStop = Math.max(this.hitStop || 0, 0.05);
+  }
   frogStun(e, t) {
     if (this.pl.grabbed === e) this.releaseGrab(false);
     e.state = 'stun'; e.stunT = t; e.tongue = 0; e.leapV = 0; e.spr.setFlipY(true);
@@ -1939,7 +1947,7 @@ class Level1 extends Phaser.Scene {
       e.tongue = along;
       P.theta = wrap(P.theta - e.lashDir * 175 / R * dt); P.vx = 0; P.vh = Math.min(P.vh, 0); P.h = Math.max(0, P.h - 300 * dt);
       if (P.mash >= 2) {                                          // a double jump tears him free!
-        this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogStun(e, 0.9); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
+        this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(e); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
       } else if (along < e.r + 16) {                              // CHOMP
         this.releaseGrab(true); this.hurt(); e.state = 'sit'; e.lashCd = 2.2; Sound.sfx('bonk');
       }
@@ -1948,6 +1956,18 @@ class Level1 extends Phaser.Scene {
         Sound.sfx('squelch'); this.cameras.main.shake(90, 0.005);
         if (distP < 400) for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 20 / R), 8, sd * 180, 0, 9, 1.1);
         this.frogStun(e, 0.95);
+      }
+    } else if (e.state === 'stun' && e.flip) {                     // the somersault (frogFlip)
+      const Fp = e.flip; Fp.t += dt; e.stunT -= dt;
+      if (!Fp.landed) {
+        e.roll = Fp.dir * Math.PI * 3 * Math.min(1, Fp.t / 0.8);    // one and a half turns, ending on its back
+        if (e.h <= 0 && Fp.t > 0.25) { Fp.landed = true; e.roll = Math.PI; e.leapV = 0; Sound.sfx('squelch'); this.burst(e.theta, 4, 'crumb', 8, 0.8); this.cameras.main.shake(80, 0.004); e.spr.hsq = 1; }
+      } else {
+        e.leapV = 0; e.roll = Math.PI + Math.sin(Fp.t * 14) * 0.08;  // rocking on its back
+        if (Math.random() < dt * 5) this.burst(e.theta, 34, 'spark', 1, 0.4);   // dizzy stars
+      }
+      if (e.stunT <= 0) {                                         // rolls back onto its feet with a hop
+        e.flip = null; e.roll = 0; e.lift = 0; e.spr.setOrigin(0.5, ENEMY.frog.oy); e.state = 'sit'; e.vh = 220; e.lashCd = Math.max(e.lashCd, 0.8); Sound.sfx('squeak');
       }
     } else if (e.state === 'stun') {
       e.stunT -= dt; e.leapV = 0;
@@ -1982,6 +2002,7 @@ class Level1 extends Phaser.Scene {
     // body language: low tell = squat flat, high tell = rear up tall
     if (e.state === 'tell') { const k = e.sacK; e.spr.sqx = e.low ? 1 + 0.22 * k : 1 - 0.1 * k; e.spr.sqy = e.low ? 1 - 0.3 * k : 1 + 0.28 * k; }
     else if (e.state === 'lash' || e.state === 'grab') { const strain = e.state === 'grab' ? Math.sin(this.t * 42) * 0.04 : 0; e.spr.sqx = (e.low ? 1.3 : 1.08) + strain; e.spr.sqy = (e.low ? 0.7 : 1.2) - strain; }   // hunched and straining
+    else if (e.state === 'stun' && e.flip && e.flip.landed) { e.spr.sqx = 1 + 0.07 * Math.sin(e.t * 32); e.spr.sqy = 1 - 0.05 * Math.sin(e.t * 32 + 1); }   // legs kicking in the air
     else if (e.state === 'goop') { e.spr.sqx = 1.15 + 0.06 * Math.sin(e.t * 18); e.spr.sqy = 0.62 + 0.06 * Math.sin(e.t * 18 + 1); }   // sunk to the armpits, struggling
     else { e.spr.sqx = 1; e.spr.sqy = 1 + Math.max(0, Math.min(0.15, e.vh / 3500)); }
   }
@@ -4181,7 +4202,7 @@ class Level1 extends Phaser.Scene {
     }
 
     for (const e of this.enemies) {
-      this.place(e.spr, e.theta, e.h, e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
+      this.place(e.spr, e.theta, e.h + (e.lift || 0), e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
       if (e.ai === 'baron') this.drawBaron(e);
       if (e.ai === 'wheel') this.drawWheelFace(e);
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);

@@ -918,3 +918,6 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.26 — Caught on a tongue
 - When a rat grabs Chris with its tongue his gun is out of action: it won't fire (or charge), and he waves it about hysterically, flapping his other arm too, so it's obvious.
 - Break free with a DOUBLE JUMP (two jump presses): he tears loose, springs up with the jetpack re-armed, and the rat flops over stunned. The banner says "GRABBED! DOUBLE JUMP!". (Shooting it in the mouth no longer makes it let go: you can't shoot.)
+
+## v1.27 — The rat goes head over heels
+- When Chris double-jumps free, the tongue snaps back and yanks the rat clean off its feet: it's flung up and backwards, somersaults one and a half times (spinning round its middle), and lands flat on its back with a squelch, a puff of dirt and a squash. It lies there rocking with its legs kicking in the air and dizzy stars over it for about 1.9 s (shots do double damage), then rolls back onto its feet with a hop.
