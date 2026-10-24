@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.08';
+const BUILD = 'v1.09';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3881,6 +3881,7 @@ class Level1 extends Phaser.Scene {
     const hg = this.hudG;
     hg.clear();
     const boss = this.enemies.find(e => e.type === 'boss');
+    if (this.state === 'play' && !this.paused) this.drawRadar(hg);
     if (boss) {
       const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
       const x0 = (this.W - w) / 2, y0 = this.landscape ? 90 : 96;            // below the HUD panel and weapon box
@@ -3931,6 +3932,58 @@ class Level1 extends Phaser.Scene {
     P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
   }
 }
+
+// ---- where the off-screen enemies are
+// 1. Edge arrows: every enemy off the screen gets a chunky pixel arrow pinned to the screen edge, pointing at it
+//    on the side they're coming from, at their height (a flyer up high shows near the top). Closer = bigger and brighter;
+//    about to come into view = blinking. Big enemies are orange, the boss red, the rest yellow.
+// 2. Planet radar (landscape): a little planet under the cow track with Chris on top, the slice you can see
+//    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
+Level1.prototype.drawRadar = function (g) {
+  const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;
+  const col = e => (e.type === 'boss' ? 0xff3a3a : e.big ? 0xff9d3a : 0xffd23f);
+  // -- edge arrows: on the side they're coming from, at the height they're flying (as if the world were flat)
+  const top = 118, bot = H - 40;                                      // clear of the HUD along the top
+  let n = 0;
+  for (const e of this.enemies) {
+    if (e.hp <= 0 || n >= 12) continue;
+    const d = angDiff(e.theta, P.theta), sp = this.screenPos(e.theta, e.h + (e.ch || 0));
+    if (Math.abs(d) < 1.45 && sp.x > -6 && sp.x < W + 6 && sp.y > -6 && sp.y < H + 6) continue;   // on screen
+    n++;
+    const side = Math.sign(d) || 1, far = Math.min(1, Math.max(0, (Math.abs(d) - this.visHalf) / 1.4));   // 0 = just off screen
+    if (far < 0.08 && Math.floor(t * 8) % 2) continue;                                         // about to arrive: blink
+    const sz = (e.type === 'boss' ? 14 : e.big ? 11 : 9) * (1 - far * 0.4), a = 1 - far * 0.5;
+    const px = side > 0 ? W - 10 - sz + Math.sin(t * 7 + n) * 2 : 10 + sz - Math.sin(t * 7 + n) * 2;
+    const py = Math.round(Math.max(top, Math.min(bot, this.groundY - (24 + Math.max(0, e.h + (e.ch || 0))) * z)));
+    const ang = side > 0 ? 0 : Math.PI;
+    const tri = (r, c, al) => {
+      const c0 = Math.cos(ang), s0 = Math.sin(ang);
+      g.fillStyle(c, al).fillTriangle(px + c0 * r, py + s0 * r, px - c0 * r * 0.7 - s0 * r * 0.85, py - s0 * r * 0.7 + c0 * r * 0.85, px - c0 * r * 0.7 + s0 * r * 0.85, py - s0 * r * 0.7 - c0 * r * 0.85);
+    };
+    tri(sz + 3, 0x1a1020, a * 0.9);                                   // dark outline
+    tri(sz, col(e), a);
+    g.fillStyle(0xffffff, a * 0.7).fillRect(Math.round(px - side * sz * 0.2) - 1, py - Math.round(sz * 0.45), 2, 2);   // a glint
+    if (e.type === 'boss') g.fillStyle(0x1a1020, a).fillRect(px - side * 3 - 2, py - 2, 4, 4);
+  }
+  // -- planet radar (landscape only: there's room under the cow track)
+  if (!this.landscape || !this.hud) return;
+  const rx = Math.round(this.hud.dx0 + 30), ry = 72, rr = 18;
+  g.fillStyle(0x1a1020, 0.92).fillCircle(rx, ry, rr + 14);
+  g.lineStyle(2, 0xc9cde0, 0.8).strokeCircle(rx, ry, rr + 14);
+  const SF = this.def.surface || {};
+  g.fillStyle((SF.rim && SF.rim[1]) || (SF.pal && SF.pal[3]) || 0x8a6a2a, 1).fillCircle(rx, ry, rr);   // the planet's own colour
+  g.fillStyle(0xffffff, 0.12).fillCircle(rx - 4, ry - 4, rr * 0.55);
+  g.lineStyle(3, 0x5ce1ff, 0.9).beginPath().arc(rx, ry, rr + 2, -Math.PI / 2 - this.visHalf, -Math.PI / 2 + this.visHalf).strokePath();   // what's on screen
+  for (const e of this.enemies) {
+    if (e.hp <= 0) continue;
+    const d = angDiff(e.theta, P.theta), r = rr + 5 + Math.min(1, Math.max(0, e.h) / 320) * 7;
+    const x = Math.round(rx + r * Math.sin(d)), y = Math.round(ry - r * Math.cos(d)), q = e.type === 'boss' ? 6 : e.big ? 4 : 3;
+    g.fillStyle(0x1a1020, 1).fillRect(x - q / 2 - 1, y - q / 2 - 1, q + 2, q + 2); g.fillStyle(col(e), 1).fillRect(x - q / 2, y - q / 2, q, q);
+  }
+  const cy0 = ry - rr - 5 - Math.min(1, Math.max(0, P.h) / 320) * 7;
+  g.fillStyle(0x1a1020, 1).fillRect(rx - 3, cy0 - 3, 6, 6);
+  g.fillStyle(Math.floor(t * 4) % 2 ? 0x5ce1ff : 0xffffff, 1).fillRect(rx - 2, cy0 - 2, 4, 4);   // Chris
+};
 
 const startPhaser = () => { window.game = new Phaser.Game({
   type: Phaser.AUTO,

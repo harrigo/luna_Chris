@@ -836,3 +836,7 @@ Built from the brief (`makeGorgeTextures`):
 ## v1.08 — Music: layers, not a new song
 - Dropped the key change, tempo bump and echo. Same key and tempo all level; the waves only add layers: wave 1 lead/bass/drums, middle waves + arpeggio and running 16th hats, last wave + octave sparkle on the lead and four-on-the-floor kicks. The climax is left to the boss's own tune.
 - The fill into the boss ends on a lone crash that rings out into silence; the boss now spawns 0.6 s into its wave (was 1.5 s), so its tune hits right after the hush.
+
+## v1.09 — Where are they? Edge arrows + planet radar
+- Every enemy off screen gets a chunky pixel arrow on the side it's coming from, at the height it's flying (a flyer up high shows near the top, a ground rat near the horizon). Closer = bigger and brighter; about to come into view = blinking. Yellow = small fry, orange = big ones, red = the boss.
+- Landscape screens also get a little planet radar under the cow track: the planet in its own colour, Chris blinking on top, the slice of the world you can see lit cyan on the rim, and a dot for every enemy round the world (further out the higher it flies, bigger for big ones and the boss).
