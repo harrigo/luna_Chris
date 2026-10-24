@@ -215,6 +215,14 @@ function makeTextures(scene) {
     a.poly([[4, 1], [1, -1], [1, 3]], 0xb04030); a.poly([[4, 8], [1, 10], [1, 6]], 0xb04030);   // fins
     a.rect(0, 4, 2, 5, 0xff7a2a);                                         // exhaust glow
   });
+  // the Baron's homing mould rocket (points right)
+  pixSprite(scene, 'mouldmissile', 22, 10, a => {
+    a.rrect(4, 1, 17, 8, 2, [0xd8e4e8, 0xa8bcc4, 0x6a8090]);          // a chunk of blue cheese
+    for (const [x, y] of [[7, 3], [10, 5], [13, 3], [15, 6], [8, 6]]) a.px(x, y, 0x3a6ab0);   // blue veins
+    a.poly([[17, 1], [21, 5], [17, 8]], [0x9bff6a, 0x5ad040, 0x2a8a2a]); // mouldy green nose
+    a.poly([[4, 1], [1, -1], [1, 3]], 0x2a8a5a); a.poly([[4, 8], [1, 10], [1, 6]], 0x2a8a5a);
+    a.rect(0, 4, 2, 5, 0x7dff8a);
+  });
   mk('wedge', 22, 18, g => {
     g.fillStyle(0xffd23f, 1).fillTriangle(0, 17, 22, 17, 22, 2);
     g.fillStyle(0xe3a21a, 1).fillCircle(15, 12, 2.5).fillCircle(9, 15, 1.5);

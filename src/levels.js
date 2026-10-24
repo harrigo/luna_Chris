@@ -78,7 +78,6 @@ const LEVELS = {
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
       { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('germ', 8.2)] },
       { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6)] },
-      { name: 'WAVE 4', spawns: [S('frog', 0), S('frog', 0.6), S('stinkfly', 1.2), S('germ', 1.6), S('germ', 2), S('stinkfly', 2.4), S('frog', 3), S('germ', 3.4), S('stinkfly', 3.8), S('germ', 4.2), S('frog', 4.8), S('frog', 5.4), S('stinkfly', 6), S('germ', 6.4), S('germ', 6.8), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.4), S('stinkfly', 9)] }
     ],
     goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
     boss: { tex: 'baron', hp: 160, ai: 'baron', scale: 1.35 },

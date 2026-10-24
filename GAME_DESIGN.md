@@ -855,3 +855,9 @@ Built from the brief (`makeGorgeTextures`):
 - At 1/3 it roars again and starts falling apart: more cracks, glowing and smoking. Act 3: triple-spread cannons, a 7-crumb belly fan, a pair of homing toast missiles from the top hatches every 3.4 s, and it still hunts and slams (a little slower).
 - The toast missiles can be shot down (+100). Ordinary bullets still can't: dodging them is the game; only the big, slow, homing things are targets.
 - Radar panel now mirrors Chris's portrait box (48 px, 10 px in from the corner). Banners drop below the boss health bar during a boss fight.
+
+## v1.13 — Level 2: three-act Baron, three waves, goop-stuck frogs, visible ricochets
+- Level 2 drops its fourth wave (three waves, then the Baron), like level 1.
+- Baron von Blue gets the same three acts as the Croque. At 2/3 health he roars (jaw wide, green flashing, shake), cracks with mouldy fissures and goes greener; act 2 he hunts, racing over Chris's head, shudders and BELLY-FLOPS: a spore wash skims the floor both ways (jump it) and spores spray up and rain down, then he sits in the muck for a second (hit him). No flail or spitting while he's diving in. At 1/3 he roars again and the cracks glow; act 3 adds double flail throws, a five-spore spit, pals, and a pair of homing mould rockets every 3.6 s that you can shoot down (+100).
+- Rat-frogs and goop: a frog that lands in a goop pool hops straight back out, unless Chris is shooting, when it panics and gets STUCK for 1.8 s, sunk to the armpits and struggling, with no slime shield (double damage). First time: "STUCK IN THE GOOP!" banner.
+- Shields are obvious now: a shot that hits a shield ricochets back the way it came and up, turned pale green and harmless, and a ring of shield flashes round the enemy, with the clang.
