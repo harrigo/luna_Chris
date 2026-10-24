@@ -29,6 +29,10 @@ jobs:
           cp -r src _site/
           [ -d assets ] && cp -r assets _site/ || true
           [ -d icons ] && cp -r icons _site/ || true
+      - name: Pack the editable sprites into one sheet
+        run: |
+          pip install --quiet pillow
+          python3 tools/pack_sprites.py _site/assets/sprites
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

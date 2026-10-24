@@ -12,9 +12,10 @@
 const RIG_SCALE = 0.95;
 
 function makeChrisTextures(scene) {
-  if (scene.textures.exists('c_head')) return;
+  if (madeTex(scene, 'c_head')) return;
   const OUT = 0x1a1020;
   const mk = (key, w, h, draw) => {
+    if (SPRITE_FILES.has(key)) return;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     draw(g);
     g.generateTexture(key, w, h);

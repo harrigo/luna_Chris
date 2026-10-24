@@ -6,7 +6,14 @@ const PIXEL = '"Press Start 2P", monospace';
 
 // ---- pixel-sprite painter (shared): paint simple shapes onto a pixel grid, shade each in 3 tones
 // (lit from the top-left), then add a dark outline automatically. Used for all the 16-bit enemies.
+// Sprites that come from PNG files in assets/sprites/ (listed in assets/sprites/index.json, loaded by the intro scene's
+// preload). A generator never overwrites one of these: the file wins. Delete a PNG (and its line in index.json) to go
+// back to the drawn-in-code version.
+const SPRITE_FILES = new Set();
+const madeTex = (scene, key) => scene.textures.exists(key) && !SPRITE_FILES.has(key);   // "this generator already ran"
+
 function pixSprite(scene, key, w, h, paint, outline) {
+  if (SPRITE_FILES.has(key)) return;
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const grid = new Array(w * h).fill(-1);
   const shade = (tones, nx, ny) => { const l = -0.6 * nx - 0.8 * ny; return l > 0.3 ? tones[0] : (l < -0.35 ? tones[2] : tones[1]); };
@@ -49,6 +56,7 @@ function pixSprite(scene, key, w, h, paint, outline) {
 // A hand-pixelled sprite: rows of letters, each letter a colour from the palette ('.' = transparent). Drawn as-is (no
 // automatic outline), so art made in a pixel editor comes through exactly.
 function pixArt(scene, key, palette, rows) {
+  if (SPRITE_FILES.has(key)) return;
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const h = rows.length, w = rows[0].length, tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
   rows.forEach((row, y) => [...row].forEach((ch, x) => { const c = palette[ch]; if (c === undefined) return; const i = (y * w + x) * 4; D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; D[i + 3] = 255; }));
@@ -57,9 +65,10 @@ function pixArt(scene, key, palette, rows) {
 const OUTPX = 0x1a1020;
 
 function makeTextures(scene) {
-  if (scene.textures.exists('chris')) return;
+  if (madeTex(scene, 'chris')) return;
 
   const mk = (key, w, h, draw) => {
+    if (SPRITE_FILES.has(key)) return;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     draw(g);
     g.generateTexture(key, w, h);

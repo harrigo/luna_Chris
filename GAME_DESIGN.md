@@ -938,3 +938,8 @@ Built from the brief (`makeGorgeTextures`):
 - Chris's body is now hand-pixelled (44x42, facing right, outline included) and stored in src/chris.js as rows of palette letters (pixArt in src/textures.js draws it as-is, no automatic outline). A long white top with the red hem running unbroken from the back, rising over a small round belly at the front, with a 2x2 belly button faded into the skin. The belly is part of the body: no separate belly sprite and no wobble; the running bounce on the body is gone too.
 - Legs are blue trousers with a red-and-white knee stripe, drawn behind the torso.
 - To change it: edit the letters, or send a 44x42 PNG/GIF (pure black or transparent background) and it gets converted.
+
+## v1.32 — Editable sprites folder
+- assets/sprites/ now holds 284 sprites as PNGs (all the characters, enemies, bosses, props, pickups, HUD bits, intro scenery...), plus index.json listing them and a README. A PNG there replaces the drawn-in-code sprite with the same name; delete it to fall back to the code version. The big procedural textures (planet surfaces, nebulae, skies) and the auto-made glow variants stay generated.
+- The deploy workflow packs them into one sprite sheet (tools/pack_sprites.py, Pillow: sheet0.png + sheet.json with a content hash for caching), so the live game loads them in two requests and adopts each frame straight onto the shared texture sheet. Without a sheet (running from the repo), each PNG is loaded on its own.
+- Generators skip any sprite that came from a file (SPRITE_FILES / madeTex in textures.js), which also cut start-up texture generation roughly in half.

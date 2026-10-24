@@ -287,7 +287,7 @@ const LEVELS = {
 // the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
 function makeWarpTextures(scene) {
   makeBlackHolePix(scene, 'px_bhole');
-  if (scene.textures.exists('w_relic')) return;
+  if (madeTex(scene, 'w_relic')) return;
   pixSprite(scene, 'w_relic', 26, 24, p => {
     p.line([[13, 1], [13, 6]], 0x8a929c);
     p.ell(13, 13, 10, 8, [0xc0907a, 0x8a5a4a, 0x5a3a30]);
@@ -299,8 +299,9 @@ function makeWarpTextures(scene) {
 
 // ---------------------------------------------------------------- extra art (all drawn with code)
 function makeLevelTextures(scene) {
-  if (scene.textures.exists('germ')) return;
+  if (madeTex(scene, 'germ')) return;
   const mk = (key, w, h, draw) => {
+    if (SPRITE_FILES.has(key)) return;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     draw(g);
     g.generateTexture(key, w, h);
@@ -1141,7 +1142,7 @@ function makeSkyDither(scene, key, w, h, cols) {
 // ---------------------------------------------------------------- roadmap art: new enemies, bosses and shots (levels 4-9)
 // Bosses are 96px tall (the boss gun maths assumes it); cannon positions are given relative to the sprite centre in each AI.
 function makeRoadmapTextures(scene) {
-  if (scene.textures.exists('oven')) return;
+  if (madeTex(scene, 'oven')) return;
   const STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272], RUST = [0xd08a5a, 0x9a5a32, 0x5e3020], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a];
   // ---- shots
   pixSprite(scene, 'pepper', 16, 16, p => { p.ell(8, 8, 7, 7, [0xff7a6a, 0xd0301a, 0x8a1a10]); for (const [x, y] of [[5, 5], [10, 6], [7, 10], [11, 10], [4, 9]]) { p.px(x, y, 0x7a1010); p.px(x + 1, y, 0xff9a8a); } });
@@ -1322,7 +1323,7 @@ const BUFFS = {
   disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 10, from: 7, col: 0xff9db8 }
 };
 function makePowerupTextures(scene) {
-  if (scene.textures.exists('pu_sauce')) return;
+  if (madeTex(scene, 'pu_sauce')) return;
   const STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272];
   pixSprite(scene, 'pu_sauce', 18, 22, p => {                  // hot sauce bottle
     p.rrect(7, 1, 11, 6, 1, [0x8af06a, 0x3aa040, 0x1a6a20]); p.rect(8, 6, 10, 8, 0xe8e8f0);
@@ -1386,7 +1387,7 @@ const PLATFORMS = {
   bone:     { key: 'pl_bone', top: 5 }
 };
 function makePlatformTextures(scene) {
-  if (scene.textures.exists('pl_girder')) return;
+  if (madeTex(scene, 'pl_girder')) return;
   const W = 124, STEEL = [0xdfe6f0, 0x9aa4b4, 0x5a6272], DARK = [0x5a6272, 0x3a3e4c, 0x24262e];
   // electric bar: metal end caps with cyan lamps, a glowing energy tube, lightning crackling along it (3 frames)
   for (let f = 0; f < 3; f++) pixSprite(scene, 'pl_energy' + f, W, 26, p => {
@@ -1461,7 +1462,7 @@ function makePlatformTextures(scene) {
 // L6 "Cheddar Gorge": the chase. The Pepper Jack's spinning rind + its (upright) angry face / exposed core, mini wheels,
 // tortilla-chip stalagmites, bottomless pits and speed-bump craters, the Jalapeño Boost, ruined spires on the skyline
 function makeGorgeTextures(scene) {
-  if (scene.textures.exists('jack_rind')) return;
+  if (madeTex(scene, 'jack_rind')) return;
   const RIND = [0xffc860, 0xf09a2a, 0xa85a10], PASTE = [0xfff0a0, 0xffd060, 0xd89a2a];
   pixSprite(scene, 'jack_rind', 120, 120, p => {                    // the wheel itself (it spins); the face is a separate upright overlay
     p.ell(60, 60, 58, 58, RIND); p.ell(60, 60, 50, 50, PASTE);
@@ -1518,7 +1519,7 @@ function makeGorgeTextures(scene) {
 
 // L5 "The Brie-muda Triangle": powdery rind, a graveyard of lost ships and cows, purple haze and glowing triangles
 function makeBrieTextures(scene) {
-  if (scene.textures.exists('ghostpirate')) return;
+  if (madeTex(scene, 'ghostpirate')) return;
   const BONE = [0xfffbf0, 0xe0d8c4, 0x9a907a], GH = [0xc8ffd8, 0x5ae890, 0x1e8a4a];
   pixSprite(scene, 'pl_bone', 124, 24, p => {                       // a giant femur from some ancient space-cow, as a platform
     p.rrect(14, 6, 110, 16, 4, BONE);
@@ -1560,7 +1561,7 @@ function makeBrieTextures(scene) {
 
 // L4 "Mount Mozzarella": the cosmic pizza oven. Magma-golems, rocket rats, pepperoni bombs, molten string-cheese pits, greasy smoke
 function makeOvenTextures(scene) {
-  if (scene.textures.exists('mgolem')) return;
+  if (madeTex(scene, 'mgolem')) return;
   const MOZ = [0xffffff, 0xf4ead6, 0xc8b496], CHAR = [0xb0703a, 0x7a4220, 0x3a1c0c], HOT = [0xfff4a0, 0xffa030, 0xd04a10], CRUST = [0xe0a060, 0xa86a34, 0x6a3a18];
   const golem = (key, armoured) => pixSprite(scene, key, 64, 68, p => {
     p.rrect(10, 46, 26, 67, 4, armoured ? CHAR : MOZ); p.rrect(38, 46, 54, 67, 4, armoured ? CHAR : MOZ);           // legs
@@ -1626,7 +1627,7 @@ function makeOvenTextures(scene) {
 
 // L3 "Planet Grat'o-Cheese": the cheese factory. Rusty cogs, scaffolds, the cheese claw, crates, barrels, beacons, goggle-rats
 function makeFactoryTextures(scene) {
-  if (scene.textures.exists('cog_big')) return;
+  if (madeTex(scene, 'cog_big')) return;
   const RUST = [0xd08a50, 0x9a5a2a, 0x5e3218], IRON = [0x9aa4b4, 0x5e6878, 0x323a48], STEEL = [0xe8eef8, 0xa8b2c2, 0x5a6272];
   const cog = (key, R, teeth, cols, spokes) => pixSprite(scene, key, R * 2 + 4, R * 2 + 4, p => {
     const cx = R + 2, cy = R + 2;
@@ -1729,7 +1730,7 @@ function makeCosmicTextures(scene) {
 
 // soft additive light halo (smooth-filtered, so it stays OFF the pixel atlas)
 function makeHalo(scene) {
-  if (scene.textures.exists('halo')) return;
+  if (madeTex(scene, 'halo')) return;
   const t = scene.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
   gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
   c.fillStyle = gr; c.fillRect(0, 0, 128, 128); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);

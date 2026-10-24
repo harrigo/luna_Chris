@@ -3,7 +3,7 @@
 // is finished, or straight away with ?ending in the URL.
 
 function makeEndingPix(scene) {
-  if (scene.textures.exists('ix_tank')) return;
+  if (madeTex(scene, 'ix_tank')) return;
   const W = 760;
   // a ruined red sky, and a "cured" one that fades in when the planet gets better
   const skyTex = (key, cols, seed) => pixTex(scene, key, W, 360, put => {

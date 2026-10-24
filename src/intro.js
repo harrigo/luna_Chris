@@ -10,15 +10,15 @@ const BX = 205;                           // the barn (the rat-ship crashes into
 
 // soft glow + steam puff, used by the painted title art
 function makeIntroTextures(scene) {
-  if (scene.textures.exists('i_glow')) return;
-  const mk = (key, w, h, draw) => { const g = scene.make.graphics({ x: 0, y: 0, add: false }); draw(g); g.generateTexture(key, w, h); g.destroy(); };
+  if (madeTex(scene, 'i_glow')) return;
+  const mk = (key, w, h, draw) => { if (SPRITE_FILES.has(key)) return; const g = scene.make.graphics({ x: 0, y: 0, add: false }); draw(g); g.generateTexture(key, w, h); g.destroy(); };
   mk('i_glow', 180, 180, g => { for (let i = 0; i < 10; i++) g.fillStyle(0xffb347, 0.07).fillCircle(90, 90, 90 - i * 8.5); });
   mk('i_puff', 48, 48, g => { g.fillStyle(0xf3ead6, 1).fillCircle(24, 24, 22); g.fillStyle(0xffffff, 0.5).fillCircle(18, 18, 10); });
 }
 
 // ---------------------------------------------------------------- pixel art for the cutscene
 function makeIntroPix(scene) {
-  if (scene.textures.exists('ix_barn')) return;
+  if (madeTex(scene, 'ix_barn')) return;
   const W = 760;
 
   // skies: tall, so the camera can start up in the stars and pan down to the ranch
@@ -394,6 +394,20 @@ class IntroScene extends Phaser.Scene {
   preload() {
     this.load.image('titleArt', 'assets/title.jpg?v=1');
     this.load.image('portrait', 'assets/portrait.png?v=2');
+    // the editable sprites (assets/sprites/*.png, see SPRITE_FILES in textures.js). On the live site the deploy packs
+    // them into one sheet (sheet.json + sheet0.png: two requests); if there's no sheet (running locally from the repo)
+    // each PNG in index.json is loaded on its own. Anything missing falls back to the drawn-in-code version.
+    this.load.json('spriteSheet', 'assets/sprites/sheet.json?t=' + Date.now());
+    this.load.once('filecomplete-json-spriteSheet', (key, type, data) => {
+      (data.pages || []).forEach((p, i) => this.load.image('__sprites' + i, 'assets/sprites/' + p + '?v=' + data.v));
+    });
+    this.load.on('loaderror', file => {
+      if (file.key !== 'spriteSheet') return;
+      this.load.json('spriteIndex', 'assets/sprites/index.json?t=' + Date.now());
+      this.load.once('filecomplete-json-spriteIndex', (key, type, data) => {
+        for (const k of ((data && data.sprites) || [])) this.load.image(k, 'assets/sprites/' + k + '.png?t=' + Date.now());
+      });
+    });
   }
 
   // Animated title screen: the painted key art, slowly drifting, with effects layered on top
@@ -442,6 +456,9 @@ class IntroScene extends Phaser.Scene {
   }
 
   create() {
+    const sheet = this.cache.json.get('spriteSheet'), idx = this.cache.json.get('spriteIndex');
+    if (sheet && sheet.frames) for (const k in sheet.frames) { const [p, x, y, w, h] = sheet.frames[k]; if (Atlas.adopt(this.textures, k, '__sprites' + p, x, y, w, h)) SPRITE_FILES.add(k); }
+    else for (const k of ((idx && idx.sprites) || [])) if (this.textures.exists(k)) SPRITE_FILES.add(k);   // loaded one by one
     buildAllTextures(this);                                    // every sprite, generated once and packed onto the shared sheet
     if (/[?&]skipintro/.test(window.location.search)) { this.scene.start('level1'); return; }
     if (/[?&]ending/.test(window.location.search)) { this.scene.start('ending'); return; }

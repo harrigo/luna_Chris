@@ -69,7 +69,19 @@ const Atlas = (() => {
     return items.length;
   }
 
-  return { pack, pages, has: k => packed.has(k) };
+  // a sprite from the editable sprite sheet (assets/sprites/sheet0.png, built from the PNGs by tools/pack_sprites.py):
+  // its texture is a patch of that already-packed page, so pack() leaves it alone
+  function adopt(mgr, key, pageKey, x, y, w, h) {
+    const pg = mgr.list[pageKey]; if (!pg || !pg.source[0]) return false;
+    if (mgr.exists(key)) mgr.remove(key);
+    const T = Phaser.Textures.Texture, t = new T(mgr, key, [], w, h);
+    t.source.push(pg.source[0]); t.add('__BASE', 0, x, y, w, h);
+    t.destroy = function () { this.source = []; T.prototype.destroy.call(this); };
+    mgr.list[key] = t; packed.add(key); packed.add(pageKey);
+    return true;
+  }
+
+  return { pack, adopt, pages, has: k => packed.has(k) };
 })();
 
 // Run every sprite generator once, then pack them all onto the sheet. Called at boot, before any sprite exists.
