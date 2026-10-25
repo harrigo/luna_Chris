@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.33';
+const BUILD = 'v1.34';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4255,8 +4255,11 @@ class Level1 extends Phaser.Scene {
     // controls
     const cg = this.ctrlG;
     cg.clear();
-    for (const k in this.btnLabels) this.btnLabels[k].setVisible(this.touchUI);
-    if (this.touchUI && this.btn) {
+    // a controller plugged into a phone: hide the on-screen sticks and buttons while it's the thing being used
+    // (they come straight back the moment the screen is touched)
+    const showTouch = this.touchUI && !(typeof Pad !== 'undefined' && Pad.state.connected && LAST_INPUT !== 'touch');
+    for (const k in this.btnLabels) this.btnLabels[k].setVisible(showTouch);
+    if (showTouch && this.btn) {
       const stick = (rest, live) => {                       // base ring where the thumb landed (or a ghost at rest) + the knob
         const bx = live ? live.ox : rest.x, by = live ? live.oy : rest.y;
         cg.fillStyle(0xffffff, live ? 0.12 : 0.06).fillCircle(bx, by, rest.r);

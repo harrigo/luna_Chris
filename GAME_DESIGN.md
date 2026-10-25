@@ -946,3 +946,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.33 — Safe after the boss
 - Once a boss is beaten, nothing can hurt or kill Chris for the rest of the level (volcano blasts, geysers, falling debris, pits, being squashed...): hurt() and die() both bail out while the boss is down. Before, a stray hazard could kill him between the boss dying and the rescue.
+
+## v1.34 — Controller on a phone hides the touch controls
+- With a gamepad connected to a phone, the on-screen sticks, BASH button and their labels are hidden as long as the controller is what's being used (any button or stick press). Touch the screen and they come straight back; press the controller again and they go. Touch input itself always keeps working.
