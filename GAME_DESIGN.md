@@ -976,3 +976,9 @@ Built from the brief (`makeGorgeTextures`):
 - **Shots leave the barrel:** each macaroni spawns at the rig's real gun tip (the auger's world transform), travelling the way the barrel points, with a muzzle flash and a puff of smoke.
 - **The gun crate:** a padlocked crate floats in the middle of the room with the prize ghosted above it. Grab all 12 ingredients and it bursts open: the first gun not yet won here is yours for good (`Progress.hasGun/giveGun`, checked by `weaponUnlocked`). Once every gun is won, the prize is +1 life. (CFG.allWeapons is still on for testing, so the unlock only bites once that's switched off.)
 - **Livelier:** parallax star layers and nebula glow behind the glass, a ringed gas giant, a scanline sweeping the floor grid, chase lights round the walls that flare where Chris hits, spinning cheese bumpers (two roam on loops) that pop and spark with BOING! text, glowing, twinkling ingredients, a blue drift trail, pickup bursts, +1s per ingredient and COMBO popups for quick chains, and the faster level-6 track.
+
+### v1.39 — power-ups on the clock, and actually dropping
+- **Parmesan Power-Up is timed:** 15 s (`CFG.powerT`), still knocked off early by a hit. `P.power` now holds seconds left.
+- **HUD timer chips** under the portrait: one per thing running (Parmesan, then the timed power-up). A coloured ring round the icon empties as it runs down, seconds left underneath (shield also shows charges), flashing in the last quarter.
+- **Drops:** the first big enemy still always gives the Parmesan. Every wave's first medium/big kill now always drops a timed power-up (then 1 in 4), picking ones you haven't had this level first. They no longer wait for the Parmesan to have dropped.
+- **Earlier introductions:** Hot Sauce, Rocket Boots, Magnet Fork from L1; Fondue Shield and Gouda Gigantism from L2; Slow-Mo Brie and Rat Disguise from L3; Moo Bomb from L4; Jalapeno Boost stays on L6 (it's for the wheel chase).

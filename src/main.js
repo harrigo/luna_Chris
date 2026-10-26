@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.38';
+const BUILD = 'v1.39';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -60,6 +60,7 @@ const WEAPONS = [
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
+CFG.powerT = 15;                 // seconds the Parmesan Power-Up lasts (a hit still knocks it off sooner)
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 // Same look as glowFx for things that never change texture, but the halo is drawn once into a cached texture
@@ -186,7 +187,7 @@ class Level1 extends Phaser.Scene {
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
-    this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0;
+    this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
     this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
@@ -1787,6 +1788,10 @@ class Level1 extends Phaser.Scene {
 
   updateBuff(dt) {
     const P = this.pl, b = P.buff;
+    if (P.power > 0) {                                           // the Parmesan Power-Up runs down too
+      P.power -= dt;
+      if (P.power <= 0) { P.power = 0; Sound.sfx('flap'); this.banner('PARMESAN POWER WORN OFF'); }
+    }
     if (!b) return;
     b.t -= dt;
     if (b.kind === 'giant') {                                    // stomp stomp: flattens anything small he walks into
@@ -1801,16 +1806,30 @@ class Level1 extends Phaser.Scene {
   // the visible side of the power-ups: orbiting fondue, rat ears, the slow-mo wash and the HUD timer
   drawBuff() {
     const P = this.pl, b = P.buff, z = this.zoom;
+    // the HUD timers: one chip per thing running (Parmesan Power, then the timed power-up), under the portrait.
+    // A ring round each icon empties as it runs down, with the seconds left beneath; it flashes in the last quarter.
     if (!this.buffIcon) {
-      this.buffIcon = this.add.image(0, 0, 'pu_sauce').setDepth(20.6).setVisible(false);
+      this.buffIcon = [0, 1].map(() => this.add.image(0, 0, 'power').setDepth(20.7).setVisible(false));
+      this.buffSecs = [0, 1].map(() => this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5, 0).setDepth(20.7).setVisible(false));
       this.buffBarG = this.add.graphics().setDepth(20.6);
     }
     this.buffBarG.clear();
-    if (!b) { this.buffIcon.setVisible(false); return; }
-    const B = BUFFS[b.kind], frac = b.max ? Math.max(0, b.t / b.max) : 0;
-    const flash = frac < 0.25 && Math.floor(this.t * 8) % 2;            // flashes when it's about to run out
-    this.buffIcon.setTexture(B.tex).setPosition(320, 52).setScale(2).setVisible(!flash);
-    this.buffBarG.fillStyle(0x1a1020, 0.9).fillRect(302, 70, 38, 6).fillStyle(B.col, 1).fillRect(303, 71, 36 * frac, 4);
+    const chips = [];
+    if (P.power > 0) chips.push({ tex: 'power', col: 0xfff3a0, t: P.power, max: CFG.powerT });
+    if (b && b.max) chips.push({ tex: BUFFS[b.kind].tex, col: BUFFS[b.kind].col, t: b.t, max: b.max, n: b.kind === 'shield' ? b.charges : 0 });
+    for (let i = 0; i < 2; i++) {
+      const c = chips[i], im = this.buffIcon[i], tx = this.buffSecs[i];
+      if (!c || this.state === 'intro') { im.setVisible(false); tx.setVisible(false); continue; }
+      const x = 30 + i * 46, y = 100, r = 18, frac = Math.max(0, Math.min(1, c.t / c.max));
+      const flash = frac < 0.25 && Math.floor(this.t * 8) % 2;
+      this.buffBarG.fillStyle(0x1a1020, 0.85).fillCircle(x, y, r + 3);
+      this.buffBarG.lineStyle(3, 0x3a2f5a, 1).strokeCircle(x, y, r);
+      this.buffBarG.lineStyle(3, flash ? 0xffffff : c.col, 1).beginPath().arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + TAU * frac, false).strokePath();
+      const fr = this.textures.getFrame(c.tex), sz = fr ? Math.max(fr.width, fr.height) : 20;
+      im.setTexture(c.tex).setPosition(x, y).setScale(24 / sz).setVisible(!flash || frac > 0.1);
+      tx.setText(Math.ceil(c.t) + 's' + (c.n ? ' x' + c.n : '')).setPosition(x, y + r + 4).setVisible(true).setColor(frac < 0.25 ? '#ff7a5a' : '#ffffff');
+    }
+    if (!b) return;
     if (b.kind === 'shield') {
       if (!this.buffFx) this.buffFx = [0, 1, 2].map(() => this.add.image(0, 0, 'fondue').setDepth(7.4));
       this.buffFx.forEach((o, i) => {
@@ -3736,10 +3755,17 @@ class Level1 extends Phaser.Scene {
       }
       const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
       const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId));
-      if (midSize && this.gotPower && Math.random() < 0.25 && !this.pickups.some(p => p.kind === 'buff') && pool.length) {
-        const bk = pool[Math.floor(Math.random() * pool.length)], B = BUFFS[bk];
+      const fresh = pool.filter(k => !(this.buffsSeen || []).includes(k));
+      if (e.big && !this.gotPower) {                     // the first big enemy always drops the Parmesan Power-Up
+        this.gotPower = true;
+        this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
+      } else if (midSize && (this.waveBuff !== this.waveIdx || Math.random() < 0.25) && !this.pickups.some(p => p.kind === 'buff') && pool.length) {
+        // every wave's first medium/big kill drops a timed power-up, then 1 in 4 after that; ones not yet had this level come first
+        this.waveBuff = this.waveIdx;
+        const from = fresh.length ? fresh : pool, bk = from[Math.floor(Math.random() * from.length)], B = BUFFS[bk];
+        (this.buffsSeen = this.buffsSeen || []).push(bk);
         this.pickups.push({ kind: 'buff', bk, theta: e.theta, h: e.h + e.ch, vh: 240, life: 14, spr: (() => { const im = this.add.image(0, 0, B.tex).setDepth(6); bakedGlow(im, B.col, 3, 8); return im; })() });
-      } else if (e.big && (!this.gotPower || Math.random() < 0.3)) {     // the first big enemy always drops a Power-Up
+      } else if (e.big && Math.random() < 0.3) {         // later big ones: sometimes another Parmesan
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
       } else if (Math.random() < (e.drop || 0)) {
@@ -3908,7 +3934,7 @@ class Level1 extends Phaser.Scene {
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (p.kind === 'buff') this.startBuff(p.bk);
         else if (p.kind === 'power') {
-          P.power = 1; P.overheat = false; P.ammo = 1; this.addScore(500);
+          P.power = CFG.powerT; P.overheat = false; P.ammo = 1; this.addScore(500);
           Sound.sfx('power');
           buzz([20, 30, 20, 30, 60]);
           this.bang(P.theta, P.h + 24, 26);

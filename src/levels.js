@@ -1361,12 +1361,12 @@ const BUFFS = {
   jalapeno: { name: 'JALAPENO BOOST!', tex: 'pu_jalapeno', t: 8, from: 6, col: 0x6aff4a },              // supercharged jet + a flame trail that stalls the wheel
   sauce:   { name: 'HOT SAUCE!',        tex: 'pu_sauce',  t: 10, from: 1, col: 0xff4a2a },
   boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 10, from: 1, col: 0x5ce1ff },
-  magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 12, from: 2, col: 0xff6a8a },
-  shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 14, from: 3, col: 0xffd23f },
-  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 6,  from: 4, col: 0xb8a8ff },
-  giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 8,  from: 5, col: 0xff3a3a },
-  moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 6, col: 0xffffff },
-  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 10, from: 7, col: 0xff9db8 }
+  magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 12, from: 1, col: 0xff6a8a },
+  shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 14, from: 2, col: 0xffd23f },
+  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 6,  from: 3, col: 0xb8a8ff },
+  giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 8,  from: 2, col: 0xff3a3a },
+  moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 4, col: 0xffffff },
+  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 10, from: 3, col: 0xff9db8 }
 };
 function makePowerupTextures(scene) {
   if (madeTex(scene, 'pu_sauce')) return;
