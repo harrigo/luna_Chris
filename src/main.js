@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.39';
+const BUILD = 'v1.40';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1137,7 +1137,7 @@ class Level1 extends Phaser.Scene {
   // and far off in the sky the rat UFO whisks Bessie away. Then black, a big old-school GAME OVER drops in letter
   // by letter, and it all fades out back to the menu.
   gameOver() {
-    const P = this.pl, rig = this.rig, dirn = P.facing || 1, cam = this.cameras.main;
+    const P = this.pl;
     this.state = 'gameover'; this.cp = null;
     this.registry.set('lives', 0);
     Sound.jet(false); Sound.music(null);
@@ -1146,6 +1146,26 @@ class Level1 extends Phaser.Scene {
     P.invuln = 0; P.thrusting = false; P.vx = 0; P.duck = false; P.firing = 0;
     this.slowT = 1.2; this.hitStop = 0.25;
     if (this.ctrlG) this.ctrlG.setVisible(false); for (const k in (this.btnLabels || {})) this.btnLabels[k].setVisible(false);
+    // knocked out in mid-air? he drops like a stone first; the push-in and the helmet only start once he's down
+    const ground = Math.max(0, this.floorAt(P.theta, P.h) || 0);
+    if (P.h > ground + 2) {
+      P.vh = Math.min(P.vh || 0, 120);
+      const fall = (time, dms) => {
+        if (this.state !== 'gameover') { this.events.off('update', fall); return; }
+        const d = Math.min(0.05, dms / 1000);
+        P.vh -= CFG.gravity * 1.3 * d; P.h += P.vh * d;
+        if (P.h <= ground) {
+          P.h = ground; P.vh = 0; this.events.off('update', fall);
+          Sound.sfx('clunk'); buzz(50); this.cameras.main.shake(160, 0.007); this.burst(P.theta, ground + 4, 'crumb', 10, 0.8);
+          this.time.delayedCall(350, () => { if (this.state === 'gameover') this.gameOverSeq(); });
+        }
+      };
+      this.events.on('update', fall);
+    } else this.gameOverSeq();
+  }
+
+  gameOverSeq() {
+    const P = this.pl, rig = this.rig, dirn = P.facing || 1, cam = this.cameras.main;
     const at = (ms, fn) => this.time.delayedCall(ms, () => { if (this.state === 'gameover') fn(); });
     const fx = P.spr.x, fy = P.spr.y - 34 * this.zoom;                         // centre of Chris on screen
     // 0. push in + spotlight

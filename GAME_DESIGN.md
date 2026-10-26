@@ -982,3 +982,6 @@ Built from the brief (`makeGorgeTextures`):
 - **HUD timer chips** under the portrait: one per thing running (Parmesan, then the timed power-up). A coloured ring round the icon empties as it runs down, seconds left underneath (shield also shows charges), flashing in the last quarter.
 - **Drops:** the first big enemy still always gives the Parmesan. Every wave's first medium/big kill now always drops a timed power-up (then 1 in 4), picking ones you haven't had this level first. They no longer wait for the Parmesan to have dropped.
 - **Earlier introductions:** Hot Sauce, Rocket Boots, Magnet Fork from L1; Fondue Shield and Gouda Gigantism from L2; Slow-Mo Brie and Rat Disguise from L3; Moo Bomb from L4; Jalapeno Boost stays on L6 (it's for the wheel chase).
+
+### v1.40 — game over in mid-air
+- If the last life goes while Chris is airborne, he drops to the floor first (heavy gravity, thud, dust, shake); the push-in, spotlight and helmet crack (`gameOverSeq`) only start once he's landed.
