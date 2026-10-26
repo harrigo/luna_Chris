@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.37';
+const BUILD = 'v1.38';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -110,9 +110,12 @@ const Progress = {           // remembered on the device: highest level beaten
   setRank(n, r) { const o = 'SABCD'; try { const old = this.rank(n); if (!old || o.indexOf(r) < o.indexOf(old)) localStorage.setItem('lc_rank_' + n, r); } catch (e) { /* ignore */ } },
   wheels(n) { try { return +(localStorage.getItem('lc_wheels_' + n) || 0); } catch (e) { return 0; } },
   addWheel(n, i) { try { localStorage.setItem('lc_wheels_' + n, String(this.wheels(n) | (1 << i))); } catch (e) { /* ignore */ } },
-  wheelCount(n) { const m = this.wheels(n); return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); }
+  wheelCount(n) { const m = this.wheels(n); return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); },
+  // guns won from the bonus rooms' crates (the Zero-G Recoil Room): owned for good, on every level
+  hasGun(id) { try { return localStorage.getItem('lc_gun_' + id) === '1'; } catch (e) { return false; } },
+  giveGun(id) { try { localStorage.setItem('lc_gun_' + id, '1'); } catch (e) { /* ignore */ } }
 };
-const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock;
+const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock || Progress.hasGun(w.id);
 
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble
