@@ -958,3 +958,11 @@ Built from the brief (`makeGorgeTextures`):
 - Six red valves hang from the roof: three shots each to vent one (+500, knocks ~22 s off the fill).
 - Reach Bessie: BESSIE UNPLUGGED! (moo), the cheese drains, level clear. An arrow at the screen edge points the way to her.
 - Placeholder art throughout; no enemies yet.
+
+## v1.36 — TEST: the cave becomes a labyrinth
+- No warp or fade: the hole in the surface is just a gap you fall down, and the camera slides down with you (and back up when you jetpack up a shaft).
+- Level 8's planet is much bigger (radius 1100), so the tunnels run off both edges of the screen like corridors, and you can see the ring above and the ring below at the same time.
+- Three levels underground, nested: tunnel ring 1, tunnel ring 2, then the core chamber. Each floor has a hole down to the next; you can jetpack back up through them. Rock walls block each tunnel so the way on is round the other way: LEFT in ring 1, back RIGHT in ring 2, then on to Bessie in the core.
+- Each ring has its own pump outlet in the roof sending the jump/duck cheese waves (every 4 beats in ring 1, every 2 in ring 2, doubles in the core); walls stop the waves (and your shots).
+- The cheese now fills the CORE ("BESSIE'S DROWNING IN CHEESE %", ~200 s); vent valves hang in the roofs of rings 1 and 2.
+- An arrow at the screen edge points the open way to the next hole (or Bessie), and a bouncing marker sits over the hole when it's on screen. The corner map becomes a cave map: the rings, the walls (white), the holes (cyan), Bessie (flashing) and Chris.

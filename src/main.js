@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.35';
+const BUILD = 'v1.36';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -588,7 +588,7 @@ class Level1 extends Phaser.Scene {
     const z = this.zoom, Rz = R * z;
     this.cx = W / 2;
     this.groundY = H * (this.landscape ? 0.70 : 0.58);   // where the player stands on screen
-    this.cy = this.groundY + Rz;                          // planet centre
+    this.cy = this.groundY + Rz + (this.camSlide || 0);    // planet centre (camSlide: easing the view down/up a cave ring)
     // how far round the planet (radians) you can see before things drop off-screen
     const byX = Math.asin(Math.min(1, (W / 2) / Rz));
     const byY = Math.acos(Math.max(-1, Math.min(1, (this.cy - H) / Rz)));
@@ -699,7 +699,7 @@ class Level1 extends Phaser.Scene {
 
   banner(text) {
     this.tweens.killTweensOf(this.bannerText);
-    this.bannerText.setText(text).setAlpha(1).setY(this.H * (this.enemies && this.enemies.some(e => e.type === 'boss') ? 0.34 : 0.22));   // below the boss bar in a boss fight
+    this.bannerText.setText(text).setAlpha(1).setY(this.H * ((this.enemies && this.enemies.some(e => e.type === 'boss')) || (this.cave && this.cave.ring > 0) ? 0.34 : 0.22));   // below the boss bar in a boss fight
     this.tweens.add({ targets: this.bannerText, alpha: 0, delay: 1400, duration: 500 });
   }
 
@@ -1292,7 +1292,10 @@ class Level1 extends Phaser.Scene {
 
   // floating ledges (one-way: jump up through them, land on top). Returns the height of the highest ledge you could be standing on, else 0.
   floorAt(theta, h) {
-    if (this.cave) return 0;                                // (no ledges down in the tunnel)
+    if (this.cave && this.def.cave) {                     // the cave: floor holes let you fall through; no ledges underground
+      const C = this.cave; if (C.ring < this.def.cave.rings.length - 1 && this.caveHoleAt(C.ring, theta)) return -999;
+      if (C.ring > 0) return 0;
+    }
     let f = 0;
     if (this.pl && this.pl.dropT > 0) return 0;          // dropping through a ledge
     for (const L of (this.def.ledges || [])) if (L.h > f && L.h <= h + 4 && Math.abs(angDiff(theta, L.theta)) < L.half) f = L.h;
@@ -1657,7 +1660,7 @@ class Level1 extends Phaser.Scene {
     if (P.diving && P.vh > -220) P.vh = -220;                // kill the upward float straight away
     if (P.diving) P.vh = Math.max(P.vh, -900);
     P.h += P.vh * dt;
-    const ceilH = this.cave ? this.cave.ceil - 50 : CFG.jetCeiling;      // in the cave: the tunnel roof
+    const ceilH = this.cave && this.cave.ring > 0 ? (this.caveHoleAt(this.cave.ring - 1, P.theta) ? 1e9 : this.def.cave.rings[this.cave.ring].ceil - 50) : CFG.jetCeiling;      // in the cave: the tunnel roof (open under a hole)
     if (P.h >= ceilH) { P.h = ceilH; if (P.vh > 0) P.vh = 0; }
     const fl2 = this.floorAt(P.theta, hPrev);
     if (P.h <= fl2) {
@@ -2176,103 +2179,130 @@ class Level1 extends Phaser.Scene {
     }
   }
 
-  // ================================================================== THE CAVE (level 8 test)
-  // A hole in the surface drops Chris into a tunnel ring inside the planet. Bessie's been wired into a milking rig at
-  // the far side; her pump THUMPS on the beat and every pulse sends a wave of molten cheese rolling round the tunnel
-  // both ways: LOW waves (jump them) and HIGH waves (duck them), flagged a beat early by the tunnel glowing where the
-  // wave will be. The pumped cheese is filling the planet: it rises from the floor (wading slows you, deep cheese burns)
-  // and when it's full, you're out. Shoot the pressure valves in the roof to vent it. Reach Bessie to unplug her.
+  // ================================================================== THE CAVE (level 8 test): a labyrinth inside the planet
+  // Rings nested inside each other: the surface, two tunnel rings, and the core chamber where Bessie is wired into a
+  // milking pump. Each ring has a floor (its radius) and a roof. Holes in a floor drop you into the ring below (and you
+  // can jetpack back up through them); rock walls block the tunnels so the way on is round the long way: right in one
+  // ring, back left in the next. The pump thumps on the beat and every thump sends a cheese wave out of the outlet in
+  // the ring you're in (LOW = jump, HIGH = duck, the tunnel glows where it'll be a beat early; walls stop them).
+  // The core is filling with cheese: get to Bessie before it's full. Roof valves vent it.
+  caveRing(i) { return this.def.cave.rings[i]; }
+  caveAbs(o) { return wrap(this.caveHole.theta + o); }
   updateCave(dt) {
     const P = this.pl, CV = this.def.cave;
-    if (!this.cave) {                                          // on the surface: find the hole
-      if (!this.caveHole) this.caveHole = { theta: wrap(P.theta + (CV.holeOff || 0.6)), half: 26 / R };
-      if (!this.caveEntering && P.h <= 1 && Math.abs(angDiff(P.theta, this.caveHole.theta)) < this.caveHole.half) this.enterCave();
-      return;
+    if (!this.caveHole) this.caveHole = { theta: wrap(P.theta + (CV.holeOff || 0.6)), half: 28 / R };
+    if (!this.cave) this.cave = { ring: 0, t: 0, vent: 0, fill: 0, cheeseH: 0, beatT: 0, beatN: 0, next: null, won: false,
+      valves: CV.rings.flatMap((rg, ri) => (rg.valves || []).map(o => ({ ring: ri, theta: this.caveAbs(o), hp: 3, alive: true }))) };
+    const C = this.cave, ring = C.ring, RG = this.caveRing(ring);
+    this.camSlide = (this.camSlide || 0) * Math.max(0, 1 - dt * 7); if (Math.abs(this.camSlide) < 0.5) this.camSlide = 0;
+    { const Rz = R * this.zoom; this.cy = this.groundY + Rz + this.camSlide;          // the camera follows Chris down/up the rings
+      this.visHalf = Math.min(Math.asin(Math.min(1, (this.W / 2) / Rz)), Math.acos(Math.max(-1, Math.min(1, (this.cy - this.H) / Rz)))); this.visArc = R * this.visHalf; }
+    if (ring > 0) C.t += dt;
+    // the core fills with cheese
+    const core = CV.rings[CV.rings.length - 1];
+    if (C.won) C.vent += dt * 25;
+    const f = Math.max(0, Math.min(1, (C.t - C.vent) / CV.fillT)) ** 1.6;
+    C.fill = f; C.cheeseH = f * (core.ceil - 55);
+    // dropping through a floor hole / rising up through a roof hole
+    if (ring < CV.rings.length - 1 && P.h < -14) this.caveMove(ring + 1);
+    else if (ring > 0 && P.h > RG.ceil - 30 && P.vh > 0 && this.caveHoleAt(ring - 1, P.theta)) this.caveMove(ring - 1);
+    if (C.ring === 0) return;                                   // up on the surface: nothing else
+    // rock walls in the tunnel
+    for (const w of (this.caveRing(C.ring).walls || [])) {
+      const wt = this.caveAbs(w), d = angDiff(P.theta, wt) * R;
+      if (Math.abs(d) < 18) { P.theta = wrap(wt + Math.sign(d || -(P.vx || 1)) * 18 / R); P.vx = 0; }
     }
-    const C = this.cave; C.t += dt;
-    if (C.won) { C.vent += dt * 25; }
-    const fillMax = C.ceil - 55, f = Math.max(0, Math.min(1, ((C.t - C.vent) / CV.fillT))) ** 2;
-    C.fill = f; C.cheeseH = f * fillMax;
-    // the pump: pulses on the beat, faster and nastier the closer Chris gets to Bessie
-    const toPump = Math.abs(angDiff(P.theta, C.pump)) * R, near = 1 - Math.min(1, toPump / (Math.PI * R));
-    const beat = 60 / 118;
-    if (!C.won) {
+    // the pump's beat
+    const RGc = this.caveRing(C.ring), beat = 60 / 118, every = RGc.every || 4;
+    if (!C.won && RGc.outlet !== undefined) {
       C.beatT += dt;
       if (C.beatT >= beat) {
         C.beatT -= beat; C.beatN++;
-        const every = near < 0.35 ? 4 : 2;
-        if (C.next && C.beatN === C.next.at) {                 // THUMP: the wave goes out
-          const k = C.next.kind;
-          for (const dir of [-1, 1]) this.caveWave(k, dir);
-          if (C.next.double) this.time.delayedCall(320, () => { if (this.cave && !this.cave.won) for (const dir of [-1, 1]) this.caveWave(k === 'low' ? 'high' : 'low', dir); });
-          Sound.sfx('beat'); Sound.sfx('squelch'); this.cameras.main.shake(70, 0.003 + near * 0.004); buzz(15);
+        if (C.next && C.beatN === C.next.at) {
+          for (const dir of [-1, 1]) this.caveWave(C.next.kind, dir);
+          if (C.next.double) { const k2 = C.next.kind === 'low' ? 'high' : 'low'; this.time.delayedCall(330, () => { if (this.cave && !this.cave.won) for (const dir of [-1, 1]) this.caveWave(k2, dir); }); }
+          Sound.sfx('beat'); Sound.sfx('squelch'); this.cameras.main.shake(70, 0.004); buzz(15);
           C.thump = 1; C.next = null;
         }
-        if (!C.next && C.beatN % every === every - 1) {        // the tell: a beat early, the tunnel glows where it'll be
-          C.next = { at: C.beatN + 1, kind: Math.random() < 0.5 ? 'low' : 'high', double: near > 0.6 && Math.random() < 0.5 };
-          Sound.sfx('blip');
-        }
+        if (!C.next && C.beatN % every === every - 1) { C.next = { at: C.beatN + 1, kind: Math.random() < 0.5 ? 'low' : 'high', double: !!RGc.doubles && Math.random() < 0.45 }; Sound.sfx('blip'); }
       }
-      C.thump = Math.max(0, (C.thump || 0) - dt * 4);
     }
-    // wading in cheese: slow going; in over the knees it burns
-    if (P.h < C.cheeseH) {
-      P.vx *= Math.max(0, 1 - dt * 6); if (P.vh < 0) P.vh *= 0.92;
-      if (C.cheeseH - P.h > 14) this.hurt();
-      if (Math.random() < dt * 6) this.burst(P.theta, C.cheeseH, 'spark', 1, 0.3);
+    C.thump = Math.max(0, (C.thump || 0) - dt * 4);
+    // the core: wading in cheese, reaching Bessie, or running out of time
+    if (RGc.core) {
+      if (P.h < C.cheeseH) { P.vx *= Math.max(0, 1 - dt * 6); if (P.vh < 0) P.vh *= 0.92; if (C.cheeseH - P.h > 14) this.hurt(); }
+      if (!C.won && Math.abs(angDiff(P.theta, this.caveAbs(RGc.bessie))) * R < 40) {
+        C.won = true; this.clearEBullets(); this.bossDown = true;
+        Sound.sfx('moo'); Sound.sfx('power'); this.cameras.main.flash(300, 255, 240, 180);
+        this.banner('BESSIE UNPLUGGED!\nTHE CHEESE IS DRAINING...');
+        this.time.delayedCall(2600, () => { if (this.state === 'play') this.finishWin(); });
+      }
     }
-    // reach Bessie: unplug her
-    if (!C.won && toPump < 40) {
-      C.won = true; this.clearEBullets(); this.bossDown = true;
-      Sound.sfx('moo'); Sound.sfx('power'); this.cameras.main.flash(300, 255, 240, 180);
-      this.banner('BESSIE UNPLUGGED!\nTHE CHEESE IS DRAINING...');
-      this.time.delayedCall(2600, () => { if (this.state === 'play') this.finishWin(); });
-    }
-    // full: the cheese floods the planet and blasts him out
     if (!C.won && f >= 1 && !C.flooded) {
-      C.flooded = true; this.banner('THE PLANET\'S FULL!'); Sound.sfx('crash'); this.cameras.main.shake(600, 0.02);
-      this.time.delayedCall(900, () => { if (this.state === 'play') { P.invuln = 0; P.hp = 1; this.bossDown = false; this.hurt(); if (this.state === 'play') { P.hp = 0; this.die(); } } });
+      C.flooded = true; this.banner('BESSIE\'S UNDER THE CHEESE!'); Sound.sfx('crash'); this.cameras.main.shake(600, 0.02);
+      this.time.delayedCall(900, () => { if (this.state === 'play') { P.invuln = 0; P.hp = 0; this.die(); } });
     }
+  }
+  caveHoleAt(ri, theta) { const RG = this.caveRing(ri), h = RG.hole; if (h === undefined) return false; return Math.abs(angDiff(theta, ri === 0 ? this.caveHole.theta : this.caveAbs(h))) < (ri === 0 ? this.caveHole.half : 28 / R); }
+  caveMove(to) {
+    const P = this.pl, C = this.cave, from = C.ring, CV = this.def.cave;
+    const Rf = from === 0 ? (this.def.radius || 420) : CV.rings[from].R, Rt = to === 0 ? (this.def.radius || 420) : CV.rings[to].R;
+    C.ring = to; R = Rt;
+    if (to > from) { P.h = CV.rings[to].ceil - 40; P.vh = Math.min(P.vh, -120); }       // drop in from the roof of the ring below
+    else { P.h = 2; P.vh = Math.max(P.vh, 380); }                                         // pop up out of the hole into the ring above
+    this.camSlide = (to > from ? 1 : -1) * Math.abs(Rf - Rt) * this.zoom + (this.camSlide || 0);
+    this.clearEBullets(); C.next = null;
+    const under = to > 0;                                                                // surface scenery only on the surface
+    if (this.planetImg) this.planetImg.setVisible(!under);
+    for (const q of this.props) { q.hidden = under; q.spr.setVisible(!under); if (q.halo) q.halo.setVisible(!under); }
+    for (const q of this.ledgeSprs || []) { if (q.spr) q.spr.setVisible(!under); for (const x of (q.extras || [])) if (x.setVisible) x.setVisible(!under); }
+    if (!this.caveBessie) { this.caveBessie = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6.2); this.caveBessie.bsx = this.caveBessie.bsy = 0.9; }
+    Sound.sfx(to > from ? 'whoosh' : 'jump');
+    if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(CV.rings[to].core ? 'THE CORE!\nGET TO BESSIE!' : (to === 1 ? 'JUMP THE LOW WAVES, DUCK THE HIGH!\nFIND THE WAY DOWN!' : 'DEEPER...\nFIND THE NEXT HOLE!')); }
   }
   caveWave(kind, dir) {
-    const C = this.cave, b = this.addEBullet('cwave', wrap(C.pump + dir * 30 / R), kind === 'low' ? 8 : 40, dir * 230, 0, 10, Math.PI * R / 230 + 0.4);
+    const RG = this.caveRing(this.cave.ring), o = this.caveAbs(RG.outlet);
+    const b = this.addEBullet('cwave', wrap(o + dir * 24 / R), kind === 'low' ? 8 : 40, dir * 230, 0, 10, 7);
     b.spr.setFlipX(dir < 0); b.spinV = 0; b.caveWave = kind;
   }
-  enterCave() {
-    const P = this.pl, CV = this.def.cave;
-    this.caveEntering = true; Sound.sfx('whoosh'); P.vx = 0;
-    this.cameras.main.fadeOut(280, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      R = CV.innerR;                                           // the tunnel: a smaller ring inside the planet
-      this.cave = { ceil: CV.ceil, t: 0, vent: 0, fill: 0, cheeseH: 0, beatT: 0, beatN: 0, next: null, pump: wrap(P.theta + Math.PI), won: false,
-        valves: [-2.2, -1.3, -0.5, 0.6, 1.4, 2.3].map(o => ({ theta: wrap(P.theta + o), hp: 3, alive: true })) };
-      P.h = CV.ceil - 60; P.vh = -60;
-      if (this.planetImg) this.planetImg.setVisible(false);
-      for (const q of this.ledgeSprs || []) { if (q.spr) q.spr.setVisible(false); for (const x of (q.extras || [])) if (x.setVisible) x.setVisible(false); }
-      for (const q of this.props) { q.spr.setVisible(false); if (q.halo) q.halo.setVisible(false); q.hidden = true; }
-      this.caveBessie = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6.2); this.caveBessie.bsx = this.caveBessie.bsy = 0.9;
-      this.clearEBullets(); this.layout();
-      this.cameras.main.fadeIn(350, 0, 0, 0);
-      this.banner('JUMP THE LOW WAVES!\nDUCK THE HIGH ONES!\nGET TO BESSIE!');
-      Sound.sfx('clunk');
-    });
-  }
+  caveWallHit(theta) { for (const w of (this.caveRing(this.cave.ring).walls || [])) if (Math.abs(angDiff(theta, this.caveAbs(w))) * R < 12) return true; return false; }
   caveValveHit(b) {
-    for (const V of this.cave.valves) {
-      if (!V.alive || dist2(b.theta, b.h, V.theta, this.cave.ceil - 16) > 20 * 20) continue;
-      V.hp--; this.burst(V.theta, this.cave.ceil - 16, 'spark', 4, 0.5); Sound.sfx('clang');
-      if (V.hp <= 0) { V.alive = false; this.cave.vent += 22; this.burst(V.theta, this.cave.ceil - 16, 'spark', 16, 1.2); Sound.sfx('hiss'); this.banner('VALVE VENTED!\nTHE CHEESE DROPS'); this.addScore(500); }
+    const C = this.cave; if (!C || C.ring === 0) return false;
+    if (this.caveWallHit(b.theta)) { this.burst(b.theta, b.h, 'spark', 2, 0.4); return true; }   // shots stop at rock walls
+    const ceil = this.caveRing(C.ring).ceil;
+    for (const V of C.valves) {
+      if (!V.alive || V.ring !== C.ring || dist2(b.theta, b.h, V.theta, ceil - 16) > 20 * 20) continue;
+      V.hp--; this.burst(V.theta, ceil - 16, 'spark', 4, 0.5); Sound.sfx('clang');
+      if (V.hp <= 0) { V.alive = false; C.vent += 22; this.burst(V.theta, ceil - 16, 'spark', 16, 1.2); Sound.sfx('hiss'); this.banner('VALVE VENTED!\nTHE CHEESE DROPS'); this.addScore(500); }
       return true;
     }
     return false;
   }
+  // where to head next in this ring (the hole down, or Bessie), and which way round is open (walls block one way)
+  caveTarget() {
+    const C = this.cave, RG = this.caveRing(C.ring), P = this.pl;
+    const tgt = C.ring === 0 ? this.caveHole.theta : this.caveAbs(RG.core ? RG.bessie : RG.hole);
+    const d = angDiff(tgt, P.theta), blocked = (dir, span) => (RG.walls || []).some(w => { const a = angDiff(this.caveAbs(w), P.theta) * dir; return a > 0 && a < span; });
+    let dir = Math.sign(d) || 1, span = Math.abs(d);
+    if (C.ring > 0 && blocked(dir, span)) { dir = -dir; span = TAU - span; }
+    return { theta: tgt, dir };
+  }
   drawCave() {
     if (!this.caveG) { this.caveG = this.add.graphics().setDepth(4.5); this.caveFg = this.add.graphics().setDepth(7.65); this.caveTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(21); }
-    const g = this.caveG, fg = this.caveFg, z = this.zoom, P = this.pl, t = this.t, cx = this.cx, cy = this.cy;
+    const g = this.caveG, fg = this.caveFg, z = this.zoom, P = this.pl, t = this.t, cx = this.cx, cy = this.cy, C = this.cave, CV = this.def.cave;
     g.clear(); fg.clear(); this.caveTxt.setVisible(false);
-    if (!this.cave) {                                          // the hole in the surface, with a bobbing DROP IN
-      const H = this.caveHole; if (!H) return;
-      const pts = [], n = 12;
+    if (!C || !this.caveHole) return;
+    const rot = -P.theta, ring = C.ring;
+    const polar = (th, rad) => ({ x: cx + rad * Math.sin(th + rot), y: cy - rad * Math.cos(th + rot) });
+    const wedge = (th, half, r0, r1, col, a) => {             // a shaft / wall: a slice of an annulus
+      const pts = [], n = 6;
+      for (let k = 0; k <= n; k++) pts.push(polar(th + (k / n * 2 - 1) * half, r1));
+      for (let k = n; k >= 0; k--) pts.push(polar(th + (k / n * 2 - 1) * half, r0));
+      g.fillStyle(col, a === undefined ? 1 : a).fillPoints(pts, true);
+    };
+    const Rs = (this.def.radius || 420);
+    if (ring === 0) {                                           // on the surface: the hole down, with a bobbing DROP IN
+      const H = this.caveHole, pts = [], n = 12;
       for (let k = 0; k <= n; k++) pts.push(this.screenPos(wrap(H.theta + (k / n * 2 - 1) * H.half), 1));
       for (let k = n; k >= 0; k--) pts.push(this.screenPos(wrap(H.theta + (k / n * 2 - 1) * H.half * 0.85), -30 * Math.sin(k / n * Math.PI) - 6));
       fg.fillStyle(0x0a0402, 1).fillPoints(pts, true);
@@ -2281,59 +2311,83 @@ class Level1 extends Phaser.Scene {
       if (a.vis) { fg.fillStyle(0xffd23f, 1).fillTriangle(a.x - 8, a.y - 6, a.x + 8, a.y - 6, a.x, a.y + 8); this.caveTxt.setVisible(true).setText('DROP IN!').setPosition(a.x, a.y - 16); }
       return;
     }
-    const C = this.cave, Rz = R * z, roof = (R + C.ceil) * z, rot = -P.theta;
-    // rock all round (Swiss cheese, with holes), the tunnel air, the rising cheese, the floor
+    // the rock, with every ring's tunnel cut out of it (outer to inner), then shafts, walls, cheese, valves, the pump
     g.fillStyle(0xb8862a, 1).fillRect(0, 0, this.W, this.H);
-    for (let k = 0; k < 40; k++) {                            // holes in the roof rock
-      const th = k * 2.399 + rot, rr = roof + (20 + (k * 37) % 260) * z, r2 = (6 + (k * 13) % 16) * z;
-      g.fillStyle(0x6a4a14, 1).fillCircle(cx + rr * Math.sin(th), cy - rr * Math.cos(th), r2);
-      g.fillStyle(0x4a300a, 1).fillCircle(cx + rr * Math.sin(th) + r2 * 0.2, cy - rr * Math.cos(th) + r2 * 0.2, r2 * 0.7);
+    for (let k = 0; k < 900; k++) {                             // Swiss holes in the rock (only the ones in view get drawn)
+      const th = (k * 0.6180339887 * TAU) % TAU; if (Math.abs(angDiff(th, P.theta)) > this.visHalf + 0.05) continue;
+      const rr = (Rs - 30 - (k * 53) % 560) * z, r2 = (6 + (k * 13) % 18) * z, p = polar(th, rr);
+      g.fillStyle(0x7a5418, 1).fillCircle(p.x, p.y, r2); g.fillStyle(0x5a3a0e, 1).fillCircle(p.x + r2 * 0.2, p.y + r2 * 0.2, r2 * 0.7);
     }
-    g.fillStyle(0x1a0e04, 1).fillCircle(cx, cy, roof);
-    g.fillStyle(0x2a1808, 1).fillCircle(cx, cy, roof - 6 * z);
-    if (C.next) {                                             // the tell: the tunnel glows where the wave will come
-      const low = C.next.kind === 'low', hh = low ? 8 : 40, col = low ? 0xff8a2a : 0x5ce1ff;
-      g.lineStyle(26 * z, col, 0.18 + 0.12 * Math.sin(t * 30)).strokeCircle(cx, cy, (R + hh) * z);
-    }
-    if (C.cheeseH > 0.5) {                                    // the rising cheese
-      g.fillStyle(0xffb52a, 1).fillCircle(cx, cy, (R + C.cheeseH) * z);
-      g.lineStyle(2 * z, 0xfff0a0, 1).strokeCircle(cx, cy, (R + C.cheeseH) * z - z);
-    }
-    g.fillStyle(0xd8a838, 1).fillCircle(cx, cy, Rz);
-    g.fillStyle(0x1a0e04, 1).fillCircle(cx, cy, Rz - 3 * z);
-    g.fillStyle(0xc89428, 1).fillCircle(cx, cy, Rz - 5 * z);
-    for (let k = 0; k < 30; k++) {                            // holes in the floor rock
-      const th = k * 2.399 + 1 + rot, rr = Rz - (14 + (k * 29) % 120) * z, r2 = (5 + (k * 11) % 12) * z;
-      if (rr < 10) continue;
-      g.fillStyle(0x8a6418, 1).fillCircle(cx + rr * Math.sin(th), cy - rr * Math.cos(th), r2);
-    }
-    // the pump rig + Bessie wired in
-    const pp = this.screenPos(C.pump, 0);
-    this.place(this.caveBessie, C.pump, C.won ? Math.abs(Math.sin(t * 8)) * 10 : 0, 0);
-    if (pp.vis) {
-      const top = this.screenPos(C.pump, C.ceil), base = this.screenPos(wrap(C.pump + 30 / R), 0), pul = 1 + (C.thump || 0) * 0.25;
-      if (!C.won) for (const o of [-14, 14]) { const a2 = this.screenPos(wrap(C.pump + o / R), 30), b2 = this.screenPos(wrap(C.pump + o * 2.5 / R), C.ceil); fg.lineStyle(6 * z * pul, 0x3a3a48, 1).lineBetween(a2.x, a2.y, b2.x, b2.y); fg.lineStyle(3 * z * pul, 0xffd23f, 1).lineBetween(a2.x, a2.y, b2.x, b2.y); }
-      fg.fillStyle(0x5a6272, 1).fillCircle(base.x, base.y - 20 * z, 14 * z * pul); fg.fillStyle(0xffd23f, 1).fillCircle(base.x, base.y - 20 * z, 8 * z * pul);
-    }
-    // valves in the roof
+    CV.rings.forEach((RG, ri) => {
+      if (ri === 0) return;
+      g.fillStyle(0x1a0e04, 1).fillCircle(cx, cy, (RG.R + RG.ceil) * z);
+      g.fillStyle(ri === ring ? 0x2e1a0a : 0x22140a, 1).fillCircle(cx, cy, (RG.R + RG.ceil - 5) * z);
+      if (RG.core && C.cheeseH > 0.5) { g.fillStyle(0xffb52a, 1).fillCircle(cx, cy, (RG.R + C.cheeseH) * z); g.lineStyle(2 * z, 0xfff0a0, 1).strokeCircle(cx, cy, (RG.R + C.cheeseH - 1) * z); }
+      g.fillStyle(0xd8a838, 1).fillCircle(cx, cy, RG.R * z); g.fillStyle(0xc89428, 1).fillCircle(cx, cy, (RG.R - 4) * z);
+    });
+    // shafts: the hole in each floor, down through the rock to the ring below (the surface hole too)
+    CV.rings.forEach((RG, ri) => {
+      if (RG.hole === undefined || ri >= CV.rings.length - 1) return;
+      const below = CV.rings[ri + 1], top = ri === 0 ? Rs + 2 : RG.R + 2, th = ri === 0 ? this.caveHole.theta : this.caveAbs(RG.hole);
+      wedge(th, 28 / Math.max(1, (top + below.R) / 2), (below.R + below.ceil - 4) * z, top * z, ri + 1 === ring || ri === ring ? 0x2e1a0a : 0x22140a);
+    });
+    // rock walls blocking the tunnels
+    CV.rings.forEach((RG, ri) => { for (const w of (RG.walls || [])) { wedge(this.caveAbs(w), 12 / RG.R, (RG.R - 2) * z, (RG.R + RG.ceil + 2) * z, 0xb8862a); wedge(this.caveAbs(w), 7 / RG.R, RG.R * z, (RG.R + RG.ceil) * z, 0x8a6418); } });
+    const RG = this.caveRing(ring);
+    if (C.next) { const low = C.next.kind === 'low'; g.lineStyle(26 * z, low ? 0xff8a2a : 0x5ce1ff, 0.18 + 0.12 * Math.sin(t * 30)).strokeCircle(cx, cy, (RG.R + (low ? 8 : 40)) * z); }
+    // the outlet the waves come from, in this ring
+    if (RG.outlet !== undefined) { const o = this.caveAbs(RG.outlet), p = this.screenPos(o, RG.ceil - 10), q = this.screenPos(o, RG.ceil + 6), pul = 1 + (C.thump || 0) * 0.4; if (p.vis) { fg.lineStyle(8 * z * pul, 0x3a3a48, 1).lineBetween(q.x, q.y, p.x, p.y); fg.fillStyle(0xffd23f, 1).fillCircle(p.x, p.y, 6 * z * pul); } }
+    // Bessie in the core, wired into the pump
+    const core = CV.rings[CV.rings.length - 1], bth = this.caveAbs(core.bessie);
+    if (ring === CV.rings.length - 1) {
+      this.caveBessie.setVisible(true); this.place(this.caveBessie, bth, C.won ? Math.abs(Math.sin(t * 8)) * 10 : Math.min(30, C.cheeseH * 0.4), 0);
+      const pp = this.screenPos(bth, 0);
+      if (pp.vis && !C.won) for (const o of [-14, 14]) { const a2 = this.screenPos(wrap(bth + o / R), 30), b2 = this.screenPos(wrap(bth + o * 2.5 / R), core.ceil); fg.lineStyle(6 * z, 0x3a3a48, 1).lineBetween(a2.x, a2.y, b2.x, b2.y); fg.lineStyle(3 * z, 0xffd23f, 1).lineBetween(a2.x, a2.y, b2.x, b2.y); }
+    } else if (this.caveBessie) this.caveBessie.setVisible(false);
+    // valves
     for (const V of C.valves) {
-      if (!V.alive) continue;
-      const p = this.screenPos(V.theta, C.ceil - 16), q = this.screenPos(V.theta, C.ceil); if (!p.vis) continue;
+      if (!V.alive || V.ring !== ring) continue;
+      const p = this.screenPos(V.theta, RG.ceil - 16), q = this.screenPos(V.theta, RG.ceil); if (!p.vis) continue;
       fg.lineStyle(5 * z, 0x5a6272, 1).lineBetween(q.x, q.y, p.x, p.y);
       fg.fillStyle(0x1a1020, 1).fillCircle(p.x, p.y, 10 * z); fg.fillStyle(V.hp === 3 ? 0xd62828 : 0xff8a5a, 1).fillCircle(p.x, p.y, 8 * z);
       fg.lineStyle(2 * z, 0xffffff, 0.9).lineBetween(p.x - 6 * z, p.y, p.x + 6 * z, p.y).lineBetween(p.x, p.y - 6 * z, p.x, p.y + 6 * z);
     }
-    // HUD: how full the planet is, and which way Bessie is
-    const bw = 170, bx = this.W / 2 - bw / 2, by = 42;
-    const hg = this.hudG;
-    hg.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, 12); hg.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, 10); hg.fillStyle(0x0c0a24, 1).fillRect(bx, by, bw, 8);
-    hg.fillStyle(C.fill > 0.75 && Math.floor(t * 6) % 2 ? 0xff5a3a : 0xffb52a, 1).fillRect(bx, by, bw * C.fill, 8);
-    this.caveTxt.setVisible(true).setText(C.won ? 'DRAINING!' : 'PLANET FILLING WITH CHEESE  ' + Math.round(C.fill * 100) + '%').setPosition(this.W / 2, by + 18);
-    if (!pp.vis || pp.x < 0 || pp.x > this.W) {
-      const side = Math.sign(angDiff(C.pump, P.theta)) || 1, ax = side > 0 ? this.W - 22 : 22, ay = this.groundY - 40;
-      hg.fillStyle(0x1a1020, 1).fillTriangle(ax + side * 14, ay, ax - side * 8, ay - 13, ax - side * 8, ay + 13);
-      hg.fillStyle(0xffd23f, 1).fillTriangle(ax + side * 10, ay, ax - side * 5, ay - 9, ax - side * 5, ay + 9);
-    }
+  }
+  drawCaveHud() {
+    const C = this.cave; if (!C || !this.caveG) return;
+    const g = this.caveG, fg = this.caveFg, z = this.zoom, P = this.pl, t = this.t, RG = this.caveRing(C.ring);
+    if (C.ring > 0) {
+    // HUD: how full the core is, and which way to go
+      const bw = 170, bx = this.W / 2 - bw / 2, by = 42, hg = this.hudG;
+      hg.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, 12); hg.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, 10); hg.fillStyle(0x0c0a24, 1).fillRect(bx, by, bw, 8);
+      hg.fillStyle(C.fill > 0.75 && Math.floor(t * 6) % 2 ? 0xff5a3a : 0xffb52a, 1).fillRect(bx, by, bw * C.fill, 8);
+      this.caveTxt.setVisible(true).setText(C.won ? 'DRAINING!' : 'BESSIE\'S DROWNING IN CHEESE  ' + Math.round(C.fill * 100) + '%').setPosition(this.W / 2, by + 18);
+      const T = this.caveTarget(), tp = this.screenPos(T.theta, 0);
+      if (!tp.vis || tp.x < 30 || tp.x > this.W - 30) {
+        const side = T.dir, ax = side > 0 ? this.W - 22 : 22, ay = this.groundY - 40;
+        hg.fillStyle(0x1a1020, 1).fillTriangle(ax + side * 14, ay, ax - side * 8, ay - 13, ax - side * 8, ay + 13);
+        hg.fillStyle(0xffd23f, 1).fillTriangle(ax + side * 10, ay, ax - side * 5, ay - 9, ax - side * 5, ay + 9);
+      } else if (!RG.core) { const p = this.screenPos(T.theta, 40 + Math.sin(t * 5) * 6); fg.fillStyle(0xffd23f, 1).fillTriangle(p.x - 7, p.y - 5, p.x + 7, p.y - 5, p.x, p.y + 7); }
+      }
+    this.drawCaveMap();
+  }
+  // the cave map in the corner: the rings, their walls and holes, where Chris is, and Bessie
+  drawCaveMap() {
+    if (!this.landscape) return;
+    const g = this.hudG, C = this.cave, CV = this.def.cave, P = this.pl, t = this.t;
+    const bx = this.W - 58, by = 10, rx = bx + 24, ry = by + 24, Rs = (this.def.radius || 420), k = 21 / Rs;
+    g.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, 52, 52); g.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, 50, 50); g.fillStyle(0x2a1f5a, 1).fillRect(bx, by, 48, 48);
+    const rot = -P.theta, pt = (th, rad) => [rx + rad * k * Math.sin(th + rot), ry - rad * k * Math.cos(th + rot)];
+    g.fillStyle(0xb8862a, 1).fillCircle(rx, ry, Rs * k);
+    CV.rings.forEach((RG, ri) => { if (ri) { g.fillStyle(ri === C.ring ? 0x4a2e12 : 0x2a1808, 1).fillCircle(rx, ry, (RG.R + RG.ceil) * k); g.fillStyle(0xb8862a, 1).fillCircle(rx, ry, RG.R * k); } });
+    CV.rings.forEach((RG, ri) => {
+      for (const w of (RG.walls || [])) { const [x, y] = pt(this.caveAbs(w), RG.R + RG.ceil * 0.5); g.fillStyle(0xffffff, 1).fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2); }
+      if (RG.hole !== undefined && ri < CV.rings.length - 1) { const [x, y] = pt(ri === 0 ? this.caveHole.theta : this.caveAbs(RG.hole), RG.R); g.fillStyle(0x5ce1ff, 1).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    });
+    const core = CV.rings[CV.rings.length - 1], [bxx, byy] = pt(this.caveAbs(core.bessie), core.R + 10);
+    g.fillStyle(Math.floor(t * 4) % 2 ? 0xffffff : 0xff5a8a, 1).fillRect(Math.round(bxx) - 2, Math.round(byy) - 2, 4, 4);   // Bessie
+    const myR = C.ring === 0 ? Rs + 10 : this.caveRing(C.ring).R + 10, [cxx, cyy] = pt(P.theta, myR);
+    g.fillStyle(0x1a1020, 1).fillRect(Math.round(cxx) - 3, Math.round(cyy) - 3, 6, 6); g.fillStyle(0xffd23f, 1).fillRect(Math.round(cxx) - 2, Math.round(cyy) - 2, 4, 4);   // Chris
   }
 
   // ---- acid pools from the Baron's cheese globes: lie on the ground for a few seconds and burn Chris's boots
@@ -3723,7 +3777,7 @@ class Level1 extends Phaser.Scene {
       b.theta = wrap(b.bt + (b.px * w) / R);
       b.h = b.bh + b.py * w;
 
-      const roofH = this.cave ? this.cave.ceil : CFG.jetCeiling + 30;
+      const roofH = this.cave && this.cave.ring > 0 ? this.def.cave.rings[this.cave.ring].ceil : CFG.jetCeiling + 30;
       if (this.def.ricochet && !b.grav && (b.bnc || 0) < 2 && (b.bh < 0 || b.bh > roofH)) {   // L8: shots bounce off floor and ceiling
         b.bh = b.bh < 0 ? -b.bh : 2 * roofH - b.bh; b.vh = -b.vh; b.bnc = (b.bnc || 0) + 1; b.age = Math.max(0, b.age - 0.2);
         b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
@@ -3822,6 +3876,7 @@ class Level1 extends Phaser.Scene {
           b.life = 0;
         }
       }
+      if (b.caveWave && this.cave && this.caveWallHit(b.theta)) { this.burst(b.theta, b.h, 'spark', 3, 0.5); b.life = 0; }   // cheese waves splat on the rock walls
       if (b.acid && b.h <= 6) { this.acidSplat(b.theta); b.life = 0; }            // the Baron's cheese globe splats into a pool of acid
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
@@ -4457,7 +4512,8 @@ class Level1 extends Phaser.Scene {
     const hg = this.hudG;
     hg.clear();
     const boss = this.enemies.find(e => e.type === 'boss');
-    if (this.state === 'play' && !this.paused) this.drawRadar(hg);
+    if (this.state === 'play' && !this.paused && !this.def.cave) this.drawRadar(hg);
+    if (this.def.cave && this.state === 'play') this.drawCaveHud();
     if (boss) {
       const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
       const x0 = (this.W - w) / 2, y0 = this.landscape ? 90 : 96;            // below the HUD panel and weapon box

@@ -222,7 +222,7 @@ const LEVELS = {
   8: {
     id: 8, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
     music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
-    radius: 360, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
+    radius: 1100, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
     surface: { pal: [0x6a4a10, 0xa87a1a, 0xe0b02a, 0xf6d04a, 0xffe27a, 0xfff4c4], seed: 8484 },
     planet: { fill: 0xf6d04a, inner: 0xe0b02a, rim: 0xfff4c4, glow: 0xffd23f },
     dust: [0xffd23f, 0xffb03a, 0xfff4c4, 0xe0b02a], decorTint: 0xffe8a0, decorAlpha: 0.8,
@@ -230,7 +230,14 @@ const LEVELS = {
     ledges: [{ theta: 0.6, half: 0.13, h: 80 }, { theta: 1.5, half: 0.12, h: 160 }, { theta: 2.5, half: 0.13, h: 80 }, { theta: 3.5, half: 0.12, h: 160 }, { theta: 4.5, half: 0.13, h: 80 }, { theta: 5.5, half: 0.12, h: 160 }],
     props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xffe27a }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffe0a0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0xd8b040 }],
     ricochet: true,
-    cave: { innerR: 300, ceil: 170, fillT: 150, holeOff: 0.6 },   // TEST: drop into a tunnel ring inside the planet (main.js: the cave)
+    // TEST: a labyrinth inside the planet (main.js: the cave). Angles are relative to the hole in the surface.
+    // Ring 1: a wall just to the right, so go LEFT round to the hole; ring 2: a wall to the left, so go RIGHT; the core: Bessie.
+    cave: { holeOff: 0.3, fillT: 200, rings: [
+      { hole: 0 },                                                                                     // the surface
+      { R: 980, ceil: 92, walls: [0.15], hole: -1.1, outlet: -0.55, every: 4, valves: [-0.35, -0.85] },
+      { R: 860, ceil: 92, walls: [-1.25], hole: 0.1, outlet: -0.5, every: 2, valves: [-0.8, -0.15] },
+      { R: 700, ceil: 130, core: true, bessie: 1.45, outlet: 1.45, every: 2, doubles: true }
+    ] },
     waves: [
       { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 1), S('germ', 2), S('mouse', 3), S('paladin', 4), S('germ', 5), S('mouse', 6)] },
       { name: 'WAVE 2', spawns: [S('paladin', 0), S('frog', 1), S('mouse', 2), S('paladin', 3), S('germ', 4), S('frog', 5), S('paladin', 6), S('mouse', 7)] },
