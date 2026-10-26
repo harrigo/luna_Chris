@@ -985,3 +985,7 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.40 — game over in mid-air
 - If the last life goes while Chris is airborne, he drops to the floor first (heavy gravity, thud, dust, shake); the push-in, spotlight and helmet crack (`gameOverSeq`) only start once he's landed.
+
+### v1.41 — loading screen
+- A plain-HTML loading screen in `index.html` (#boot) is up the instant the page opens, before Phaser or any game script arrives: bobbing cheese moon, LUNA CHRIS logo, a chunky striped progress bar and a status line.
+- `LCBoot.set(f, msg)` moves it: Phaser loaded (20%), each game script in `boot.js` (to 60%), the intro's asset/sprite-sheet load progress (to 82%), then "COOKING THE SPRITES" while `buildAllTextures` runs (IntroScene.create defers itself one tick so the bar can paint first). `LCBoot.done()` fades it out once the title is ready.

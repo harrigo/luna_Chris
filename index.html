@@ -26,6 +26,23 @@
     #rotate .sub { font-size: 10px; color: #fff; margin-bottom: 26px; padding: 0 16px; line-height: 1.7; }
     #rotate .hint { font-size: 9px; color: #6b7390; margin-top: 18px; }
     #ver { position: fixed; bottom: 4px; right: 6px; color: #6b7390; font: 9px 'Press Start 2P', monospace; z-index: 5; pointer-events: none; }
+    /* the loading screen: plain HTML so it's up before Phaser or any game script has arrived */
+    #boot { position: fixed; inset: 0; z-index: 8; display: flex; align-items: center; justify-content: center; background: #0b1020; color: #fff; font-family: 'Press Start 2P', monospace; text-align: center; transition: opacity .45s; overflow: hidden; }
+    #boot.gone { opacity: 0; pointer-events: none; }
+    #boot .stars { position: absolute; inset: -50%; background-image: radial-gradient(2px 2px at 10% 20%, #fff, transparent), radial-gradient(2px 2px at 70% 30%, #9fd8ff, transparent), radial-gradient(2px 2px at 40% 80%, #ffd23f, transparent), radial-gradient(1px 1px at 85% 65%, #fff, transparent), radial-gradient(1px 1px at 25% 55%, #ff9db8, transparent), radial-gradient(2px 2px at 55% 10%, #fff, transparent); background-size: 240px 240px; animation: bootDrift 40s linear infinite; opacity: .7; }
+    @keyframes bootDrift { to { transform: translate(240px, 120px); } }
+    #boot .box { position: relative; width: min(440px, calc(100vw - 32px)); }
+    #boot .logo { font-size: clamp(28px, 7vw, 46px); line-height: 1.05; color: #ffd23f; letter-spacing: 2px; text-shadow: 0 4px 0 #1a1020, 3px 0 0 #1a1020, -3px 0 0 #1a1020, 0 -3px 0 #1a1020, 0 8px 0 #5a0a0a; }
+    #boot .sub { font-size: 8px; color: #b9a8ff; margin: 14px 0 26px; line-height: 1.7; }
+    #boot .moon { width: 34px; height: 34px; margin: 0 auto 18px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff2a0 0 30%, #ffd23f 31% 70%, #d89a1a 71%); box-shadow: 0 0 0 3px #1a1020, 0 0 24px #ffd23f88; position: relative; animation: bootBob 1.2s ease-in-out infinite; }
+    #boot .moon::before, #boot .moon::after { content: ''; position: absolute; border-radius: 50%; background: #d89a1a; }
+    #boot .moon::before { width: 8px; height: 8px; left: 8px; top: 18px; } #boot .moon::after { width: 5px; height: 5px; left: 21px; top: 8px; }
+    @keyframes bootBob { 50% { transform: translateY(-8px) rotate(20deg); } }
+    #boot .bar { height: 18px; padding: 3px; background: #1a1030; border: 3px solid #ffd23f; box-shadow: 0 0 0 3px #1a1020, 5px 5px 0 3px rgba(0,0,0,.45); }
+    #boot .fill { height: 100%; width: 0%; transition: width .25s; background: repeating-linear-gradient(90deg, #ffd23f 0 12px, #ffb52a 12px 16px); }
+    #boot .msg { font-size: 8px; color: #9fd8ff; margin-top: 16px; min-height: 10px; line-height: 1.6; }
+    #boot .msg::after { content: ''; animation: bootDots 1s steps(4) infinite; }
+    @keyframes bootDots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
   </style>
 </head>
 <body>
@@ -34,6 +51,18 @@
   <button id="mute" aria-label="Sound on/off">&#128266;</button>
   <div id="rotate"><div><div class="logo">LUNA<br>CHRIS</div><div class="sub">RETIRED CHEF, EX-ASTRONAUT, HERO</div>&#8635;<br>Rotate your phone<br>to landscape<div class="hint">tap for music</div></div></div>
   <pre id="err"></pre>
+  <div id="boot"><div class="stars"></div><div class="box"><div class="moon"></div><div class="logo">LUNA<br>CHRIS</div><div class="sub">RETIRED CHEF, EX-ASTRONAUT, HERO</div><div class="bar"><div class="fill"></div></div><div class="msg">WARMING UP THE GRILL</div></div></div>
+  <script>
+    // LCBoot.set(fraction, message) moves the loading bar; LCBoot.done() fades the screen away (the title is ready)
+    window.LCBoot = (function () {
+      var el = document.getElementById('boot'), fill = el.querySelector('.fill'), msg = el.querySelector('.msg'), at = 0;
+      return {
+        set: function (f, m) { at = Math.max(at, Math.min(1, f)); fill.style.width = Math.round(at * 100) + '%'; if (m) msg.textContent = m; },
+        done: function () { if (!el.parentNode) return; this.set(1); setTimeout(function () { el.classList.add('gone'); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 500); }, 150); }
+      };
+    })();
+    LCBoot.set(0.04);
+  </script>
 
   <script>
     // On-screen error overlay so JS errors are visible when testing on a phone.
@@ -44,7 +73,7 @@
       window.addEventListener('unhandledrejection', function (e) { show('PROMISE: ' + (e.reason && e.reason.message || e.reason)); });
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js" onload="LCBoot.set(0.2, 'UNPACKING THE SHOPPING')"></script>
   <script>
     // Tapping the rotate prompt is a user gesture, so the title tune can start before the phone is even turned.
     document.getElementById('rotate').addEventListener('pointerup', function () {

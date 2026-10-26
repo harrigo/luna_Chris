@@ -5,6 +5,7 @@
 (function () {
   var files = ['src/pad.js', 'src/cheat.js', 'src/board.js', 'src/audio.js', 'src/textures.js', 'src/intro.js', 'src/ending.js', 'src/chris.js', 'src/levels.js', 'src/menu.js', 'src/atlas.js', 'src/zerog.js', 'src/main.js'], q = '?t=' + Date.now();
   (function next(i) {
+    if (window.LCBoot) LCBoot.set(0.2 + 0.4 * i / files.length, i < files.length / 2 ? 'UNPACKING THE SHOPPING' : 'SHARPENING THE MAC-GRINDER');
     if (i >= files.length) return;
     var s = document.createElement('script');
     s.src = files[i] + q;

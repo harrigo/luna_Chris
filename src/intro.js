@@ -392,6 +392,7 @@ class IntroScene extends Phaser.Scene {
   constructor(key) { super(key || 'intro'); }
 
   preload() {
+    if (window.LCBoot) { LCBoot.set(0.62, 'FINDING BESSIE'); this.load.on('progress', f => LCBoot.set(0.62 + 0.2 * f)); }
     this.load.image('titleArt', 'assets/title.jpg?v=1');
     this.load.image('portrait', 'assets/portrait.png?v=2');
     // the editable sprites (assets/sprites/*.png, see SPRITE_FILES in textures.js). On the live site the deploy packs
@@ -456,10 +457,13 @@ class IntroScene extends Phaser.Scene {
   }
 
   create() {
+    // building every sprite takes a moment and blocks the page, so let the loading bar show 'cooking' first
+    if (window.LCBoot && !this.bootPainted) { this.bootPainted = true; LCBoot.set(0.86, 'COOKING THE SPRITES'); setTimeout(() => this.create(), 60); return; }
     const sheet = this.cache.json.get('spriteSheet'), idx = this.cache.json.get('spriteIndex');
     if (sheet && sheet.frames) for (const k in sheet.frames) { const [p, x, y, w, h] = sheet.frames[k]; if (Atlas.adopt(this.textures, k, '__sprites' + p, x, y, w, h)) SPRITE_FILES.add(k); }
     else for (const k of ((idx && idx.sprites) || [])) if (this.textures.exists(k)) SPRITE_FILES.add(k);   // loaded one by one
     buildAllTextures(this);                                    // every sprite, generated once and packed onto the shared sheet
+    if (window.LCBoot) { LCBoot.done(); window.LCBoot = null; }
     if (/[?&]skipintro/.test(window.location.search)) { this.scene.start('level1'); return; }
     if (/[?&]ending/.test(window.location.search)) { this.scene.start('ending'); return; }
     this.cameras.main.setBackgroundColor('#000000');
