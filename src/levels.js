@@ -769,21 +769,43 @@ class SelectScene extends Phaser.Scene {
       if (b === 'left' || b === 'right' || b === 'up' || b === 'down') this.nav(b);
       else if (b === 'a' || b === 'start') this.go(this.sel);
       else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
-      else if (b === 'y' && Progress.found(5.5)) this.go(5.5);
       else this.showSel = true;
     });
     this.events.once('shutdown', padOff);
   }
 
-  // grid navigation (3 across)
+  // ---- the ROUTE MAP (Star Fox style). The route runs 1 -> 2 -> 3, then splits: the main road (4, 5, 6) along the
+  // top, or the bonus route along the bottom (the Zero-G Recoil Room, then the warp to the Fondue Fountain), and
+  // both meet again at 7 -> 8 -> 9. (For now every stop is open, for testing.)
+  mapNodes() {
+    return [
+      { id: 1, x: 0.07, y: 0.52 }, { id: 2, x: 0.17, y: 0.40 }, { id: 3, x: 0.27, y: 0.52 },
+      { id: 4, x: 0.38, y: 0.30 }, { id: 5, x: 0.49, y: 0.24 }, { id: 6, x: 0.60, y: 0.32 },
+      { id: 'zerog', x: 0.40, y: 0.72, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients for an extra life.' },
+      { id: 5.5, x: 0.55, y: 0.74, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nSkips ahead to level 7.' },
+      { id: 7, x: 0.71, y: 0.50 }, { id: 8, x: 0.82, y: 0.40 }, { id: 9, x: 0.93, y: 0.52 }
+    ];
+  }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [3, 'zerog'], ['zerog', 5.5], [5.5, 7], [7, 8], [8, 9]]; }
   nav(d) {
-    const n = this.ids.length, i = Math.max(0, this.ids.indexOf(this.sel));
-    const j = d === 'left' ? i - 1 : d === 'right' ? i + 1 : d === 'up' ? i - 3 : i + 3;
-    this.sel = this.ids[(j + n) % n]; this.showSel = true; Sound.sfx('jump');
+    const N = this.nodes; if (!N) return;
+    const cur = N.find(n => n.id === this.sel) || N[0];
+    let best = null, bs = 1e9;
+    for (const n of N) {
+      if (n === cur) continue;
+      const dx = n.x - cur.x, dy = n.y - cur.y;
+      const ok = d === 'left' ? dx < -0.01 : d === 'right' ? dx > 0.01 : d === 'up' ? dy < -0.05 : dy > 0.05;
+      if (!ok) continue;
+      const sc = (d === 'left' || d === 'right') ? Math.abs(dx) + Math.abs(dy) * 2.5 : Math.abs(dy) + Math.abs(dx) * 2.5;
+      if (sc < bs) { bs = sc; best = n; }
+    }
+    if (best) { this.sel = best.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); }
   }
 
   go(n) {
-    if (this.going || !LEVELS[n]) return;
+    if (this.going) return;
+    if (n === 'zerog') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog')); return; }
+    if (!LEVELS[n]) return;
     this.going = true;
     Sound.sfx('wave');
     this.cameras.main.fadeOut(200, 0, 0, 0);
@@ -794,61 +816,72 @@ class SelectScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height;
     this.ui.removeAll(true);
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
-    this.ui.add(this.add.text(W / 2, Math.max(22, H * 0.09), 'SELECT LEVEL', f(Math.min(26, W / 28), '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5));
-    // 3 x 3 grid of level cards (levels 1-9); the secret 5.5 shows up underneath once found
-    this.ids = Object.keys(LEVELS).map(Number).filter(n => !LEVELS[n].secret).sort((a, b) => a - b);
-    const cols = 3, rows = Math.ceil(this.ids.length / cols), gap = 10;
-    const top = Math.max(44, H * 0.15), bottom = Progress.found(5.5) ? 52 : 30;
-    const cw = Math.min(260, (W - gap * (cols + 1)) / cols), ch = Math.min(96, (H - top - bottom - gap * (rows - 1)) / rows);
-    const x0 = (W - (cw * cols + gap * (cols - 1))) / 2;
-    this.cardRects = {};
-    this.ids.forEach((i, k) => {
-      const L = LEVELS[i], x = Math.round(x0 + (k % cols) * (cw + gap)), y = Math.round(top + Math.floor(k / cols) * (ch + gap));
-      const g = this.add.graphics();
-      g.fillStyle(0x151b33, 1).fillRoundedRect(x, y, cw, ch, 10);
-      g.lineStyle(3, L.planet.rim, 0.9).strokeRoundedRect(x, y, cw, ch, 10);
-      const pr = Math.min(ch * 0.34, 34) * Math.pow(L.radius / 440, 0.35), pcx = x + 12 + Math.min(ch * 0.34, 34), pcy = y + ch / 2;   // little planet
-      g.fillStyle(L.planet.glow, 0.18).fillCircle(pcx, pcy, pr + 6);
-      g.fillStyle(L.planet.fill, 1).fillCircle(pcx, pcy, pr);
-      g.fillStyle(L.planet.inner, 1).fillCircle(pcx - pr * 0.25, pcy + pr * 0.2, pr * 0.55);
-      g.lineStyle(2, L.planet.rim, 1).strokeCircle(pcx, pcy, pr);
+    this.f = f;
+    this.ui.add(this.add.text(W / 2, Math.max(16, H * 0.05), 'ROUTE TO BESSIE', f(Math.min(20, W / 34), '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5, 0));
+    this.nodes = this.mapNodes(); this.ids = this.nodes.map(n => n.id);
+    const top = H * 0.14, mh = H * 0.62, R = Math.max(12, Math.min(24, Math.min(W, H) * 0.055));
+    this.nodeR = R;
+    this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };
+    this.hit = {};
+    for (const n of this.nodes) {
+      const p = this.pos(n.id), g = this.add.graphics(), L = LEVELS[n.id];
+      if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
+        g.fillStyle(0xffd23f, 0.18).fillCircle(p.x, p.y, R + 6);
+        const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? R * 0.45 : R; pts.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }); }
+        g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true); g.fillStyle(0xffd23f, 1).fillPoints(pts, true);
+      } else if (n.kind === 'warp') {                              // warp zone: a swirling portal
+        g.fillStyle(0xff7a2a, 0.2).fillCircle(p.x, p.y, R + 6);
+        for (let k = 0; k < 4; k++) g.lineStyle(3, [0xff7a2a, 0xffd23f, 0xff4a7a, 0xffffff][k], 1).strokeCircle(p.x, p.y, R - k * R * 0.22);
+      } else if (L) {                                              // a planet
+        g.fillStyle(L.planet.glow, 0.18).fillCircle(p.x, p.y, R + 6);
+        g.fillStyle(L.planet.fill, 1).fillCircle(p.x, p.y, R);
+        g.fillStyle(L.planet.inner, 1).fillCircle(p.x - R * 0.25, p.y + R * 0.2, R * 0.55);
+        g.lineStyle(2, L.planet.rim, 1).strokeCircle(p.x, p.y, R);
+      }
       this.ui.add(g);
-      const tx = pcx + Math.min(ch * 0.34, 34) + 10, tw = x + cw - tx - 8;
-      this.ui.add(this.add.text(tx, y + ch * 0.2, 'LEVEL ' + i, f(cw > 200 ? 9 : 8, '#9fd8ff')).setOrigin(0, 0));
-      this.ui.add(this.add.text(tx, y + ch * 0.2 + 16, L.short, f(cw > 200 ? 9 : 7, '#ffffff', { wordWrap: { width: tw }, lineSpacing: 5 })).setOrigin(0, 0));
-      const rk = Progress.rank(i);
-      if (rk) this.ui.add(this.add.text(x + cw - 8, y + 6, rk, f(12, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 0));   // best rank
-      else if (Progress.best >= i) this.ui.add(this.add.text(x + cw - 8, y + 6, '*', f(10, '#ffd23f')).setOrigin(1, 0));     // beaten
-      const wm = Progress.wheels(i);
-      for (let k = 0; k < 3; k++) this.ui.add(this.add.image(x + cw - 10 - (2 - k) * 13, y + ch - 10, 'goldwheel').setScale(0.55).setAlpha(wm & (1 << k) ? 1 : 0.2));   // golden cheese wheels found
-      const z = this.add.zone(x, y, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
+      const lab = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : String(n.id);
+      this.ui.add(this.add.text(p.x, p.y + R + 6, lab, f(8, n.kind ? '#ffd23f' : '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0));
+      const rk = typeof n.id === 'number' && Progress.rank(n.id);
+      if (rk) this.ui.add(this.add.text(p.x + R * 0.8, p.y - R * 0.9, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
+      const z = this.add.zone(p.x - R - 8, p.y - R - 8, R * 2 + 16, R * 2 + 26).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
-      z.on('pointerup', () => this.go(i));
+      z.on('pointerup', () => { if (this.sel === n.id) this.go(n.id); else { this.sel = n.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); } });   // tap to pick, tap again to go
       this.ui.add(z);
-      this.cardRects[i] = { x, y, w: cw, h: ch };
-    });
-    if (!this.ids.includes(this.sel)) this.sel = this.ids[0];
-    this.gridBottom = top + rows * ch + (rows - 1) * gap;
+    }
+    if (!this.ids.includes(this.sel)) this.sel = 1;
     const back = this.add.text(12, 12, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
-    this.ui.add(this.add.text(W / 2, H - 16, Pad.state.connected ? 'PICK A LEVEL  (A TO PLAY)' : 'TAP A LEVEL', f(9, '#6b7390')).setOrigin(0.5, 1));
-    if (Progress.found(5.5)) {                                       // found the warp: the secret level shows up
-      const s = this.add.text(W / 2, Math.min(H - 34, this.gridBottom + 8), '* WARP: LEVEL 5.5 FONDUE FOUNTAIN *' + (Pad.state.connected ? '  (Y)' : ''), f(9, '#ff9a5a', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-      s.on('pointerup', () => this.go(5.5));
-      this.tweens.add({ targets: s, alpha: 0.55, yoyo: true, repeat: -1, duration: 600 });
-      this.ui.add(s);
-    }
+    this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
+    this.buildInfo();
+  }
+  // the panel along the bottom: the stop you've picked
+  buildInfo() {
+    if (!this.infoBox) return;
+    const W = this.scale.width, H = this.scale.height, f = this.f, n = this.nodes.find(q => q.id === this.sel) || this.nodes[0], L = LEVELS[n.id];
+    this.infoBox.removeAll(true);
+    const y0 = H * 0.80;
+    const name = n.name || ('LEVEL ' + n.id + '  ' + L.short), blurb = n.blurb || L.blurb;
+    this.infoBox.add(this.add.text(W / 2, y0, name, f(10, n.kind ? '#ffd23f' : '#9fd8ff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0));
+    this.infoBox.add(this.add.text(W / 2, y0 + 18, blurb, f(7, '#c8cde0', { align: 'center', lineSpacing: 5, wordWrap: { width: W - 40 } })).setOrigin(0.5, 0));
+    if (typeof n.id === 'number' && !n.kind) { const wm = Progress.wheels(n.id); for (let k = 0; k < 3; k++) this.infoBox.add(this.add.image(W - 70 + k * 16, y0 + 6, 'goldwheel').setScale(0.55).setAlpha(wm & (1 << k) ? 1 : 0.2)); }
+    this.infoBox.add(this.add.text(W / 2, H - 6, Pad.state.connected ? 'A: GO' : 'TAP AGAIN TO GO', f(8, '#6b7390')).setOrigin(0.5, 1));
   }
 
   update(time) {
     const W = this.scale.width, H = this.scale.height, g = this.bg;
     g.clear();
     for (const s of this.stars) { g.fillStyle(0xffffff, 0.35 + 0.35 * Math.sin(time / 600 + s.tw)).fillRect(s.x * W, s.y * H, s.s, s.s); }
+    if (this.pos) for (const [a, b] of this.mapLinks()) {        // the routes: dotted lines with dots marching along them
+      const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 9);
+      const bonus = [a, b].some(id => id === 'zerog' || id === 5.5);
+      for (let k = 1; k < n; k++) { const u = k / n, x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u; const lit = ((k - time / 120) % 6 + 6) % 6 < 1; g.fillStyle(lit ? 0xffffff : (bonus ? 0xffb52a : 0x5a78d8), lit ? 0.9 : 0.6).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    }
     this.selG.clear();
-    if ((this.showSel || Pad.state.connected) && this.cardRects && this.cardRects[this.sel]) {
-      const r = this.cardRects[this.sel];
-      this.selG.lineStyle(3, 0xffffff, 0.6 + 0.4 * Math.sin(time / 150)).strokeRoundedRect(r.x - 4, r.y - 4, r.w + 8, r.h + 8, 12);
+    if (this.pos && this.ids && this.ids.includes(this.sel)) {
+      const p = this.pos(this.sel), r = this.nodeR + 9 + Math.sin(time / 150) * 2;
+      this.selG.lineStyle(3, 0xffffff, 0.8).strokeCircle(p.x, p.y, r);
+      this.selG.fillStyle(0xffd23f, 1).fillTriangle(p.x - 6, p.y - r - 12, p.x + 6, p.y - r - 12, p.x, p.y - r - 4);
     }
   }
 }
