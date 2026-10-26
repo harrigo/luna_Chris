@@ -230,6 +230,7 @@ const LEVELS = {
     ledges: [{ theta: 0.6, half: 0.13, h: 80 }, { theta: 1.5, half: 0.12, h: 160 }, { theta: 2.5, half: 0.13, h: 80 }, { theta: 3.5, half: 0.12, h: 160 }, { theta: 4.5, half: 0.13, h: 80 }, { theta: 5.5, half: 0.12, h: 160 }],
     props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xffe27a }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffe0a0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0xd8b040 }],
     ricochet: true,
+    cave: { innerR: 300, ceil: 170, fillT: 150, holeOff: 0.6 },   // TEST: drop into a tunnel ring inside the planet (main.js: the cave)
     waves: [
       { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 1), S('germ', 2), S('mouse', 3), S('paladin', 4), S('germ', 5), S('mouse', 6)] },
       { name: 'WAVE 2', spawns: [S('paladin', 0), S('frog', 1), S('mouse', 2), S('paladin', 3), S('germ', 4), S('frog', 5), S('paladin', 6), S('mouse', 7)] },
@@ -493,6 +494,11 @@ function makeLevelTextures(scene) {
     a.ell(13, 13, 12, 12, [0x9affe8, 0x3ac0b8, 0x1a6a80]);
     for (const [x, y, r] of [[8, 9, 3], [16, 16, 2.5], [17, 7, 2], [9, 17, 1.6]]) { a.ell(x, y, r, r, 0x2a5aa8); a.px(x - 1, y - 1, 0xc8fff0); }
     a.px(7, 5, 0xffffff); a.px(8, 5, 0xffffff); a.px(7, 6, 0xffffff);
+  });
+  // a wave of molten cheese rolling round the cave tunnel (Bessie's pump)
+  pixSprite(scene, 'cwave', 30, 20, a => {
+    a.poly([[0, 19], [6, 8], [14, 2], [22, 4], [28, 12], [29, 19]], [0xfff0a0, 0xffb52a, 0xc87a10]);
+    a.ell(16, 7, 4, 2.5, 0xfff8d0); a.px(9, 11, 0xfff8d0); a.ell(22, 14, 2, 1.5, 0xc87a10);
   });
   // ribcage debris shaken loose by his scream
   pixSprite(scene, 'bonechunk', 18, 14, a => {

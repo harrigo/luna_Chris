@@ -949,3 +949,12 @@ Built from the brief (`makeGorgeTextures`):
 
 ## v1.34 — Controller on a phone hides the touch controls
 - With a gamepad connected to a phone, the on-screen sticks, BASH button and their labels are hidden as long as the controller is what's being used (any button or stick press). Touch the screen and they come straight back; press the controller again and they go. Touch input itself always keeps working.
+
+## v1.35 — TEST: the cave under level 8 (Bessie's pump)
+- A first feel-test for the cave idea, on level 8 (its waves and boss are switched off while `cave` is set in its level definition).
+- On the surface, a glowing hole with a bobbing DROP IN! marker sits just ahead. Walk into it and Chris drops into a tunnel ring inside the planet (the world radius shrinks to the tunnel's, the surface is hidden): Swiss-cheese rock with holes above and below, a dark tunnel 170 high, and Bessie wired into a milking rig on the far side of the ring (two hoses up into the roof, a throbbing pump).
+- The pump THUMPS on the beat (118 bpm, every 4 beats far away, every 2 close up, with doubles near Bessie). Each thump sends a wave of molten cheese rolling round the tunnel both ways: LOW (jump it) or HIGH (duck it). A beat before, the tunnel glows where the wave will be (orange low, cyan high) with a blip.
+- The pumped cheese fills the planet: it rises from the floor (slow at first, then faster; full in ~150 s). Wading slows you; in over the knees it burns. A gauge at the top shows PLANET FILLING WITH CHEESE %. When it's full: "THE PLANET'S FULL!" and you lose a life.
+- Six red valves hang from the roof: three shots each to vent one (+500, knocks ~22 s off the fill).
+- Reach Bessie: BESSIE UNPLUGGED! (moo), the cheese drains, level clear. An arrow at the screen edge points the way to her.
+- Placeholder art throughout; no enemies yet.
