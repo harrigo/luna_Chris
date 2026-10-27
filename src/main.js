@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.50';
+const BUILD = 'v1.51';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1556,11 +1556,11 @@ class Level1 extends Phaser.Scene {
     } else if (P.jumpEaten) inp = Object.assign({}, inp, { jump: false });
     P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
-    const ax = (P.duck && onGround) ? 0 : (inp.right ? 1 : 0) - (inp.left ? 1 : 0);   // can still steer while dropping
+    const ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);    // crouched: a slow waddle (and steering while dropping)
     if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
 
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
-    P.vx += (ax * CFG.runSpeed * (squishy ? 0.82 : 1) * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
+    P.vx += (ax * CFG.runSpeed * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.chips && this.chips.length) {               // tortilla chips are solid: you can't run (or be pushed) through them
       this.pinT = Math.max(0, this.pinT - dt);

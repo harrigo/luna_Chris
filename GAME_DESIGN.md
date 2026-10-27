@@ -1038,3 +1038,6 @@ Built from the brief (`makeGorgeTextures`):
 ### v1.50
 - Hurt yelps are abstract chiptune 'owch' blips again (ouch1-3: a squeak up and a tumble down; ouchBig: a falling waa-waa on the last heart and when a life is lost). The spoken grunts/BLIMEY are out of hurt (still in audio.js).
 - Audio context asks for the 'interactive' (shortest) output latency. Bluetooth headphones add their own delay (often 150-300 ms) on top, which no web game can remove.
+
+### v1.51 — crouch-walk
+- Holding down + left/right on the ground now waddles along crouched at 38% speed (still a small target, still shooting low), instead of stopping dead. The rig takes short quick steps: the body rocks side to side and bobs, the knees shuffle, the feet lift a little higher, the hat wobbles.

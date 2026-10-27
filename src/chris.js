@@ -410,7 +410,8 @@ class ChrisRig {
     const run = grounded ? Math.min(1, spd / 140) : 0;
 
     // ---- phases
-    if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8;
+    const crawl = grounded && P.duck ? Math.min(1, spd / 50) : 0;      // crouch-walking: short quick waddle steps
+    if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8 * (1 + crawl * 1.4);
     if (!this.wasGround && grounded) { this.squash = 1; this.bv = (this.bv || 0) + 5; }   // landing squash (and a belly wobble)
     if (this.wasGround && !grounded && P.vh > 200) this.squash = -0.8;   // take-off stretch
     this.wasGround = grounded;
@@ -425,16 +426,16 @@ class ChrisRig {
     // whole sprite, the knees bend out and the legs compress, the boots stay planted, and the body DROPS onto them.
     this.dv = (this.dv || 0) + (((P.duck ? 1 : 0) - (this.duckA || 0)) * 320 - (this.dv || 0) * 24) * dt;
     this.duckA = Math.max(-0.1, Math.min(1.12, (this.duckA || 0) + this.dv * dt));
-    const dk = Math.max(0, this.duckA), DROP = 13.5 * dk;
+    const dk = Math.max(0, this.duckA), DROP = 13.5 * dk, wad = crawl * dk;
 
     // ---- waddle: legs, boots and body roll
     const legAmp = 0.38 * run;
-    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk;   // crouch: front knee out forward...
-    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk;   // ...back knee out behind
+    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk + sw * 0.3 * wad;   // crouch: front knee out forward...
+    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk + sw * 0.3 * wad;   // ...back knee out behind (both shuffle as he waddles)
     const L = 16, hipY = -16 + DROP, Le = L * (1 - 0.36 * dk);
     const place = (leg, boot, hipX, rot, liftPhase) => {
       leg.setRotation(rot).setScale(1 + 0.2 * dk, 1 - 0.36 * dk);                  // bent + compressed (a bit chunkier)
-      const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run : 0;
+      const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run * (1 + wad * 0.6) : 0;
       boot.setPosition(hipX - Math.sin(rot) * Le, Math.min(air ? 99 : 0.5, hipY + Math.cos(rot) * Le) - lift + air * -3);   // boots stay on the ground
       boot.setRotation(rot * 0.35 * (1 - dk)).setScale(1 + 0.06 * dk, 1);
       leg.setPosition(hipX, hipY - lift * 0.6);
@@ -443,8 +444,8 @@ class ChrisRig {
     place(this.legB, this.bootB, -6, rotB, -sw);
 
     const idle = (1 - run) * (1 - air);
-    this.torso.setPosition(sw * 1.9 * run + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * 0.9 * run + Math.sin(t * 2.6) * 0.7 * idle + DROP);
-    this.torso.setRotation(sw * 0.1 * run + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched
+    this.torso.setPosition(sw * (1.9 * run + 3 * wad) + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * (0.9 * run + 1.8 * wad) + Math.sin(t * 2.6) * 0.7 * idle + DROP);
+    this.torso.setRotation(sw * (0.1 * run + 0.22 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched; rocks side to side as he waddles
     this.updateCloth(P, dt, grounded, fly);
     if (this.morph >= 0) {                                       // ~0.9s: the apron spins (faster and faster), then the cape unfurls
       this.morph = Math.min(1, this.morph + dt / 0.9);
@@ -472,7 +473,7 @@ class ChrisRig {
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
     this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
-    this.hat.setRotation(-sw * 0.16 * run - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
+    this.hat.setRotation(-sw * (0.16 * run + 0.2 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
     this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2); this.crack.setPosition(this.head.x, this.head.y);
 
