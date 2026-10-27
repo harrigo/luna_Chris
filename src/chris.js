@@ -440,15 +440,25 @@ class ChrisRig {
     const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk + sw * 0.2 * wad;   // crouch: front knee out forward...
     const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk + sw * 0.2 * wad;   // ...back knee out behind (both shuffle as he waddles)
     const L = 16, hipY = -16 + DROP, Le = L * (1 - 0.36 * dk);
-    const place = (leg, boot, hipX, rot, liftPhase) => {
+    const place = (leg, boot, hipX, rot, liftPhase, squatX) => {
       leg.setRotation(rot).setScale(1 + 0.2 * dk, 1 - 0.36 * dk);                  // bent + compressed (a bit chunkier)
       const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run * (1 + wad * 0.6) : 0;
-      boot.setPosition(hipX - Math.sin(rot) * Le, Math.min(air ? 99 : 0.5, hipY + Math.cos(rot) * Le) - lift + air * -3);   // boots stay on the ground
+      const bx = hipX - Math.sin(rot) * Le, k = Math.min(1, dk * 1.4);
+      boot.setPosition(bx + (squatX - bx) * k, Math.min(air ? 99 : 0.5, hipY + Math.cos(rot) * Le) - lift + air * -3);   // boots stay on the ground (crouched: planted wide)
       boot.setRotation(rot * 0.35 * (1 - dk)).setScale(1 + 0.06 * dk, 1);
       leg.setPosition(hipX, hipY - lift * 0.6);
     };
-    place(this.legF, this.bootF, 7, rotF, sw);
-    place(this.legB, this.bootB, -6, rotB, -sw);
+    place(this.legF, this.bootF, 7, rotF, sw, 11 + sw * 2 * wad);
+    place(this.legB, this.bootB, -6, rotB, -sw, -9 - sw * 2 * wad);
+    // CROUCHED: he sits right down on his heels. The legs fold away out of sight and both boots come out in FRONT of
+    // the body, planted wide, toes poking out from under the belly (instead of bent legs jutting out sideways)
+    const squat = dk > 0.4;
+    this.legF.setVisible(!squat); this.legB.setVisible(!squat);
+    if (squat !== this.squatOn) {
+      this.squatOn = squat;
+      if (squat) { this.root.moveAbove(this.bootB, this.torso); this.root.moveAbove(this.bootF, this.bootB); }
+      else { this.root.moveBelow(this.bootB, this.legF); this.root.moveBelow(this.bootF, this.torso); }
+    }
 
     const idle = (1 - run) * (1 - air);
     this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * (0.9 * run + 0.9 * wad) + Math.sin(t * 2.6) * 0.7 * idle + DROP);

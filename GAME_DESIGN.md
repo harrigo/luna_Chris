@@ -1046,3 +1046,6 @@ Built from the brief (`makeGorgeTextures`):
 - New `c_boot`: a white moon-boot with a red ankle cuff set back over a short heel, a long bulbous toe out front, a crease where it bends, and a thick dark tread sole on the very bottom row so it sits flat on the floor. White against the blue trousers, so legs and feet no longer blur into one blue blob.
 - `c_leg` tapers a little to the ankle (tucks into the cuff), with a shine line. Both PNGs re-exported to assets/sprites.
 - Crouch-waddle rocking roughly halved.
+
+### v1.53 — a clean crouch
+- The crouch used to bend the squashed trouser legs out sideways from under the belly (the broken-looking blue bits) with the boots hidden behind the body. Now he sits down on his heels: the legs fold out of sight and both boots come out in front of the body, planted wide, toes under the belly (they shuffle a little as he waddles). Standing up puts everything back.
