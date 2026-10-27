@@ -1025,6 +1025,9 @@ Built from the brief (`makeGorgeTextures`):
 - **TEST: CLEAR …** button for the stop you've picked (a main level or the Fondue Fountain): marks it beaten, opening whatever comes after, including the secret route's bonus room and level 7.
 
 ### v1.47 — expressive audio
-- **Chris has a voice** (`Sound.say`): a small formant synth in audio.js (a buzzy sawtooth "throat" with vibrato through three gliding vowel filters, hummed 'm's and breathy 'h'/'f' puffs). Phrases: oof / ow / ugh / oi! (random grunts when hit), **"MAMMA MIA!"** (down to the last heart, 1 in 4 hits, and every lost life, deeper), "woo-hoo!" (level clear), "yum!" (cheese wedge), "hup!" (breaking free of a tongue). One line at a time (0.35 s gap).
+- **Chris has a voice** (`Sound.say`): a small formant synth in audio.js (a buzzy sawtooth "throat" with vibrato through three gliding vowel filters, hummed 'm's and breathy 'h'/'f' puffs). Phrases: oof / ow / ugh / oi! (random grunts when hit), **"BLIMEY!"** (down to the last heart, 1 in 4 hits, and every lost life, deeper), "woo-hoo!" (level clear), "yum!" (cheese wedge), "hup!" (breaking free of a tongue). One line at a time (0.35 s gap).
 - **Enemies sound like what they're made of** (`matOf`): cheese and critters squish when hit and SPLAT with a wet plop when killed (big ones a bigger, deeper splat); drones, slicers and paladins tink and crunch into rattling scrap; ghosts go "whoo" and pop. Bosses: the boom plus a giant splat or a scrap crash.
 - **Mac-Grinder** shots are a mincer crank: a ratchet clunk, a gritty auger grind and a little macaroni pip.
+
+### v1.48
+- Chris's big yelp is "BLIMEY!" (a British chef), not the borrowed catchphrase.
