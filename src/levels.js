@@ -830,12 +830,12 @@ class SelectScene extends Phaser.Scene {
       { id: 4, x: 0.37, y: 0.42 }, { id: 5, x: 0.48, y: 0.35 }, { id: 6, x: 0.59, y: 0.42 },
       { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 },
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
-      { id: 'zerog2', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM II', blurb: bonus },
+      { id: 'freefall', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: CERAMIC GRILL FREEFALL', blurb: 'BONUS: drop down a giant kamado grill to the coals.\nFind the gaps in the grates, dodge the flare-ups, hold JUMP to brake.' },
       { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the Triangle on level 3. Comes out at level 7.' },
       { id: 'zerog3', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: ZERO-G ROOM III', blurb: bonus }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'zerog2'], ['zerog2', 7], [3, 5.5], [5.5, 'zerog3'], ['zerog3', 7]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 5.5], [5.5, 'zerog3'], ['zerog3', 7]]; }
   // pick a stop: Chris boosts there along the route (straight across if they aren't joined)
   travel(id) {
     const from = this.sel; if (from === id) return;
@@ -853,7 +853,7 @@ class SelectScene extends Phaser.Scene {
     const best = Progress.best;
     if (id === 1) return true;
     if (id === 'zerog') return best >= 3;
-    if (id === 'zerog2') return best >= 6;
+    if (id === 'freefall') return best >= 6;
     if (id === 5.5) return Progress.found(5.5);
     if (id === 'zerog3') return Progress.secretBeat(5.5);
     if (id === 7 && Progress.secretBeat(5.5)) return true;
@@ -881,6 +881,7 @@ class SelectScene extends Phaser.Scene {
   go(n) {
     if (this.going) return;
     if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
+    if (n === 'freefall') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('freefall')); return; }
     if (/^zerog/.test(n)) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog', { room: n })); return; }
     if (!LEVELS[n]) return;
     this.going = true;
@@ -936,7 +937,15 @@ class SelectScene extends Phaser.Scene {
     for (const n of this.nodes) {
       const p = this.pos(n.id), L = LEVELS[n.id], open = this.isOpen(n.id), r = n.kind ? R * 0.8 : R;
       const g = this.add.graphics();
-      if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
+      if (n.id === 'freefall') {                                  // the grill freefall: a little green kamado egg glowing inside
+        g.fillStyle(0xff7a1a, 0.22).fillCircle(p.x, p.y, r + 6);
+        g.fillStyle(0x1a1020, 1).fillEllipse(p.x + 2, p.y + 2, r * 1.7, r * 2); g.fillStyle(0x2f8a3c, 1).fillEllipse(p.x, p.y, r * 1.7, r * 2);
+        g.fillStyle(0x6ad05a, 1).fillEllipse(p.x - r * 0.3, p.y - r * 0.45, r * 0.4, r * 0.6);
+        g.fillStyle(0x1a1020, 1).fillRect(p.x - r * 0.85, p.y - 1, r * 1.7, 3);                               // lid seam
+        g.fillStyle(0xff7a1a, 1).fillRect(p.x - r * 0.45, p.y + r * 0.35, r * 0.9, r * 0.22);                  // vent glowing
+        g.fillStyle(0xa8b0c0, 1).fillRect(p.x - 3, p.y - r - 3, 6, 5);                                        // chimney cap
+        this.ui.add(g);
+      } else if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
         g.fillStyle(0xffd23f, 0.18).fillCircle(p.x, p.y, r + 6);
         const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; pts.push({ x: p.x + Math.cos(a) * rr, y: p.y + Math.sin(a) * rr }); }
         g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true); g.fillStyle(0xffd23f, 1).fillPoints(pts, true);
@@ -972,7 +981,7 @@ class SelectScene extends Phaser.Scene {
       // labels: "LV. 3" over the world's name (??? until it's open). Secret stops label to the side.
       const side = !!n.kind, lx = side ? p.x + r + 8 : p.x, ly = side ? p.y - 8 : p.y + r + 6, org = side ? 0 : 0.5;
       const top1 = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : 'LV. ' + n.id;
-      const name = n.kind === 'bonus' ? (n.id === 'zerog3' ? 'WARP BONUS' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
+      const name = n.kind === 'bonus' ? (n.id === 'zerog3' ? 'WARP BONUS' : n.id === 'freefall' ? 'GRILL FREEFALL' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
       this.ui.add(this.add.text(lx, ly, top1, f(7, open ? '#ffd23f' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
       this.ui.add(this.add.text(lx, ly + 11, name, f(6, open ? '#ffffff' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3, align: side ? 'left' : 'center', lineSpacing: 3, wordWrap: { width: side ? 80 : Math.max(60, W * 0.1) } })).setOrigin(org, 0));
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
@@ -1071,7 +1080,7 @@ class SelectScene extends Phaser.Scene {
     if (this.pos) for (const [a, b] of this.mapLinks()) {
       if (!this.ids.includes(a) || !this.ids.includes(b)) continue;          // a secret stop you haven't found: no route either
       const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 10);
-      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => /^zerog/.test(id) || id === 5.5);
+      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => /^zerog/.test(id) || id === 'freefall' || id === 5.5);
       const cx = (A.x + B.x) / 2 - (B.y - A.y) * 0.18, cy = (A.y + B.y) / 2 + (B.x - A.x) * 0.18;
       for (let k = 1; k < n; k++) {
         const u = k / n, iu = 1 - u, x = iu * iu * A.x + 2 * iu * u * cx + u * u * B.x, y = iu * iu * A.y + 2 * iu * u * cy + u * u * B.y;

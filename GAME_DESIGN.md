@@ -1049,3 +1049,11 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.53 — a clean crouch
 - The crouch used to bend the squashed trouser legs out sideways from under the belly (the broken-looking blue bits) with the boots hidden behind the body. Now he sits down on his heels: the legs fold out of sight and both boots come out in front of the body, planted wide, toes under the belly (they shuffle a little as he waddles). Standing up puts everything back.
+
+### v1.54 — Bonus II: Ceramic Grill Freefall (src/freefall.js)
+- Replaces Zero-G Room II on the map (the bonus after level 6; opens when level 6 is beaten). A green kamado-egg icon on the route map.
+- Chris drops down the inside of a giant ceramic grill (glazed green walls with crackle and riveted steel bands, soot getting hotter towards the bottom), from the lid to the pizza stone over the coals. 40 s.
+- **Grates** every ~450 px with one or two gaps; some gaps **slide**; land on a grate and you have to walk off it (costs time). Lower down some grates are **hot** (glowing): touching one bounces you and costs 2 s.
+- **Flare-ups** roar out of side vents (they glow first), knocking you across the shaft (-2 s).
+- **Brake:** hold JUMP to fire the jetpack against the fall (blue fuel bar, refills while standing on a grate). Depth meter on the right.
+- 12 ingredients down the shaft (+1 s each); reach the stone with all 12 and the gun crate opens (same prize as the Zero-G rooms: the next gun not yet won, else +1 life). Touch: hold anywhere; Chris steers towards your finger, holding above him brakes.
