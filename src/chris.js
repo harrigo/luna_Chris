@@ -36,10 +36,16 @@ function makeChrisTextures(scene) {
     T: ['111', '.1.', '.1.', '.1.', '.1.'], H: ['1.1', '1.1', '111', '1.1', '1.1'], E: ['111', '1..', '11.', '1..', '111'], C: ['111', '1..', '1..', '1..', '111'], O: ['111', '1.1', '1.1', '1.1', '111'] };
   const word = (a, txt, x, y, col) => { for (const ch of txt) { (FONT3[ch] || []).forEach((row, j) => [...row].forEach((v, i) => { if (v === '1') a.px(x + i, y + j, col); })); x += 4; } };
 
+  // space boots: chunky white moon-boots that read as FEET: a red ankle cuff the trouser leg tucks into, a rounded
+  // heel at the back, a long rounded toe out front, and a thick dark tread sole flat on the floor (the bottom row)
   pixSprite(scene, 'c_boot', 24, 13, a => {
-    a.rrect(1, 1, 22, 10, 4, BLUE);
-    a.rect(2, 9, 21, 10, 0xd9d9e0); a.rect(2, 10, 21, 10, 0x8a8a98);                    // sole
-    a.rect(14, 3, 17, 3, 0xc4d4ff);                                                     // toe shine
+    const WB = [0xffffff, 0xd6e2f4, 0x8a9cc0];
+    a.rrect(4, 0, 14, 5, 2, RED); a.rect(5, 1, 13, 1, 0xff9a9a);                           // ankle cuff (set back over the heel)
+    a.poly([[3, 4], [14, 4], [17, 6], [22, 7], [23, 10], [1, 10], [1, 7]], WB);              // the foot: short heel behind, long toe out front
+    a.ell(19, 7.5, 4.5, 3, WB); a.rect(18, 5, 20, 5, 0xffffff);                             // bulbous toe cap + shine
+    a.line([[14, 5], [15, 9]], 0xa8b8d8);                                                   // a crease where the toe bends
+    a.rect(0, 10, 23, 12, 0x3a3048); for (let x = 2; x < 23; x += 3) a.px(x, 12, 0x6a6080);  // thick tread sole, flat on the floor
+    a.rect(0, 10, 23, 10, 0x5a5070);
   });
   pixSprite(scene, 'c_welly', 24, 19, a => {                                         // green wellies (at home on the farm): a tall rubber shaft up the shin
     const G = [0x6ad05a, 0x2f8f2f, 0x1a5a1e];
@@ -55,9 +61,10 @@ function makeChrisTextures(scene) {
     a.rect(16, 6, 19, 10, 0xc04a3a); a.rect(4, 7, 6, 10, 0xc04a3a);                     // red toe and heel
   });
   const PANTS = [0x9ab4ff, 0x5a78d8, 0x2e3e8a];                                      // blue suit trousers
-  pixSprite(scene, 'c_leg', 16, 18, a => {
-    a.rrect(1, 0, 14, 17, 4, PANTS);
-    a.rect(2, 10, 13, 10, 0xd62828); a.rect(2, 11, 13, 11, 0xc4d4ff);                   // red + white knee trim
+  pixSprite(scene, 'c_leg', 16, 18, a => {                                           // a sturdy trouser leg, a little narrower at the ankle (it tucks into the boot cuff)
+    a.poly([[1, 0], [14, 0], [13, 17], [3, 17]], PANTS);
+    a.rect(2, 9, 13, 9, 0xd62828); a.rect(2, 10, 13, 10, 0xc4d4ff);                     // red + white knee trim
+    a.line([[4, 2], [4, 7]], 0xc4d4ff);                                                 // shine down the front
   });
   // Chris's body: hand-pixelled (44x42, facing right, outline included). Edit the rows: each letter is a colour in the palette.
   pixArt(scene, 'c_body', {a: 0x1a1020, b: 0xffffff, c: 0xd6e2f4, d: 0xd52828, e: 0x8aa8fe, f: 0x4a69d7, g: 0x2a398f, h: 0x92a8cc, i: 0xf2b592, j: 0xf0ddd6, k: 0xfed9c4, l: 0xf2b593, m: 0xc8805e, n: 0x50211b, o: 0x37191c}, [
@@ -430,8 +437,8 @@ class ChrisRig {
 
     // ---- waddle: legs, boots and body roll
     const legAmp = 0.38 * run;
-    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk + sw * 0.3 * wad;   // crouch: front knee out forward...
-    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk + sw * 0.3 * wad;   // ...back knee out behind (both shuffle as he waddles)
+    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk + sw * 0.2 * wad;   // crouch: front knee out forward...
+    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk + sw * 0.2 * wad;   // ...back knee out behind (both shuffle as he waddles)
     const L = 16, hipY = -16 + DROP, Le = L * (1 - 0.36 * dk);
     const place = (leg, boot, hipX, rot, liftPhase) => {
       leg.setRotation(rot).setScale(1 + 0.2 * dk, 1 - 0.36 * dk);                  // bent + compressed (a bit chunkier)
@@ -444,8 +451,8 @@ class ChrisRig {
     place(this.legB, this.bootB, -6, rotB, -sw);
 
     const idle = (1 - run) * (1 - air);
-    this.torso.setPosition(sw * (1.9 * run + 3 * wad) + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * (0.9 * run + 1.8 * wad) + Math.sin(t * 2.6) * 0.7 * idle + DROP);
-    this.torso.setRotation(sw * (0.1 * run + 0.22 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched; rocks side to side as he waddles
+    this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * (0.9 * run + 0.9 * wad) + Math.sin(t * 2.6) * 0.7 * idle + DROP);
+    this.torso.setRotation(sw * (0.1 * run + 0.11 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched; rocks side to side as he waddles
     this.updateCloth(P, dt, grounded, fly);
     if (this.morph >= 0) {                                       // ~0.9s: the apron spins (faster and faster), then the cape unfurls
       this.morph = Math.min(1, this.morph + dt / 0.9);
@@ -473,7 +480,7 @@ class ChrisRig {
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
     this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
-    this.hat.setRotation(-sw * (0.16 * run + 0.2 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
+    this.hat.setRotation(-sw * (0.16 * run + 0.1 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
     this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2); this.crack.setPosition(this.head.x, this.head.y);
 

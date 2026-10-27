@@ -1041,3 +1041,8 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.51 — crouch-walk
 - Holding down + left/right on the ground now waddles along crouched at 38% speed (still a small target, still shooting low), instead of stopping dead. The rig takes short quick steps: the body rocks side to side and bobs, the knees shuffle, the feet lift a little higher, the hat wobbles.
+
+### v1.52 — boots that look like feet
+- New `c_boot`: a white moon-boot with a red ankle cuff set back over a short heel, a long bulbous toe out front, a crease where it bends, and a thick dark tread sole on the very bottom row so it sits flat on the floor. White against the blue trousers, so legs and feet no longer blur into one blue blob.
+- `c_leg` tapers a little to the ankle (tucks into the cuff), with a shine line. Both PNGs re-exported to assets/sprites.
+- Crouch-waddle rocking roughly halved.
