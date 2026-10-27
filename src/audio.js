@@ -22,7 +22,7 @@ const Sound = (() => {
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return false;
-      try { ctx = new AC(); } catch (e) { return false; }
+      try { ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { try { ctx = new AC(); } catch (e2) { return false; } }   // ask for the shortest output delay
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -16; comp.knee.value = 20; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.2;
       master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9;
@@ -174,6 +174,12 @@ const Sound = (() => {
       for (let i = 0; i < 3; i++) tone({ type: 'square', f: 210 - i * 25, dur: 0.012, vol: 0.11, t: t + 0.012 + i * 0.016 });
       tone({ type: 'pulse', duty: 0.25, f: 1100, f2: 700, dur: 0.03, vol: 0.06, t: t + 0.03 });
     },
+    // Chris getting hurt: abstract chiptune 'owch' yelps (no words). A quick squeak up and a tumble down, three flavours,
+    // and a bigger wobbling 'waa-waa' fall for the last heart / losing a life
+    ouch1: () => { const t = ctx.currentTime; tone({ type: 'pulse', duty: 0.25, f: 520, f2: 980, dur: 0.05, vol: 0.16 }); tone({ type: 'pulse', duty: 0.25, f: 900, f2: 300, dur: 0.14, vol: 0.16, t: t + 0.05 }); },
+    ouch2: () => { const t = ctx.currentTime; tone({ type: 'square', f: 700, f2: 1200, dur: 0.04, vol: 0.12 }); tone({ type: 'square', f: 1100, f2: 500, dur: 0.06, vol: 0.12, t: t + 0.045 }); tone({ type: 'square', f: 600, f2: 260, dur: 0.1, vol: 0.12, t: t + 0.11 }); },
+    ouch3: () => { wobble({ type: 'square', f: 880, f2: 330, dur: 0.22, vol: 0.12, rate: 26, depth: 90, lp: 3000 }); },
+    ouchBig: () => { const t = ctx.currentTime; [[660, 0], [520, 0.16], [380, 0.32]].forEach(([f, d]) => { tone({ type: 'pulse', duty: 0.25, f, f2: f * 0.8, dur: 0.14, vol: 0.15, t: t + d }); }); wobble({ type: 'square', f: 300, f2: 110, dur: 0.6, vol: 0.1, rate: 9, depth: 25, lp: 1600 }); },
     // cheesy, squishy enemies: a wet splat (hit) and a big plopping SPLAT (kill)
     squish: () => { tone({ type: 'sine', f: 260, f2: 110, dur: 0.08, vol: 0.22 }); noise({ ft: 'lowpass', f1: 900, f2: 200, dur: 0.07, vol: 0.2 }); },
     splat:  () => {

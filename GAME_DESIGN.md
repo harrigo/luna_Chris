@@ -1034,3 +1034,7 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.49
 - Mac-Grinder back to its original shot sound (the crank-and-grind 'macshot' is still in audio.js, unused, if wanted later).
+
+### v1.50
+- Hurt yelps are abstract chiptune 'owch' blips again (ouch1-3: a squeak up and a tumble down; ouchBig: a falling waa-waa on the last heart and when a life is lost). The spoken grunts/BLIMEY are out of hurt (still in audio.js).
+- Audio context asks for the 'interactive' (shortest) output latency. Bluetooth headphones add their own delay (often 150-300 ms) on top, which no web game can remove.

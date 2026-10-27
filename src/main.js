@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.49';
+const BUILD = 'v1.50';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1108,7 +1108,7 @@ class Level1 extends Phaser.Scene {
 
   die() {
     if (this.bossDown && this.state === 'play') { this.pl.hp = Math.max(1, this.pl.hp); this.updateHearts(); return; }   // (squashed, pits... nothing kills him after the boss)
-    buzz([120, 60, 250]); Sound.say('blimey', { force: true, f0: 112 });
+    buzz([120, 60, 250]); Sound.sfx('ouchBig');
     this.state = 'dead';
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
@@ -1289,8 +1289,8 @@ class Level1 extends Phaser.Scene {
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
     Sound.sfx('hurt');
-    // Chris yelps: a grunt most of the time, a full "BLIMEY!" when it really hurts (down to his last heart, or 1 in 4)
-    if (P.hp > 0) Sound.say(P.hp === 1 || Math.random() < 0.25 ? 'blimey' : ['oof', 'ow', 'ugh', 'oi'][Math.floor(Math.random() * 4)]);
+    // Chris yelps: an abstract chiptune 'owch' (three flavours), a bigger falling one on his last heart
+    if (P.hp > 0) Sound.sfx(P.hp === 1 ? 'ouchBig' : ['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]);
     this.bang(P.theta, P.h + 24, 12);
     buzz(60);
     this.cameras.main.shake(120, 0.006);
