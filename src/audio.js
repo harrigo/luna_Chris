@@ -15,7 +15,7 @@ const Sound = (() => {
   const last = {};
   const pulses = {};
   let cur = null, timer = null, jetNode = null;
-  const MIN_GAP = { shoot: 0.07, hit: 0.07, kill: 0.05, cube: 0.05, flap: 0.2 };
+  const MIN_GAP = { shoot: 0.07, macshot: 0.07, hit: 0.07, squish: 0.07, tink: 0.07, kill: 0.05, splat: 0.05, scrap: 0.05, whoo: 0.08, cube: 0.05, flap: 0.2 };
 
   // ------------------------------------------------------------ setup
   function init() {
@@ -120,6 +120,44 @@ const Sound = (() => {
     osc.stop(t + o.dur + 0.05); lfo.stop(t + o.dur + 0.05);
   }
 
+  // ---- CHRIS'S VOICE: a little formant synth. A buzzy glottal source (sawtooth + vibrato) through three resonant
+  // band-pass "mouth" filters that glide from vowel to vowel; 'm' is a hummed nasal, 'h'/'f' a puff of breath.
+  // A phrase is a list of [sound, seconds, pitch multiplier at its end, loudness]. Chris is a big-voiced chef.
+  const VOWEL = { a: [780, 1180, 2500], o: [520, 880, 2400], u: [340, 760, 2300], i: [300, 2250, 3000], e: [480, 1850, 2600], r: [460, 1300, 1700], m: [260, 1100, 2300], w: [320, 700, 2300] };
+  function voice(phrase, o) {
+    o = o || {};
+    const t0 = ctx.currentTime + 0.01, f0 = (o.f0 || 128) * (0.94 + Math.random() * 0.12);
+    const src = ctx.createOscillator(); src.type = 'sawtooth';
+    const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 6.5; vg.gain.value = f0 * 0.025; vib.connect(vg); vg.connect(src.frequency);
+    const amp = ctx.createGain(); amp.gain.setValueAtTime(0.0001, t0);
+    const out = ctx.createGain(); out.gain.value = o.vol || 0.5;
+    const F = [0, 1, 2].map(k => { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = [7, 11, 13][k]; const g = ctx.createGain(); g.gain.value = [1, 0.55, 0.25][k]; amp.connect(f); f.connect(g); g.connect(out); return f; });
+    src.connect(amp); out.connect(sfxBus);
+    let t = t0, first = true;
+    src.frequency.setValueAtTime(f0, t0);
+    for (const [ph, d, pm, loud] of phrase) {
+      if (ph === 'h' || ph === 'f') { noise({ ft: ph === 'f' ? 'highpass' : 'bandpass', f1: ph === 'f' ? 2600 : 1400, dur: d, vol: 0.16 * (loud || 1), t, q: 0.7 }); amp.gain.setTargetAtTime(0.0001, t, 0.01); t += d; continue; }
+      const V = VOWEL[ph] || VOWEL.a, nasal = ph === 'm' || ph === 'w';
+      F.forEach((f, k) => { if (first) f.frequency.setValueAtTime(V[k], t); else f.frequency.setTargetAtTime(V[k], t, 0.018); });
+      amp.gain.setTargetAtTime((nasal ? 0.35 : 1) * (loud || 1), t, first ? 0.008 : 0.02);
+      src.frequency.linearRampToValueAtTime(f0 * (pm || 1), t + d);
+      t += d; first = false;
+    }
+    amp.gain.setTargetAtTime(0.0001, t, 0.035);
+    src.start(t0); vib.start(t0); src.stop(t + 0.3); vib.stop(t + 0.3);
+  }
+  const PHRASES = {
+    oof:   [['u', 0.05, 1.05, 0.7], ['o', 0.13, 0.8], ['f', 0.07]],
+    ow:    [['a', 0.07, 1.35], ['o', 0.08, 1.25], ['u', 0.12, 0.85, 0.8]],
+    ugh:   [['e', 0.05, 1], ['r', 0.16, 0.8, 0.9], ['h', 0.06]],
+    oi:    [['o', 0.1, 1.2], ['i', 0.12, 1.45]],
+    mamma: [['m', 0.06, 1.1], ['a', 0.13, 1.15], ['m', 0.05, 1.05], ['a', 0.11, 1], ['m', 0.06, 1.2], ['i', 0.15, 1.5], ['a', 0.3, 0.9]],
+    woohoo:[['w', 0.07, 1], ['u', 0.12, 1.25], ['h', 0.04], ['u', 0.06, 1.5], ['o', 0.28, 1.75]],
+    yum:   [['i', 0.04, 1.1, 0.8], ['u', 0.11, 1.2], ['m', 0.16, 1.0]],
+    hup:   [['h', 0.03], ['u', 0.08, 1.3]]
+  };
+  function say(k, o) { if (!ctx || muted || ctx.state !== 'running' || !PHRASES[k]) return; const now = ctx.currentTime; if (last.__voice && now - last.__voice < 0.35 && !(o && o.force)) return; last.__voice = now; voice(PHRASES[k], o); }
+
   function arp(notes, step, o) {
     const t = ctx.currentTime;
     notes.forEach((f, i) => tone(Object.assign({ f, dur: step * 1.6, t: t + i * step }, o)));
@@ -128,6 +166,31 @@ const Sound = (() => {
   // ------------------------------------------------------------ sound effects
   const SFX = {
     shoot:  () => tone({ type: 'pulse', duty: 0.25, f: 900, f2: 420, dur: 0.05, vol: 0.06 }),
+    // the Mac-Grinder: a mincer crank. A clunk of the ratchet, a gritty grind of the auger, a little macaroni 'pip'
+    macshot: () => {
+      const t = ctx.currentTime;
+      tone({ type: 'square', f: 130 + Math.random() * 20, f2: 70, dur: 0.05, vol: 0.22 });
+      noise({ ft: 'bandpass', f1: 900, f2: 500, dur: 0.06, vol: 0.22, q: 2.5 });
+      for (let i = 0; i < 3; i++) tone({ type: 'square', f: 210 - i * 25, dur: 0.012, vol: 0.11, t: t + 0.012 + i * 0.016 });
+      tone({ type: 'pulse', duty: 0.25, f: 1100, f2: 700, dur: 0.03, vol: 0.06, t: t + 0.03 });
+    },
+    // cheesy, squishy enemies: a wet splat (hit) and a big plopping SPLAT (kill)
+    squish: () => { tone({ type: 'sine', f: 260, f2: 110, dur: 0.08, vol: 0.22 }); noise({ ft: 'lowpass', f1: 900, f2: 200, dur: 0.07, vol: 0.2 }); },
+    splat:  () => {
+      noise({ ft: 'lowpass', f1: 1600, f2: 120, dur: 0.28, vol: 0.38 });
+      wobble({ type: 'sine', f: 340, f2: 70, dur: 0.24, vol: 0.2, rate: 34, depth: 60, lp: 1200 });
+      tone({ type: 'sine', f: 520, f2: 900, dur: 0.06, vol: 0.08, t: ctx.currentTime + 0.17 });                   // ...plop
+    },
+    bigsplat: () => { SFX.splat(); noise({ ft: 'lowpass', f1: 700, f2: 60, dur: 0.6, vol: 0.4 }); wobble({ type: 'sine', f: 160, f2: 45, dur: 0.5, vol: 0.25, rate: 20, depth: 30, lp: 600 }); },
+    // metal ones: a tink, and a crunch of scrap with bolts rattling off
+    tink:   () => { tone({ type: 'square', f: 1500 + Math.random() * 300, f2: 900, dur: 0.05, vol: 0.1 }); noise({ ft: 'highpass', f1: 5000, dur: 0.03, vol: 0.1 }); },
+    scrap:  () => {
+      const t = ctx.currentTime;
+      noise({ f1: 3200, f2: 500, dur: 0.25, vol: 0.32, q: 1.2 }); tone({ type: 'square', f: 300, f2: 90, dur: 0.18, vol: 0.14 });
+      for (let i = 0; i < 4; i++) tone({ type: 'square', f: 1200 + Math.random() * 900, f2: 700, dur: 0.035, vol: 0.06, t: t + 0.08 + i * 0.06 + Math.random() * 0.03 });
+    },
+    // ghosts: an airy 'whoo' that pops
+    whoo:   () => { wobble({ type: 'sine', f: 700, f2: 300, dur: 0.35, vol: 0.12, rate: 9, depth: 50 }); noise({ ft: 'highpass', f1: 1800, f2: 6000, dur: 0.25, vol: 0.12 }); tone({ type: 'sine', f: 900, f2: 1600, dur: 0.05, vol: 0.1, t: ctx.currentTime + 0.3 }); },
     jump:   () => tone({ type: 'pulse', duty: 0.5, f: 260, f2: 640, dur: 0.16, vol: 0.16 }),
     hit:    () => tone({ type: 'square', f: 210, f2: 120, dur: 0.04, vol: 0.07 }),
     kill:   () => { noise({ f1: 3000, f2: 400, dur: 0.22, vol: 0.28 }); tone({ type: 'square', f: 420, f2: 90, dur: 0.2, vol: 0.18 }); },
@@ -554,7 +617,7 @@ const Sound = (() => {
   }
 
   return {
-    init, sfx, jet, music, fill, intensity: setIntensity,
+    init, sfx, say, jet, music, fill, intensity: setIntensity,
     pause(on) { if (musicBus) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.5, ctx.currentTime, 0.05); if (on) jet(false); },
     jingle: music,
     isMuted: () => muted,

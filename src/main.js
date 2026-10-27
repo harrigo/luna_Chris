@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.46';
+const BUILD = 'v1.47';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -50,7 +50,7 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
+    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'macshot', pressure: true,
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
     beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
@@ -1081,7 +1081,7 @@ class Level1 extends Phaser.Scene {
   }
 
   finishWin() {
-    Progress.beat(this.levelId);
+    Progress.beat(this.levelId); Sound.say('woohoo', { force: true });
     this.state = 'won';
     const RK = this.levelRank(), prev = Progress.rank(this.levelId);
     Progress.setRank(this.levelId, RK.r);
@@ -1108,7 +1108,7 @@ class Level1 extends Phaser.Scene {
 
   die() {
     if (this.bossDown && this.state === 'play') { this.pl.hp = Math.max(1, this.pl.hp); this.updateHearts(); return; }   // (squashed, pits... nothing kills him after the boss)
-    buzz([120, 60, 250]);
+    buzz([120, 60, 250]); Sound.say('mamma', { force: true, f0: 112 });
     this.state = 'dead';
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
@@ -1289,6 +1289,8 @@ class Level1 extends Phaser.Scene {
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
     Sound.sfx('hurt');
+    // Chris yelps: a grunt most of the time, a full "MAMMA MIA!" when it really hurts (down to his last heart, or 1 in 4)
+    if (P.hp > 0) Sound.say(P.hp === 1 || Math.random() < 0.25 ? 'mamma' : ['oof', 'ow', 'ugh', 'oi'][Math.floor(Math.random() * 4)]);
     this.bang(P.theta, P.h + 24, 12);
     buzz(60);
     this.cameras.main.shake(120, 0.006);
@@ -1639,7 +1641,7 @@ class Level1 extends Phaser.Scene {
     if (inp.jump && !P.jumpWas) {
       if (P.grabbed || P.cheese) {
         P.mash = (P.mash || 0) + 1; this.burst(P.theta, P.h + 10, 'spark', 3, 0.5);
-        if (P.grabbed && P.mash >= 2) { const fe = P.grabbed; this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(fe); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30); }   // the second press tears him free, right then
+        if (P.grabbed && P.mash >= 2) { const fe = P.grabbed; this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(fe); this.banner('BROKE FREE!'); Sound.sfx('jump'); Sound.say('hup', { force: true }); buzz(30); }   // the second press tears him free, right then
       } else P.jumpBufT = CFG.jumpBuffer;
     }     // jumps fire on the PRESS (buffered), not while held: no accidental bunny-hops
     P.jumpWas = !!inp.jump;
@@ -2010,7 +2012,7 @@ class Level1 extends Phaser.Scene {
       e.tongue = along;
       P.theta = wrap(P.theta - e.lashDir * 175 / R * dt); P.vx = 0; P.vh = Math.min(P.vh, 0); P.h = Math.max(0, P.h - 300 * dt);
       if (P.mash >= 2) {                                          // a double jump tears him free!
-        this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(e); this.banner('BROKE FREE!'); Sound.sfx('jump'); buzz(30);
+        this.releaseGrab(false); P.vh = 400; P.jetArmed = true; this.frogFlip(e); this.banner('BROKE FREE!'); Sound.sfx('jump'); Sound.say('hup', { force: true }); buzz(30);
       } else if (along < e.r + 16) {                              // CHOMP
         this.releaseGrab(true); this.hurt(); e.state = 'sit'; e.lashCd = 2.2; Sound.sfx('bonk');
       }
@@ -3044,6 +3046,17 @@ class Level1 extends Phaser.Scene {
 
   // ---------------------------------------------------------------- modern FX layer
   camKick(x, y) { if (Settings.shake) { this.kick.vx += x * 22; this.kick.vy += y * 22; } }          // directional camera knock (springs back)
+  // what an enemy sounds like: squishy cheese (most of them), clanking metal, or a ghost
+  matOf(e) {
+    if (e.type === 'boss') return ['mandoline', 'flagship', 'king', 'paladin'].includes(e.ai) ? 'metal' : (e.ai === 'phantom' ? 'ghost' : 'squish');
+    return ({ drone: 'metal', slicer: 'metal', paladin: 'metal', ghostpirate: 'ghost', phantom: 'ghost', polterwedge: 'ghost' })[e.type] || 'squish';
+  }
+  hitSfx(e) { Sound.sfx(({ metal: 'tink', ghost: 'hit', squish: 'squish' })[this.matOf(e)]); }
+  killSfx(e) {
+    const m = this.matOf(e);
+    if (e.type === 'boss') { Sound.sfx('boom'); Sound.sfx(m === 'metal' ? 'scrap' : m === 'ghost' ? 'whoo' : 'bigsplat'); return; }
+    Sound.sfx(m === 'metal' ? 'scrap' : m === 'ghost' ? 'whoo' : (e.big ? 'bigsplat' : 'splat'));
+  }
   camPunch(a) { if (Settings.shake) this.punch = Math.max(this.punch, a); }                        // quick zoom-in punch on big impacts
   addLight(theta, h, r, col, a, life) { if (Settings.lights && this.lights.length < 30) this.lights.push({ theta, h, r, col, a, life, max: life }); }
   fxTick(dt) {
@@ -3144,7 +3157,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp <= 0 || e.phased) continue;
       if (this.beamMiss(B, W, e.theta, e.h + e.ch) > e.r + B.band) continue;
       if (this.hitK(e) === 0) { this.deflect(e, e.theta, e.h + e.ch); hitAny = true; continue; }
-      e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = true; if (this.buffOn('sauce')) e.burn = 2;
+      e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = e; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, B.gh, 'spark', 2, 0.4);
     }
@@ -3152,7 +3165,7 @@ class Level1 extends Phaser.Scene {
       if (r.hp <= 0) continue;
       if (this.beamMiss(B, W, r.theta, r.h) <= r.r + B.band) this.relicHit(r.theta, r.h, 1, W.dmg);
     }
-    if (hitAny) Sound.sfx('hit');
+    if (hitAny) { if (hitAny === true) Sound.sfx('hit'); else this.hitSfx(hitAny); }
     this.reapEnemies();
   }
   drawBeam() {
@@ -3751,7 +3764,7 @@ class Level1 extends Phaser.Scene {
         const away = Math.sign(angDiff(e.theta, this.pl.theta)) || 1;
         this.parts.push({ theta: e.theta, h: e.h, vt: away * rnd(110, 200), vh: rnd(260, 380), life: 0.75, spr: c, rot: 0, rv: away * rnd(9, 14), corpse: true, flashT: 0.07 });
       }
-      Sound.sfx(e.type === 'boss' ? 'boom' : 'kill');
+      this.killSfx(e);
       this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.big ? 30 : 14));
       if (e.type === 'boss') { this.cameras.main.flash(450, 255, 255, 255); buzz([80, 50, 80, 50, 220]); this.hitStop = 0.3; this.slowT = 1.4; this.camPunch(0.08); }
       else if (e.big) { buzz(25); this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camPunch(0.025); }
@@ -3866,7 +3879,7 @@ class Level1 extends Phaser.Scene {
             if (hk === 0) { this.deflect(e, b.theta, b.h, b); break; }
             e.hp -= (b.dmg || 1) * hk; if (this.buffOn('sauce')) e.burn = 2;
             this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
-            Sound.sfx('hit');
+            this.hitSfx(e);
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
             if (b.hits) { b.hits.push(e); this.burst(b.theta, b.h, 'spark', 3, 0.4); if (b.hits.length >= b.pierce) { dead = true; break; } }
             else { dead = true; break; }
@@ -3954,7 +3967,7 @@ class Level1 extends Phaser.Scene {
         } else {
           if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
           this.addScore(50);
-          Sound.sfx('pickup');
+          Sound.sfx('pickup'); Sound.say('yum');
           buzz(20);
         }
         this.burst(p.theta, p.h + 8, 'spark', 6, 0.6);
