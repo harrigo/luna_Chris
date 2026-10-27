@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.42';
+const BUILD = 'v1.43';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -103,7 +103,9 @@ const bakedGlow = (obj, col, strength, dist) => {
 };
 const Progress = {           // remembered on the device: highest level beaten
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
-  beat(n) { try { if (!(LEVELS[n] && LEVELS[n].secret) && n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
+  beat(n) { try { if (LEVELS[n] && LEVELS[n].secret) localStorage.setItem('lc_sbeat_' + n, '1'); else if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
+  secretBeat(n) { try { return localStorage.getItem('lc_sbeat_' + n) === '1'; } catch (e) { return false; } },
+  setBest(n) { try { localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
   found(n) { try { if (n === 5.5 && localStorage.getItem('lc_found6') === '1') return true; return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels (5.5 was briefly numbered 6)
   find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } },
   // best rank per level (S A B C D) and which of its 3 golden cheese wheels have been found (bitmask)

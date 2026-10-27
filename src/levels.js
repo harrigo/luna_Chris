@@ -781,13 +781,17 @@ class SelectScene extends Phaser.Scene {
     this.input.on('pointerup', () => {
       if (this.wantFs) { this.wantFs = false; try { const st = window.matchMedia && (matchMedia('(display-mode: fullscreen)').matches || matchMedia('(display-mode: standalone)').matches); if (!st && !this.scale.isFullscreen) this.scale.startFullscreen({ navigationUI: 'hide' }); } catch (e) { /* ignore */ } }
     });
-    if (this.input.keyboard) ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => { if (LEVELS[i + 1]) this.go(i + 1); }));
+    if (this.input.keyboard) ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => { if (LEVELS[i + 1] && this.isOpen(i + 1)) this.go(i + 1); }));
     if (this.input.keyboard) ['LEFT', 'RIGHT', 'UP', 'DOWN'].forEach(k => this.input.keyboard.on('keydown-' + k, () => this.nav(k.toLowerCase())));
     if (this.input.keyboard) this.input.keyboard.on('keydown-ENTER', () => this.go(this.sel));
     if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
     this.selG = this.add.graphics().setDepth(2);
+    // Luna Chris himself, jetpacking along the route to whichever stop is picked
+    this.rig = new ChrisRig(this); this.rig.root.setDepth(3); this.rig.setWeapon(WEAPONS[0]);
+    this.rigP = { h: 60, floor: 0, vh: 0, vx: 0, thrusting: true, firing: 0, aimA: 0.1, power: 0, duck: false, facing: 1 };
+    this.rigX = null; this.lastT = 0;
     const padOff = Pad.on(b => {
       if (b === 'left' || b === 'right' || b === 'up' || b === 'down') this.nav(b);
       else if (b === 'a' || b === 'start') this.go(this.sel);
@@ -797,36 +801,49 @@ class SelectScene extends Phaser.Scene {
     this.events.once('shutdown', padOff);
   }
 
-  // ---- the ROUTE MAP (Star Fox style). The route runs 1 -> 2 -> 3, then splits: the main road (4, 5, 6) along the
-  // top, or the bonus route along the bottom (the Zero-G Recoil Room, then the warp to the Fondue Fountain), and
-  // both meet again at 7 -> 8 -> 9. (For now every stop is open, for testing.)
+  // ---- the ROUTE MAP (Star Fox style). The main road runs 1 -> 9. Two detours along the bottom: the BONUS Zero-G
+  // Recoil Room after level 3 (back onto the road at 4), and the WARP from level 5's black hole to the Fondue
+  // Fountain, which skips 6 and comes out at 7. Only level 1 starts open; beating a stop opens the next.
   mapNodes() {
     return [
-      { id: 1, x: 0.07, y: 0.52 }, { id: 2, x: 0.17, y: 0.40 }, { id: 3, x: 0.27, y: 0.52 },
-      { id: 4, x: 0.38, y: 0.30 }, { id: 5, x: 0.49, y: 0.24 }, { id: 6, x: 0.60, y: 0.32 },
-      { id: 'zerog', x: 0.40, y: 0.72, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients for an extra life.' },
-      { id: 5.5, x: 0.55, y: 0.74, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nSkips ahead to level 7.' },
-      { id: 7, x: 0.71, y: 0.50 }, { id: 8, x: 0.82, y: 0.40 }, { id: 9, x: 0.93, y: 0.52 }
+      { id: 1, x: 0.07, y: 0.52 }, { id: 2, x: 0.17, y: 0.36 }, { id: 3, x: 0.27, y: 0.50 },
+      { id: 4, x: 0.40, y: 0.30 }, { id: 5, x: 0.51, y: 0.22 }, { id: 6, x: 0.62, y: 0.30 },
+      { id: 'zerog', x: 0.34, y: 0.76, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients to open the gun crate.' },
+      { id: 5.5, x: 0.62, y: 0.76, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFind the black hole on level 5. Skips ahead to level 7.' },
+      { id: 7, x: 0.73, y: 0.50 }, { id: 8, x: 0.83, y: 0.36 }, { id: 9, x: 0.93, y: 0.50 }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [3, 'zerog'], ['zerog', 5.5], [5.5, 7], [7, 8], [8, 9]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [3, 'zerog'], ['zerog', 4], [5, 5.5], [5.5, 7], [7, 8], [8, 9]]; }
+  isOpen(id) {
+    const best = Progress.best;
+    if (id === 1) return true;
+    if (id === 'zerog') return best >= 3;
+    if (id === 5.5) return Progress.found(5.5);
+    if (id === 7 && Progress.secretBeat(5.5)) return true;
+    return typeof id === 'number' && best >= id - 1;
+  }
+  // d-pad: follow the routes. Left/right go to the next/previous stop along a route (the main road first at a fork);
+  // up/down switch between the road and a detour. Only open stops.
   nav(d) {
     const N = this.nodes; if (!N) return;
     const cur = N.find(n => n.id === this.sel) || N[0];
-    let best = null, bs = 1e9;
-    for (const n of N) {
-      if (n === cur) continue;
-      const dx = n.x - cur.x, dy = n.y - cur.y;
-      const ok = d === 'left' ? dx < -0.01 : d === 'right' ? dx > 0.01 : d === 'up' ? dy < -0.05 : dy > 0.05;
-      if (!ok) continue;
-      const sc = (d === 'left' || d === 'right') ? Math.abs(dx) + Math.abs(dy) * 2.5 : Math.abs(dy) + Math.abs(dx) * 2.5;
-      if (sc < bs) { bs = sc; best = n; }
+    const open = N.filter(n => n !== cur && this.isOpen(n.id));
+    const linked = open.filter(n => this.mapLinks().some(([a, b]) => (a === cur.id && b === n.id) || (b === cur.id && a === n.id)));
+    const dirOk = (n, dd) => { const dx = n.x - cur.x, dy = n.y - cur.y; return dd === 'left' ? dx < -0.005 : dd === 'right' ? dx > 0.005 : dd === 'up' ? dy < -0.05 : dy > 0.05; };
+    let pick = null;
+    if (d === 'left' || d === 'right') {
+      const c = linked.filter(n => dirOk(n, d)).sort((p, q) => (!!p.kind - !!q.kind) || Math.abs(p.y - cur.y) - Math.abs(q.y - cur.y));
+      pick = c[0];
+    } else {
+      const c = linked.filter(n => dirOk(n, d)).sort((p, q) => Math.abs(p.x - cur.x) - Math.abs(q.x - cur.x));
+      pick = c[0] || open.filter(n => dirOk(n, d)).sort((p, q) => Math.abs(p.x - cur.x) * 3 + Math.abs(p.y - cur.y) - Math.abs(q.x - cur.x) * 3 - Math.abs(q.y - cur.y))[0];
     }
-    if (best) { this.sel = best.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); }
+    if (pick) { this.sel = pick.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); }
   }
 
   go(n) {
     if (this.going) return;
+    if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
     if (n === 'zerog') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog')); return; }
     if (!LEVELS[n]) return;
     this.going = true;
@@ -842,13 +859,17 @@ class SelectScene extends Phaser.Scene {
     this.f = f;
     this.ui.add(this.add.text(W / 2, Math.max(16, H * 0.05), 'ROUTE TO BESSIE', f(Math.min(20, W / 34), '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5, 0));
     this.nodes = this.mapNodes(); this.ids = this.nodes.map(n => n.id);
-    const top = H * 0.14, mh = H * 0.62, R = Math.max(12, Math.min(24, Math.min(W, H) * 0.055));
+    const top = H * 0.2, mh = H * 0.56, R = Math.max(12, Math.min(24, Math.min(W, H) * 0.055));
     this.nodeR = R;
     this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };
     this.hit = {};
     for (const n of this.nodes) {
-      const p = this.pos(n.id), g = this.add.graphics(), L = LEVELS[n.id];
-      if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
+      const p = this.pos(n.id), g = this.add.graphics(), L = LEVELS[n.id], open = this.isOpen(n.id);
+      if (!open) {                                                // not reached yet: a dark sphere with a padlock
+        g.fillStyle(0x2a3058, 1).fillCircle(p.x, p.y, R * 0.8); g.lineStyle(2, 0x4a5488, 1).strokeCircle(p.x, p.y, R * 0.8);
+        g.lineStyle(3, 0x8a94b8, 1).strokeCircle(p.x, p.y - R * 0.22, R * 0.22);
+        g.fillStyle(0x8a94b8, 1).fillRect(p.x - R * 0.34, p.y - R * 0.12, R * 0.68, R * 0.5); g.fillStyle(0x2a3058, 1).fillRect(p.x - 1, p.y, 2, R * 0.2);
+      } else if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
         g.fillStyle(0xffd23f, 0.18).fillCircle(p.x, p.y, R + 6);
         const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? R * 0.45 : R; pts.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }); }
         g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true); g.fillStyle(0xffd23f, 1).fillPoints(pts, true);
@@ -862,16 +883,23 @@ class SelectScene extends Phaser.Scene {
         g.lineStyle(2, L.planet.rim, 1).strokeCircle(p.x, p.y, R);
       }
       this.ui.add(g);
-      const lab = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : String(n.id);
-      this.ui.add(this.add.text(p.x, p.y + R + 6, lab, f(8, n.kind ? '#ffd23f' : '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0));
+      const lab = !open && n.kind ? '?' : n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : String(n.id);
+      this.ui.add(this.add.text(p.x, p.y + R + 6, lab, f(8, !open ? '#5a6488' : n.kind ? '#ffd23f' : '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0));
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
       if (rk) this.ui.add(this.add.text(p.x + R * 0.8, p.y - R * 0.9, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
       const z = this.add.zone(p.x - R - 8, p.y - R - 8, R * 2 + 16, R * 2 + 26).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
-      z.on('pointerup', () => { if (this.sel === n.id) this.go(n.id); else { this.sel = n.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); } });   // tap to pick, tap again to go
+      z.on('pointerup', () => { if (!open) { Sound.sfx('clunk'); return; } if (this.sel === n.id) this.go(n.id); else { this.sel = n.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); } });   // tap to pick, tap again to go
       this.ui.add(z);
     }
-    if (!this.ids.includes(this.sel)) this.sel = 1;
+    if (!this.ids.includes(this.sel) || !this.isOpen(this.sel)) this.sel = 1;
+    // TEST buttons (top right): open the next stop on the road, open a level's secret warp, lock everything again
+    this.testBtns = [];
+    const tb = (y, label, fn) => { const b = this.add.text(W - 10, y, label, f(7, '#1a1020', { backgroundColor: '#7dff8a', padding: { x: 6, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }); b.on('pointerup', fn); this.ui.add(b); this.testBtns.push(b); return b; };
+    const next = [2, 3, 4, 5, 6, 7, 8, 9].find(id => !this.isOpen(id));
+    if (next) tb(10, 'TEST: OPEN LEVEL ' + next, () => { Progress.setBest(next - 1); Sound.sfx('power'); this.build(); });
+    this.secretBtn = tb(32, '', () => { const w = LEVELS[this.sel] && LEVELS[this.sel].warp; if (w) { Progress.find(w.to); Sound.sfx('power'); this.build(); } });
+    if (Progress.best > 0 || Progress.found(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
     const back = this.add.text(12, 12, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
@@ -883,6 +911,11 @@ class SelectScene extends Phaser.Scene {
     if (!this.infoBox) return;
     const W = this.scale.width, H = this.scale.height, f = this.f, n = this.nodes.find(q => q.id === this.sel) || this.nodes[0], L = LEVELS[n.id];
     this.infoBox.removeAll(true);
+    if (this.secretBtn) {                                          // the TEST secret-warp button shows on a level that has a warp in it
+      const w = L && L.warp, show = !!w && !Progress.found(w.to);
+      this.secretBtn.setVisible(show).setText(show ? 'TEST: OPEN SECRET ' + (LEVELS[w.to].short || w.to) : '');
+      let y = 10; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 22; }
+    }
     const y0 = H * 0.80;
     const name = n.name || ('LEVEL ' + n.id + '  ' + L.short), blurb = n.blurb || L.blurb;
     this.infoBox.add(this.add.text(W / 2, y0, name, f(10, n.kind ? '#ffd23f' : '#9fd8ff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0));
@@ -893,18 +926,33 @@ class SelectScene extends Phaser.Scene {
 
   update(time) {
     const W = this.scale.width, H = this.scale.height, g = this.bg;
+    const dt = Math.min(0.05, ((time - (this.lastT || time)) / 1000) || 0.016); this.lastT = time;
     g.clear();
     for (const s of this.stars) { g.fillStyle(0xffffff, 0.35 + 0.35 * Math.sin(time / 600 + s.tw)).fillRect(s.x * W, s.y * H, s.s, s.s); }
     if (this.pos) for (const [a, b] of this.mapLinks()) {        // the routes: dotted lines with dots marching along them
       const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 9);
-      const bonus = [a, b].some(id => id === 'zerog' || id === 5.5);
+      const bonus = [a, b].some(id => id === 'zerog' || id === 5.5), shut = !this.isOpen(a) || !this.isOpen(b);
+      if (shut) { for (let k = 1; k < n; k += 2) { const u = k / n; g.fillStyle(0x3a4270, 0.5).fillRect(Math.round(A.x + (B.x - A.x) * u) - 1, Math.round(A.y + (B.y - A.y) * u) - 1, 2, 2); } continue; }
       for (let k = 1; k < n; k++) { const u = k / n, x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u; const lit = ((k - time / 120) % 6 + 6) % 6 < 1; g.fillStyle(lit ? 0xffffff : (bonus ? 0xffb52a : 0x5a78d8), lit ? 0.9 : 0.6).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
     }
     this.selG.clear();
     if (this.pos && this.ids && this.ids.includes(this.sel)) {
       const p = this.pos(this.sel), r = this.nodeR + 9 + Math.sin(time / 150) * 2;
       this.selG.lineStyle(3, 0xffffff, 0.8).strokeCircle(p.x, p.y, r);
-      this.selG.fillStyle(0xffd23f, 1).fillTriangle(p.x - 6, p.y - r - 12, p.x + 6, p.y - r - 12, p.x, p.y - r - 4);
+      // Chris glides over to it (feet just above the planet), bobbing on his jetpack
+      const tx = p.x, ty = p.y - this.nodeR - 8 + Math.sin(time / 260) * 3;
+      if (this.rigX === null) { this.rigX = tx; this.rigY = ty; }
+      const k = Math.min(1, dt * 5), vx = (tx - this.rigX) * k / Math.max(dt, 0.001);
+      this.rigX += (tx - this.rigX) * k; this.rigY += (ty - this.rigY) * k;
+      const P = this.rigP; if (Math.abs(vx) > 8) P.facing = vx > 0 ? 1 : -1;
+      P.vx = vx * 0.3; P.vh = -(ty - this.rigY) * 4;
+      const sc = Math.max(0.38, Math.min(0.6, this.nodeR / 40));
+      this.rig.update(P, dt, Math.round(this.rigX), Math.round(this.rigY), sc, 1, 0);
+      this.rig.root.setRotation(Math.max(-0.35, Math.min(0.35, vx / 900)));
+      // jet flame puffing out of the pack
+      const jx = this.rigX - P.facing * 9 * sc, jy = this.rigY - 18 * sc, fl = 1 + 0.35 * Math.sin(time / 30);
+      this.selG.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 4 * sc, jy, jx + 4 * sc, jy, jx, jy + 16 * sc * fl);
+      this.selG.fillStyle(0xffe27a, 1).fillTriangle(jx - 2 * sc, jy, jx + 2 * sc, jy, jx, jy + 9 * sc * fl);
     }
   }
 }

@@ -996,3 +996,9 @@ Built from the brief (`makeGorgeTextures`):
 - **New look:** a proper box grater: carry handle, tapered body, rows of raised grater holes, a serrated slicer slot, a big red laser eye in a chrome bezel under angry brow plates, a brass cog, wires, rivets, dents. Two jointed robot **arms** (pistons, red/blue hoses, hooked pincer claws) solved with 2-bone IK on screen.
 - **Boss in three acts** (HP 150): 1) pings, claw **slams** (an arm reaches over Chris's spot, opens over a red ring, smashes down; the body dips to reach) and floor discs. 2) at 2/3 the eye charges and **sweeps**: a red strip shows the path, then the burning point runs along the floor, leaving scorch marks. Only where it meets the deck hurts: jump it as it passes. 3) at 1/3 it cracks, glows and sparks: sweeps go there and back, pings come in threes, both arms slam one after the other, discs at two heights.
 - New sprite files: `mandoline.png` (120×128, replaces the old one) and `mblade.png`.
+
+### v1.43 — route map: progression, test buttons, d-pad, Chris
+- **Only level 1 starts open.** Beating a level opens the next (`Progress.best`); the BONUS Zero-G room opens after level 3 and rejoins at 4; the WARP (Fondue Fountain, 5.5) opens once its black hole is found on level 5, and beating it opens 7 (`Progress.secretBeat`). Locked stops are dark padlocked spheres, their routes faint; they can't be picked or played.
+- **TEST buttons** (top right, green): OPEN LEVEL n (the next locked one), OPEN SECRET … (shows when the picked level has a warp in it), LOCK ALL (back to just level 1).
+- **D-pad follows the routes:** left/right go to the previous/next stop along a route (main road first at a fork), up/down switch between the road and a detour.
+- **Luna Chris jetpacks between stops,** bobbing over the picked one with a flickering flame, tilting as he flies.
