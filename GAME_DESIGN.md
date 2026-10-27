@@ -1031,3 +1031,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.48
 - Chris's big yelp is "BLIMEY!" (a British chef), not the borrowed catchphrase.
+
+### v1.49
+- Mac-Grinder back to its original shot sound (the crank-and-grind 'macshot' is still in audio.js, unused, if wanted later).

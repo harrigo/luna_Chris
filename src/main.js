@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.48';
+const BUILD = 'v1.49';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -50,7 +50,7 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'macshot', pressure: true,
+    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
     beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
