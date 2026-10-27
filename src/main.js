@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.45';
+const BUILD = 'v1.46';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -444,11 +444,13 @@ class Level1 extends Phaser.Scene {
     if (wd) {
       makeWarpTextures(this);
       const glow = this.add.image(0, 0, 'puff').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
-      const hole = this.add.image(0, 0, 'px_bhole').setDepth(0.3).setTint(0x6a6268).setAlpha(0.6);
+      const tri = wd.style === 'triangle';                          // L3: the Brie-muda Triangle (lanterns + a triangular rift)
+      const hole = this.add.image(0, 0, tri ? 'w_tri' : 'px_bhole').setDepth(0.3).setTint(0x6a6268).setAlpha(0.6);
       this.warp = { def: wd, theta: wd.theta, h: wd.h, hole, glow, stage: 0, size: 0.8, tgt: 0.8, pulse: 0, spin: 0, open: false, entering: false, t: 0 };
       for (const r of wd.relics) {
-        const spr = this.add.image(0, 0, 'w_relic').setDepth(2.9);
-        const light = this.add.image(0, 0, 'spark').setDepth(2.95).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff3030);
+        const spr = this.add.image(0, 0, tri ? 'w_lantern' : 'w_relic').setDepth(2.9);
+        if (tri) spr.bsx = spr.bsy = 1.7;
+        const light = this.add.image(0, 0, 'spark').setDepth(2.95).setBlendMode(Phaser.BlendModes.ADD).setTint(tri ? 0xb06aff : 0xff3030);
         this.relics.push({ theta: r.theta, h: r.h, hp: 6, r: 16, spr, light, ph: rnd(0, 6), flash: 0 });
       }
     }
@@ -947,7 +949,7 @@ class Level1 extends Phaser.Scene {
     W.hole.clearTint().setAlpha(1);
     Sound.sfx('reveal'); this.cameras.main.shake(400, 0.01); this.camPunch(0.04);
     this.addLight(W.theta, W.h, 260, 0xb04aff, 1, 1.2);
-    this.banner('A WARP HOLE HAS OPENED!');
+    this.banner(W.def.style === 'triangle' ? 'THE TRIANGLE HAS OPENED!' : 'A WARP HOLE HAS OPENED!');
     buzz([40, 40, 40, 40, 120]);
   }
 
@@ -4676,7 +4678,7 @@ Level1.prototype.drawMiniPlanet = function (g, x, y, r, rot) {
     g.lineStyle(1, 0x5aa0d8, 0.8);
     for (const [a0, a1] of [[0.4, 1.6], [2.4, 3.3], [4.2, 5.4]]) { const [x0, y0] = at(a0, r * 0.2), [x1, y1] = at(a1, r * 0.7); g.lineBetween(x0, y0, x1, y1); }
     for (const a of [0.9, 3.0, 5.0]) { const [px, py] = at(a, r + 2); g.fillStyle(0x7ee05a, 1).fillRect(px - 1, py, 3, 3); g.fillStyle(0x5ce1ff, 1).fillRect(px - 2, py - 3, 5, 3); }   // glowing mushrooms
-  } else if (id === 3) {                // The Great Grater: a steel cog with grater slots
+  } else if (id === 5) {                // The Great Grater: a steel cog with grater slots
     for (let i = 0; i < 12; i++) { const [px, py] = at(i * TAU / 12, r + 1.5); g.fillStyle(0xaab6c8, 1).fillRect(px - 2, py - 2, 4, 4); }
     g.fillStyle(0x76839a, 1).fillCircle(x, y, r);
     g.fillStyle(0xaab6c8, 1).fillCircle(x - 3, y - 3, r * 0.65);
@@ -4690,7 +4692,7 @@ Level1.prototype.drawMiniPlanet = function (g, x, y, r, rot) {
     g.fillStyle(0xd8402a, 1).fillCircle(x, y, r - 3);
     dots([[0.4, 0.5, 3], [1.8, 0.35, 2.5], [2.9, 0.62, 3], [4.6, 0.45, 3], [5.6, 0.2, 2]], 0xf6ead2);   // mozzarella
     dots([[1.1, 0.6, 2], [3.6, 0.3, 2], [5.1, 0.7, 2]], 0x7a1a14);                                  // pepperoni
-  } else if (id === 5) {                // The Brie-muda Triangle: a soft, slightly squashed wheel of brie in purple haze
+  } else if (id === 3) {                // The Brie-muda Triangle: a soft, slightly squashed wheel of brie in purple haze
     g.fillStyle(0x8a5ad8, 0.25 + 0.1 * Math.sin(t * 2)).fillEllipse(x, y + 1, (r + 5) * 2, (r + 3) * 2);
     g.fillStyle(0xd8d4e0, 1).fillEllipse(x, y + 1, r * 2 + 2, r * 2 - 2);
     g.fillStyle(0xf8f4ea, 1).fillEllipse(x - 1, y, r * 2 - 4, r * 2 - 7);

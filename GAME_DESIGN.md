@@ -1018,3 +1018,8 @@ Built from the brief (`makeGorgeTextures`):
 - **Secret-exit hint on the map:** a level with an undiscovered warp shows a stub of orange route fading off into the dark, with a pulsing '?'.
 - **Chris boosts between stops:** he flies along the route's own curve with a big flame and a trail of puffs, arcing up a little mid-flight.
 - Fixed: a Zero-G room entered a second time couldn't be left (`leaving` was never reset).
+
+### v1.46 — Brie-muda Triangle is level 3; the Triangle warp; test buttons for the secret route
+- **Levels 3 and 5 swapped:** The Brie-muda Triangle (ghosts, the Phantom Milkmaid) is now level 3, The Great Grater (the Mega-Mandoline) level 5. Story lines between levels updated to match (3 -> volcano, 4 -> grinding asteroid, 5 -> cheddar moon); the radar's mini-planet styles and the map's ring follow the levels.
+- **The Grater no longer has a warp.** Level 3's secret is new: **the Triangle**. Three ghostly ship's lanterns drift high over the wreckage; shoot them out and a **triangular rift** (`w_tri`) tears open in the sky ("THE TRIANGLE HAS OPENED!"), a warp to the Fondue Fountain -> warp bonus room -> level 7. Data: `warp.style: 'triangle'` swaps the black hole and junk for the rift and lanterns (`w_lantern`).
+- **TEST: CLEAR …** button for the stop you've picked (a main level or the Fondue Fountain): marks it beaten, opening whatever comes after, including the secret route's bonus room and level 7.

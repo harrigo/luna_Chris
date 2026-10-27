@@ -85,35 +85,33 @@ const LEVELS = {
   },
 
   3: {
-    id: 3, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
-    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
-    radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
-    surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
-    geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
-    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5
-    // (the Fondue Fountain), which comes out at level 7: skipping 4, 5 and 6.
-    warp: { to: 5.5, theta: 2.6, h: 222, relics: [{ theta: 1.2, h: 226 }, { theta: 3.7, h: 230 }, { theta: 5.3, h: 224 }] },
-    planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
-    dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
-    gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
-    ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
+    id: 3, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
+    music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
+    radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
+    // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
+    surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
+    rimGlow: 0xb07aff, squish: true,
+    planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xa070ff },
+    dust: [0xc8a8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
+    gravity: 1, ledgeTypes: ['bone', 'bone', 'bone', 'bone', 'bone', 'bone'], ledgeTex: 'ledge1',
+    ledges: [{ theta: 0.6, half: 0.1, h: 95 }, { theta: 1.5, half: 0.09, h: 180 }, { theta: 2.6, half: 0.1, h: 95 }, { theta: 3.6, half: 0.09, h: 180 }, { theta: 4.6, half: 0.1, h: 95 }, { theta: 5.5, half: 0.09, h: 180 }],
     props: [
-      // the factory skyline behind the horizon: scaffold towers, crate stacks, barrels
-      { tex: 'scaffold', at: [[0.2, 1.0], [1.35, 1.15, 1], [2.55, 0.9], [3.75, 1.1, 1], [5.0, 1.0]], depth: 0.95, tint: 0x6a7488, alpha: 0.8, h: -24 },
-      { tex: 'crates', at: [[0.8, 1.05], [2.1, 0.95, 1], [3.3, 1.1], [4.6, 1.0, 1], [5.75, 1.05]], depth: 0.96, tint: 0x9a8a7a, alpha: 0.9, h: -10 },
-      // on the deck: beacons flashing red/blue, barrels, pipes, cones
-      { tex: 'beacon_r', at: [[0.35, 1.0], [2.0, 1.0], [3.6, 1.0], [5.2, 1.0]], h: -2, glow: 0xff3030, glowA: 0.6, blink: 3 },
-      { tex: 'beacon_b', at: [[1.15, 1.0], [2.8, 1.0], [4.4, 1.0], [6.0, 1.0]], h: -2, glow: 0x3a8aff, glowA: 0.6, blink: 3, blinkOff: 0.5 },
-      { tex: 'barrel', at: [[0.65, 1.0], [1.6, 0.9, 1], [3.0, 1.05], [4.0, 1.0, 1], [5.45, 0.9]], h: -2 },
-      { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] },
-      { tex: 'p_cone', n: 7, sc: [0.8, 1.1], fg: true }],
+      // the graveyard: huge ribcages and skulls of ancient space-livestock, half-swallowed by the brie
+      { tex: 'bone_ribcage', at: [[0.25, 1.0], [1.95, 1.15, 1], [3.15, 0.95], [4.15, 1.1, 1], [5.85, 1.0]], depth: 2.4, h: -30 },
+      { tex: 'bone_skull', at: [[1.1, 0.95, 1], [2.3, 0.85], [3.9, 0.9, 1], [5.2, 0.85]], depth: 2.42, h: -12 },
+      { tex: 'pile_bones', at: [[0.8, 1.2], [2.9, 1.1, 1], [4.9, 1.2]], tint: 0xf0ead8, alpha: 0.95 },
+      { tex: 'p_skull', at: [[1.7, 1.1], [3.4, 1.0, 1], [5.6, 1.2]], tint: 0xf0ead8 },
+      { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xd8d0f0 }],
+    // SECRET: the Brie-muda Triangle itself. Three ghostly ship's lanterns drift high over the wreckage; shoot them out and a
+    // triangular rift tears open in the sky: a warp to the Fondue Fountain (5.5), which comes out at level 7.
+    warp: { to: 5.5, style: 'triangle', theta: 2.6, h: 222, relics: [{ theta: 1.2, h: 226 }, { theta: 3.7, h: 230 }, { theta: 5.3, h: 224 }] },
     waves: [
-      { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
-      { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
-      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
+      { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
+      { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
+      { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
     ],
-    boss: { tex: 'mandoline', hp: 150, ai: 'mandoline' },
-    win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
+    boss: { tex: 'milkmaid', hp: 160, ai: 'phantom' },
+    win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a smoking volcano planet.'
   },
 
   4: {
@@ -142,34 +140,36 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('mgolem', 0), S('frog', 1), S('rocketrat', 1.8), S('mouse', 2.4), S('mgolem', 3.6), S('rocketrat', 4.2), S('frog', 5.2), S('mouse', 6), S('rocketrat', 6.8), S('mgolem', 8), S('rocketrat', 8.6)] }
     ],
     boss: { tex: 'oven', hp: 150, ai: 'oven', armouredTop: true },
-    win: 'The Pizza Oven of Doom has gone cold!\nBessie popped out of the dough... and into a rat-ship. AGAIN.\nThe trail leads into a strange pale triangle of space...'
+    win: 'The Pizza Oven of Doom has gone cold!\nBessie popped out of the dough... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
   },
 
   5: {
-    id: 5, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
-    music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
-    radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
-    // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
-    surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
-    rimGlow: 0xb07aff, squish: true,
-    planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xa070ff },
-    dust: [0xc8a8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
-    gravity: 1, ledgeTypes: ['bone', 'bone', 'bone', 'bone', 'bone', 'bone'], ledgeTex: 'ledge1',
-    ledges: [{ theta: 0.6, half: 0.1, h: 95 }, { theta: 1.5, half: 0.09, h: 180 }, { theta: 2.6, half: 0.1, h: 95 }, { theta: 3.6, half: 0.09, h: 180 }, { theta: 4.6, half: 0.1, h: 95 }, { theta: 5.5, half: 0.09, h: 180 }],
+    id: 5, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
+    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
+    radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
+    surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
+    geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
+    planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
+    dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
+    gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
+    ledges: [{ theta: 0.5, half: 0.15, h: 95 }, { theta: 1.8, half: 0.14, h: 175 }, { theta: 3.1, half: 0.15, h: 95 }, { theta: 4.3, half: 0.14, h: 175 }, { theta: 5.5, half: 0.15, h: 95 }],
     props: [
-      // the graveyard: huge ribcages and skulls of ancient space-livestock, half-swallowed by the brie
-      { tex: 'bone_ribcage', at: [[0.25, 1.0], [1.95, 1.15, 1], [3.15, 0.95], [4.15, 1.1, 1], [5.85, 1.0]], depth: 2.4, h: -30 },
-      { tex: 'bone_skull', at: [[1.1, 0.95, 1], [2.3, 0.85], [3.9, 0.9, 1], [5.2, 0.85]], depth: 2.42, h: -12 },
-      { tex: 'pile_bones', at: [[0.8, 1.2], [2.9, 1.1, 1], [4.9, 1.2]], tint: 0xf0ead8, alpha: 0.95 },
-      { tex: 'p_skull', at: [[1.7, 1.1], [3.4, 1.0, 1], [5.6, 1.2]], tint: 0xf0ead8 },
-      { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xd8d0f0 }],
+      // the factory skyline behind the horizon: scaffold towers, crate stacks, barrels
+      { tex: 'scaffold', at: [[0.2, 1.0], [1.35, 1.15, 1], [2.55, 0.9], [3.75, 1.1, 1], [5.0, 1.0]], depth: 0.95, tint: 0x6a7488, alpha: 0.8, h: -24 },
+      { tex: 'crates', at: [[0.8, 1.05], [2.1, 0.95, 1], [3.3, 1.1], [4.6, 1.0, 1], [5.75, 1.05]], depth: 0.96, tint: 0x9a8a7a, alpha: 0.9, h: -10 },
+      // on the deck: beacons flashing red/blue, barrels, pipes, cones
+      { tex: 'beacon_r', at: [[0.35, 1.0], [2.0, 1.0], [3.6, 1.0], [5.2, 1.0]], h: -2, glow: 0xff3030, glowA: 0.6, blink: 3 },
+      { tex: 'beacon_b', at: [[1.15, 1.0], [2.8, 1.0], [4.4, 1.0], [6.0, 1.0]], h: -2, glow: 0x3a8aff, glowA: 0.6, blink: 3, blinkOff: 0.5 },
+      { tex: 'barrel', at: [[0.65, 1.0], [1.6, 0.9, 1], [3.0, 1.05], [4.0, 1.0, 1], [5.45, 0.9]], h: -2 },
+      { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] },
+      { tex: 'p_cone', n: 7, sc: [0.8, 1.1], fg: true }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
-      { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
-      { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
+      { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
+      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
     ],
-    boss: { tex: 'milkmaid', hp: 160, ai: 'phantom' },
-    win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a tiny cheddar moon.'
+    boss: { tex: 'mandoline', hp: 150, ai: 'mandoline' },
+    win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nThe rats are fleeing to a tiny cheddar moon.'
   },
 
   6: {
@@ -303,6 +303,22 @@ function makeWarpTextures(scene) {
     for (const [x, y] of [[9, 11], [13, 10], [17, 11], [11, 14], [15, 14]]) p.px(x, y, 0xffb070);
     p.rect(1, 12, 4, 15, 0x8a929c); p.rect(22, 12, 25, 15, 0x8a929c);
   });
+  // L3's secret: a ghostly ship's lantern (three drift over the Brie-muda Triangle)...
+  pixSprite(scene, 'w_lantern', 18, 28, p => {
+    p.ell(9, 3, 3, 3, [0xb0a890, 0x7a7260, 0x4a4438]); p.ell(9, 3, 1.4, 1.4, -1);                                  // hanging ring
+    p.poly([[3, 9], [15, 9], [12, 5], [6, 5]], [0x9a8a6a, 0x6a5a40, 0x3a3020]);                                    // cap
+    p.rrect(3, 9, 15, 22, 2, [0xd8c8ff, 0x9a7ad8, 0x5a3a98]);                                                      // glass
+    p.ell(9, 16, 3.5, 5, [0xffffff, 0xd8b0ff, 0xa060ff]); p.poly([[7, 13], [11, 13], [9, 9]], 0xffffff);            // ghost flame
+    p.line([[3, 9], [3, 22]], 0x3a3020); p.line([[15, 9], [15, 22]], 0x3a3020); p.line([[9, 9], [9, 10]], 0x3a3020);
+    p.rrect(2, 22, 16, 26, 1, [0x9a8a6a, 0x6a5a40, 0x3a3020]);                                                      // base
+  });
+  // ...and the triangular rift that tears open when they're all out (rotated and tinted in main.js)
+  pixSprite(scene, 'w_tri', 60, 54, p => {
+    p.poly([[30, 1], [59, 52], [1, 52]], [0xc8a8ff, 0x8a5ad8, 0x4a2a8a]);
+    p.poly([[30, 10], [51, 47], [9, 47]], [0x5a2a9a, 0x3a1a6a, 0x1a0a30]);
+    p.poly([[30, 19], [43, 42], [17, 42]], [0xd8b0ff, 0xa060ff, 0x6a30c8]);
+    p.poly([[30, 27], [36, 38], [24, 38]], [0xffffff, 0xf0e0ff, 0xd8b0ff]);
+  }, 2);
 }
 
 // ---------------------------------------------------------------- extra art (all drawn with code)
@@ -815,7 +831,7 @@ class SelectScene extends Phaser.Scene {
       { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 },
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
       { id: 'zerog2', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM II', blurb: bonus },
-      { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the black hole on level 3. Comes out at level 7.' },
+      { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the Triangle on level 3. Comes out at level 7.' },
       { id: 'zerog3', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: ZERO-G ROOM III', blurb: bonus }
     ];
   }
@@ -943,7 +959,7 @@ class SelectScene extends Phaser.Scene {
         }
         // a touch of character per world (animated in update)
         if (n.id === 4 && open) this.flair.push({ kind: 'flames', x: p.x, y: p.y, r });
-        if (n.id === 5) this.flair.push({ kind: 'ring', x: p.x, y: p.y, r, open });
+        if (n.id === 3) this.flair.push({ kind: 'ring', x: p.x, y: p.y, r, open });
         if (n.id === 2 && open) this.flair.push({ kind: 'drips', x: p.x, y: p.y, r });
         if (n.id === 7 && open) { const s = this.add.image(p.x, p.y, 'ratship').setScale(0.16); this.ui.add(s); this.flair.push({ kind: 'orbit', x: p.x, y: p.y, r, s }); }
         if (n.id === 9) {                                          // Bessie's UFO, hovering over the last world: the goal
@@ -985,8 +1001,14 @@ class SelectScene extends Phaser.Scene {
     const tb = (y, label, fn) => { const b = this.add.text(W - 8, y, label, f(6, '#1a1020', { backgroundColor: '#7dff8a', padding: { x: 5, y: 4 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }); b.on('pointerup', fn); this.ui.add(b); this.testBtns.push(b); return b; };
     const next = [2, 3, 4, 5, 6, 7, 8, 9].find(id => !this.isOpen(id));
     if (next) tb(8, 'TEST: OPEN LEVEL ' + next, () => { Progress.setBest(next - 1); Sound.sfx('power'); this.build(); });
+    this.clearBtn = tb(28, '', () => {                              // 'clear' the picked stop (opens whatever comes after it, secret routes too)
+      const id = this.sel;
+      if (id === 5.5) { try { localStorage.setItem('lc_sbeat_5.5', '1'); } catch (e) { /* ignore */ } }
+      else if (typeof id === 'number') Progress.setBest(Math.max(Progress.best, id));
+      Sound.sfx('power'); this.build();
+    });
     this.secretBtn = tb(28, '', () => { const w = LEVELS[this.sel] && LEVELS[this.sel].warp; if (w) { Progress.find(w.to); Sound.sfx('power'); this.build(); } });
-    if (Progress.best > 0 || Progress.found(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
+    if (Progress.best > 0 || Progress.found(5.5) || Progress.secretBeat(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
     this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
     this.buildInfo();
   }
@@ -998,6 +1020,8 @@ class SelectScene extends Phaser.Scene {
     if (this.secretBtn) {                                          // the TEST secret-warp button shows on a level that has a warp in it
       const w = L && L.warp, show = !!w && !Progress.found(w.to);
       this.secretBtn.setVisible(show).setText(show ? 'TEST: OPEN SECRET ' + (LEVELS[w.to].short || w.to) : '');
+      const id = this.sel, canClear = id === 5.5 ? !Progress.secretBeat(5.5) : (typeof id === 'number' && Progress.best < id && id < 9);
+      this.clearBtn.setVisible(canClear).setText(canClear ? 'TEST: CLEAR ' + (id === 5.5 ? 'FONDUE FOUNTAIN' : 'LV ' + id) : '');
       let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
     }
     const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(190, W * 0.26), lw = W - 24 - rw;
