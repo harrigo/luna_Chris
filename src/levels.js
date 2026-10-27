@@ -806,11 +806,11 @@ class SelectScene extends Phaser.Scene {
   // Fountain, which skips 6 and comes out at 7. Only level 1 starts open; beating a stop opens the next.
   mapNodes() {
     return [
-      { id: 1, x: 0.07, y: 0.52 }, { id: 2, x: 0.17, y: 0.36 }, { id: 3, x: 0.27, y: 0.50 },
-      { id: 4, x: 0.40, y: 0.30 }, { id: 5, x: 0.51, y: 0.22 }, { id: 6, x: 0.62, y: 0.30 },
-      { id: 'zerog', x: 0.34, y: 0.76, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients to open the gun crate.' },
-      { id: 5.5, x: 0.62, y: 0.76, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFind the black hole on level 5. Skips ahead to level 7.' },
-      { id: 7, x: 0.73, y: 0.50 }, { id: 8, x: 0.83, y: 0.36 }, { id: 9, x: 0.93, y: 0.50 }
+      { id: 1, x: 0.07, y: 0.55 }, { id: 2, x: 0.18, y: 0.2 }, { id: 3, x: 0.29, y: 0.55 },
+      { id: 4, x: 0.40, y: 0.2 }, { id: 5, x: 0.51, y: 0.55 }, { id: 6, x: 0.62, y: 0.2 },
+      { id: 'zerog', x: 0.33, y: 1.02, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients to open the gun crate.' },
+      { id: 5.5, x: 0.61, y: 1.02, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFind the black hole on level 5. Skips ahead to level 7.' },
+      { id: 7, x: 0.73, y: 0.55 }, { id: 8, x: 0.84, y: 0.2 }, { id: 9, x: 0.94, y: 0.6 }
     ];
   }
   mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [3, 'zerog'], ['zerog', 4], [5, 5.5], [5.5, 7], [7, 8], [8, 9]]; }
@@ -852,61 +852,114 @@ class SelectScene extends Phaser.Scene {
     this.time.delayedCall(230, () => this.scene.start('weapons', { level: n }));     // next: choose a weapon (timer, not the fade event: that can be skipped)
   }
 
+  // a soft nebula for the backdrop and a sphere-shading overlay for the planets (canvas textures, made once)
+  mapTextures() {
+    if (!this.textures.exists('map_neb')) {
+      const t = this.textures.createCanvas('map_neb', 256, 128), c = t.getContext();
+      c.fillStyle = '#070a1c'; c.fillRect(0, 0, 256, 128);
+      for (const [x, y, r, col] of [[60, 40, 70, '90,40,150'], [150, 80, 80, '40,60,160'], [210, 30, 60, '150,40,110'], [110, 110, 60, '60,30,120'], [20, 100, 50, '30,80,140']]) {
+        const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(' + col + ',0.55)'); g.addColorStop(1, 'rgba(' + col + ',0)');
+        c.fillStyle = g; c.fillRect(0, 0, 256, 128);
+      }
+      t.refresh();
+    }
+    if (!this.textures.exists('map_shade')) {
+      const t = this.textures.createCanvas('map_shade', 64, 64), c = t.getContext();
+      const g = c.createRadialGradient(24, 22, 2, 32, 32, 32);
+      g.addColorStop(0, 'rgba(255,255,255,0.28)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(6,4,24,0.35)'); g.addColorStop(1, 'rgba(6,4,24,0.7)');
+      c.beginPath(); c.arc(32, 32, 32, 0, Math.PI * 2); c.fillStyle = g; c.fill(); t.refresh();
+    }
+  }
+
   build() {
     const W = this.scale.width, H = this.scale.height;
     this.ui.removeAll(true);
+    this.mapTextures();
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
     this.f = f;
-    this.ui.add(this.add.text(W / 2, Math.max(16, H * 0.05), 'ROUTE TO BESSIE', f(Math.min(20, W / 34), '#ffd23f', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5, 0));
-    this.nodes = this.mapNodes(); this.ids = this.nodes.map(n => n.id);
-    const top = H * 0.2, mh = H * 0.56, R = Math.max(12, Math.min(24, Math.min(W, H) * 0.055));
+    if (this.nebImg) this.nebImg.destroy();
+    this.nebImg = this.add.image(0, 0, 'map_neb').setOrigin(0).setDisplaySize(W, H).setDepth(-1);
+    // the title, in a framed banner
+    const tw = Math.min(W * 0.46, 380), th = Math.max(26, H * 0.085), tx = W / 2 - tw / 2, ty = 6;
+    const ban = this.add.graphics();
+    ban.fillStyle(0x000000, 0.4).fillRect(tx + 4, ty + 4, tw, th);
+    ban.fillStyle(0x141a44, 1).fillRect(tx, ty, tw, th);
+    ban.lineStyle(3, 0xffd23f, 1).strokeRect(tx, ty, tw, th); ban.lineStyle(1, 0x5a78d8, 1).strokeRect(tx + 4, ty + 4, tw - 8, th - 8);
+    this.ui.add(ban);
+    this.ui.add(this.add.text(W / 2, ty + th / 2 + 1, 'ROUTE TO BESSIE', f(Math.round(Math.min(18, th * 0.55, tw / 17)), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 4 })).setOrigin(0.5));
+    this.bannerBox = { tx, ty, tw, th };
+    // the map: only the stops you can see (secret ones appear once they're found)
+    this.nodes = this.mapNodes().filter(n => !n.kind || this.isOpen(n.id)); this.ids = this.nodes.map(n => n.id);
+    const panelH = Math.min(H * 0.24, 96), y0p = H - 6 - panelH;            // (the info panels along the bottom)
+    const top = ty + th + Math.max(34, H * 0.1), mh = (y0p - 30 - top) / 1.02, R = Math.round(Math.max(13, Math.min(32, W * 0.034, H * 0.075)));
+    this.panelY = y0p;
     this.nodeR = R;
     this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };
-    this.hit = {};
+    this.hit = {}; this.flair = [];
     for (const n of this.nodes) {
-      const p = this.pos(n.id), g = this.add.graphics(), L = LEVELS[n.id], open = this.isOpen(n.id);
-      if (!open) {                                                // not reached yet: a dark sphere with a padlock
-        g.fillStyle(0x2a3058, 1).fillCircle(p.x, p.y, R * 0.8); g.lineStyle(2, 0x4a5488, 1).strokeCircle(p.x, p.y, R * 0.8);
-        g.lineStyle(3, 0x8a94b8, 1).strokeCircle(p.x, p.y - R * 0.22, R * 0.22);
-        g.fillStyle(0x8a94b8, 1).fillRect(p.x - R * 0.34, p.y - R * 0.12, R * 0.68, R * 0.5); g.fillStyle(0x2a3058, 1).fillRect(p.x - 1, p.y, 2, R * 0.2);
-      } else if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
-        g.fillStyle(0xffd23f, 0.18).fillCircle(p.x, p.y, R + 6);
-        const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? R * 0.45 : R; pts.push({ x: p.x + Math.cos(a) * r, y: p.y + Math.sin(a) * r }); }
+      const p = this.pos(n.id), L = LEVELS[n.id], open = this.isOpen(n.id), r = n.kind ? R * 0.8 : R;
+      const g = this.add.graphics();
+      if (n.kind === 'bonus') {                                   // bonus stage: a spinning gold star in a ring
+        g.fillStyle(0xffd23f, 0.18).fillCircle(p.x, p.y, r + 6);
+        const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; pts.push({ x: p.x + Math.cos(a) * rr, y: p.y + Math.sin(a) * rr }); }
         g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true); g.fillStyle(0xffd23f, 1).fillPoints(pts, true);
-      } else if (n.kind === 'warp') {                              // warp zone: a swirling portal
-        g.fillStyle(0xff7a2a, 0.2).fillCircle(p.x, p.y, R + 6);
-        for (let k = 0; k < 4; k++) g.lineStyle(3, [0xff7a2a, 0xffd23f, 0xff4a7a, 0xffffff][k], 1).strokeCircle(p.x, p.y, R - k * R * 0.22);
-      } else if (L) {                                              // a planet
-        g.fillStyle(L.planet.glow, 0.18).fillCircle(p.x, p.y, R + 6);
-        g.fillStyle(L.planet.fill, 1).fillCircle(p.x, p.y, R);
-        g.fillStyle(L.planet.inner, 1).fillCircle(p.x - R * 0.25, p.y + R * 0.2, R * 0.55);
-        g.lineStyle(2, L.planet.rim, 1).strokeCircle(p.x, p.y, R);
+        this.ui.add(g);
+      } else if (n.kind === 'warp') {                              // warp zone: a swirling portal (spun in update)
+        this.flair.push({ kind: 'portal', x: p.x, y: p.y, r });
+      } else {                                                     // a real little planet: the level's own surface, shaded into a sphere
+        g.fillStyle(L.planet.glow, open ? 0.22 : 0.06).fillCircle(p.x, p.y, r + 7);
+        this.ui.add(g);
+        const img = this.add.image(p.x, p.y, 'surf' + n.id).setDisplaySize(r * 2, r * 2);
+        if (!open) img.setTint(0x2a3050);
+        this.ui.add(img);
+        this.ui.add(this.add.image(p.x, p.y, 'map_shade').setDisplaySize(r * 2 + 1, r * 2 + 1));
+        const rim = this.add.graphics(); rim.lineStyle(2, open ? L.planet.rim : 0x3a4270, open ? 0.9 : 1).strokeCircle(p.x, p.y, r); this.ui.add(rim);
+        if (!open) {                                               // padlock
+          const k = this.add.graphics();
+          k.lineStyle(3, 0x9aa4c8, 1).strokeCircle(p.x, p.y - r * 0.2, r * 0.22);
+          k.fillStyle(0x9aa4c8, 1).fillRect(p.x - r * 0.34, p.y - r * 0.1, r * 0.68, r * 0.5); k.fillStyle(0x2a3058, 1).fillRect(p.x - 1, p.y + r * 0.02, 2, r * 0.22);
+          this.ui.add(k);
+        }
+        // a touch of character per world (animated in update)
+        if (n.id === 4 && open) this.flair.push({ kind: 'flames', x: p.x, y: p.y, r });
+        if (n.id === 5) this.flair.push({ kind: 'ring', x: p.x, y: p.y, r, open });
+        if (n.id === 2 && open) this.flair.push({ kind: 'drips', x: p.x, y: p.y, r });
+        if (n.id === 7 && open) { const s = this.add.image(p.x, p.y, 'ratship').setScale(0.16); this.ui.add(s); this.flair.push({ kind: 'orbit', x: p.x, y: p.y, r, s }); }
+        if (n.id === 9) {                                          // Bessie's UFO, hovering over the last world: the goal
+          const beam = this.add.image(p.x, p.y - r - 30, 'beam0').setOrigin(0.5, 0).setScale(0.32, 0.22).setAlpha(0.7);
+          const cow = this.add.image(p.x, p.y - r - 14, 'bessie').setScale(0.26);
+          const ufo = this.add.image(p.x, p.y - r - 34, 'ratship').setScale(0.5);
+          this.ui.add([beam, cow, ufo]); this.flair.push({ kind: 'ufo', x: p.x, y: p.y, r, beam, cow, ufo });
+        }
       }
-      this.ui.add(g);
-      const lab = !open && n.kind ? '?' : n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : String(n.id);
-      this.ui.add(this.add.text(p.x, p.y + R + 6, lab, f(8, !open ? '#5a6488' : n.kind ? '#ffd23f' : '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0));
+      // labels: "LV. 3" over the world's name (??? until it's open). Secret stops label to the side.
+      const side = !!n.kind, lx = side ? p.x + r + 8 : p.x, ly = side ? p.y - 8 : p.y + r + 6, org = side ? 0 : 0.5;
+      const top1 = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : 'LV. ' + n.id;
+      const name = n.kind === 'bonus' ? 'ZERO-G ROOM' : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
+      this.ui.add(this.add.text(lx, ly, top1, f(7, open ? '#ffd23f' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
+      this.ui.add(this.add.text(lx, ly + 11, name, f(6, open ? '#ffffff' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3, align: side ? 'left' : 'center', lineSpacing: 3, wordWrap: { width: side ? 80 : Math.max(60, W * 0.1) } })).setOrigin(org, 0));
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
-      if (rk) this.ui.add(this.add.text(p.x + R * 0.8, p.y - R * 0.9, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
-      const z = this.add.zone(p.x - R - 8, p.y - R - 8, R * 2 + 16, R * 2 + 26).setOrigin(0).setInteractive({ useHandCursor: true });
+      if (rk) this.ui.add(this.add.text(p.x + r * 0.85, p.y - r * 0.85, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
+      const z = this.add.zone(p.x - r - 10, p.y - r - 10, r * 2 + 20, r * 2 + 36).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
       z.on('pointerup', () => { if (!open) { Sound.sfx('clunk'); return; } if (this.sel === n.id) this.go(n.id); else { this.sel = n.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); } });   // tap to pick, tap again to go
       this.ui.add(z);
     }
     if (!this.ids.includes(this.sel) || !this.isOpen(this.sel)) this.sel = 1;
-    // TEST buttons (top right): open the next stop on the road, open a level's secret warp, lock everything again
-    this.testBtns = [];
-    const tb = (y, label, fn) => { const b = this.add.text(W - 10, y, label, f(7, '#1a1020', { backgroundColor: '#7dff8a', padding: { x: 6, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }); b.on('pointerup', fn); this.ui.add(b); this.testBtns.push(b); return b; };
-    const next = [2, 3, 4, 5, 6, 7, 8, 9].find(id => !this.isOpen(id));
-    if (next) tb(10, 'TEST: OPEN LEVEL ' + next, () => { Progress.setBest(next - 1); Sound.sfx('power'); this.build(); });
-    this.secretBtn = tb(32, '', () => { const w = LEVELS[this.sel] && LEVELS[this.sel].warp; if (w) { Progress.find(w.to); Sound.sfx('power'); this.build(); } });
-    if (Progress.best > 0 || Progress.found(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
-    const back = this.add.text(12, 12, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
+    const back = this.add.text(10, 10, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
+    // TEST buttons (top right): open the next stop on the road, open a level's secret warp, lock everything again
+    this.testBtns = [];
+    const tb = (y, label, fn) => { const b = this.add.text(W - 8, y, label, f(6, '#1a1020', { backgroundColor: '#7dff8a', padding: { x: 5, y: 4 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }); b.on('pointerup', fn); this.ui.add(b); this.testBtns.push(b); return b; };
+    const next = [2, 3, 4, 5, 6, 7, 8, 9].find(id => !this.isOpen(id));
+    if (next) tb(8, 'TEST: OPEN LEVEL ' + next, () => { Progress.setBest(next - 1); Sound.sfx('power'); this.build(); });
+    this.secretBtn = tb(28, '', () => { const w = LEVELS[this.sel] && LEVELS[this.sel].warp; if (w) { Progress.find(w.to); Sound.sfx('power'); this.build(); } });
+    if (Progress.best > 0 || Progress.found(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
     this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
     this.buildInfo();
   }
-  // the panel along the bottom: the stop you've picked
+  // the panels along the bottom: the stop you've picked (left), lives and golden wheels (right)
   buildInfo() {
     if (!this.infoBox) return;
     const W = this.scale.width, H = this.scale.height, f = this.f, n = this.nodes.find(q => q.id === this.sel) || this.nodes[0], L = LEVELS[n.id];
@@ -914,31 +967,85 @@ class SelectScene extends Phaser.Scene {
     if (this.secretBtn) {                                          // the TEST secret-warp button shows on a level that has a warp in it
       const w = L && L.warp, show = !!w && !Progress.found(w.to);
       this.secretBtn.setVisible(show).setText(show ? 'TEST: OPEN SECRET ' + (LEVELS[w.to].short || w.to) : '');
-      let y = 10; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 22; }
+      let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
     }
-    const y0 = H * 0.80;
-    const name = n.name || ('LEVEL ' + n.id + '  ' + L.short), blurb = n.blurb || L.blurb;
-    this.infoBox.add(this.add.text(W / 2, y0, name, f(10, n.kind ? '#ffd23f' : '#9fd8ff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(0.5, 0));
-    this.infoBox.add(this.add.text(W / 2, y0 + 18, blurb, f(7, '#c8cde0', { align: 'center', lineSpacing: 5, wordWrap: { width: W - 40 } })).setOrigin(0.5, 0));
-    if (typeof n.id === 'number' && !n.kind) { const wm = Progress.wheels(n.id); for (let k = 0; k < 3; k++) this.infoBox.add(this.add.image(W - 70 + k * 16, y0 + 6, 'goldwheel').setScale(0.55).setAlpha(wm & (1 << k) ? 1 : 0.2)); }
-    this.infoBox.add(this.add.text(W / 2, H - 6, Pad.state.connected ? 'A: GO' : 'TAP AGAIN TO GO', f(8, '#6b7390')).setOrigin(0.5, 1));
+    const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(190, W * 0.26), lw = W - 24 - rw;
+    const panel = (x, y, w, h) => {
+      const g = this.add.graphics();
+      g.fillStyle(0x000000, 0.35).fillRect(x + 3, y + 3, w, h);
+      g.fillStyle(0x0e1434, 0.94).fillRect(x, y, w, h);
+      g.lineStyle(3, 0x3a5aa8, 1).strokeRect(x, y, w, h); g.lineStyle(1, 0x1a2458, 1).strokeRect(x + 4, y + 4, w - 8, h - 8);
+      this.infoBox.add(g);
+    };
+    panel(8, y0, lw, ph); panel(W - 8 - rw, y0, rw, ph);
+    // left: a framed thumbnail of the world, its name, blurb, rank and wheels
+    const ts = Math.min(ph - 16, 54), tx = 16, ty = y0 + (ph - ts) / 2;
+    const fr = this.add.graphics(); fr.fillStyle(0x070a1c, 1).fillRect(tx, ty, ts, ts); fr.lineStyle(2, 0xb9c4e8, 1).strokeRect(tx, ty, ts, ts); this.infoBox.add(fr);
+    if (!n.kind) { this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'surf' + n.id).setDisplaySize(ts - 12, ts - 12)); this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'map_shade').setDisplaySize(ts - 11, ts - 11)); }
+    else this.infoBox.add(this.add.text(tx + ts / 2, ty + ts / 2, n.kind === 'bonus' ? 'BONUS' : 'WARP', f(8, '#ffd23f')).setOrigin(0.5));
+    const name = n.name || ('LV ' + n.id + ': ' + L.short), blurb = n.blurb || L.blurb, x1 = tx + ts + 12;
+    this.infoBox.add(this.add.text(x1, y0 + 10, name, f(10, '#ffd23f', { stroke: '#1a1020', strokeThickness: 4 })));
+    this.infoBox.add(this.add.text(x1, y0 + 27, blurb, f(7, '#c8cde0', { lineSpacing: 5, wordWrap: { width: lw - (x1 - 8) - 14 } })));
+    if (typeof n.id === 'number' && !n.kind) {
+      const wm = Progress.wheels(n.id), rk = Progress.rank(n.id);
+      for (let k = 0; k < 3; k++) this.infoBox.add(this.add.image(8 + lw - 54 + k * 16, y0 + 15, 'goldwheel').setScale(0.55).setAlpha(wm & (1 << k) ? 1 : 0.2));
+      if (rk) this.infoBox.add(this.add.text(8 + lw - 72, y0 + 15, rk, f(10, '#ffd23f', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
+    }
+    this.infoBox.add(this.add.text(8 + lw - 10, y0 + ph - 8, Pad.state.connected ? 'A: GO' : 'TAP AGAIN TO GO', f(6, '#6b7390')).setOrigin(1, 1));
+    // right: lives and how many golden cheese wheels you've found in total
+    const lives = this.registry.get('lives') > 0 ? this.registry.get('lives') : CFG.startLives;
+    let wheels = 0; for (let i = 1; i <= 9; i++) wheels += Progress.wheelCount(i);
+    const rx = W - rw + 2, half = ph / 2;
+    this.infoBox.add(this.add.text(rx, y0 + half * 0.5 + 2, 'LIVES: ' + lives, f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0, 0.5));
+    for (let k = 0; k < Math.min(3, lives); k++) this.infoBox.add(this.add.image(W - 30 - k * 18, y0 + half * 0.5 + 2, 'wedge').setScale(0.9));
+    this.infoBox.add(this.add.text(rx, y0 + half * 1.5 - 2, 'WHEELS: ' + wheels + '/27', f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0, 0.5));
+    this.wheelIcon = this.add.image(W - 30, y0 + half * 1.5 - 2, 'goldwheel').setScale(0.8); this.infoBox.add(this.wheelIcon);
   }
 
   update(time) {
     const W = this.scale.width, H = this.scale.height, g = this.bg;
     const dt = Math.min(0.05, ((time - (this.lastT || time)) / 1000) || 0.016); this.lastT = time;
     g.clear();
-    for (const s of this.stars) { g.fillStyle(0xffffff, 0.35 + 0.35 * Math.sin(time / 600 + s.tw)).fillRect(s.x * W, s.y * H, s.s, s.s); }
-    if (this.pos) for (const [a, b] of this.mapLinks()) {        // the routes: dotted lines with dots marching along them
-      const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 9);
-      const bonus = [a, b].some(id => id === 'zerog' || id === 5.5), shut = !this.isOpen(a) || !this.isOpen(b);
-      if (shut) { for (let k = 1; k < n; k += 2) { const u = k / n; g.fillStyle(0x3a4270, 0.5).fillRect(Math.round(A.x + (B.x - A.x) * u) - 1, Math.round(A.y + (B.y - A.y) * u) - 1, 2, 2); } continue; }
-      for (let k = 1; k < n; k++) { const u = k / n, x = A.x + (B.x - A.x) * u, y = A.y + (B.y - A.y) * u; const lit = ((k - time / 120) % 6 + 6) % 6 < 1; g.fillStyle(lit ? 0xffffff : (bonus ? 0xffb52a : 0x5a78d8), lit ? 0.9 : 0.6).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+    // twinkling stars, a few of them four-point sparkles
+    for (const [i, s] of this.stars.entries()) {
+      const a = 0.35 + 0.35 * Math.sin(time / 600 + s.tw), x = s.x * W, y = s.y * H;
+      if (i % 9 === 0) { const l = 2 + 3 * (0.5 + 0.5 * Math.sin(time / 400 + s.tw)); g.fillStyle(0xfff3c0, a + 0.2).fillRect(x - l, y, l * 2 + 1, 1).fillRect(x, y - l, 1, l * 2 + 1); }
+      else g.fillStyle(0xffffff, a).fillRect(x, y, s.s, s.s);
     }
+    // the routes: chunky gold dots along a gentle curve, a bright pulse marching along; faint where it's still locked
+    if (this.pos) for (const [a, b] of this.mapLinks()) {
+      if (!this.ids.includes(a) || !this.ids.includes(b)) continue;          // a secret stop you haven't found: no route either
+      const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 10);
+      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => id === 'zerog' || id === 5.5);
+      const cx = (A.x + B.x) / 2 - (B.y - A.y) * 0.18, cy = (A.y + B.y) / 2 + (B.x - A.x) * 0.18;
+      for (let k = 1; k < n; k++) {
+        const u = k / n, iu = 1 - u, x = iu * iu * A.x + 2 * iu * u * cx + u * u * B.x, y = iu * iu * A.y + 2 * iu * u * cy + u * u * B.y;
+        if (Math.hypot(x - A.x, y - A.y) < this.nodeR + 10 || Math.hypot(x - B.x, y - B.y) < this.nodeR + 10) continue;   // start at the planets' edges
+        if (shut) { if (k % 2 === 0) g.fillStyle(0x3a4270, 0.6).fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2); continue; }
+        const lit = ((k - time / 110) % 7 + 7) % 7 < 1;
+        g.fillStyle(0x1a1020, 0.8).fillRect(Math.round(x) - 1, Math.round(y) - 1, 4, 4);
+        g.fillStyle(lit ? 0xffffff : (bonus ? 0xff9a3a : 0xffd23f), 1).fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
+      }
+    }
+    // each world's touch of character
     this.selG.clear();
+    const fx = this.selG;
+    for (const F of (this.flair || [])) {
+      if (F.kind === 'flames') for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + (k - 2) * 0.32, bx = F.x + Math.cos(a) * F.r * 0.92, by = F.y + Math.sin(a) * F.r * 0.92, hgt = F.r * (0.45 + 0.25 * Math.sin(time / 90 + k * 1.7));
+        fx.fillStyle(0xff4a1a, 0.9).fillTriangle(bx - 4, by + 2, bx + 4, by + 2, bx + Math.cos(a) * hgt, by + Math.sin(a) * hgt);
+        fx.fillStyle(0xffd23f, 1).fillTriangle(bx - 2, by + 1, bx + 2, by + 1, bx + Math.cos(a) * hgt * 0.55, by + Math.sin(a) * hgt * 0.55);
+      }
+      if (F.kind === 'ring') { fx.lineStyle(2, F.open ? 0xe8e0c8 : 0x3a4270, 0.8).strokeEllipse(F.x, F.y, F.r * 3.1, F.r * 0.8); }
+      if (F.kind === 'drips') for (let k = 0; k < 3; k++) { const u = ((time / 1400 + k / 3) % 1), x = F.x + (k - 1) * F.r * 0.5; fx.fillStyle(0x7dff8a, 0.8 * (1 - u)).fillCircle(x, F.y + F.r * 0.85 + u * 14, 2); }
+      if (F.kind === 'orbit') { const a = time / 900; F.s.setPosition(F.x + Math.cos(a) * F.r * 1.5, F.y + Math.sin(a) * F.r * 0.5).setDepth(Math.sin(a) > 0 ? 2 : 0); }
+      if (F.kind === 'ufo') { const b = Math.sin(time / 500) * 3; F.ufo.setY(F.y - F.r - 34 + b).setRotation(Math.sin(time / 700) * 0.08); F.cow.setY(F.y - F.r - 14 + b * 0.5).setRotation(Math.sin(time / 300) * 0.2); F.beam.setY(F.y - F.r - 30 + b).setAlpha(0.5 + 0.25 * Math.sin(time / 120)); }
+      if (F.kind === 'portal') for (let k = 0; k < 4; k++) { fx.lineStyle(3, [0xff7a2a, 0xffd23f, 0xff4a7a, 0xffffff][(k + Math.floor(time / 140)) % 4], 1).strokeCircle(F.x, F.y, F.r * (1 - k * 0.22) + Math.sin(time / 200 + k) * 1.5); }
+    }
+    if (this.wheelIcon) this.wheelIcon.setScale(0.8 * Math.max(0.15, Math.abs(Math.cos(time / 500))), 0.8);
     if (this.pos && this.ids && this.ids.includes(this.sel)) {
-      const p = this.pos(this.sel), r = this.nodeR + 9 + Math.sin(time / 150) * 2;
-      this.selG.lineStyle(3, 0xffffff, 0.8).strokeCircle(p.x, p.y, r);
+      const p = this.pos(this.sel), r = this.nodeR + 8 + Math.sin(time / 150) * 2;
+      fx.lineStyle(3, 0xffffff, 0.85).strokeCircle(p.x, p.y, r);
       // Chris glides over to it (feet just above the planet), bobbing on his jetpack
       const tx = p.x, ty = p.y - this.nodeR - 8 + Math.sin(time / 260) * 3;
       if (this.rigX === null) { this.rigX = tx; this.rigY = ty; }
@@ -949,10 +1056,9 @@ class SelectScene extends Phaser.Scene {
       const sc = Math.max(0.38, Math.min(0.6, this.nodeR / 40));
       this.rig.update(P, dt, Math.round(this.rigX), Math.round(this.rigY), sc, 1, 0);
       this.rig.root.setRotation(Math.max(-0.35, Math.min(0.35, vx / 900)));
-      // jet flame puffing out of the pack
       const jx = this.rigX - P.facing * 9 * sc, jy = this.rigY - 18 * sc, fl = 1 + 0.35 * Math.sin(time / 30);
-      this.selG.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 4 * sc, jy, jx + 4 * sc, jy, jx, jy + 16 * sc * fl);
-      this.selG.fillStyle(0xffe27a, 1).fillTriangle(jx - 2 * sc, jy, jx + 2 * sc, jy, jx, jy + 9 * sc * fl);
+      fx.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 4 * sc, jy, jx + 4 * sc, jy, jx, jy + 16 * sc * fl);
+      fx.fillStyle(0xffe27a, 1).fillTriangle(jx - 2 * sc, jy, jx + 2 * sc, jy, jx, jy + 9 * sc * fl);
     }
   }
 }

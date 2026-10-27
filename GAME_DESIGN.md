@@ -1002,3 +1002,11 @@ Built from the brief (`makeGorgeTextures`):
 - **TEST buttons** (top right, green): OPEN LEVEL n (the next locked one), OPEN SECRET … (shows when the picked level has a warp in it), LOCK ALL (back to just level 1).
 - **D-pad follows the routes:** left/right go to the previous/next stop along a route (main road first at a fork), up/down switch between the road and a detour.
 - **Luna Chris jetpacks between stops,** bobbing over the picked one with a flickering flame, tilting as he flies.
+
+### v1.44 — route map spiced up
+- Nebula backdrop with twinkling four-point sparkles; ROUTE TO BESSIE in a framed gold banner.
+- Each stop is the level's own pixel planet (its `surf` texture), sphere-shaded, with a glow; locked ones are darkened with a padlock and read LV. n / ???.
+- World touches: flames on Mount Mozzarella, a ring round the Brie-muda Triangle, goop drips on Gorgonzola, a rat ship orbiting the Armada, and Bessie in the rat UFO's beam hovering over Parmesan Prime (the goal).
+- Routes are chunky gold dots on gentle curves with a pulse marching along (orange on detours, faint while locked), starting at the planets' edges.
+- **Secret stops are hidden** (no node, no route) until found: the bonus room after level 3 is beaten, the warp once its black hole is found.
+- Bottom panels: the picked world (thumbnail, name, blurb, rank, its 3 wheels) and LIVES + total golden WHEELS found / 27.
