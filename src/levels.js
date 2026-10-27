@@ -86,10 +86,9 @@ const LEVELS = {
 
   3: {
     id: 3, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
-    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'GET BEHIND THE SHIELD-RATS! WATCH THE CLAW!',
+    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
-    clawDrops: { every: [3.5, 5.5], max: 4 },                      // the Claw drops cheese blocks: crush hazard, then cover you can stand on / shoot apart
     geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
     dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
@@ -110,7 +109,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
       { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
     ],
-    boss: { tex: 'mandoline', hp: 120, ai: 'mandoline' },
+    boss: { tex: 'mandoline', hp: 150, ai: 'mandoline' },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nMore levels coming soon...'
   },
 
@@ -513,17 +512,41 @@ function makeLevelTextures(scene) {
   });
   pixSprite(scene, 'chainlink', 8, 8, a => { a.ell(4, 4, 3, 3, [0xc8d0dc, 0x8a92a2, 0x4a5262]); a.ell(4, 4, 1.2, 1.2, -1); });
 
-  // boss: the Mega-Mandoline, a giant steel grater with spinning slicer blades
-  pixSprite(scene, 'mandoline', 130, 96, a => {
-    a.rrect(0, 40, 10, 64, 3, [0x5a6272, 0x3b4252, 0x23283a]); a.rrect(120, 40, 130, 64, 3, [0x5a6272, 0x3b4252, 0x23283a]);   // handles
-    a.rrect(6, 6, 124, 90, 9, [0x7a8494, 0x59616d, 0x3b4252]);
-    a.rrect(14, 12, 116, 84, 7, [0xdfe6f0, 0xaab4c4, 0x7a8698]);
-    for (let y = 22; y < 80; y += 11) for (let x = 24; x < 108; x += 14) { const xx = x + ((y / 11) % 2) * 7; a.ell(xx, y, 3, 2.6, 0x3b4252); a.px(xx, y + 2, 0xf2f6fc); }   // grater holes
-    a.rect(14, 56, 116, 61, 0xf2f6fc); a.rect(14, 61, 116, 62, 0x7a8698);                                      // blade slot
-    a.ell(65, 38, 12, 12, [0xff8a8a, 0xff3030, 0xa01010]); a.rect(60, 33, 62, 35, 0xffffff);                  // angry eye
-    a.line([[46, 22], [62, 28]], OUTPX, 4); a.line([[84, 22], [68, 28]], OUTPX, 4);
-    a.rrect(36, 66, 94, 78, 3, 0xd62828); a.rect(36, 66, 94, 67, 0xff6a6a);
-    for (let i = 0; i < 6; i++) a.poly([[40 + i * 9, 66], [48 + i * 9, 66], [44 + i * 9, 74]], 0xffffff);
+  // boss: the Mega-Mandoline, a giant box grater. A carry handle on top, angry brow plates over one big red laser
+  // eye in a chrome bezel, a slicer slot full of teeth, rows of raised grater holes, a brass cog, wires, rivets and
+  // shoulder sockets for its robot arms (the arms, the eye glow and the laser are drawn in mandoline.js)
+  pixSprite(scene, 'mandoline', 120, 128, a => {
+    const DARK = [0x7a8494, 0x4a5262, 0x2a3040], STEEL = [0xf2f6fc, 0xb4bece, 0x7a8698];
+    a.rrect(36, 0, 84, 18, 7, DARK); a.rrect(44, 5, 76, 12, 3, -1);                                          // carry handle
+    a.rect(40, 14, 80, 18, 0x3b4252);
+    a.poly([[16, 14], [104, 14], [119, 127], [1, 127]], DARK);                                                // the body: a tapered box
+    a.poly([[19, 17], [101, 17], [115, 124], [5, 124]], STEEL);
+    a.rect(19, 17, 101, 22, 0x8a94a4); for (let x = 24; x < 98; x += 9) a.px(x, 19, 0xf2f6fc);                   // top band + rivets
+    const edge = y => 19 - 14 * (y - 17) / 107;                                                                // left edge of the face at height y
+    for (let r = 0, y = 70; y < 120; y += 8, r++) {                                                            // raised grater holes, staggered
+      const lx = edge(y) + 9, rx = 120 - lx;
+      for (let x = lx + (r % 2) * 6; x < rx - 3; x += 12) { a.ell(x, y, 3.6, 2.6, 0xffffff); a.ell(x, y + 1, 2.6, 1.6, 0x1c2232); a.px(x - 2, y + 2, 0x8a94a4); }
+    }
+    a.poly([[edge(58) + 4, 58], [116 - edge(58), 58], [116 - edge(64), 64], [edge(64) + 4, 64]], 0x1c2232);      // the slicer slot...
+    a.line([[edge(58) + 6, 58], [114 - edge(58), 58]], 0xffffff);
+    for (let x = edge(64) + 8; x < 110 - edge(64); x += 6) a.poly([[x, 63], [x + 4, 63], [x + 2, 67]], [0xffffff, 0xd8e0ec, 0x9aa4b4]);   // ...with serrated teeth
+    a.ell(60, 40, 16, 16, [0xffffff, 0x9aa4b4, 0x3b4252]); a.ell(60, 40, 12.5, 12.5, 0x1c2232);                // the eye: chrome bezel...
+    a.ell(60, 40, 11, 11, [0xff9a9a, 0xff2020, 0x8a0a0a]); a.ell(60, 40, 4.5, 4.5, [0xffe0e0, 0xffb0b0, 0xff6060]);   // ...red lens, hot core
+    a.rect(53, 33, 55, 35, 0xffffff); a.px(57, 32, 0xffffff);
+    a.poly([[30, 21], [54, 28], [54, 32], [28, 25]], DARK); a.poly([[90, 21], [66, 28], [66, 32], [92, 25]], DARK);   // angry brow plates
+    a.ell(24, 46, 8, 8, [0xffe08a, 0xd0962a, 0x7a5414]);                                                       // brass cog
+    for (let i = 0; i < 8; i++) { const t = i / 8 * Math.PI * 2; a.rect(Math.round(24 + Math.cos(t) * 9) - 1, Math.round(46 + Math.sin(t) * 9) - 1, Math.round(24 + Math.cos(t) * 9) + 1, Math.round(46 + Math.sin(t) * 9) + 1, 0xd0962a); }
+    a.ell(24, 46, 2.5, 2.5, 0x3b4252);
+    a.line([[92, 30], [99, 38], [100, 50]], 0xe03030); a.line([[95, 30], [103, 40], [104, 52]], 0x3a8aff);      // wires
+    a.ell(9, 64, 7, 7, DARK); a.ell(9, 64, 3, 3, 0x1c2232); a.ell(111, 64, 7, 7, DARK); a.ell(111, 64, 3, 3, 0x1c2232);   // shoulder sockets
+    a.line([[30, 100], [36, 103]], 0x7a8698); a.line([[86, 84], [92, 82]], 0x7a8698); a.px(70, 110, 0x7a8698);   // dents and scratches
+  }, 2);
+  // a mandoline slicer blade, flung down from the slot during the waves (falls edge first)
+  pixSprite(scene, 'mblade', 24, 44, a => {
+    a.rect(5, 0, 19, 5, 0x3b4252); a.ell(8, 3, 1.5, 1.5, 0x9aa4b4); a.ell(16, 3, 1.5, 1.5, 0x9aa4b4);
+    a.poly([[3, 5], [21, 5], [21, 30], [12, 42], [3, 30]], [0xf2f6fc, 0xb4bece, 0x6a7688]);
+    a.line([[3, 30], [12, 42], [21, 30]], 0xffffff); a.line([[7, 10], [7, 26]], 0xffffff);
+    for (const y of [14, 22]) a.ell(15, y, 2.2, 1.6, 0x3b4252);
   }, 2);
 
   // enemy bullets

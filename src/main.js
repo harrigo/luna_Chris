@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.41';
+const BUILD = 'v1.42';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -306,7 +306,7 @@ class Level1 extends Phaser.Scene {
       this.embers = this.add.particles(0, 0, 'spark', { x: { min: 0, max: this.scale.width }, y: this.scale.height + 10, lifespan: 4500, speedY: { min: -60, max: -20 }, speedX: { min: -14, max: 14 }, scale: { start: 0.9, end: 0.2 },
         alpha: { start: 1, end: 0 }, tint: [0xff8a2a, 0xffd23f, 0xff4a1a], blendMode: 'ADD', frequency: 70 }).setDepth(0.45).setScrollFactor(0);
     } else if (this.def.bgDecor === 'factory') {        // level 3: the cheese factory. Rusty cogs turning in the dark, meshing in pairs,
-      makeFactoryTextures(this);                         // and the great claw holding a block of cheese that sheds gratings
+      makeFactoryTextures(this);                         // (the Mega-Mandoline itself lurks overhead: mandoline.js)
       const cogs = [['cog_big', 2.6, 0x8a5a3a, 0.55, 0.12], ['cog_mid', 2.4, 0x6a7488, 0.6, 0.13], ['cog_big', 3.2, 0x5a3a2a, 0.4, 0.08], ['cog_small', 2.6, 0x9a6a3a, 0.7, 0.16],
                     ['cog_mid', 3, 0x4a5262, 0.45, 0.1], ['cog_big', 2.2, 0x7a4a2a, 0.6, 0.14], ['cog_small', 2.4, 0x6a7488, 0.65, 0.15], ['cog_mid', 2.8, 0x8a5a3a, 0.5, 0.11]];
       cogs.forEach(([k, sc, tint, al, kk], i) => {
@@ -318,9 +318,6 @@ class Level1 extends Phaser.Scene {
           this.bgStars.push({ s: s2, a: a + 0.13, r: r + 0.05, k: kk, rv: -spin * 2.4 });
         }
       });
-      const claw = this.add.image(0, 0, 'claw').setDepth(0.5).setScale(1.3).setOrigin(0.5, 0.75);
-      const crumbs = this.add.particles(0, 0, 'crumb', { lifespan: 1400, speed: { min: 5, max: 30 }, scale: { start: 0.9, end: 0.5 }, alpha: { start: 1, end: 0 }, frequency: 60, quantity: 2, gravityY: 180 }).setDepth(0.49);
-      this.bgStars.push({ s: claw, a: 0.6, r: 0.26, k: 0.3, radial: true, emit: crumbs });
     } else if (this.def.bgDecor === 'gears') {          // level 3: huge slow gears in the haze
       for (let i = 0; i < 9; i++) {
         const s = this.add.image(0, 0, 'gear').setDepth(0).setTint(i % 2 ? 0x7a3a1c : 0x4a4f5a).setAlpha(rnd(0.16, 0.3)).setScale(rnd(0.7, 2.0));
@@ -398,7 +395,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
       for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
     }
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1366,6 +1363,7 @@ class Level1 extends Phaser.Scene {
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
+      if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -3581,18 +3579,8 @@ class Level1 extends Phaser.Scene {
           }
         } else if (e.ai === 'baron') {
           this.baronAI(e, dt, phase2, toP, distP);
-        } else if (e.ai === 'mandoline') {
-          if (e.rainCd <= 0) {          // a slicing disc skimming the floor: jump it
-            e.rainCd = phase2 ? 1.6 : 2.4;
-            this.addEBullet('blade', e.theta, 14, dirP * (phase2 ? 320 : 270), 0, 11, 3);
-            Sound.sfx('zing');
-          }
-          if (e.fanCd <= 0) {           // discs at different heights
-            e.fanCd = phase2 ? 3 : 4.2;
-            Sound.sfx('fan');
-            for (const hh of (phase2 ? [14, 70, 125] : [14, 95])) this.addEBullet('blade', e.theta, hh, dirP * 250, 0, 11, 3);
-          }
-          if (e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = phase2 ? 7 : 10; this.spawnEnemy('drone'); }
+        } else if (e.ai === 'mandoline') {              // L3: see mandoline.js (laser eye, claw slams, three acts)
+          this.mandoAI(e, dt, P, dirP);
         } else if (e.ai === 'oven') {                    // L4: homing pepperoni from the side chutes, and a fan of molten cheese from the mouth
           if (e.rainCd <= 0) {
             e.rainCd = phase2 ? 1.2 : 1.7;
@@ -4267,7 +4255,7 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
     this.drawBlastFx();
     this.drawHazards();
-    this.drawTongues(); this.drawFactory(); this.drawCheeseStrings();
+    this.drawTongues(); this.drawFactory(); this.drawCheeseStrings(); this.drawMando();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
@@ -4620,6 +4608,8 @@ class Level1 extends Phaser.Scene {
 //    about to come into view = blinking. Big enemies are orange, the boss red, the rest yellow.
 // 2. Planet radar (landscape): a little planet under the cow track with Chris on top, the slice you can see
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
+Object.assign(Level1.prototype, MandolineMixin);     // L3's Mega-Mandoline (src/mandoline.js)
+
 Level1.prototype.drawRadar = function (g) {
   const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;
   const col = e => (e.type === 'boss' ? 0xff3a3a : e.big ? 0xff9d3a : 0xffd23f);

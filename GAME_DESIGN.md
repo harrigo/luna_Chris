@@ -989,3 +989,10 @@ Built from the brief (`makeGorgeTextures`):
 ### v1.41 — loading screen
 - A plain-HTML loading screen in `index.html` (#boot) is up the instant the page opens, before Phaser or any game script arrives: bobbing cheese moon, LUNA CHRIS logo, a chunky striped progress bar and a status line.
 - `LCBoot.set(f, msg)` moves it: Phaser loaded (20%), each game script in `boot.js` (to 60%), the intro's asset/sprite-sheet load progress (to 82%), then "COOKING THE SPRITES" while `buildAllTextures` runs (IntroScene.create defers itself one tick so the bar can paint first). `LCBoot.done()` fades it out once the title is ready.
+
+### v1.42 — Level 3: the Mega-Mandoline rebuilt (src/mandoline.js)
+- **No more cheese falling:** the Claw's cheese-block drops and the background claw shedding gratings are gone.
+- **It lurks overhead during the waves:** a dark Mega-Mandoline hangs high over the factory (red eye glowing, arms swaying) and attacks from above, alternating: a laser **ping** (a sight line tracks Chris, locks, then a short fat beam) and a slicer **blade** flung from its slot at a red target ring (sticks in the deck sparking, then yanked back up; it slices rats too).
+- **New look:** a proper box grater: carry handle, tapered body, rows of raised grater holes, a serrated slicer slot, a big red laser eye in a chrome bezel under angry brow plates, a brass cog, wires, rivets, dents. Two jointed robot **arms** (pistons, red/blue hoses, hooked pincer claws) solved with 2-bone IK on screen.
+- **Boss in three acts** (HP 150): 1) pings, claw **slams** (an arm reaches over Chris's spot, opens over a red ring, smashes down; the body dips to reach) and floor discs. 2) at 2/3 the eye charges and **sweeps**: a red strip shows the path, then the burning point runs along the floor, leaving scorch marks. Only where it meets the deck hurts: jump it as it passes. 3) at 1/3 it cracks, glows and sparks: sweeps go there and back, pings come in threes, both arms slam one after the other, discs at two heights.
+- New sprite files: `mandoline.png` (120×128, replaces the old one) and `mblade.png`.
