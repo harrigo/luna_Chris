@@ -9,19 +9,30 @@
 class ZeroGScene extends Phaser.Scene {
   constructor() { super('zerog'); }
 
-  create() {
+  create(data) {
     buildAllTextures(this);
+    // three rooms share this scene: after level 3, after level 6, and on the warp route (each its own layout and colours)
+    this.room = (data && data.room) || this.room || 'zerog';
+    const V = this.V = ({
+      zerog: { title: 'ZERO-G RECOIL ROOM', time: 50, bg: '#05061a', music: 'level6',
+        bumpers: [[300, 260, 46], [760, 420, 62, 0, 0], [1200, 250, 46], [420, 680, 40, 90, 0.5], [1120, 660, 50, 70, 0.7], [760, 130, 30], [760, 780, 30]] },
+      zerog2: { title: 'ZERO-G ROOM II', time: 48, bg: '#0a0516', music: 'level9',
+        bumpers: [[250, 450, 50, 120, 0.6], [560, 220, 40], [560, 680, 40], [960, 220, 40], [960, 680, 40], [1260, 450, 50, 120, 0.7], [760, 450, 36, 160, 0.9]] },
+      zerog3: { title: 'WARP BONUS ROOM', time: 45, bg: '#160608', music: 'level55',
+        bumpers: [[380, 300, 44, 110, 0.8], [1120, 300, 44, 110, 0.9], [380, 640, 44, 110, 0.7], [1120, 640, 44, 110, 0.85], [760, 160, 30, 200, 1.1], [760, 760, 30, 200, 1.2]] }
+    })[this.room] || {};
     const RW = this.RW = 1500, RH = this.RH = 900;
-    this.cameras.main.setBackgroundColor('#05061a').setBounds(-80, -80, RW + 160, RH + 160).fadeIn(300, 0, 0, 0);
-    Sound.init(); Sound.music('level6');
-    this.t = 0; this.timeLeft = 50; this.done = false; this.fireCd = 0; this.combo = 0; this.comboT = 0;
+    this.cameras.main.setBackgroundColor(V.bg || '#05061a').setBounds(-80, -80, RW + 160, RH + 160).fadeIn(300, 0, 0, 0);
+    Sound.init(); Sound.music(V.music || 'level6');
+    this.leaving = false; this.wallHit = null; this.flash = 0;           // (the scene object is reused: reset what leave() and the effects left behind)
+    this.t = 0; this.timeLeft = V.time || 50; this.done = false; this.fireCd = 0; this.combo = 0; this.comboT = 0;
     this.P = { h: 60, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = new Phaser.Math.Vector2(RW / 2, RH / 2 + 150); this.vel = new Phaser.Math.Vector2(0, 0); this.aim = new Phaser.Math.Vector2(1, 0);
     this.fx = [];                                                   // little particles: sparks, puffs, trail
     this.buildBackdrop();
 
     // the bumpers: wheels of cheese, holes turning; two of them roam about on slow loops
-    this.bumpers = [[300, 260, 46], [760, 420, 62, 0, 0], [1200, 250, 46], [420, 680, 40, 90, 0.5], [1120, 660, 50, 70, 0.7], [760, 130, 30], [760, 780, 30]]
+    this.bumpers = (V.bumpers || [])
       .map(([x, y, r, roam, sp]) => ({ x, y, hx: x, hy: y, r, roam: roam || 0, sp: sp || 0, flash: 0, pop: 0, rot: Math.random() * 6, spin: (Math.random() < 0.5 ? -1 : 1) * (0.4 + Math.random() * 0.6) }));
     this.bumpG = this.add.graphics().setDepth(1);
     this.glowG = this.add.graphics().setDepth(0.9).setBlendMode(Phaser.BlendModes.ADD);
@@ -60,7 +71,7 @@ class ZeroGScene extends Phaser.Scene {
     this.f = f;
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'ZERO-G RECOIL ROOM\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 TO OPEN THE CRATE' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
+    this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 TO OPEN THE CRATE' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
       Object.assign(f(11, '#9fd8ff'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3600, duration: 600 });
     // an always-there way out: tapping it never fires the gun

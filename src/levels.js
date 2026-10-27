@@ -90,6 +90,9 @@ const LEVELS = {
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
     geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
+    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5
+    // (the Fondue Fountain), which comes out at level 7: skipping 4, 5 and 6.
+    warp: { to: 5.5, theta: 2.6, h: 222, relics: [{ theta: 1.2, h: 226 }, { theta: 3.7, h: 230 }, { theta: 5.3, h: 224 }] },
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
     dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
@@ -160,8 +163,6 @@ const LEVELS = {
       { tex: 'pile_bones', at: [[0.8, 1.2], [2.9, 1.1, 1], [4.9, 1.2]], tint: 0xf0ead8, alpha: 0.95 },
       { tex: 'p_skull', at: [[1.7, 1.1], [3.4, 1.0, 1], [5.6, 1.2]], tint: 0xf0ead8 },
       { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xd8d0f0 }],
-    // SECRET: a dull "background" black hole. Smash the three bits of floating junk high up and it wakes into a warp to level 5.5.
-    warp: { to: 5.5, theta: 2.1, h: 238, relics: [{ theta: 1.45, h: 240 }, { theta: 3.55, h: 244 }, { theta: 5.45, h: 236 }] },
     waves: [
       { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
       { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
@@ -801,24 +802,44 @@ class SelectScene extends Phaser.Scene {
     this.events.once('shutdown', padOff);
   }
 
-  // ---- the ROUTE MAP (Star Fox style). The main road runs 1 -> 9. Two detours along the bottom: the BONUS Zero-G
-  // Recoil Room after level 3 (back onto the road at 4), and the WARP from level 5's black hole to the Fondue
-  // Fountain, which skips 6 and comes out at 7. Only level 1 starts open; beating a stop opens the next.
+  // ---- the ROUTE MAP (Star Fox style). The main road arcs along the top, 1 -> 9. Detours:
+  //  - BONUS rooms (Zero-G Recoil Rooms) above the road after 3 and after 6, each rejoining at the next level;
+  //  - the WARP along the bottom: level 3's hidden black hole -> the Fondue Fountain (5.5) -> a warp bonus room -> 7,
+  //    skipping 4, 5 and 6.
+  // Only level 1 starts open; beating a stop opens the next. Secret stops (bonus rooms, the warp) stay hidden until open.
   mapNodes() {
+    const bonus = 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients to open the gun crate.';
     return [
-      { id: 1, x: 0.07, y: 0.55 }, { id: 2, x: 0.18, y: 0.2 }, { id: 3, x: 0.29, y: 0.55 },
-      { id: 4, x: 0.40, y: 0.2 }, { id: 5, x: 0.51, y: 0.55 }, { id: 6, x: 0.62, y: 0.2 },
-      { id: 'zerog', x: 0.33, y: 1.02, kind: 'bonus', name: 'ZERO-G RECOIL ROOM', blurb: 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 ingredients to open the gun crate.' },
-      { id: 5.5, x: 0.61, y: 1.02, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFind the black hole on level 5. Skips ahead to level 7.' },
-      { id: 7, x: 0.73, y: 0.55 }, { id: 8, x: 0.84, y: 0.2 }, { id: 9, x: 0.94, y: 0.6 }
+      { id: 1, x: 0.05, y: 0.62 }, { id: 2, x: 0.15, y: 0.47 }, { id: 3, x: 0.255, y: 0.6 },
+      { id: 4, x: 0.37, y: 0.42 }, { id: 5, x: 0.48, y: 0.35 }, { id: 6, x: 0.59, y: 0.42 },
+      { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 },
+      { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
+      { id: 'zerog2', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM II', blurb: bonus },
+      { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the black hole on level 3. Comes out at level 7.' },
+      { id: 'zerog3', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: ZERO-G ROOM III', blurb: bonus }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [3, 'zerog'], ['zerog', 4], [5, 5.5], [5.5, 7], [7, 8], [8, 9]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'zerog2'], ['zerog2', 7], [3, 5.5], [5.5, 'zerog3'], ['zerog3', 7]]; }
+  // pick a stop: Chris boosts there along the route (straight across if they aren't joined)
+  travel(id) {
+    const from = this.sel; if (from === id) return;
+    this.sel = id; this.showSel = true; this.buildInfo();
+    const link = this.mapLinks().find(([a, b]) => (a === from && b === id) || (b === from && a === id));
+    this.trip = { from, to: id, link, u: 0 };
+    Sound.sfx('whoosh');
+  }
+  // a point along a route's curve (the same curve the dots are drawn on), u from its first stop to its second
+  routePt(a, b, u) {
+    const A = this.pos(a), B = this.pos(b), cx = (A.x + B.x) / 2 - (B.y - A.y) * 0.18, cy = (A.y + B.y) / 2 + (B.x - A.x) * 0.18, iu = 1 - u;
+    return { x: iu * iu * A.x + 2 * iu * u * cx + u * u * B.x, y: iu * iu * A.y + 2 * iu * u * cy + u * u * B.y };
+  }
   isOpen(id) {
     const best = Progress.best;
     if (id === 1) return true;
     if (id === 'zerog') return best >= 3;
+    if (id === 'zerog2') return best >= 6;
     if (id === 5.5) return Progress.found(5.5);
+    if (id === 'zerog3') return Progress.secretBeat(5.5);
     if (id === 7 && Progress.secretBeat(5.5)) return true;
     return typeof id === 'number' && best >= id - 1;
   }
@@ -838,13 +859,13 @@ class SelectScene extends Phaser.Scene {
       const c = linked.filter(n => dirOk(n, d)).sort((p, q) => Math.abs(p.x - cur.x) - Math.abs(q.x - cur.x));
       pick = c[0] || open.filter(n => dirOk(n, d)).sort((p, q) => Math.abs(p.x - cur.x) * 3 + Math.abs(p.y - cur.y) - Math.abs(q.x - cur.x) * 3 - Math.abs(q.y - cur.y))[0];
     }
-    if (pick) { this.sel = pick.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); }
+    if (pick) this.travel(pick.id);
   }
 
   go(n) {
     if (this.going) return;
     if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
-    if (n === 'zerog') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog')); return; }
+    if (/^zerog/.test(n)) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog', { room: n })); return; }
     if (!LEVELS[n]) return;
     this.going = true;
     Sound.sfx('wave');
@@ -891,7 +912,7 @@ class SelectScene extends Phaser.Scene {
     // the map: only the stops you can see (secret ones appear once they're found)
     this.nodes = this.mapNodes().filter(n => !n.kind || this.isOpen(n.id)); this.ids = this.nodes.map(n => n.id);
     const panelH = Math.min(H * 0.24, 96), y0p = H - 6 - panelH;            // (the info panels along the bottom)
-    const top = ty + th + Math.max(34, H * 0.1), mh = (y0p - 30 - top) / 1.02, R = Math.round(Math.max(13, Math.min(32, W * 0.034, H * 0.075)));
+    const top = ty + th + Math.max(44, H * 0.12), mh = (y0p - 28 - top) / 0.95, R = Math.round(Math.max(13, Math.min(30, W * 0.03, H * 0.064)));
     this.panelY = y0p;
     this.nodeR = R;
     this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };
@@ -935,17 +956,27 @@ class SelectScene extends Phaser.Scene {
       // labels: "LV. 3" over the world's name (??? until it's open). Secret stops label to the side.
       const side = !!n.kind, lx = side ? p.x + r + 8 : p.x, ly = side ? p.y - 8 : p.y + r + 6, org = side ? 0 : 0.5;
       const top1 = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : 'LV. ' + n.id;
-      const name = n.kind === 'bonus' ? 'ZERO-G ROOM' : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
+      const name = n.kind === 'bonus' ? (n.id === 'zerog3' ? 'WARP BONUS' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
       this.ui.add(this.add.text(lx, ly, top1, f(7, open ? '#ffd23f' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
       this.ui.add(this.add.text(lx, ly + 11, name, f(6, open ? '#ffffff' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3, align: side ? 'left' : 'center', lineSpacing: 3, wordWrap: { width: side ? 80 : Math.max(60, W * 0.1) } })).setOrigin(org, 0));
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
       if (rk) this.ui.add(this.add.text(p.x + r * 0.85, p.y - r * 0.85, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
       const z = this.add.zone(p.x - r - 10, p.y - r - 10, r * 2 + 20, r * 2 + 36).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerdown', () => { this.wantFs = true; });
-      z.on('pointerup', () => { if (!open) { Sound.sfx('clunk'); return; } if (this.sel === n.id) this.go(n.id); else { this.sel = n.id; this.showSel = true; Sound.sfx('jump'); this.buildInfo(); } });   // tap to pick, tap again to go
+      z.on('pointerup', () => { if (!open) { Sound.sfx('clunk'); return; } if (this.sel === n.id) this.go(n.id); else this.travel(n.id); });   // tap to pick, tap again to go
       this.ui.add(z);
     }
     if (!this.ids.includes(this.sel) || !this.isOpen(this.sel)) this.sel = 1;
+    // the secret-exit hint: a level with an undiscovered warp shows a stub of route trailing off into the dark, with a '?'
+    this.stubs = [];
+    for (const n of this.nodes) {
+      const w = !n.kind && this.isOpen(n.id) && LEVELS[n.id] && LEVELS[n.id].warp; if (!w || Progress.found(w.to)) continue;
+      const tgt = this.mapNodes().find(q => q.id === w.to); if (!tgt) continue;
+      const A = this.pos(n.id), B = { x: W * tgt.x, y: top + mh * tgt.y };
+      const end = { x: A.x + (B.x - A.x) * 0.55, y: A.y + (B.y - A.y) * 0.55 };
+      const q = this.add.text(end.x, end.y, '?', f(14, '#ff9a3a', { stroke: '#1a1020', strokeThickness: 5 })).setOrigin(0.5); this.ui.add(q);
+      this.stubs.push({ A, end, q });
+    }
     const back = this.add.text(10, 10, '< MENU', f(8, '#9fa6c2', { stroke: '#1a1020', strokeThickness: 4 })).setInteractive({ useHandCursor: true });
     back.on('pointerup', () => { if (!this.going) this.scene.start('menu'); });
     this.ui.add(back);
@@ -1016,7 +1047,7 @@ class SelectScene extends Phaser.Scene {
     if (this.pos) for (const [a, b] of this.mapLinks()) {
       if (!this.ids.includes(a) || !this.ids.includes(b)) continue;          // a secret stop you haven't found: no route either
       const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 10);
-      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => id === 'zerog' || id === 5.5);
+      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => /^zerog/.test(id) || id === 5.5);
       const cx = (A.x + B.x) / 2 - (B.y - A.y) * 0.18, cy = (A.y + B.y) / 2 + (B.x - A.x) * 0.18;
       for (let k = 1; k < n; k++) {
         const u = k / n, iu = 1 - u, x = iu * iu * A.x + 2 * iu * u * cx + u * u * B.x, y = iu * iu * A.y + 2 * iu * u * cy + u * u * B.y;
@@ -1026,6 +1057,15 @@ class SelectScene extends Phaser.Scene {
         g.fillStyle(0x1a1020, 0.8).fillRect(Math.round(x) - 1, Math.round(y) - 1, 4, 4);
         g.fillStyle(lit ? 0xffffff : (bonus ? 0xff9a3a : 0xffd23f), 1).fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
       }
+    }
+    for (const S of (this.stubs || [])) {                         // secret-exit stubs: orange dots fading off into the dark
+      const n = 9;
+      for (let k = 1; k < n; k++) {
+        const u = k / n, x = S.A.x + (S.end.x - S.A.x) * u, y = S.A.y + (S.end.y - S.A.y) * u;
+        if (Math.hypot(x - S.A.x, y - S.A.y) < this.nodeR + 8) continue;
+        g.fillStyle(0xff9a3a, (1 - u) * (0.5 + 0.4 * Math.sin(time / 200 - k))).fillRect(Math.round(x) - 2, Math.round(y) - 2, 4, 4);
+      }
+      S.q.setAlpha(0.5 + 0.4 * Math.sin(time / 250)).setScale(1 + 0.1 * Math.sin(time / 180));
     }
     // each world's touch of character
     this.selG.clear();
@@ -1047,16 +1087,30 @@ class SelectScene extends Phaser.Scene {
       const p = this.pos(this.sel), r = this.nodeR + 8 + Math.sin(time / 150) * 2;
       fx.lineStyle(3, 0xffffff, 0.85).strokeCircle(p.x, p.y, r);
       // Chris glides over to it (feet just above the planet), bobbing on his jetpack
-      const tx = p.x, ty = p.y - this.nodeR - 8 + Math.sin(time / 260) * 3;
+      let tx = p.x, ty = p.y - this.nodeR - 8 + Math.sin(time / 260) * 3, k = Math.min(1, dt * 5), boost = 0;
+      const T = this.trip;
+      if (T && this.ids.includes(T.from) && this.ids.includes(T.to)) {     // BOOSTING along the route
+        T.u = Math.min(1, T.u + dt / 0.7);
+        const e = T.u * T.u * (3 - 2 * T.u);
+        let q;
+        if (T.link) q = this.routePt(T.link[0], T.link[1], T.link[0] === T.from ? e : 1 - e);
+        else { const A = this.pos(T.from), B = this.pos(T.to); q = { x: A.x + (B.x - A.x) * e, y: A.y + (B.y - A.y) * e }; }
+        tx = q.x; ty = q.y - this.nodeR - 8 - Math.sin(T.u * Math.PI) * 14; k = 1; boost = Math.sin(T.u * Math.PI);
+        if (T.u >= 1) this.trip = null;
+      } else this.trip = null;
       if (this.rigX === null) { this.rigX = tx; this.rigY = ty; }
-      const k = Math.min(1, dt * 5), vx = (tx - this.rigX) * k / Math.max(dt, 0.001);
+      const vx = (tx - this.rigX) * k / Math.max(dt, 0.001), vy = (ty - this.rigY) * k / Math.max(dt, 0.001);
       this.rigX += (tx - this.rigX) * k; this.rigY += (ty - this.rigY) * k;
+      // the boost trail: puffs left behind while he's moving fast
+      this.trail = this.trail || [];
+      if (Math.hypot(vx, vy) > 60 && Math.random() < 0.9) this.trail.push({ x: this.rigX - (this.rigP.facing || 1) * 6, y: this.rigY - 6, life: 0.45, s: 2 + Math.random() * 3 });
+      for (let i = this.trail.length - 1; i >= 0; i--) { const q = this.trail[i]; q.life -= dt; q.y += dt * 10; if (q.life <= 0) { this.trail.splice(i, 1); continue; } fx.fillStyle(q.life > 0.3 ? 0xffd23f : 0xff7a1a, q.life * 1.8).fillCircle(q.x, q.y, q.s * (0.6 + q.life)); }
       const P = this.rigP; if (Math.abs(vx) > 8) P.facing = vx > 0 ? 1 : -1;
       P.vx = vx * 0.3; P.vh = -(ty - this.rigY) * 4;
       const sc = Math.max(0.38, Math.min(0.6, this.nodeR / 40));
       this.rig.update(P, dt, Math.round(this.rigX), Math.round(this.rigY), sc, 1, 0);
       this.rig.root.setRotation(Math.max(-0.35, Math.min(0.35, vx / 900)));
-      const jx = this.rigX - P.facing * 9 * sc, jy = this.rigY - 18 * sc, fl = 1 + 0.35 * Math.sin(time / 30);
+      const jx = this.rigX - P.facing * 9 * sc, jy = this.rigY - 18 * sc, fl = (1 + 0.35 * Math.sin(time / 30)) * (1 + boost * 1.6);
       fx.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 4 * sc, jy, jx + 4 * sc, jy, jx, jy + 16 * sc * fl);
       fx.fillStyle(0xffe27a, 1).fillTriangle(jx - 2 * sc, jy, jx + 2 * sc, jy, jx, jy + 9 * sc * fl);
     }

@@ -1010,3 +1010,11 @@ Built from the brief (`makeGorgeTextures`):
 - Routes are chunky gold dots on gentle curves with a pulse marching along (orange on detours, faint while locked), starting at the planets' edges.
 - **Secret stops are hidden** (no node, no route) until found: the bonus room after level 3 is beaten, the warp once its black hole is found.
 - Bottom panels: the picked world (thumbnail, name, blurb, rank, its 3 wheels) and LIVES + total golden WHEELS found / 27.
+
+### v1.45 — warp moves to level 3, three bonus rooms, boosting between stops
+- **The warp's black hole is now on level 3** (The Great Grater), out of the ghost level. Smash the three relics, warp to the Fondue Fountain (5.5), come out at 7: skipping 4, 5 and 6.
+- **Route map back to the arc layout:** the main road arcs along the top; bonus rooms sit above it after 3 and after 6 (each rejoins at the next level); the warp route runs along the bottom: 3 -> Fondue Fountain -> warp bonus room -> 7.
+- **Three Zero-G rooms** (`ZeroGScene` with `{ room }`): `zerog` (after 3), `zerog2` (after 6: twin roaming bumpers, 48 s, purple), `zerog3` (on the warp route: four orbiting bumpers, 45 s, red, the Fondue tune). Each opens when you pass that point (best >= 3, best >= 6, Fondue Fountain beaten).
+- **Secret-exit hint on the map:** a level with an undiscovered warp shows a stub of orange route fading off into the dark, with a pulsing '?'.
+- **Chris boosts between stops:** he flies along the route's own curve with a big flame and a trail of puffs, arcing up a little mid-flight.
+- Fixed: a Zero-G room entered a second time couldn't be left (`leaving` was never reset).
