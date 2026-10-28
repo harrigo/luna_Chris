@@ -1110,3 +1110,9 @@ Built from the brief (`makeGorgeTextures`):
 - New option **CAMERA: SWING / LOCKED** (main menu + pause menu options; SWING by default). With SWING the camera's angle round the planet (`viewT()`, `camT`) eases after Chris instead of being glued to him: run and he moves off-centre along the curve, leaning with it, while the planet turns under him and catches up (never more than ~150 units behind; settles back when he stops). Off in the cave.
 - Everything drawn through `screenPos`/`place` follows the camera angle; the planet and sky layers turn with it; Chris's rig leans by the lag; boss/mandoline attachment maths and aiming (stick/mouse) account for it.
 - LOCKED is exactly the old behaviour.
+
+### v1.65 — CAMERA: FULL (level 1 only, to try)
+- The camera option now cycles **LOCKED / SWING / FULL**. FULL works on levels marked `fullCam` (just level 1 for now; elsewhere it behaves like SWING).
+- FULL: "up" stays up on the screen. The camera angle is fixed where Chris starts and the view slides after him (`updateCamera`), framing him with room above his own head, so he runs right round the planet: on the side, upside down underneath.
+- **Controls follow the screen:** left/right are decided when you press (by which way the ground under him faces on screen) and kept while held, so you can run on round the sides and underneath without flip-flopping. Release and press again to re-map.
+- Visibility culling is by distance from Chris (not from the camera) in FULL; the muzzle maths uses the camera angle. Known rough edges: off-screen enemy arrows still assume Chris is on top; bosses/cutscenes untested in FULL.

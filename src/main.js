@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.64';
+const BUILD = 'v1.65';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -201,7 +201,7 @@ class Level1 extends Phaser.Scene {
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
     //   milky-way dust band (slowest) -> faint far stars -> mid stars -> a few big twinkling near stars (fastest)
     this.bgStars = [];
-    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camLag = 0;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
+    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camLag = 0; this.fullCam = false; this.axHeld = false; this.axFlip = 1;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
     const dust = this.def.dust;
     for (let i = 0; i < (this.def.bgDecor === 'cosmic' ? 0 : 46); i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
@@ -1556,8 +1556,12 @@ class Level1 extends Phaser.Scene {
     } else if (P.jumpEaten) inp = Object.assign({}, inp, { jump: false });
     P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
-    const ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);    // crouched: a slow waddle (and steering while dropping)
-    if (P.duck && inp.left) P.facing = -1; else if (P.duck && inp.right) P.facing = 1;
+    let ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);      // crouched: a slow waddle (and steering while dropping)
+    if (this.fullCam) {                                       // FULL camera: left/right follow the SCREEN. The way round is decided when you
+      if (ax && !this.axHeld) { const c = Math.cos(this.camLag || 0); if (Math.abs(c) > 0.25) this.axFlip = Math.sign(c); }   // press, and kept while
+      this.axHeld = !!ax; ax *= (this.axFlip || 1);           // you hold it, so you can run on round the sides and underneath without flip-flopping
+    } else this.axFlip = 1;
+    if (P.duck && ax) P.facing = ax;
 
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
     P.vx += (ax * CFG.runSpeed * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
@@ -4064,7 +4068,7 @@ class Level1 extends Phaser.Scene {
   viewT() { return this.camT === undefined ? this.pl.theta : this.camT; }
   screenPos(theta, h) {
     const d = angDiff(theta, this.viewT()), r = (R + h) * this.zoom;
-    return { x: this.cx + r * Math.sin(d), y: this.cy - r * Math.cos(d), vis: Math.abs(d) < 1.45 };
+    return { x: this.cx + r * Math.sin(d), y: this.cy - r * Math.cos(d), vis: Math.abs(this.fullCam ? angDiff(theta, this.pl.theta) : d) < 1.45 };
   }
 
   bang(theta, h, n) {
@@ -4074,7 +4078,7 @@ class Level1 extends Phaser.Scene {
 
   place(o, theta, h, extraRot) {
     const d = angDiff(theta, this.viewT());
-    if (Math.abs(d) > 1.45) { o.setVisible(false); return; }   // far side of the planet
+    if (Math.abs(this.fullCam ? angDiff(theta, this.pl.theta) : d) > 1.45) { o.setVisible(false); return; }   // far side of the planet (from Chris)
     const z = this.zoom, r = (R + h) * z;
     o.setVisible(true);
     o.setPosition(this.cx + r * Math.sin(d), this.cy - r * Math.cos(d));
@@ -4272,8 +4276,32 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // THE CAMERA. locked: glued to Chris (he's always on top). swing: trails a little behind him round the planet.
+  // full (levels with fullCam): "up" stays up on screen; the camera slides after him, so he can run right round the
+  // planet and be upside down at the bottom (left/right follow the screen: see updatePlayer).
+  updateCamera() {
+    const P = this.pl, dtc = this.lastDt || 0.016, mode = Settings.cam, Rz = R * this.zoom;
+    const full = mode === 'full' && this.def.fullCam && !this.def.cave && this.state !== 'gameover';
+    if (full) { if (this.camT === undefined || !this.fullCam) this.camT = P.theta; }   // fixed: "up" is wherever he started
+    else if (mode !== 'swing' || this.def.cave || this.camT === undefined) this.camT = P.theta;
+    else {
+      this.camT = wrap(this.camT + angDiff(P.theta, this.camT) * Math.min(1, dtc * 2.2));
+      const lag = angDiff(P.theta, this.camT), m = 150 / R;
+      if (Math.abs(lag) > m) this.camT = wrap(P.theta - Math.sign(lag) * m);
+    }
+    this.camLag = angDiff(P.theta, this.camT);
+    if (full) {                                                         // slide the planet so Chris stays framed, with room above HIS head
+      const ux = Math.sin(this.camLag), uy = -Math.cos(this.camLag), off = this.groundY - this.H / 2;
+      const tx = this.W / 2 - ux * off - ux * Rz, ty = this.H / 2 - uy * off - uy * Rz;
+      if (!this.fullCam) { this.cx = tx; this.cy = ty; }
+      const k = Math.min(1, dtc * 7); this.cx += (tx - this.cx) * k; this.cy += (ty - this.cy) * k;
+    } else if (this.fullCam) { this.cx = this.W / 2; this.cy = this.groundY + Rz + (this.camSlide || 0); }
+    this.fullCam = full;
+  }
+
   render(inp) {
     const P = this.pl;
+    this.updateCamera();
     const { cx, cy } = this;
     this.drawBlastFx();
     this.drawHazards();
@@ -4281,16 +4309,6 @@ class Level1 extends Phaser.Scene {
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
-    {                                                                  // CAMERA: SWING: ease the camera after Chris, never more than ~150 units behind
-      const dtc = this.lastDt || 0.016;
-      if (!Settings.camSwing || this.def.cave || this.camT === undefined) this.camT = P.theta;
-      else {
-        this.camT = wrap(this.camT + angDiff(P.theta, this.camT) * Math.min(1, dtc * 2.2));
-        const lag = angDiff(P.theta, this.camT), m = 150 / R;
-        if (Math.abs(lag) > m) this.camT = wrap(P.theta - Math.sign(lag) * m);
-      }
-      this.camLag = angDiff(P.theta, this.camT);
-    }
     const unwV = this.unw - this.camLag;
     const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
@@ -4473,7 +4491,7 @@ class Level1 extends Phaser.Scene {
       const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();
       const tp = m.transformPoint(tipImg.width * (1 - tipImg.originX) - 1, 0);
       const dx = tp.x - this.cx, dy = this.cy - tp.y;
-      this.muzzle = { theta: wrap(P.theta + Math.atan2(dx, dy)), h: Math.hypot(dx, dy) / this.zoom - R, x: tp.x, y: tp.y };
+      this.muzzle = { theta: wrap(this.viewT() + Math.atan2(dx, dy)), h: Math.hypot(dx, dy) / this.zoom - R, x: tp.x, y: tp.y };
       const tb = m.transformPoint(-tipImg.width * tipImg.originX, 0), ml = Math.hypot(tp.x - tb.x, tp.y - tb.y) || 1;
       this.muzzle.dx = (tp.x - tb.x) / ml; this.muzzle.dy = (tp.y - tb.y) / ml;          // which way the barrel points on screen
     }
