@@ -1083,3 +1083,6 @@ Built from the brief (`makeGorgeTextures`):
 - **BRAKE (jump / BRAKE button) is now a wingsuit:** Chris swings round flat, belly down, and his cape stretches out into two flapping red membranes either side of him (with cloth flaps and rushing air). It's free: braking only costs time. No more jets firing the wrong way.
 - **BOOST (down / S / X / controller down / BOOST button):** the jet boots, pointing up while he dives, fire and drive him down faster (up to 720), using the fuel bar (2.2 s, refills slowly). Handy for making up time on the straights.
 - Touch: a smaller BOOST button joins BRAKE bottom right.
+
+### v1.59
+- The wingsuit is just Chris's own cape now: braking stretches the four cape strips flat along his back and out wide either side of him, each rippling on its own beat. The extra red membranes are gone.

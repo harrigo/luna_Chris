@@ -17,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingG = null; this.wingK = 0; this.wingOn = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: 80 }; this.vel = { x: 0, y: 60 };
@@ -320,8 +320,8 @@ class FreefallScene extends Phaser.Scene {
     this.cage.clear();
     if (!this.cageOpen && !this.done) { const cx = this.SW / 2, cy = this.gunY; this.cage.lineStyle(4, 0x1a1020, 1).strokeRect(cx - 54, cy - 40, 108, 80); for (let x = cx - 42; x <= cx + 42; x += 14) { this.cage.lineStyle(4, 0x1a1020, 1).lineBetween(x, cy - 40, x, cy + 40); this.cage.lineStyle(2, 0xa8b0c0, 1).lineBetween(x, cy - 40, x, cy + 40); } }
     if (!this.done) { this.gunImg.setY(this.gunY + Math.sin(this.t * 2) * 8).setRotation(Math.sin(this.t * 1.3) * 0.2); this.gunGlow.setY(this.gunImg.y).setAlpha(0.4 + 0.2 * Math.sin(this.t * 4)); }
-    // Chris DIVING: head first, feet up, arms reaching down. Braking he swings round flat, belly down, into a wingsuit
-    // spread (the cape stretched out between his arms and boots, flapping like mad); boosting, the boots fire upwards.
+    // Chris DIVING: head first, feet up, arms reaching down. Braking he swings round flat, belly down, and his cape
+    // stretches out wide either side of him like a wingsuit, flapping like mad; boosting, the boots fire upwards.
     P.thrusting = false; P.vh = -this.vel.y; P.h = 60; P.vx = this.vel.x * 0.5;
     const tilt = Math.max(-0.35, Math.min(0.35, this.vel.x / 800)), wk = this.wingK || 0;
     const rot = Math.PI - tilt + (Math.PI / 2 * P.facing - Math.PI) * wk + (wk > 0.5 ? Math.sin(this.t * 13) * 0.08 : 0);   // PI = head down; PI/2 (or -PI/2) = flat
@@ -329,21 +329,15 @@ class FreefallScene extends Phaser.Scene {
     this.rig.update(P, dt, Math.round(rx), Math.round(ry), 1, this.penaltyT > 0 && Math.floor(this.t * 20) % 2 ? 0.4 : 1, 0);
     this.rig.root.setRotation(rot);
     this.rig.armB.setRotation(-2.2 * (1 - wk) + (-1.3 + Math.sin(this.t * 18) * 0.25) * wk + Math.sin(this.t * 10) * 0.1);
-    const wg = this.wingG || (this.wingG = this.add.graphics().setDepth(4.95)); wg.clear();
     if (wk > 0.05) {
-      // the wingsuit: two cape-red membranes either side of his body (above and below the flat body line), flapping
-      const cx = this.pos.x, cy = this.pos.y - 40, ux = Math.sin(rot), uy = -Math.cos(rot), nx = -uy, ny = ux;   // u = along the body (to the head), n = across it
-      for (const side of [-1, 1]) {
-        const fl = Math.sin(this.t * 22 + side) * 8, span = (50 + fl) * wk;
-        const a = { x: cx + ux * 30, y: cy + uy * 30 }, b = { x: cx - ux * 38, y: cy - uy * 38 }, tip = { x: cx + ux * 10 + nx * side * span, y: cy + uy * 10 + ny * side * span }, tip2 = { x: cx - ux * 22 + nx * side * span * 0.85, y: cy - uy * 22 + ny * side * span * 0.85 };
-        wg.fillStyle(0x1a1020, 1).fillTriangle(a.x, a.y, tip.x, tip.y, b.x, b.y).fillTriangle(tip.x, tip.y, tip2.x, tip2.y, b.x, b.y);
-        wg.fillStyle(0xa01818, 1).fillTriangle(tip.x - nx * side * 2, tip.y - ny * side * 2, tip2.x - nx * side * 2, tip2.y - ny * side * 2, b.x + ux * 2, b.y + uy * 2);   // the trailing edge, in shadow
-        wg.fillStyle(0xd62828, 1).fillTriangle(a.x + nx * side, a.y + ny * side, tip.x - nx * side * 2, tip.y - ny * side * 2, b.x, b.y);
-        wg.fillStyle(0xff6a6a, 1).fillTriangle(a.x + nx * side, a.y + ny * side, tip.x - nx * side * 2, tip.y - ny * side * 2, (a.x + tip.x) / 2, (a.y + tip.y) / 2);
-        wg.fillStyle(0xffd23f, 1).fillCircle(tip.x, tip.y, 2.5);
-      }
-      if (Math.random() < dt * 30) this.fx.push({ x: cx + (Math.random() - 0.5) * 60, y: cy + 20, vx: 0, vy: -200, life: 0.25, max: 0.25, col: 0xffffff, size: 1.5 });   // air rushing past
-    }
+      // the wingsuit is just his CAPE, stretched: the four cape strips lie flat along his back, neck to boots, and spread
+      // out wide either side of him like a membrane, each rippling on its own beat
+      this.rig.capeS.forEach((c, i) => {
+        const fl = Math.sin(this.t * 20 + i * 1.3);
+        c.setPosition(-2 + fl * 1.5 * wk, -58 + i * 11).setRotation(fl * 0.05 * wk).setScale(1 + 5.2 * wk * (1 + 0.12 * fl), 1 + 0.35 * wk);
+      });
+      if (Math.random() < dt * 30) this.fx.push({ x: this.pos.x + (Math.random() - 0.5) * 70, y: this.pos.y - 20, vx: 0, vy: -200, life: 0.25, max: 0.25, col: 0xffffff, size: 1.5 });   // air rushing past
+    } else this.rig.capeS.forEach(c => c.setScale(1));
     if (boosting) { const jx = this.pos.x, jy = this.pos.y - 92, fl = 1 + 0.3 * Math.sin(this.t * 40); g.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 6, jy, jx + 6, jy, jx, jy - 30 * fl); g.fillStyle(0xffe27a, 1).fillTriangle(jx - 3, jy, jx + 3, jy, jx, jy - 16 * fl); }
     // depth meter + jet fuel (right edge)
     const dgh = this.depthG; dgh.clear();
