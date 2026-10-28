@@ -1065,3 +1065,10 @@ Built from the brief (`makeGorgeTextures`):
 - **Brake lasts much longer** (6 s of fuel) and refills slowly all the time.
 - **The prize gun floats over the pizza stone** at the bottom: reach it in time and it's yours (no ingredient count needed; +1 life once every gun's won). Steering is snappier.
 - Tested with an autopilot that just follows the trail: all three runs got every bit and reached the gun with time to spare.
+
+### v1.56 — Freefall: the middle ground
+- **The cage:** the prize gun sits in a cage that only opens once you've collected **3/4 of the cheese trail** (HUD: CHEESE n / needed, "CAGE OPEN!" with a chime when you get there). Reaching the bottom without it = "SO CLOSE!".
+- **27 s**, faster fall (470), brake fuel 3.5 s with a slow refill; chain bonus only every 20 bits.
+- **Grates:** narrower gaps (124-150), closer together, the line swings 120-300 px between gaps; 40% slide (faster, wider). Bumping one now costs 1 s ("BONK -1s"). Hot grates from 35% depth, more of them.
+- **Flare-ups:** up to 10, and half fire right across the line: wait for them or brake.
+- Bot check: a perfect line-follower (brakes for flare-ups) wins 5/5 with 8-13 s left; a sloppy one that only aims for the nearest gap reaches the bottom with ~1/3 of the cheese and the cage stays shut.

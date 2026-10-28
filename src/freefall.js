@@ -15,7 +15,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.t = 0; this.timeLeft = 40; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: 80 }; this.vel = { x: 0, y: 60 };
@@ -24,23 +24,24 @@ class FreefallScene extends Phaser.Scene {
     // ---- the grill: grate rows with wide gaps (a few slide slowly); some hot ones lower down; flare-up vents
     this.rows = [];
     let lastGap = SW / 2;
-    for (let y = 560, i = 0; y < SH - 360; y += rnd(560, 680), i++) {
-      const w = rnd(170, 200);
-      let gx = Math.max(30, Math.min(SW - w - 30, lastGap + rnd(-240, 240) - w / 2));          // not too far from the last gap: a flowing line
+    for (let y = 520, i = 0; y < SH - 360; y += rnd(440, 540), i++) {
+      const w = rnd(124, 150);
+      let gx = Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));          // not too far from the last gap: a flowing line
       const gaps = [{ x: gx, w }];
       if (Math.random() < 0.25) { const ox = gx > SW / 2 ? rnd(30, gx - w - 40) : rnd(gx + w + 40, SW - w - 30); if (ox > 20 && ox < SW - w - 20) gaps.push({ x: ox, w: w * 0.8 }); }   // sometimes a second (off-line) gap
-      const slide = i > 3 && Math.random() < 0.25;
-      if (slide) { const g = gaps[0]; g.amp = rnd(40, 70); g.sp = rnd(0.6, 0.9); g.ph = rnd(0, 6); g.x0 = Math.max(g.amp + 10, Math.min(SW - g.w - g.amp - 10, g.x)); }
-      this.rows.push({ y, gaps, hot: y > SH * 0.5 && Math.random() < 0.45, slide });
+      const slide = i > 2 && Math.random() < 0.4;
+      if (slide) { const g = gaps[0]; g.amp = rnd(60, 110); g.sp = rnd(0.9, 1.4); g.ph = rnd(0, 6); g.x0 = Math.max(g.amp + 10, Math.min(SW - g.w - g.amp - 10, g.x)); }
+      this.rows.push({ y, gaps, hot: y > SH * 0.35 && Math.random() < 0.55, slide });
       lastGap = (gaps[0].x0 !== undefined ? gaps[0].x0 : gaps[0].x) + w / 2;
     }
     this.vents = [];
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < 10; k++) {
       const row = this.rows[2 + Math.floor(Math.random() * (this.rows.length - 3))], y = row.y - rnd(200, 360);
-      if (this.vents.some(v => Math.abs(v.y - y) < 300)) continue;
+      if (this.vents.some(v => Math.abs(v.y - y) < 240)) continue;
       // fire from the side AWAY from the racing line, so it's a hazard for straying, not a wall across it
       const lineX = this.lineXAt(y);
-      this.vents.push({ y, side: lineX > SW / 2 ? -1 : 1, t: rnd(0, 3), st: 'idle', hitDone: false });
+      this.vents.push({ y, side: Math.random() < 0.5 ? (lineX > SW / 2 ? -1 : 1) : (lineX > SW / 2 ? 1 : -1),   // half of them right across the line: time it or brake
+        t: rnd(0, 3), st: 'idle', hitDone: false });
     }
     // ---- THE CHEESE TRAIL: the racing line, from the lid through every main gap down to the gun
     this.trail = [];
@@ -57,12 +58,14 @@ class FreefallScene extends Phaser.Scene {
       }
       prev = q;
     }
+    this.need = Math.ceil(this.trail.length * 0.75);                  // the gun's cage only opens if you've followed the line: 3/4 of the cheese
     this.buildShaft();
 
     // ---- the prize: a gun floating over the pizza stone at the bottom (an extra life once every gun's won)
     this.prize = ZeroGScene.prototype.pickPrize.call(this);
     this.gunY = SH - 70;
     this.gunImg = this.add.image(SW / 2, this.gunY, this.prize ? this.prize.gunTex : 'burger').setDepth(3).setScale(2.2);
+    this.cage = this.add.graphics().setDepth(3.1);                     // bars round the gun, until you've got enough cheese
     this.gunGlow = this.add.image(SW / 2, this.gunY, 'puff').setDepth(2.9).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd23f).setScale(3).setAlpha(0.5);
 
     // Chris, diving head first: no gun in his hands, arms out in front
@@ -77,7 +80,7 @@ class FreefallScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nHOLD JUMP TO BRAKE' + (this.prize ? '\nTHE ' + this.prize.name + ' IS AT THE BOTTOM' : ''),
+    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\n3/4 OF IT OPENS THE CAGE AT THE BOTTOM\nHOLD JUMP TO BRAKE',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3200, duration: 600 });
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#3a1a1a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
@@ -177,18 +180,18 @@ class FreefallScene extends Phaser.Scene {
     else this.vel.x += (ax * 300 - this.vel.x) * Math.min(1, dt * 10);
     if (ax) P.facing = ax > 0 ? 1 : -1;
     const braking = brake && this.fuel > 0;
-    if (braking) { this.fuel = Math.max(0, this.fuel - dt / 6); this.vel.y = Math.max(60, this.vel.y - 1400 * dt); }
-    else { this.fuel = Math.min(1, this.fuel + dt * 0.12); this.vel.y = Math.min(400, this.vel.y + 800 * dt); }
+    if (braking) { this.fuel = Math.max(0, this.fuel - dt / 3.5); this.vel.y = Math.max(60, this.vel.y - 1400 * dt); }
+    else { this.fuel = Math.min(1, this.fuel + dt * 0.08); this.vel.y = Math.min(470, this.vel.y + 900 * dt); }
     const prevY = this.pos.y;
     this.pos.x = Math.max(16, Math.min(this.SW - 16, this.pos.x + this.vel.x * dt));
     this.pos.y += this.vel.y * dt;
     // ---- grates: bump one and you bounce off and SLIDE towards the nearest gap (no stopping, no time lost unless it's hot)
     for (const r of this.rows) {
       if (prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 12)) {
-        this.pos.y = r.y - 1; this.vel.y = -140;
-        const gx = this.nearestGapX(r, this.pos.x); this.vel.x = Math.sign(gx - this.pos.x) * 320; this.slideT = 0.35;
+        this.pos.y = r.y - 1; this.vel.y = -200;
+        const gx = this.nearestGapX(r, this.pos.x); this.vel.x = Math.sign(gx - this.pos.x) * 200; this.slideT = 0.25;
         if (r.hot) { this.penalty(this.pos.x, r.y, 'HOT!'); Sound.sfx('hiss'); }
-        else { Sound.sfx('bonk'); this.puff(this.pos.x, r.y, 6, 0xc8d0dc, 120, 0.3, 2); this.chain = 0; }
+        else { Sound.sfx('bonk'); this.puff(this.pos.x, r.y, 6, 0xc8d0dc, 120, 0.3, 2); this.chain = 0; this.timeLeft = Math.max(0, this.timeLeft - 1); this.pop(this.pos.x, r.y - 30, 'BONK -1s', '#ffb07a'); }
         break;
       }
     }
@@ -201,7 +204,7 @@ class FreefallScene extends Phaser.Scene {
         else { v.st = 'idle'; v.t = 2.5 + Math.random() * 2; }
       }
       if (v.st === 'fire' && !v.hitDone) {
-        const reach = 230, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > this.SW - reach;
+        const reach = 270, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > this.SW - reach;
         if (inX && Math.abs(this.pos.y - v.y) < 36) { v.hitDone = true; this.vel.x = -v.side * 360; this.slideT = 0.3; this.penalty(this.pos.x, this.pos.y, 'FLARE-UP!'); }
       }
     }
@@ -214,16 +217,17 @@ class FreefallScene extends Phaser.Scene {
       if (!this.done && Math.abs(this.pos.x - c.x) < 34 && Math.abs(this.pos.y - c.y) < 40) {
         c.got = true; this.gotCheese++; this.chain++; this.chainT = 0.9;
         Sound.sfx('chime', this.chain);
-        if (this.chain % 8 === 0) { this.timeLeft += 1; this.pop(c.x, c.y - 20, 'CHAIN ' + this.chain + '! +1s', '#7dff8a'); Sound.sfx('combo'); }
+        if (this.chain % 20 === 0) { this.timeLeft += 1; this.pop(c.x, c.y - 20, 'CHAIN ' + this.chain + '! +1s', '#7dff8a'); Sound.sfx('combo'); }
         this.puff(c.x, c.y, 5, 0xffd23f, 120, 0.3, 2);
         this.tweens.add({ targets: c.im, scale: 0, y: c.y - 16, duration: 180, onComplete: () => c.im.destroy() });
       }
     }
     // ---- the bottom: grab the gun
-    if (!this.done && this.pos.y >= this.SH - 20) { this.pos.y = this.SH - 20; this.vel.y = 0; this.finish(true); }
-    if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
+    if (!this.done && this.pos.y >= this.SH - 20) { this.pos.y = this.SH - 20; this.vel.y = 0; this.finish(this.gotCheese >= this.need, true); }
+    if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false, false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
-    this.gotTxt.setText('CHEESE ' + this.gotCheese + ' / ' + this.trail.length + (this.chain > 2 ? '   CHAIN x' + this.chain : ''));
+    this.gotTxt.setText('CHEESE ' + this.gotCheese + ' / ' + this.need + (this.gotCheese >= this.need ? '  CAGE OPEN!' : ' TO OPEN THE CAGE') + (this.chain > 2 ? '   x' + this.chain : '')).setColor(this.gotCheese >= this.need ? '#7dff8a' : '#ffffff');
+    if (this.gotCheese >= this.need && !this.cageOpen) { this.cageOpen = true; Sound.sfx('shine'); this.pop(this.pos.x, this.pos.y + 40, 'CAGE OPEN!', '#7dff8a'); }
 
     // ---- camera: the shaft centred, Chris in the upper third so you can see what's coming
     cam.scrollX = this.SW / 2 - W / 2;
@@ -244,7 +248,7 @@ class FreefallScene extends Phaser.Scene {
       const x0 = v.side < 0 ? 0 : this.SW;
       if (v.st === 'warn') g.fillStyle(0xff7a1a, 0.3 + 0.3 * Math.sin(this.t * 30)).fillCircle(x0, v.y, 24);
       if (v.st === 'fire') for (let i = 0; i < 9; i++) {
-        const u = i / 9, len = 230 * (0.85 + 0.15 * Math.sin(this.t * 40 + i)), x = x0 - v.side * len * u, r = 14 + 18 * u;
+        const u = i / 9, len = 270 * (0.85 + 0.15 * Math.sin(this.t * 40 + i)), x = x0 - v.side * len * u, r = 14 + 18 * u;
         g.fillStyle(u < 0.3 ? 0xffffff : u < 0.6 ? 0xffd23f : 0xff5a1a, 0.75 - u * 0.4).fillCircle(x, v.y + Math.sin(this.t * 30 + i) * 4 * u, r);
       }
     }
@@ -259,6 +263,8 @@ class FreefallScene extends Phaser.Scene {
     }
     g.fillStyle(0xff4a1a, 0.25 + 0.1 * Math.sin(this.t * 3)).fillRect(0, this.SH - 60, this.SW, 70);
     // the prize gun bobs and spins slowly over the stone
+    this.cage.clear();
+    if (!this.cageOpen && !this.done) { const cx = this.SW / 2, cy = this.gunY; this.cage.lineStyle(4, 0x1a1020, 1).strokeRect(cx - 54, cy - 40, 108, 80); for (let x = cx - 42; x <= cx + 42; x += 14) { this.cage.lineStyle(4, 0x1a1020, 1).lineBetween(x, cy - 40, x, cy + 40); this.cage.lineStyle(2, 0xa8b0c0, 1).lineBetween(x, cy - 40, x, cy + 40); } }
     if (!this.done) { this.gunImg.setY(this.gunY + Math.sin(this.t * 2) * 8).setRotation(Math.sin(this.t * 1.3) * 0.2); this.gunGlow.setY(this.gunImg.y).setAlpha(0.4 + 0.2 * Math.sin(this.t * 4)); }
     // Chris DIVING: head first, feet up, arms reaching down; the jet (now pointing up) fires to brake
     P.thrusting = braking; P.vh = -this.vel.y; P.h = 60; P.vx = this.vel.x * 0.5;
@@ -276,7 +282,7 @@ class FreefallScene extends Phaser.Scene {
     dgh.fillStyle(0x1a1020, 0.8).fillRect(mx - 26, my - 4, 12, mh * 0.4 + 8); dgh.fillStyle(0x39c6ff, 1).fillRect(mx - 23, my + mh * 0.4 * (1 - this.fuel), 6, mh * 0.4 * this.fuel);
   }
 
-  finish(won) {
+  finish(won, bottom) {
     if (this.done) return;
     this.done = true; this.doneT = this.t;
     let body;
@@ -287,10 +293,11 @@ class FreefallScene extends Phaser.Scene {
       body += '\n\nCHEESE ' + this.gotCheese + ' / ' + this.trail.length + '   (' + Math.ceil(this.timeLeft) + 's TO SPARE)';
       this.puff(this.gunImg.x, this.gunImg.y, 40, 0xffd23f, 320, 0.8, 4);
       this.tweens.add({ targets: this.gunImg, y: this.gunY - 90, scale: 3, angle: 360, duration: 800, ease: 'Back.out' });
-    } else { Sound.music('lose'); body = 'OUT OF TIME!\n\nSO CLOSE TO THE BOTTOM...'; }
+    } else if (bottom) { Sound.music('lose'); body = 'THE CAGE IS STILL SHUT!\n\nCHEESE ' + this.gotCheese + ' / ' + this.need + ': FOLLOW THE TRAIL'; }
+    else { Sound.music('lose'); body = 'OUT OF TIME!\n\nSO CLOSE TO THE BOTTOM...'; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
-    this.add.text(W / 2, H * 0.22, won ? 'BONUS CLEAR!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
+    this.add.text(W / 2, H * 0.22, won ? 'BONUS CLEAR!' : bottom ? 'SO CLOSE!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
     this.add.text(W / 2, H * 0.34, body, { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(D + 1);
     const pad = typeof inputDevice === 'function' && inputDevice() === 'pad';
     const btn = (x, label, fn, col) => {
