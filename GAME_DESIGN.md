@@ -1089,3 +1089,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.60
 - Wingsuit cape spread halved (strips widen to ~3x instead of ~6x).
+
+### v1.61 — Freefall intro
+- A 3-2-1-GO! countdown: Chris glides in from above on autopilot with his cape-wings out, lining up with the start of the cheese trail; your controls and the clock start on GO (beeps on each number, a fanfare on GO). The walls now reach above the top so the glide-in isn't over a void.

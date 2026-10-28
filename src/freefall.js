@@ -20,7 +20,8 @@ class FreefallScene extends Phaser.Scene {
     this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
-    this.pos = { x: SW / 2, y: 80 }; this.vel = { x: 0, y: 60 };
+    this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
+    this.intro = 3.6; this.count = -1;                                // the intro: he glides in on autopilot, wings out, while it counts 3, 2, 1, GO
     this.fx = [];
 
     // ---- the grill: grate rows with wide gaps (a few slide slowly); some hot ones lower down; flare-up vents
@@ -94,7 +95,8 @@ class FreefallScene extends Phaser.Scene {
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE (WINGSUIT!)  DOWN = BOOST',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
-    this.tweens.add({ targets: this.msg, alpha: 0, delay: 3200, duration: 600 });
+    this.tweens.add({ targets: this.msg, alpha: 0, delay: 2800, duration: 500 });
+    this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#3a1a1a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
     this.exitBtn.on('pointerdown', () => this.leave());
     this.layout(); this.scale.on('resize', this.layout, this); this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
@@ -117,14 +119,14 @@ class FreefallScene extends Phaser.Scene {
   buildShaft() {
     const SW = this.SW, SH = this.SH, rnd = (a, b) => a + Math.random() * (b - a);
     const bg = this.add.graphics().setDepth(-1);
-    for (let y = -200; y < SH + 200; y += 200) { const k = Math.max(0, Math.min(1, y / SH)); bg.fillStyle(Phaser.Display.Color.GetColor(22 + 70 * k * k, 10 + 12 * k, 12), 1).fillRect(0, y, SW, 201); }
+    for (let y = -800; y < SH + 200; y += 200) { const k = Math.max(0, Math.min(1, y / SH)); bg.fillStyle(Phaser.Display.Color.GetColor(22 + 70 * k * k, 10 + 12 * k, 12), 1).fillRect(0, y, SW, 201); }
     for (let i = 0; i < 140; i++) bg.fillStyle(0x000000, rnd(0.15, 0.3)).fillCircle(rnd(0, SW), rnd(0, SH), rnd(6, 30));
     const wall = this.add.graphics().setDepth(4);
     for (const side of [-1, 1]) {
       const x0 = side < 0 ? -420 : SW;
-      wall.fillStyle(0x1e4a2a, 1).fillRect(x0, -200, 420, SH + 400);
-      wall.fillStyle(0x2f6a3c, 1).fillRect(side < 0 ? -26 : SW, -200, 26, SH + 400);
-      wall.fillStyle(0x4a8a54, 1).fillRect(side < 0 ? -8 : SW, -200, 8, SH + 400);
+      wall.fillStyle(0x1e4a2a, 1).fillRect(x0, -800, 420, SH + 1000);
+      wall.fillStyle(0x2f6a3c, 1).fillRect(side < 0 ? -26 : SW, -800, 26, SH + 1000);
+      wall.fillStyle(0x4a8a54, 1).fillRect(side < 0 ? -8 : SW, -800, 8, SH + 1000);
       wall.lineStyle(1, 0x123018, 0.9);
       for (let i = 0; i < 60; i++) {
         let x = side < 0 ? rnd(-400, -30) : rnd(SW + 30, SW + 400), y = rnd(0, SH); wall.beginPath(); wall.moveTo(x, y);
@@ -192,7 +194,8 @@ class FreefallScene extends Phaser.Scene {
 
   layout() {
     const W = this.scale.width, H = this.scale.height;
-    this.timeTxt.setPosition(W / 2, 8); this.gotTxt.setPosition(W / 2, 32); this.msg.setPosition(W / 2, H * 0.42);
+    this.timeTxt.setPosition(W / 2, 8); this.gotTxt.setPosition(W / 2, 32); this.msg.setPosition(W / 2, H * 0.36);
+    if (this.countTxt) this.countTxt.setPosition(W / 2, H * 0.68);
     this.exitBtn.setPosition(10, 10);
   }
   puff(x, y, n, col, spd, life, size) { ZeroGScene.prototype.puff.call(this, x, y, n, col, spd, life, size); }
@@ -222,6 +225,19 @@ class FreefallScene extends Phaser.Scene {
       if (wp.y < this.pos.y - 50) brake = true;
     }
     if (this.done) { ax = 0; brake = false; boost = false; }
+    if (this.intro > 0) {                                             // INTRO: the computer flies him in, wings out, to the start of the trail
+      this.intro -= dt;
+      const c = this.trail.find(q => !q.got && q.y > this.pos.y - 10), tx = c ? c.x : this.SW / 2;
+      ax = Math.max(-1, Math.min(1, (tx - this.pos.x) / 40)); brake = true; boost = false;
+      const n = Math.ceil(this.intro - 0.6);                           // 3.6..2.6 -> 3, ..1.6 -> 2, ..0.6 -> 1, the last 0.6 s -> GO
+      const show = this.intro > 0.6 ? String(Math.max(1, n)) : 'GO!';
+      if (show !== this.count) {
+        this.count = show; Sound.sfx(show === 'GO!' ? 'power' : 'combo');
+        this.countTxt.setText(show).setScale(1.8).setAlpha(1).setColor(show === 'GO!' ? '#7dff8a' : '#ffd23f');
+        this.tweens.add({ targets: this.countTxt, scale: 1, duration: 260, ease: 'Back.out' });
+        if (show === 'GO!') this.tweens.add({ targets: this.countTxt, alpha: 0, delay: 450, duration: 300 });
+      }
+    }
     // ---- move: snappy steering, a fall you can control
     if (this.slideT > 0) this.slideT -= dt;
     else this.vel.x += (ax * 300 - this.vel.x) * Math.min(1, dt * 10);
@@ -278,7 +294,7 @@ class FreefallScene extends Phaser.Scene {
     }
     // ---- the bottom: grab the gun
     if (!this.done && this.pos.y >= this.SH - 20) { this.pos.y = this.SH - 20; this.vel.y = 0; this.finish(this.gotCheese >= this.need, true); }
-    if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false, false); } }
+    if (!this.done && !(this.intro > 0)) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false, false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
     this.gotTxt.setText('CHEESE ' + this.gotCheese + ' / ' + this.need + (this.gotCheese >= this.need ? '  CAGE OPEN!' : ' TO OPEN THE CAGE') + (this.chain > 2 ? '   x' + this.chain : '')).setColor(this.gotCheese >= this.need ? '#7dff8a' : '#ffffff');
     if (this.gotCheese >= this.need && !this.cageOpen) { this.cageOpen = true; Sound.sfx('shine'); this.pop(this.pos.x, this.pos.y + 40, 'CAGE OPEN!', '#7dff8a'); }
