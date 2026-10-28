@@ -15,7 +15,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: 80 }; this.vel = { x: 0, y: 60 };
@@ -24,15 +24,21 @@ class FreefallScene extends Phaser.Scene {
     // ---- the grill: grate rows with wide gaps (a few slide slowly); some hot ones lower down; flare-up vents
     this.rows = [];
     let lastGap = SW / 2;
-    for (let y = 520, i = 0; y < SH - 360; y += rnd(440, 540), i++) {
+    for (let y = 520, i = 0; y < SH - 360; i++) {
       const w = rnd(124, 150);
-      let gx = Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));          // not too far from the last gap: a flowing line
+      // every third grate is a SWITCHBACK: close under the last one and right over on the far side. At full speed you
+      // can't get across in time: brake (the trail there is blue cheese, and a BRAKE! sign hangs over it)
+      const sw = i > 1 && i % 3 === 2;
+      if (sw) y = this.rows[this.rows.length - 1].y + rnd(255, 285);
+      let gx = sw ? (lastGap > SW / 2 ? rnd(25, 60) : SW - w - rnd(25, 60))
+        : Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));          // not too far from the last gap: a flowing line
       const gaps = [{ x: gx, w }];
       if (Math.random() < 0.25) { const ox = gx > SW / 2 ? rnd(30, gx - w - 40) : rnd(gx + w + 40, SW - w - 30); if (ox > 20 && ox < SW - w - 20) gaps.push({ x: ox, w: w * 0.8 }); }   // sometimes a second (off-line) gap
-      const slide = i > 2 && Math.random() < 0.4;
+      const slide = !sw && i > 2 && Math.random() < 0.4;
       if (slide) { const g = gaps[0]; g.amp = rnd(60, 110); g.sp = rnd(0.9, 1.4); g.ph = rnd(0, 6); g.x0 = Math.max(g.amp + 10, Math.min(SW - g.w - g.amp - 10, g.x)); }
-      this.rows.push({ y, gaps, hot: y > SH * 0.35 && Math.random() < 0.55, slide });
+      this.rows.push({ y, gaps, hot: !sw && y > SH * 0.35 && Math.random() < 0.55, slide, sw });
       lastGap = (gaps[0].x0 !== undefined ? gaps[0].x0 : gaps[0].x) + w / 2;
+      y += rnd(440, 540);
     }
     this.vents = [];
     for (let k = 0; k < 10; k++) {
@@ -47,18 +53,22 @@ class FreefallScene extends Phaser.Scene {
     this.trail = [];
     let prev = { x: SW / 2, y: 140 };
     const pts = this.rows.map(r => { const g = r.gaps[0]; return { x: (g.x0 !== undefined ? g.x0 : g.x) + g.w / 2, y: r.y }; }).concat([{ x: SW / 2, y: SH - 90 }]);
+    pts.forEach((q, qi) => { q.sw = this.rows[qi] && this.rows[qi].sw; });
     for (const q of pts) {
       const d = q.y - prev.y, n = Math.floor(d / 46);
+      if (q.sw) { const t = this.add.text((prev.x + q.x) / 2, prev.y + 50, 'BRAKE!', { fontFamily: PIXEL, fontSize: '12px', color: '#9fd8ff', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(3.5); this.tweens.add({ targets: t, scale: 1.15, yoyo: true, repeat: -1, duration: 300 }); }
       for (let k = 1; k <= n; k++) {
         const u = k / n, e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;          // ease across: drop, drift over, line up with the gap
         const x = prev.x + (q.x - prev.x) * Math.min(1, e * 1.15), y = prev.y + d * u;
         if (Math.abs(y - q.y) < 30) continue;                                                     // nothing sitting in the grate itself
         const im = this.add.image(x, y, 'cube').setDepth(3).setScale(0.9);
-        this.trail.push({ x, y, im, got: false, ph: (x + y) * 0.02 });
+        if (q.sw) im.setTintFill(0x6ad0ff);                                                            // blue cheese = brake here
+        this.trail.push({ x, y, im, got: false, ph: (x + y) * 0.02, sw: !!q.sw });
       }
       prev = q;
     }
-    this.need = Math.ceil(this.trail.length * 0.75);                  // the gun's cage only opens if you've followed the line: 3/4 of the cheese
+    this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
+    this.need = Math.ceil(this.trail.length * 0.85);                  // the gun's cage only opens if you've followed the line: 3/4 of the cheese
     this.buildShaft();
 
     // ---- the prize: a gun floating over the pizza stone at the bottom (an extra life once every gun's won)
@@ -80,7 +90,7 @@ class FreefallScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\n3/4 OF IT OPENS THE CAGE AT THE BOTTOM\nHOLD JUMP TO BRAKE',
+    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE!',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3200, duration: 600 });
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#3a1a1a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
@@ -146,6 +156,36 @@ class FreefallScene extends Phaser.Scene {
   inGap(r, x, half) { return this.gapsAt(r, this.t).some(g => x - half >= g.x && x + half <= g.x + g.w); }
   nearestGapX(r, x) { let best = null, bd = 1e9; for (const g of this.gapsAt(r, this.t)) { const c = g.x + g.w / 2, d = Math.abs(c - x); if (d < bd) { bd = d; best = c; } } return best; }
 
+  // on-screen buttons for phones: steer left / right (bottom left), BRAKE (bottom right). Hidden when a controller's in use.
+  touchBtns() {
+    const W = this.scale.width, H = this.scale.height, r = Math.max(28, Math.min(44, H * 0.1));
+    return { r, L: { x: 20 + r, y: H - 20 - r }, Rt: { x: 20 + r * 3.4, y: H - 20 - r }, B: { x: W - 30 - r * 2.2, y: H - 20 - r * 1.2 } };
+  }
+  drawTouch(state) {
+    const g = this.touchG || (this.touchG = this.add.graphics().setScrollFactor(0).setDepth(22)), T = this.touchBtns();
+    g.clear();
+    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
+    if (this.touchLbl) this.touchLbl.forEach(t => t.setVisible(show));
+    if (!show) return;
+    const btn = (p, on, col, rr) => { g.fillStyle(0x000000, 0.35).fillCircle(p.x + 3, p.y + 3, rr); g.fillStyle(on ? col : 0x1a1020, on ? 0.85 : 0.5).fillCircle(p.x, p.y, rr); g.lineStyle(3, col, 0.9).strokeCircle(p.x, p.y, rr); };
+    btn(T.L, state.l, 0xffd23f, T.r); btn(T.Rt, state.r, 0xffd23f, T.r); btn(T.B, state.b, 0x39c6ff, T.r * 1.25);
+    const tri = (p, d) => g.fillStyle(0xffffff, 1).fillTriangle(p.x + d * T.r * 0.45, p.y, p.x - d * T.r * 0.3, p.y - T.r * 0.45, p.x - d * T.r * 0.3, p.y + T.r * 0.45);
+    tri(T.L, -1); tri(T.Rt, 1);
+    if (!this.touchLbl) this.touchLbl = [this.add.text(0, 0, 'BRAKE', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23)];
+    this.touchLbl[0].setPosition(T.B.x, T.B.y);
+  }
+  readTouch() {
+    const T = this.touchBtns(), st = { l: false, r: false, b: false };
+    if (!this.isTouch) return st;
+    for (const p of this.input.manager.pointers) {
+      if (!p.isDown) continue;
+      if (Math.hypot(p.x - T.L.x, p.y - T.L.y) < T.r * 1.3) st.l = true;
+      else if (Math.hypot(p.x - T.Rt.x, p.y - T.Rt.y) < T.r * 1.3) st.r = true;
+      else if (Math.hypot(p.x - T.B.x, p.y - T.B.y) < T.r * 1.6) st.b = true;
+    }
+    return st;
+  }
+
   layout() {
     const W = this.scale.width, H = this.scale.height;
     this.timeTxt.setPosition(W / 2, 8); this.gotTxt.setPosition(W / 2, 32); this.msg.setPosition(W / 2, H * 0.42);
@@ -168,8 +208,11 @@ class FreefallScene extends Phaser.Scene {
     let ax = 0, brake = false;
     if (k) { ax += (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); brake = k.up.isDown || k.w.isDown || k.z.isDown || k.space.isDown; }
     if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) brake = true; }
+    const ts = this.readTouch();
+    if (ts.l) ax = -1; if (ts.r) ax = 1; if (ts.b) brake = true;
+    this.drawTouch(ts);
     const ptr = this.input.activePointer, eb = this.exitBtn.getBounds();
-    if (ptr.isDown && !this.done && !eb.contains(ptr.downX, ptr.downY)) {
+    if (ptr.isDown && !this.done && !eb.contains(ptr.downX, ptr.downY) && !this.isTouch) {
       const wp = cam.getWorldPoint(ptr.x, ptr.y), dx = wp.x - this.pos.x;
       ax = Math.abs(dx) > 14 ? Math.max(-1, Math.min(1, dx / 60)) : 0;
       if (wp.y < this.pos.y - 50) brake = true;
@@ -242,7 +285,7 @@ class FreefallScene extends Phaser.Scene {
       if (r.hot) g.fillStyle(0xff5a1a, 0.18 + 0.08 * Math.sin(this.t * 6 + r.y)).fillRect(0, r.y - 10, this.SW, 26);
       const gp = this.gapsAt(r, this.t)[0]; g.fillStyle(0xffd23f, 0.08 + 0.05 * Math.sin(this.t * 4 + r.y)).fillRect(gp.x, r.y - 6, gp.w, 20);   // the line's gap glows faintly
     }
-    for (const c of this.trail) if (!c.got && Math.abs(c.y - this.pos.y) < H) g.fillStyle(0xffd23f, 0.22).fillCircle(c.x, c.y, 11);
+    for (const c of this.trail) if (!c.got && Math.abs(c.y - this.pos.y) < H) g.fillStyle(c.sw ? 0x39c6ff : 0xffd23f, c.sw ? 0.35 : 0.22).fillCircle(c.x, c.y, c.sw ? 13 : 11);
     for (const v of this.vents) {
       if (Math.abs(v.y - this.pos.y) > H * 1.5) continue;
       const x0 = v.side < 0 ? 0 : this.SW;

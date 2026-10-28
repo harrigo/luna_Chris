@@ -1072,3 +1072,9 @@ Built from the brief (`makeGorgeTextures`):
 - **Grates:** narrower gaps (124-150), closer together, the line swings 120-300 px between gaps; 40% slide (faster, wider). Bumping one now costs 1 s ("BONK -1s"). Hot grates from 35% depth, more of them.
 - **Flare-ups:** up to 10, and half fire right across the line: wait for them or brake.
 - Bot check: a perfect line-follower (brakes for flare-ups) wins 5/5 with 8-13 s left; a sloppy one that only aims for the nearest gap reaches the bottom with ~1/3 of the cheese and the cage stays shut.
+
+### v1.57 — Freefall: touch buttons, and braking that matters
+- **On-screen buttons on phones:** ◀ ▶ bottom left to steer, a big BRAKE button bottom right (multi-touch, light up when pressed; hidden while a controller is in use).
+- **Switchbacks:** every third grate sits close under the last one with its gap right over on the far side. At full speed you can't get across: the trail into it is **blue cheese** with a pulsing **BRAKE!** sign. Miss it and you bonk the grate.
+- The cage now needs **85%** of the cheese.
+- Bot check: braking line-follower wins with 1-14 s left; a perfect steerer that never brakes bonks 6-8 times and scrapes through or runs out of time.
