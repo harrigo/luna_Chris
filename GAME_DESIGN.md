@@ -1122,3 +1122,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.67
 - FULL camera controls: holding a direction keeps Chris running the same way round (as before). A fresh press on a SIDE of the planet (where there's no screen-left/right) now has a fixed meaning: LEFT climbs back up towards the top, RIGHT carries on down underneath, on either side. On the top half and underneath, left/right are screen-left/right.
+
+### v1.68
+- FULL camera: on a side of the planet, holding DOWN walks Chris down it (away from the top, the same as RIGHT there) instead of crouching, and keeps going while held, on round underneath.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.67';
+const BUILD = 'v1.68';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1543,6 +1543,14 @@ class Level1 extends Phaser.Scene {
 
   updatePlayer(dt, inp) {
     const P = this.pl;
+    if (this.fullCam) {                                         // FULL camera: on a SIDE of the planet, holding DOWN walks him down it (like RIGHT),
+      const side = Math.abs(Math.cos(this.camLag || 0)) < 0.5;  // and keeps doing so while held, on round underneath
+      if (inp.down && !inp.left && !inp.right && (this.downWalk || (side && P.h <= (P.floor || 0) + 1))) {
+        if (!this.downWalk) this.downDir = Math.sign(this.camLag || 1);    // down the side = further round, away from the top
+        this.downWalk = true; inp = Object.assign({}, inp, { down: false });
+      }
+      else if (!inp.down) this.downWalk = false;
+    } else this.downWalk = false;
     // jump vs down: the most recent press wins while both are held (no fighting / bouncing)
     if (inp.jump && !this.prevJ) P.jumpAt = this.t;
     if (inp.down && !this.prevD) P.downAt = this.t;
@@ -1564,6 +1572,7 @@ class Level1 extends Phaser.Scene {
         else this.axFlip = (ax < 0 ? -Math.sign(lag) : Math.sign(lag)) / ax;   // on a SIDE: LEFT climbs back up towards the top, RIGHT carries on down underneath
       }
       this.axHeld = !!ax; ax *= (this.axFlip || 1);           // you hold it, so you can run on round the sides and underneath without flip-flopping
+      if (this.downWalk) ax = this.downDir || 1;
     } else this.axFlip = 1;
     if (P.duck && ax) P.facing = ax;
 
