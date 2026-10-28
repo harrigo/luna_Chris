@@ -17,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
@@ -27,25 +27,29 @@ class FreefallScene extends Phaser.Scene {
     // ---- the grill: grate rows with wide gaps (a few slide slowly); some hot ones lower down; flare-up vents
     this.rows = [];
     let lastGap = SW / 2;
-    for (let y = 520, i = 0; y < SH - 360; i++) {
+    for (let y = 560, i = 0; y < SH - 360; i++) {
       const w = rnd(124, 150);
+      // every fourth one is a sheet of FOIL right across the shaft: no gap. Hit it BOOSTING and you burst through;
+      // any slower and you bounce off it (the trail there is orange cheese, with a BOOST! sign)
+      if (i % 4 === 3) { this.rows.push({ y, gaps: [], foil: true, lineX: lastGap }); y += rnd(700, 820); continue; }
       // every third grate is a SWITCHBACK: close under the last one and right over on the far side. At full speed you
       // can't get across in time: brake (the trail there is blue cheese, and a BRAKE! sign hangs over it)
-      const sw = i > 1 && i % 3 === 2;
-      if (sw) y = this.rows[this.rows.length - 1].y + rnd(255, 285);
+      const sw = i % 4 === 2;
+      if (sw) y = this.rows[this.rows.length - 1].y + rnd(270, 300);
       let gx = sw ? (lastGap > SW / 2 ? rnd(25, 60) : SW - w - rnd(25, 60))
         : Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));          // not too far from the last gap: a flowing line
       const gaps = [{ x: gx, w }];
       if (Math.random() < 0.25) { const ox = gx > SW / 2 ? rnd(30, gx - w - 40) : rnd(gx + w + 40, SW - w - 30); if (ox > 20 && ox < SW - w - 20) gaps.push({ x: ox, w: w * 0.8 }); }   // sometimes a second (off-line) gap
       const slide = !sw && i > 2 && Math.random() < 0.4;
       if (slide) { const g = gaps[0]; g.amp = rnd(60, 110); g.sp = rnd(0.9, 1.4); g.ph = rnd(0, 6); g.x0 = Math.max(g.amp + 10, Math.min(SW - g.w - g.amp - 10, g.x)); }
-      this.rows.push({ y, gaps, hot: !sw && y > SH * 0.35 && Math.random() < 0.55, slide, sw });
       lastGap = (gaps[0].x0 !== undefined ? gaps[0].x0 : gaps[0].x) + w / 2;
-      y += rnd(440, 540);
+      this.rows.push({ y, gaps, hot: !sw && y > SH * 0.35 && Math.random() < 0.5, slide, sw, lineX: lastGap });
+      y += rnd(700, 860);
     }
     this.vents = [];
-    for (let k = 0; k < 10; k++) {
-      const row = this.rows[2 + Math.floor(Math.random() * (this.rows.length - 3))], y = row.y - rnd(200, 360);
+    for (let k = 0; k < 6; k++) {
+      const row = this.rows[1 + Math.floor(Math.random() * (this.rows.length - 2))], y = row.y - rnd(200, 300);
+      if (row.foil || row.sw) continue;
       if (this.vents.some(v => Math.abs(v.y - y) < 240)) continue;
       // fire from the side AWAY from the racing line, so it's a hazard for straying, not a wall across it
       const lineX = this.lineXAt(y);
@@ -55,10 +59,10 @@ class FreefallScene extends Phaser.Scene {
     // ---- THE CHEESE TRAIL: the racing line, from the lid through every main gap down to the gun
     this.trail = [];
     let prev = { x: SW / 2, y: 140 };
-    const pts = this.rows.map(r => { const g = r.gaps[0]; return { x: (g.x0 !== undefined ? g.x0 : g.x) + g.w / 2, y: r.y }; }).concat([{ x: SW / 2, y: SH - 90 }]);
-    pts.forEach((q, qi) => { q.sw = this.rows[qi] && this.rows[qi].sw; });
+    const pts = this.rows.map(r => ({ x: r.lineX, y: r.y, sw: r.sw, foil: r.foil })).concat([{ x: SW / 2, y: SH - 90 }]);
     for (const q of pts) {
       const d = q.y - prev.y, n = Math.floor(d / 46);
+      if (q.foil) { const t = this.add.text(q.x, q.y - 230, 'BOOST!', { fontFamily: PIXEL, fontSize: '12px', color: '#ffa040', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(3.5); this.tweens.add({ targets: t, scale: 1.15, yoyo: true, repeat: -1, duration: 260 }); }
       if (q.sw) { const t = this.add.text((prev.x + q.x) / 2, prev.y + 50, 'BRAKE!', { fontFamily: PIXEL, fontSize: '12px', color: '#9fd8ff', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(3.5); this.tweens.add({ targets: t, scale: 1.15, yoyo: true, repeat: -1, duration: 300 }); }
       for (let k = 1; k <= n; k++) {
         const u = k / n, e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;          // ease across: drop, drift over, line up with the gap
@@ -66,9 +70,23 @@ class FreefallScene extends Phaser.Scene {
         if (Math.abs(y - q.y) < 30) continue;                                                     // nothing sitting in the grate itself
         const im = this.add.image(x, y, 'cube').setDepth(3).setScale(0.9);
         if (q.sw) im.setTintFill(0x6ad0ff);                                                            // blue cheese = brake here
-        this.trail.push({ x, y, im, got: false, ph: (x + y) * 0.02, sw: !!q.sw });
+        const boostBit = q.foil && q.y - y < 260;
+        if (boostBit) im.setTintFill(0xffa040);                                                        // orange cheese = boost here
+        this.trail.push({ x, y, im, got: false, ph: (x + y) * 0.02, sw: !!q.sw, bo: boostBit });
       }
       prev = q;
+    }
+    // ---- the in-between hazards, so it isn't grate after grate: spinning KEBAB SKEWERS across the line, a SPATULA
+    // swinging out of the wall, and SMOKE clouds that hold you up (and hide the trail)
+    this.haz = [];
+    for (let i = 0; i < this.rows.length; i++) {
+      const a = i ? this.rows[i - 1].y : 200, b = this.rows[i];
+      if (b.foil || b.sw || b.y - a < 560 || Math.random() < 0.15) continue;
+      const y = (a + b.y) / 2 + rnd(-40, 40), lx = this.lineXAt(y), type = ['spin', 'swing', 'smoke', 'spin', 'swing'][Math.floor(Math.random() * 5)];
+      if (this.vents.some(v => Math.abs(v.y - y) < 160)) continue;
+      if (type === 'spin') this.haz.push({ type, x: Math.max(150, Math.min(SW - 150, lx + rnd(-50, 50))), y, len: rnd(120, 150), ang: rnd(0, 6), w: (Math.random() < 0.5 ? -1 : 1) * rnd(1.3, 1.9) });
+      else if (type === 'swing') { const side = lx > SW / 2 ? 1 : -1; this.haz.push({ type, side, y, px: side < 0 ? 0 : SW, py: y - 230, len: 300, ph: rnd(0, 6), sp: rnd(1.5, 2) }); }
+      else this.haz.push({ type, x: rnd(150, SW - 150), y, r: 150, ph: rnd(0, 6) });
     }
     this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
     this.need = Math.ceil(this.trail.length * 0.85);                  // the gun's cage only opens if you've followed the line: 3/4 of the cheese
@@ -93,7 +111,7 @@ class FreefallScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE (WINGSUIT!)  DOWN = BOOST',
+    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE   ORANGE CHEESE = BOOST (DOWN)',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2800, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
@@ -113,7 +131,13 @@ class FreefallScene extends Phaser.Scene {
     }
   }
   // where the racing line is at a given depth (the next main gap's centre)
-  lineXAt(y) { const r = this.rows.find(q => q.y > y) || this.rows[this.rows.length - 1], g = r.gaps[0]; return (g.x0 !== undefined ? g.x0 : g.x) + g.w / 2; }
+  lineXAt(y) { const r = this.rows.find(q => q.y > y) || this.rows[this.rows.length - 1]; return r.lineX; }
+  bonk(x, y, why, pushX) {
+    if (this.penaltyT > 0 || this.done) return;
+    this.penaltyT = 0.6; this.timeLeft = Math.max(0, this.timeLeft - 1); this.chain = 0;
+    Sound.sfx('bonk'); this.cameras.main.shake(100, 0.006); this.pop(x, y - 40, why + ' -1s', '#ffb07a'); this.puff(x, y - 20, 8, 0xc8d0dc, 160, 0.3, 2);
+    if (pushX) { this.vel.x = pushX; this.slideT = 0.25; }
+  }
 
   // ---- the shaft: glazed green ceramic walls with crackle and steel bands, a sooty inside, the coal bed at the bottom
   buildShaft() {
@@ -139,7 +163,7 @@ class FreefallScene extends Phaser.Scene {
     }
     for (const v of this.vents) { const x = v.side < 0 ? -18 : SW; wall.fillStyle(0x0a0404, 1).fillRect(x, v.y - 14, 18, 28); wall.lineStyle(2, 0xa8b0c0, 1).strokeRect(x, v.y - 14, 18, 28); }
     const gr = this.add.graphics().setDepth(2);
-    for (const r of this.rows) if (!r.slide) this.drawGrate(gr, r, 0);
+    for (const r of this.rows) if (!r.slide && !r.foil) this.drawGrate(gr, r, 0);
     gr.fillStyle(0x2a0a04, 1).fillRect(0, SH - 10, SW, 80);
     for (let i = 0; i < 40; i++) gr.fillStyle([0xff4a1a, 0xffa21a, 0x8a1a0a][i % 3], 1).fillCircle(rnd(10, SW - 10), SH + rnd(10, 40), rnd(8, 18));
     gr.fillStyle(0x8a6a4a, 1).fillRect(SW / 2 - 140, SH - 14, 280, 14); gr.fillStyle(0xb8946a, 1).fillRect(SW / 2 - 140, SH - 14, 280, 4);
@@ -156,8 +180,16 @@ class FreefallScene extends Phaser.Scene {
       for (let k = a + 6; k < b - 4; k += 12) g.fillStyle(hot ? 0x8a1a0a : 0x3a3e48, 1).fillRect(k, r.y + 4, 3, 4);
     }
   }
+  // a sheet of crinkly kitchen foil across the shaft (torn open at the sides once you've burst through it)
+  drawFoil(g, r) {
+    const SW = this.SW;
+    if (r.torn) { for (const sd of [0, 1]) { const x0 = sd ? SW - 70 : 0; g.fillStyle(0xc8ccd6, 1).fillTriangle(x0, r.y - 4, x0 + 70, r.y - 4, sd ? SW : 0, r.y + 40); } return; }
+    g.fillStyle(0x6a6e78, 1).fillRect(0, r.y - 5, SW, 16);
+    for (let x = 0; x < SW; x += 12) { const k = (x * 7) % 5; g.fillStyle([0xe8ecf4, 0xb8bcc6, 0xd0d4de, 0x9aa0aa, 0xf4f6fa][k], 1).fillRect(x, r.y - 4 + (k % 2), 12, 12); }
+    g.fillStyle(0xffffff, 0.9).fillRect(0, r.y - 4, SW, 2);
+  }
   gapsAt(r, t) { return r.slide ? r.gaps.map(g => g.x0 !== undefined ? { x: g.x0 + Math.sin(t * g.sp + g.ph) * g.amp, w: g.w } : g) : r.gaps; }
-  inGap(r, x, half) { return this.gapsAt(r, this.t).some(g => x - half >= g.x && x + half <= g.x + g.w); }
+  inGap(r, x, half) { if (r.foil) return !!r.torn; return this.gapsAt(r, this.t).some(g => x - half >= g.x && x + half <= g.x + g.w); }
   nearestGapX(r, x) { let best = null, bd = 1e9; for (const g of this.gapsAt(r, this.t)) { const c = g.x + g.w / 2, d = Math.abs(c - x); if (d < bd) { bd = d; best = c; } } return best; }
 
   // on-screen buttons for phones: steer left / right (bottom left), BRAKE (bottom right). Hidden when a controller's in use.
@@ -257,7 +289,12 @@ class FreefallScene extends Phaser.Scene {
     this.pos.y += this.vel.y * dt;
     // ---- grates: bump one and you bounce off and SLIDE towards the nearest gap (no stopping, no time lost unless it's hot)
     for (const r of this.rows) {
-      if (prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 12)) {
+      if (r.foil && !r.torn && prevY <= r.y && this.pos.y >= r.y) {
+        if (this.vel.y >= 560) { r.torn = true; Sound.sfx('crash'); this.cameras.main.shake(180, 0.01); this.puff(this.pos.x, r.y, 24, 0xe8ecf4, 300, 0.5, 3); this.pop(this.pos.x, r.y - 40, 'RIIIP!', '#ffffff'); }
+        else { this.pos.y = r.y - 1; this.vel.y = -220; this.bonk(this.pos.x, r.y, 'BOING'); }
+        break;
+      }
+      if (!r.foil && prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 12)) {
         this.pos.y = r.y - 1; this.vel.y = -200;
         const gx = this.nearestGapX(r, this.pos.x); this.vel.x = Math.sign(gx - this.pos.x) * 200; this.slideT = 0.25;
         if (r.hot) { this.penalty(this.pos.x, r.y, 'HOT!'); Sound.sfx('hiss'); }
@@ -277,6 +314,21 @@ class FreefallScene extends Phaser.Scene {
         const reach = 270, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > this.SW - reach;
         if (inX && Math.abs(this.pos.y - v.y) < 36) { v.hitDone = true; this.vel.x = -v.side * 360; this.slideT = 0.3; this.penalty(this.pos.x, this.pos.y, 'FLARE-UP!'); }
       }
+    }
+    // ---- skewers, spatulas, smoke
+    const cy = this.pos.y - 30;
+    for (const h of this.haz) {
+      if (Math.abs(h.y - this.pos.y) > H) continue;
+      if (h.type === 'spin') {
+        h.ang += h.w * dt;
+        const dx = Math.cos(h.ang), dy = Math.sin(h.ang), rx = this.pos.x - h.x, ry = cy - h.y, along = Math.max(-h.len, Math.min(h.len, rx * dx + ry * dy));
+        const d = Math.hypot(rx - dx * along, ry - dy * along);
+        if (d < 18) this.bonk(this.pos.x, cy, 'SKEWERED', Math.sign(rx - dx * along || 1) * 260);
+      } else if (h.type === 'swing') {
+        const a = 0.65 + 0.6 * Math.sin(this.t * h.sp + h.ph);              // swings out from the wall and back
+        h.hx = h.px - h.side * Math.sin(a) * h.len; h.hy = h.py + Math.cos(a) * h.len; h.a = a;
+        if (Math.hypot(this.pos.x - h.hx, cy - h.hy) < 34) this.bonk(this.pos.x, cy, 'THWACK', h.side * -300);
+      } else if (Math.hypot(this.pos.x - h.x, cy - h.y) < h.r && !boosting) { this.vel.y = Math.max(150, this.vel.y - 1000 * dt); this.vel.x += Math.sin(this.t * 3 + h.ph) * 300 * dt; }
     }
     // ---- the cheese trail: each bit is the next note up the scale while the chain lasts
     this.chainT -= dt; if (this.chainT <= 0) this.chain = 0;
@@ -306,13 +358,32 @@ class FreefallScene extends Phaser.Scene {
 
     // ---- draw
     const dg = this.dynG; dg.clear();
-    for (const r of this.rows) if (r.slide && Math.abs(r.y - this.pos.y) < H * 1.5) this.drawGrate(dg, r, this.t);
+    for (const r of this.rows) if (Math.abs(r.y - this.pos.y) < H * 1.5) { if (r.slide) this.drawGrate(dg, r, this.t); else if (r.foil) this.drawFoil(dg, r); }
+    const sm = this.smokeG || (this.smokeG = this.add.graphics().setDepth(4.6)); sm.clear();
+    for (const h of this.haz) {
+      if (Math.abs(h.y - this.pos.y) > H * 1.3) continue;
+      if (h.type === 'spin') {                                             // a kebab skewer, spinning on a bolt
+        const dx = Math.cos(h.ang) * h.len, dy = Math.sin(h.ang) * h.len;
+        dg.lineStyle(8, 0x1a1012, 1).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy); dg.lineStyle(4, 0xc8d0dc, 1).lineBetween(h.x - dx, h.y - dy, h.x + dx, h.y + dy);
+        const cols = [0x8a3a1a, 0x3aa040, 0xf0e0c0, 0xd62828];
+        for (let k = -4; k <= 4; k++) { if (!k) continue; const u = k / 4.6; dg.fillStyle(0x1a1012, 1).fillCircle(h.x + dx * u, h.y + dy * u, 11); dg.fillStyle(cols[(k + 4) % 4], 1).fillCircle(h.x + dx * u, h.y + dy * u, 9); }
+        dg.fillStyle(0x3a3e48, 1).fillCircle(h.x, h.y, 8); dg.fillStyle(0xa8b0c0, 1).fillCircle(h.x, h.y, 4);
+      } else if (h.type === 'swing' && h.hx !== undefined) {                // a giant spatula on an arm out of the wall
+        dg.lineStyle(9, 0x1a1012, 1).lineBetween(h.px, h.py, h.hx, h.hy); dg.lineStyle(5, 0x8a5a2a, 1).lineBetween(h.px, h.py, h.hx, h.hy);
+        const ang = Math.atan2(h.hy - h.py, h.hx - h.px), c = Math.cos(ang), s2 = Math.sin(ang), pts = [[-6, -28], [50, -32], [50, 32], [-6, 28]].map(([u, v]) => ({ x: h.hx + c * u - s2 * v, y: h.hy + s2 * u + c * v }));
+        dg.fillStyle(0x1a1012, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true); dg.fillStyle(0xc8d0dc, 1).fillPoints(pts, true);
+        for (const v of [-14, 0, 14]) { const a = { x: h.hx + c * 8 - s2 * v, y: h.hy + s2 * 8 + c * v }, b = { x: h.hx + c * 42 - s2 * v, y: h.hy + s2 * 42 + c * v }; dg.lineStyle(3, 0x6a7080, 1).lineBetween(a.x, a.y, b.x, b.y); }
+        dg.fillStyle(0x6a7080, 1).fillCircle(h.px, h.py, 10);
+      } else if (h.type === 'smoke') {                                     // a lazy grey smoke cloud: holds you up, hides the trail
+        for (let k = 0; k < 9; k++) { const a = this.t * 0.5 + k * 0.7 + h.ph, rr = h.r * (0.35 + 0.45 * ((k * 37) % 10) / 10); sm.fillStyle(k % 2 ? 0x5a5258 : 0x7a7278, 0.32).fillCircle(h.x + Math.cos(a) * rr * 0.6, h.y + Math.sin(a * 1.3) * rr * 0.5, h.r * 0.5); }
+      }
+    }
     const g = this.fxG; g.clear();
     for (const r of this.rows) if (Math.abs(r.y - this.pos.y) < H * 1.5) {
       if (r.hot) g.fillStyle(0xff5a1a, 0.18 + 0.08 * Math.sin(this.t * 6 + r.y)).fillRect(0, r.y - 10, this.SW, 26);
-      const gp = this.gapsAt(r, this.t)[0]; g.fillStyle(0xffd23f, 0.08 + 0.05 * Math.sin(this.t * 4 + r.y)).fillRect(gp.x, r.y - 6, gp.w, 20);   // the line's gap glows faintly
+      const gp = this.gapsAt(r, this.t)[0]; if (gp) g.fillStyle(0xffd23f, 0.08 + 0.05 * Math.sin(this.t * 4 + r.y)).fillRect(gp.x, r.y - 6, gp.w, 20);   // the line's gap glows faintly
     }
-    for (const c of this.trail) if (!c.got && Math.abs(c.y - this.pos.y) < H) g.fillStyle(c.sw ? 0x39c6ff : 0xffd23f, c.sw ? 0.35 : 0.22).fillCircle(c.x, c.y, c.sw ? 13 : 11);
+    for (const c of this.trail) if (!c.got && Math.abs(c.y - this.pos.y) < H) g.fillStyle(c.sw ? 0x39c6ff : c.bo ? 0xff7a1a : 0xffd23f, c.sw || c.bo ? 0.35 : 0.22).fillCircle(c.x, c.y, c.sw || c.bo ? 13 : 11);
     for (const v of this.vents) {
       if (Math.abs(v.y - this.pos.y) > H * 1.5) continue;
       const x0 = v.side < 0 ? 0 : this.SW;

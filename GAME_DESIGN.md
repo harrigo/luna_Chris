@@ -1092,3 +1092,13 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.61 — Freefall intro
 - A 3-2-1-GO! countdown: Chris glides in from above on autopilot with his cape-wings out, lining up with the start of the cheese trail; your controls and the clock start on GO (beeps on each number, a fanfare on GO). The walls now reach above the top so the glide-in isn't over a void.
+
+### v1.62 — Freefall: fewer grates, more going on
+- **About half the grates** (700-860 apart instead of 440-540). The pattern runs normal, normal, switchback (BRAKE, blue cheese), **foil**.
+- **Foil sheets:** a sheet of crinkly kitchen foil right across the shaft, no gap. Hit it **boosting** (fall speed 560+) and you burst through it ("RIIIP!"; it hangs torn at the sides); any slower and you bounce off (-1 s). The trail into it is **orange cheese** under a pulsing BOOST! sign.
+- **In between the grates**, one of:
+  - a **kebab skewer** spinning on a bolt across the line (meat, pepper, onion, tomato): touch it and you're knocked aside, -1 s ("SKEWERED");
+  - a giant **spatula** on an arm swinging out of the wall over the line ("THWACK", -1 s);
+  - a **smoke cloud** that holds you up (unless boosting), drifts you sideways and hides the trail.
+- Fewer flare-up vents (up to 6), never at a switchback or foil.
+- Bot check: a line-follower that brakes on blue and boosts on orange wins 5/5 (6-16 s left); a sloppy one gets a third of the cheese.
