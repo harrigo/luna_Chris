@@ -334,7 +334,7 @@ class FreefallScene extends Phaser.Scene {
       // out wide either side of him like a membrane, each rippling on its own beat
       this.rig.capeS.forEach((c, i) => {
         const fl = Math.sin(this.t * 20 + i * 1.3);
-        c.setPosition(-2 + fl * 1.5 * wk, -58 + i * 11).setRotation(fl * 0.05 * wk).setScale(1 + 5.2 * wk * (1 + 0.12 * fl), 1 + 0.35 * wk);
+        c.setPosition(-2 + fl * 1.5 * wk, -58 + i * 11).setRotation(fl * 0.05 * wk).setScale(1 + 2.1 * wk * (1 + 0.12 * fl), 1 + 0.35 * wk);
       });
       if (Math.random() < dt * 30) this.fx.push({ x: this.pos.x + (Math.random() - 0.5) * 70, y: this.pos.y - 20, vx: 0, vy: -200, life: 0.25, max: 0.25, col: 0xffffff, size: 1.5 });   // air rushing past
     } else this.rig.capeS.forEach(c => c.setScale(1));

@@ -1086,3 +1086,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.59
 - The wingsuit is just Chris's own cape now: braking stretches the four cape strips flat along his back and out wide either side of him, each rippling on its own beat. The extra red membranes are gone.
+
+### v1.60
+- Wingsuit cape spread halved (strips widen to ~3x instead of ~6x).
