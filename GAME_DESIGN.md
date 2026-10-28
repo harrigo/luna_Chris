@@ -1057,3 +1057,11 @@ Built from the brief (`makeGorgeTextures`):
 - **Flare-ups** roar out of side vents (they glow first), knocking you across the shaft (-2 s).
 - **Brake:** hold JUMP to fire the jetpack against the fall (blue fuel bar, refills while standing on a grate). Depth meter on the right.
 - 12 ingredients down the shaft (+1 s each); reach the stone with all 12 and the gun crate opens (same prize as the Zero-G rooms: the next gun not yet won, else +1 life). Touch: hold anywhere; Chris steers towards your finger, holding above him brakes.
+
+### v1.55 — Freefall reworked (it was too hard)
+- **Chris dives head first, no gun** (arms reaching down; the jet points up and fires against the fall when braking).
+- **The cheese trail**: a line of cheese bits marks the racing line from the lid through every main gap down to the prize. Each bit snapped up plays the next note up a major-pentatonic scale (`chime`), so following it plays a rising run; every 8 in a chain = +1 s. The line's gap in each grate glows faintly.
+- **Gentler grates:** wider gaps (170-200), fewer rows, placed so the line flows; bumping a grate bounces you and slides you towards the nearest gap (no stopping, no time lost unless it's a hot one). Fewer flare-ups, and they fire from the side away from the line.
+- **Brake lasts much longer** (6 s of fuel) and refills slowly all the time.
+- **The prize gun floats over the pizza stone** at the bottom: reach it in time and it's yours (no ingredient count needed; +1 life once every gun's won). Steering is snappier.
+- Tested with an autopilot that just follows the trail: all three runs got every bit and reached the gun with time to spare.

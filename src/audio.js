@@ -174,6 +174,12 @@ const Sound = (() => {
       for (let i = 0; i < 3; i++) tone({ type: 'square', f: 210 - i * 25, dur: 0.012, vol: 0.11, t: t + 0.012 + i * 0.016 });
       tone({ type: 'pulse', duty: 0.25, f: 1100, f2: 700, dur: 0.03, vol: 0.06, t: t + 0.03 });
     },
+    // the freefall cheese trail: a bright little bell, one step further up a major-pentatonic scale for every bit in
+    // the chain (wraps up an octave), so following the line plays a rising run
+    chime: () => {
+      const n = Math.max(0, (SFX._ch || 1) - 1), steps = [0, 2, 4, 7, 9], f = 523.25 * Math.pow(2, (steps[n % 5] + 12 * Math.min(2, Math.floor(n / 5))) / 12);
+      tone({ type: 'pulse', duty: 0.125, f, dur: 0.12, vol: 0.09 }); tone({ type: 'triangle', f: f * 2, dur: 0.08, vol: 0.05 });
+    },
     // Chris getting hurt: abstract chiptune 'owch' yelps (no words). A quick squeak up and a tumble down, three flavours,
     // and a bigger wobbling 'waa-waa' fall for the last heart / losing a life
     ouch1: () => { const t = ctx.currentTime; tone({ type: 'pulse', duty: 0.25, f: 520, f2: 980, dur: 0.05, vol: 0.16 }); tone({ type: 'pulse', duty: 0.25, f: 900, f2: 300, dur: 0.14, vol: 0.16, t: t + 0.05 }); },
