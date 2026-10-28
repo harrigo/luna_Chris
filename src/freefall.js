@@ -29,12 +29,9 @@ class FreefallScene extends Phaser.Scene {
     let lastGap = SW / 2;
     for (let y = 560, i = 0; y < SH - 360; i++) {
       const w = rnd(124, 150);
-      // every fourth one is a sheet of FOIL right across the shaft: no gap. Hit it BOOSTING and you burst through;
-      // any slower and you bounce off it (the trail there is orange cheese, with a BOOST! sign)
-      if (i % 4 === 3) { this.rows.push({ y, gaps: [], foil: true, lineX: lastGap }); y += rnd(700, 820); continue; }
       // every third grate is a SWITCHBACK: close under the last one and right over on the far side. At full speed you
       // can't get across in time: brake (the trail there is blue cheese, and a BRAKE! sign hangs over it)
-      const sw = i % 4 === 2;
+      const sw = i % 3 === 2;
       if (sw) y = this.rows[this.rows.length - 1].y + rnd(270, 300);
       let gx = sw ? (lastGap > SW / 2 ? rnd(25, 60) : SW - w - rnd(25, 60))
         : Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));          // not too far from the last gap: a flowing line
@@ -111,7 +108,7 @@ class FreefallScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE   ORANGE CHEESE = BOOST (DOWN)',
+    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE   DOWN = BOOST',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2800, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setScrollFactor(0).setDepth(21);

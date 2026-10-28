@@ -1102,3 +1102,6 @@ Built from the brief (`makeGorgeTextures`):
   - a **smoke cloud** that holds you up (unless boosting), drifts you sideways and hides the trail.
 - Fewer flare-up vents (up to 6), never at a switchback or foil.
 - Bot check: a line-follower that brakes on blue and boosts on orange wins 5/5 (6-16 s left); a sloppy one gets a third of the cheese.
+
+### v1.63
+- Foil sheets removed (rows are back to normal, normal, switchback). The foil code stays but nothing makes a foil row. Boost is just for making up time again.
