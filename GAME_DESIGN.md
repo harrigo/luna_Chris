@@ -1119,3 +1119,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.66
 - SWING camera is a springy, under-damped follow now (K 30, damping 4) instead of a linear ease: it catches up faster, swings a little past Chris when he starts or stops and settles back, so it feels bouncy rather than linear.
+
+### v1.67
+- FULL camera controls: holding a direction keeps Chris running the same way round (as before). A fresh press on a SIDE of the planet (where there's no screen-left/right) now has a fixed meaning: LEFT climbs back up towards the top, RIGHT carries on down underneath, on either side. On the top half and underneath, left/right are screen-left/right.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.66';
+const BUILD = 'v1.67';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1558,7 +1558,11 @@ class Level1 extends Phaser.Scene {
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
     let ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);      // crouched: a slow waddle (and steering while dropping)
     if (this.fullCam) {                                       // FULL camera: left/right follow the SCREEN. The way round is decided when you
-      if (ax && !this.axHeld) { const c = Math.cos(this.camLag || 0); if (Math.abs(c) > 0.25) this.axFlip = Math.sign(c); }   // press, and kept while
+      if (ax && !this.axHeld) {                               // press, and kept while
+        const lag = this.camLag || 0, c = Math.cos(lag);
+        if (Math.abs(c) > 0.35) this.axFlip = Math.sign(c);    // top half / underneath: left is screen-left
+        else this.axFlip = (ax < 0 ? -Math.sign(lag) : Math.sign(lag)) / ax;   // on a SIDE: LEFT climbs back up towards the top, RIGHT carries on down underneath
+      }
       this.axHeld = !!ax; ax *= (this.axFlip || 1);           // you hold it, so you can run on round the sides and underneath without flip-flopping
     } else this.axFlip = 1;
     if (P.duck && ax) P.facing = ax;
