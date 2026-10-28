@@ -1116,3 +1116,6 @@ Built from the brief (`makeGorgeTextures`):
 - FULL: "up" stays up on the screen. The camera angle is fixed where Chris starts and the view slides after him (`updateCamera`), framing him with room above his own head, so he runs right round the planet: on the side, upside down underneath.
 - **Controls follow the screen:** left/right are decided when you press (by which way the ground under him faces on screen) and kept while held, so you can run on round the sides and underneath without flip-flopping. Release and press again to re-map.
 - Visibility culling is by distance from Chris (not from the camera) in FULL; the muzzle maths uses the camera angle. Known rough edges: off-screen enemy arrows still assume Chris is on top; bosses/cutscenes untested in FULL.
+
+### v1.66
+- SWING camera is a springy, under-damped follow now (K 30, damping 4) instead of a linear ease: it catches up faster, swings a little past Chris when he starts or stops and settles back, so it feels bouncy rather than linear.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.65';
+const BUILD = 'v1.66';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -201,7 +201,7 @@ class Level1 extends Phaser.Scene {
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
     //   milky-way dust band (slowest) -> faint far stars -> mid stars -> a few big twinkling near stars (fastest)
     this.bgStars = [];
-    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camLag = 0; this.fullCam = false; this.axHeld = false; this.axFlip = 1;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
+    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camV = 0; this.camLag = 0; this.fullCam = false; this.axHeld = false; this.axFlip = 1;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
     const dust = this.def.dust;
     for (let i = 0; i < (this.def.bgDecor === 'cosmic' ? 0 : 46); i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
@@ -4285,9 +4285,16 @@ class Level1 extends Phaser.Scene {
     if (full) { if (this.camT === undefined || !this.fullCam) this.camT = P.theta; }   // fixed: "up" is wherever he started
     else if (mode !== 'swing' || this.def.cave || this.camT === undefined) this.camT = P.theta;
     else {
-      this.camT = wrap(this.camT + angDiff(P.theta, this.camT) * Math.min(1, dtc * 2.2));
+      // a springy, UNDER-damped camera: it eases off, catches up quickly, swings a little PAST Chris and settles back,
+      // so starting and stopping feel bouncy rather than linear
+      const K = 30, C = 4, n = Math.max(1, Math.ceil(dtc / 0.012)), h = dtc / n;
+      for (let i = 0; i < n; i++) {
+        const lag = angDiff(P.theta, this.camT);
+        this.camV = (this.camV || 0) + (K * lag - C * (this.camV || 0)) * h;
+        this.camT = wrap(this.camT + this.camV * h);
+      }
       const lag = angDiff(P.theta, this.camT), m = 150 / R;
-      if (Math.abs(lag) > m) this.camT = wrap(P.theta - Math.sign(lag) * m);
+      if (Math.abs(lag) > m) { this.camT = wrap(P.theta - Math.sign(lag) * m); if (Math.sign(this.camV) !== Math.sign(lag)) this.camV *= 0.5; }
     }
     this.camLag = angDiff(P.theta, this.camT);
     if (full) {                                                         // slide the planet so Chris stays framed, with room above HIS head
