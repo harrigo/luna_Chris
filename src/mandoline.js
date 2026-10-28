@@ -23,7 +23,7 @@ const MandolineMixin = {
   // a point on the body (texture pixels from the centre, y down) in world terms, following the sprite's tilt
   mPt(o, ox, oy) {
     const k = o.spr.bsx || 1, x = ox * k, y = -oy * k;
-    const rot = o.spr.rotation - angDiff(o.theta, this.pl.theta);
+    const rot = o.spr.rotation - angDiff(o.theta, this.viewT());
     const rx = x * Math.cos(rot) + y * Math.sin(rot), ry = -x * Math.sin(rot) + y * Math.cos(rot);
     return { theta: wrap(o.theta + rx / (R + o.h)), h: o.h + ry };
   },

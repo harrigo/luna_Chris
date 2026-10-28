@@ -8,7 +8,8 @@ const Settings = (() => {
     shake: load('shake', true),
     rumble: load('rumble', true),
     diff: load('diff', 'normal'),                    // easy | normal | hard
-    padUpJump: load('padUpJump', false),             // controller: push the left stick up to jump (hold = jetpack), like touch
+    padUpJump: load('padUpJump', false),
+    camSwing: load('camSwing', true),                // camera: lags a little behind Chris so the planet visibly swings round (false = locked on him)             // controller: push the left stick up to jump (hold = jetpack), like touch
     cycleDiff(dir) { const o = ['easy', 'normal', 'hard'], i = o.indexOf(this.diff); this.set('diff', dir ? o[Math.max(0, Math.min(2, i + dir))] : o[(i + 1) % 3]); },
     get dk() { return { easy: { hp: 0.7, shot: 0.75 }, normal: { hp: 1, shot: 1 }, hard: { hp: 1.3, shot: 1.15 } }[this.diff] || { hp: 1, shot: 1 }; },
     get glow() { return this.gfx === 'high'; },      // shader glow on sprites
@@ -29,6 +30,7 @@ function optionItems(onGfx) {
     { label: () => 'SOUND: ' + (Settings.soundOn() ? 'ON' : 'OFF'), act: () => Settings.toggleSound() },
     { label: () => 'SCREEN SHAKE: ' + (Settings.shake ? 'ON' : 'OFF'), act: () => Settings.set('shake', !Settings.shake) },
     { label: () => 'RUMBLE: ' + (Settings.rumble ? 'ON' : 'OFF'), act: () => { Settings.set('rumble', !Settings.rumble); if (Settings.rumble) buzzAll(120); } },
+    { label: () => 'CAMERA: ' + (Settings.camSwing ? 'SWING' : 'LOCKED'), act: () => Settings.set('camSwing', !Settings.camSwing) },
     { label: () => 'PAD STICK-UP JUMP: ' + (Settings.padUpJump ? 'ON' : 'OFF'), act: () => Settings.set('padUpJump', !Settings.padUpJump) }
   ];
 }

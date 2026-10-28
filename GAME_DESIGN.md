@@ -1105,3 +1105,8 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.63
 - Foil sheets removed (rows are back to normal, normal, switchback). The foil code stays but nothing makes a foil row. Boost is just for making up time again.
+
+### v1.64 — swinging camera (the middle ground)
+- New option **CAMERA: SWING / LOCKED** (main menu + pause menu options; SWING by default). With SWING the camera's angle round the planet (`viewT()`, `camT`) eases after Chris instead of being glued to him: run and he moves off-centre along the curve, leaning with it, while the planet turns under him and catches up (never more than ~150 units behind; settles back when he stops). Off in the cave.
+- Everything drawn through `screenPos`/`place` follows the camera angle; the planet and sky layers turn with it; Chris's rig leans by the lag; boss/mandoline attachment maths and aiming (stick/mouse) account for it.
+- LOCKED is exactly the old behaviour.

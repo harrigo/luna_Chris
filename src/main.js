@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.63';
+const BUILD = 'v1.64';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -201,7 +201,7 @@ class Level1 extends Phaser.Scene {
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
     //   milky-way dust band (slowest) -> faint far stars -> mid stars -> a few big twinkling near stars (fastest)
     this.bgStars = [];
-    this.unw = 0; this.lastTheta = 0;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
+    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camLag = 0;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
     const dust = this.def.dust;
     for (let i = 0; i < (this.def.bgDecor === 'cosmic' ? 0 : 46); i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
@@ -1601,8 +1601,10 @@ class Level1 extends Phaser.Scene {
     }
     if (ax !== 0) P.facing = ax;
     if (inp.aim) {                                      // twin-stick: face and aim where the right stick points, whatever way you run
-      if (Math.abs(inp.aim.x) > 0.2) P.facing = inp.aim.x > 0 ? 1 : -1;
-      const up = Math.atan2(-inp.aim.y, Math.abs(inp.aim.x));
+      const cl = Math.cos(this.camLag || 0), sl = Math.sin(this.camLag || 0);
+      const aimX = inp.aim.x * cl + inp.aim.y * sl, aimY = -inp.aim.x * sl + inp.aim.y * cl;   // (screen -> Chris's own up, when the camera's swung)
+      if (Math.abs(aimX) > 0.2) P.facing = aimX > 0 ? 1 : -1;
+      const up = Math.atan2(-aimY, Math.abs(aimX));
       P.aimA = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, up));          // anywhere from straight down to straight up
     } else P.aimA = (P.aimA || 0) * Math.max(0, 1 - dt * 10);
 
@@ -3033,7 +3035,7 @@ class Level1 extends Phaser.Scene {
   // world position of a point on the boss sprite (texture pixels from its top-left), so shots leave real cannons
   bossGun(e, tx, ty) {
     const k = e.spr.bsx || 1, ox = tx * k, oy = -(ty - 48) * k;            // croque texture is 160x96, origin at its centre
-    const rot = e.spr.rotation - angDiff(e.theta, this.pl.theta);          // the sprite's own tilt on top of the world angle
+    const rot = e.spr.rotation - angDiff(e.theta, this.viewT());          // the sprite's own tilt on top of the world angle
     const rx = ox * Math.cos(rot) + oy * Math.sin(rot), ry = -ox * Math.sin(rot) + oy * Math.cos(rot);
     const flip = e.spr.flipX ? -1 : 1;
     return { theta: wrap(e.theta + (rx * flip) / (R + e.h)), h: e.h + ry };
@@ -4057,8 +4059,11 @@ class Level1 extends Phaser.Scene {
   }
 
   // screen position of a polar point (what place() does, for particle emitters)
+  // the camera's angle round the planet. Normally exactly Chris's; with CAMERA: SWING it trails a little behind him, so
+  // when he runs the planet visibly turns under him and catches up (and he leans with the curve)
+  viewT() { return this.camT === undefined ? this.pl.theta : this.camT; }
   screenPos(theta, h) {
-    const d = angDiff(theta, this.pl.theta), r = (R + h) * this.zoom;
+    const d = angDiff(theta, this.viewT()), r = (R + h) * this.zoom;
     return { x: this.cx + r * Math.sin(d), y: this.cy - r * Math.cos(d), vis: Math.abs(d) < 1.45 };
   }
 
@@ -4068,7 +4073,7 @@ class Level1 extends Phaser.Scene {
   }
 
   place(o, theta, h, extraRot) {
-    const d = angDiff(theta, this.pl.theta);
+    const d = angDiff(theta, this.viewT());
     if (Math.abs(d) > 1.45) { o.setVisible(false); return; }   // far side of the planet
     const z = this.zoom, r = (R + h) * z;
     o.setVisible(true);
@@ -4276,9 +4281,20 @@ class Level1 extends Phaser.Scene {
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
+    {                                                                  // CAMERA: SWING: ease the camera after Chris, never more than ~150 units behind
+      const dtc = this.lastDt || 0.016;
+      if (!Settings.camSwing || this.def.cave || this.camT === undefined) this.camT = P.theta;
+      else {
+        this.camT = wrap(this.camT + angDiff(P.theta, this.camT) * Math.min(1, dtc * 2.2));
+        const lag = angDiff(P.theta, this.camT), m = 150 / R;
+        if (Math.abs(lag) > m) this.camT = wrap(P.theta - Math.sign(lag) * m);
+      }
+      this.camLag = angDiff(P.theta, this.camT);
+    }
+    const unwV = this.unw - this.camLag;
     const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
-      const a = b.a - (this.unw + this.t * 0.03) * b.k, rr = r0 + b.r * span;     // drifts slowly even when standing still
+      const a = b.a - (unwV + this.t * 0.03) * b.k, rr = r0 + b.r * span;     // drifts slowly even when standing still
       b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
       if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
       if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
@@ -4318,7 +4334,7 @@ class Level1 extends Phaser.Scene {
       if (A.st !== 'hover' && Math.abs(toT) < 0.02) A.st = 'hover';
       A.h += ((A.th || 215) - A.h) * Math.min(1, dtA * 0.8);
       // project into the rotating view like everything else
-      const d = angDiff(A.theta, P.theta), rr = (R + A.h + Math.sin(this.t * 1.3) * 6) * z;
+      const d = angDiff(A.theta, this.viewT()), rr = (R + A.h + Math.sin(this.t * 1.3) * 6) * z;
       const sx = this.cx + rr * Math.sin(d), sy = this.cy - rr * Math.cos(d), tilt = d - A.vt * 0.35;
       const vis = Math.abs(d) < 1.45 ? A.a : 0;
       A.ship.setPosition(sx, sy).setScale(z * 0.9).setRotation(tilt + Math.sin(this.t * 1.1) * 0.05).setAlpha(vis);
@@ -4351,7 +4367,7 @@ class Level1 extends Phaser.Scene {
     pg.fillStyle(pc.glow, 0.14).fillCircle(cx, cy, Rz + 14);
     if (this.planetImg) {
       const ps = (2 * Rz) / this.planetImg.width;
-      this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-this.unw);
+      this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-unwV);
       this.planetShade.setPosition(cx, cy).setScale(ps);
       this.rimG.clear().lineStyle(3, 0x1a1020, 1).strokeCircle(cx, cy, Rz + 1);
       if (this.def.rimGlow) {                           // neon rim light (level 2)
@@ -4445,6 +4461,7 @@ class Level1 extends Phaser.Scene {
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    this.rig.root.setRotation(this.camLag || 0);                       // (camera swing: he stands square to the planet, wherever it's turned)
     this.drawBuff();
     if (this.ko) {                                           // game over: flat on his back (rotates about his feet), little stars circling
       const r = this.rig.root; r.setRotation(this.ko.rot); r.y -= Math.abs(this.ko.rot) * 7 * this.zoom; r.x += this.ko.rot * 4 * this.zoom;   // lies ON the ground
