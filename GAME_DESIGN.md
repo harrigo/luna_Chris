@@ -1078,3 +1078,8 @@ Built from the brief (`makeGorgeTextures`):
 - **Switchbacks:** every third grate sits close under the last one with its gap right over on the far side. At full speed you can't get across: the trail into it is **blue cheese** with a pulsing **BRAKE!** sign. Miss it and you bonk the grate.
 - The cage now needs **85%** of the cheese.
 - Bot check: braking line-follower wins with 1-14 s left; a perfect steerer that never brakes bonks 6-8 times and scrapes through or runs out of time.
+
+### v1.58 — Freefall: wingsuit brake, jet-boot boost
+- **BRAKE (jump / BRAKE button) is now a wingsuit:** Chris swings round flat, belly down, and his cape stretches out into two flapping red membranes either side of him (with cloth flaps and rushing air). It's free: braking only costs time. No more jets firing the wrong way.
+- **BOOST (down / S / X / controller down / BOOST button):** the jet boots, pointing up while he dives, fire and drive him down faster (up to 720), using the fuel bar (2.2 s, refills slowly). Handy for making up time on the straights.
+- Touch: a smaller BOOST button joins BRAKE bottom right.

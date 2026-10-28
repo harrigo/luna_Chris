@@ -3,10 +3,12 @@
 // through the gaps in the grill grates: follow it and each bit you snap up plays the next note up the scale (keep the
 // chain going for a run of rising notes and bonus time). Bump a grate and you bounce off it and slide towards the
 // nearest gap (no stopping dead); the glowing hot grates and the flare-ups from the side vents cost 2 seconds.
-// Hold JUMP to fire the jetpack against the fall: a brake (the fuel lasts a good while and creeps back).
+// Hold JUMP to BRAKE: Chris flips flat, belly down, and spreads his cape like a wingsuit (flapping comically), which
+// slows the fall right down; it costs nothing but time. Hold DOWN to BOOST: his jet boots (pointing up now) fire and
+// drive him down faster, using the fuel bar.
 //
-// Controls: left/right (keys, d-pad, stick); brake = jump (Space/Up/W/Z, controller A). Touch: hold anywhere; Chris
-// steers towards your finger, and holding ABOVE him brakes.
+// Controls: left/right (keys, d-pad, stick); brake = jump (Space/Up/W/Z, controller A); boost = down (S/X, controller
+// down). Touch: on-screen buttons: steer bottom left, BRAKE and BOOST bottom right.
 class FreefallScene extends Phaser.Scene {
   constructor() { super('freefall'); }
 
@@ -15,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingG = null; this.wingK = 0; this.wingOn = false; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: 80 }; this.vel = { x: 0, y: 60 };
@@ -90,14 +92,14 @@ class FreefallScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE!',
+    this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE (WINGSUIT!)  DOWN = BOOST',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3200, duration: 600 });
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#3a1a1a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
     this.exitBtn.on('pointerdown', () => this.leave());
     this.layout(); this.scale.on('resize', this.layout, this); this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
 
-    this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', space: 'SPACE' }) : null;
+    this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN', a: 'A', d: 'D', w: 'W', s: 'S', x: 'X', z: 'Z', space: 'SPACE' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
       if (this.done && this.t - this.doneT > 0.8) { if (b === 'x' || b === 'y') this.again(); else if (b === 'a' || b === 'b' || b === 'start') this.leave(); }
@@ -159,7 +161,7 @@ class FreefallScene extends Phaser.Scene {
   // on-screen buttons for phones: steer left / right (bottom left), BRAKE (bottom right). Hidden when a controller's in use.
   touchBtns() {
     const W = this.scale.width, H = this.scale.height, r = Math.max(28, Math.min(44, H * 0.1));
-    return { r, L: { x: 20 + r, y: H - 20 - r }, Rt: { x: 20 + r * 3.4, y: H - 20 - r }, B: { x: W - 30 - r * 2.2, y: H - 20 - r * 1.2 } };
+    return { r, L: { x: 20 + r, y: H - 20 - r }, Rt: { x: 20 + r * 3.4, y: H - 20 - r }, B: { x: W - 30 - r * 2.2, y: H - 20 - r * 1.2 }, D: { x: W - 30 - r * 4.6, y: H - 20 - r * 0.9 } };
   }
   drawTouch(state) {
     const g = this.touchG || (this.touchG = this.add.graphics().setScrollFactor(0).setDepth(22)), T = this.touchBtns();
@@ -168,20 +170,22 @@ class FreefallScene extends Phaser.Scene {
     if (this.touchLbl) this.touchLbl.forEach(t => t.setVisible(show));
     if (!show) return;
     const btn = (p, on, col, rr) => { g.fillStyle(0x000000, 0.35).fillCircle(p.x + 3, p.y + 3, rr); g.fillStyle(on ? col : 0x1a1020, on ? 0.85 : 0.5).fillCircle(p.x, p.y, rr); g.lineStyle(3, col, 0.9).strokeCircle(p.x, p.y, rr); };
-    btn(T.L, state.l, 0xffd23f, T.r); btn(T.Rt, state.r, 0xffd23f, T.r); btn(T.B, state.b, 0x39c6ff, T.r * 1.25);
+    btn(T.L, state.l, 0xffd23f, T.r); btn(T.Rt, state.r, 0xffd23f, T.r); btn(T.B, state.b, 0xff5a5a, T.r * 1.25); btn(T.D, state.d, 0x39c6ff, T.r * 0.85);
     const tri = (p, d) => g.fillStyle(0xffffff, 1).fillTriangle(p.x + d * T.r * 0.45, p.y, p.x - d * T.r * 0.3, p.y - T.r * 0.45, p.x - d * T.r * 0.3, p.y + T.r * 0.45);
     tri(T.L, -1); tri(T.Rt, 1);
-    if (!this.touchLbl) this.touchLbl = [this.add.text(0, 0, 'BRAKE', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23)];
-    this.touchLbl[0].setPosition(T.B.x, T.B.y);
+    const lab = t => this.add.text(0, 0, t, { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23);
+    if (!this.touchLbl) this.touchLbl = [lab('BRAKE'), lab('BOOST')];
+    this.touchLbl[0].setPosition(T.B.x, T.B.y); this.touchLbl[1].setPosition(T.D.x, T.D.y);
   }
   readTouch() {
-    const T = this.touchBtns(), st = { l: false, r: false, b: false };
+    const T = this.touchBtns(), st = { l: false, r: false, b: false, d: false };
     if (!this.isTouch) return st;
     for (const p of this.input.manager.pointers) {
       if (!p.isDown) continue;
       if (Math.hypot(p.x - T.L.x, p.y - T.L.y) < T.r * 1.3) st.l = true;
       else if (Math.hypot(p.x - T.Rt.x, p.y - T.Rt.y) < T.r * 1.3) st.r = true;
-      else if (Math.hypot(p.x - T.B.x, p.y - T.B.y) < T.r * 1.6) st.b = true;
+      else if (Math.hypot(p.x - T.B.x, p.y - T.B.y) < T.r * 1.5) st.b = true;
+      else if (Math.hypot(p.x - T.D.x, p.y - T.D.y) < T.r * 1.1) st.d = true;
     }
     return st;
   }
@@ -205,11 +209,11 @@ class FreefallScene extends Phaser.Scene {
     const P = this.P, cam = this.cameras.main, k = this.keys, W = this.scale.width, H = this.scale.height;
     this.penaltyT = Math.max(0, this.penaltyT - dt);
     // ---- input: steer + brake
-    let ax = 0, brake = false;
-    if (k) { ax += (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); brake = k.up.isDown || k.w.isDown || k.z.isDown || k.space.isDown; }
-    if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) brake = true; }
+    let ax = 0, brake = false, boost = false;
+    if (k) { ax += (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); brake = k.up.isDown || k.w.isDown || k.z.isDown || k.space.isDown; boost = (k.down && k.down.isDown) || (k.s && k.s.isDown) || (k.x && k.x.isDown); }
+    if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) brake = true; if (Pad.state.down || Pad.state.ly > 0.5) boost = true; }
     const ts = this.readTouch();
-    if (ts.l) ax = -1; if (ts.r) ax = 1; if (ts.b) brake = true;
+    if (ts.l) ax = -1; if (ts.r) ax = 1; if (ts.b) brake = true; if (ts.d) boost = true;
     this.drawTouch(ts);
     const ptr = this.input.activePointer, eb = this.exitBtn.getBounds();
     if (ptr.isDown && !this.done && !eb.contains(ptr.downX, ptr.downY) && !this.isTouch) {
@@ -217,14 +221,21 @@ class FreefallScene extends Phaser.Scene {
       ax = Math.abs(dx) > 14 ? Math.max(-1, Math.min(1, dx / 60)) : 0;
       if (wp.y < this.pos.y - 50) brake = true;
     }
-    if (this.done) { ax = 0; brake = false; }
+    if (this.done) { ax = 0; brake = false; boost = false; }
     // ---- move: snappy steering, a fall you can control
     if (this.slideT > 0) this.slideT -= dt;
     else this.vel.x += (ax * 300 - this.vel.x) * Math.min(1, dt * 10);
     if (ax) P.facing = ax > 0 ? 1 : -1;
-    const braking = brake && this.fuel > 0;
-    if (braking) { this.fuel = Math.max(0, this.fuel - dt / 3.5); this.vel.y = Math.max(60, this.vel.y - 1400 * dt); }
-    else { this.fuel = Math.min(1, this.fuel + dt * 0.08); this.vel.y = Math.min(470, this.vel.y + 900 * dt); }
+    // BRAKE = the wingsuit (free, just slower); BOOST = the jet boots (fuel)
+    const braking = brake, boosting = !brake && boost && this.fuel > 0;
+    if (braking && !this.wingOn) { Sound.sfx('swish'); }
+    this.wingOn = braking;
+    this.wingK = (this.wingK || 0) + ((braking ? 1 : 0) - (this.wingK || 0)) * Math.min(1, dt * 9);
+    if (braking) this.vel.y = Math.max(110, this.vel.y - 1300 * dt);
+    else if (boosting) { this.fuel = Math.max(0, this.fuel - dt / 2.2); this.vel.y = Math.min(720, this.vel.y + 1500 * dt); }
+    else this.vel.y = this.vel.y > 470 ? Math.max(470, this.vel.y - 600 * dt) : Math.min(470, this.vel.y + 900 * dt);
+    if (!boosting) this.fuel = Math.min(1, this.fuel + dt * 0.1);
+    if (braking && Math.random() < dt * 6) Sound.sfx('flap');
     const prevY = this.pos.y;
     this.pos.x = Math.max(16, Math.min(this.SW - 16, this.pos.x + this.vel.x * dt));
     this.pos.y += this.vel.y * dt;
@@ -297,7 +308,7 @@ class FreefallScene extends Phaser.Scene {
     }
     const deep = this.pos.y / this.SH;
     if (Math.random() < dt * (10 + 40 * deep)) this.fx.push({ x: Math.random() * this.SW, y: cam.scrollY + H + 10, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 90, life: 3, max: 3, col: Math.random() < 0.5 ? 0xff7a1a : 0xffd23f, size: 2 });
-    if (braking && Math.random() < dt * 40) this.fx.push({ x: this.pos.x, y: this.pos.y - 70, vx: (Math.random() - 0.5) * 40, vy: -120, life: 0.35, max: 0.35, col: 0x9fd8ff, size: 4 });
+    if (boosting && Math.random() < dt * 40) this.fx.push({ x: this.pos.x + (Math.random() - 0.5) * 10, y: this.pos.y - 92, vx: (Math.random() - 0.5) * 40, vy: -160, life: 0.35, max: 0.35, col: 0xffa21a, size: 4 });
     if (Math.random() < dt * 25) this.fx.push({ x: this.pos.x + (Math.random() - 0.5) * 16, y: this.pos.y - 60, vx: 0, vy: -40, life: 0.3, max: 0.3, col: 0xffffff, size: 2 });   // wind streaks off his boots
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; }
@@ -309,13 +320,31 @@ class FreefallScene extends Phaser.Scene {
     this.cage.clear();
     if (!this.cageOpen && !this.done) { const cx = this.SW / 2, cy = this.gunY; this.cage.lineStyle(4, 0x1a1020, 1).strokeRect(cx - 54, cy - 40, 108, 80); for (let x = cx - 42; x <= cx + 42; x += 14) { this.cage.lineStyle(4, 0x1a1020, 1).lineBetween(x, cy - 40, x, cy + 40); this.cage.lineStyle(2, 0xa8b0c0, 1).lineBetween(x, cy - 40, x, cy + 40); } }
     if (!this.done) { this.gunImg.setY(this.gunY + Math.sin(this.t * 2) * 8).setRotation(Math.sin(this.t * 1.3) * 0.2); this.gunGlow.setY(this.gunImg.y).setAlpha(0.4 + 0.2 * Math.sin(this.t * 4)); }
-    // Chris DIVING: head first, feet up, arms reaching down; the jet (now pointing up) fires to brake
-    P.thrusting = braking; P.vh = -this.vel.y; P.h = 60; P.vx = this.vel.x * 0.5;
-    const tilt = Math.max(-0.35, Math.min(0.35, this.vel.x / 800)) * P.facing;
-    this.rig.update(P, dt, Math.round(this.pos.x), Math.round(this.pos.y - 62), 1, this.penaltyT > 0 && Math.floor(this.t * 20) % 2 ? 0.4 : 1, 0);
-    this.rig.root.setRotation(Math.PI - tilt * P.facing);
-    this.rig.armB.setRotation(-2.2 + Math.sin(this.t * 10) * 0.1);
-    if (braking) { const jx = this.pos.x, jy = this.pos.y - 92, fl = 1 + 0.3 * Math.sin(this.t * 40); g.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 6, jy, jx + 6, jy, jx, jy - 30 * fl); g.fillStyle(0xffe27a, 1).fillTriangle(jx - 3, jy, jx + 3, jy, jx, jy - 16 * fl); }
+    // Chris DIVING: head first, feet up, arms reaching down. Braking he swings round flat, belly down, into a wingsuit
+    // spread (the cape stretched out between his arms and boots, flapping like mad); boosting, the boots fire upwards.
+    P.thrusting = false; P.vh = -this.vel.y; P.h = 60; P.vx = this.vel.x * 0.5;
+    const tilt = Math.max(-0.35, Math.min(0.35, this.vel.x / 800)), wk = this.wingK || 0;
+    const rot = Math.PI - tilt + (Math.PI / 2 * P.facing - Math.PI) * wk + (wk > 0.5 ? Math.sin(this.t * 13) * 0.08 : 0);   // PI = head down; PI/2 (or -PI/2) = flat
+    const rx = this.pos.x - 40 * Math.sin(rot), ry = this.pos.y - 40 + 40 * Math.cos(rot);
+    this.rig.update(P, dt, Math.round(rx), Math.round(ry), 1, this.penaltyT > 0 && Math.floor(this.t * 20) % 2 ? 0.4 : 1, 0);
+    this.rig.root.setRotation(rot);
+    this.rig.armB.setRotation(-2.2 * (1 - wk) + (-1.3 + Math.sin(this.t * 18) * 0.25) * wk + Math.sin(this.t * 10) * 0.1);
+    const wg = this.wingG || (this.wingG = this.add.graphics().setDepth(4.95)); wg.clear();
+    if (wk > 0.05) {
+      // the wingsuit: two cape-red membranes either side of his body (above and below the flat body line), flapping
+      const cx = this.pos.x, cy = this.pos.y - 40, ux = Math.sin(rot), uy = -Math.cos(rot), nx = -uy, ny = ux;   // u = along the body (to the head), n = across it
+      for (const side of [-1, 1]) {
+        const fl = Math.sin(this.t * 22 + side) * 8, span = (50 + fl) * wk;
+        const a = { x: cx + ux * 30, y: cy + uy * 30 }, b = { x: cx - ux * 38, y: cy - uy * 38 }, tip = { x: cx + ux * 10 + nx * side * span, y: cy + uy * 10 + ny * side * span }, tip2 = { x: cx - ux * 22 + nx * side * span * 0.85, y: cy - uy * 22 + ny * side * span * 0.85 };
+        wg.fillStyle(0x1a1020, 1).fillTriangle(a.x, a.y, tip.x, tip.y, b.x, b.y).fillTriangle(tip.x, tip.y, tip2.x, tip2.y, b.x, b.y);
+        wg.fillStyle(0xa01818, 1).fillTriangle(tip.x - nx * side * 2, tip.y - ny * side * 2, tip2.x - nx * side * 2, tip2.y - ny * side * 2, b.x + ux * 2, b.y + uy * 2);   // the trailing edge, in shadow
+        wg.fillStyle(0xd62828, 1).fillTriangle(a.x + nx * side, a.y + ny * side, tip.x - nx * side * 2, tip.y - ny * side * 2, b.x, b.y);
+        wg.fillStyle(0xff6a6a, 1).fillTriangle(a.x + nx * side, a.y + ny * side, tip.x - nx * side * 2, tip.y - ny * side * 2, (a.x + tip.x) / 2, (a.y + tip.y) / 2);
+        wg.fillStyle(0xffd23f, 1).fillCircle(tip.x, tip.y, 2.5);
+      }
+      if (Math.random() < dt * 30) this.fx.push({ x: cx + (Math.random() - 0.5) * 60, y: cy + 20, vx: 0, vy: -200, life: 0.25, max: 0.25, col: 0xffffff, size: 1.5 });   // air rushing past
+    }
+    if (boosting) { const jx = this.pos.x, jy = this.pos.y - 92, fl = 1 + 0.3 * Math.sin(this.t * 40); g.fillStyle(0xff7a1a, 0.9).fillTriangle(jx - 6, jy, jx + 6, jy, jx, jy - 30 * fl); g.fillStyle(0xffe27a, 1).fillTriangle(jx - 3, jy, jx + 3, jy, jx, jy - 16 * fl); }
     // depth meter + jet fuel (right edge)
     const dgh = this.depthG; dgh.clear();
     const mx = W - 18, my = 60, mh = H - 120;
