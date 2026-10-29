@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.70';
+const BUILD = 'v1.71';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 

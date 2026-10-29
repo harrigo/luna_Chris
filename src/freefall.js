@@ -17,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.turnK = undefined; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
@@ -407,20 +407,22 @@ class FreefallScene extends Phaser.Scene {
     // Chris DIVING: head first, feet up, arms reaching down. Braking he swings round flat, belly down, and his cape
     // stretches out wide either side of him like a wingsuit, flapping like mad; boosting, the boots fire upwards.
     P.thrusting = false; P.vh = -this.vel.y; P.h = 60; P.vx = this.vel.x * 0.5;
-    // TURNING ROUND is a mirror, not a spin: his pose is worked out as if facing right (L: PI = head down, PI/2 = flat
-    // for the wingsuit, leaning into the steer), and turning squeezes him edge-on and out the other side (scale X runs
-    // smoothly from +1 through 0 to -1) while the pose is mirrored (rotation negated). The swap happens at the instant
-    // he's edge-on, so it can't be seen: no more somersault the long way round.
+    // TURNING: while DIVING he never turns round (like most falling games): he stays head-down and BANKS into the steer,
+    // head leading the way. In the WINGSUIT he faces the way he's travelling when it opens, and if you steer the other way
+    // while it's open he flips round INSTANTLY (the classic 16-bit turn) with a flutter of the cape.
     const wk = this.wingK || 0;
-    this.turnK = (this.turnK === undefined ? P.facing : this.turnK) + (P.facing - (this.turnK === undefined ? P.facing : this.turnK)) * Math.min(1, dt * 12);
-    const sgn = this.turnK >= 0 ? 1 : -1, tiltL = Math.max(-0.35, Math.min(0.35, this.vel.x / 800)) * sgn;
-    const Lt = Math.PI - tiltL - Math.PI / 2 * wk + (wk > 0.5 ? Math.sin(this.t * 13) * 0.08 : 0);
-    this.poseL = this.poseL === undefined ? Lt : this.poseL + (Lt - this.poseL) * Math.min(1, dt * 10);   // eased, so tilting and opening the wings is smooth too
+    if (this.faceS === undefined) this.faceS = 1;
+    if (braking && !this.wingWas) this.faceS = Math.abs(this.vel.x) > 30 ? Math.sign(this.vel.x) : (ax ? Math.sign(ax) : this.faceS);
+    else if (braking && ax && Math.sign(ax) !== this.faceS) { this.faceS = Math.sign(ax); Sound.sfx('swish'); this.puff(this.pos.x, this.pos.y - 40, 6, 0xffffff, 140, 0.25, 2); }
+    this.wingWas = braking;
+    const sgn = this.faceS, bank = Math.max(-0.5, Math.min(0.5, this.vel.x / 560));
+    const Lt = Math.PI - bank * sgn * (1 - wk) - Math.PI / 2 * wk + (wk > 0.5 ? Math.sin(this.t * 13) * 0.08 : 0);   // (in his own facing-right terms)
+    this.poseL = this.poseL === undefined ? Lt : this.poseL + (Lt - this.poseL) * Math.min(1, dt * 10);
     const rot = this.poseL * sgn;
     const rx = this.pos.x - 40 * Math.sin(rot), ry = this.pos.y - 40 + 40 * Math.cos(rot);
     this.rig.update(P, dt, Math.round(rx), Math.round(ry), 1, this.penaltyT > 0 && Math.floor(this.t * 20) % 2 ? 0.4 : 1, 0);
     this.rig.root.setRotation(rot);
-    const sy = Math.abs(this.rig.root.scaleY); this.rig.root.setScale(sy * (Math.abs(this.turnK) < 0.04 ? 0.04 * sgn : this.turnK), sy);
+    const sy = Math.abs(this.rig.root.scaleY); this.rig.root.setScale(sy * sgn, sy);
     this.rig.armB.setRotation(-2.2 * (1 - wk) + (-1.3 + Math.sin(this.t * 18) * 0.25) * wk + Math.sin(this.t * 10) * 0.1);
     if (wk > 0.05) {
       // the wingsuit is just his CAPE, stretched: the four cape strips lie flat along his back, neck to boots, and spread

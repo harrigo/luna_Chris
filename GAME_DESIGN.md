@@ -1131,3 +1131,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.70
 - Freefall turning: changing direction is now a MIRROR, not a spin. The pose is computed as if facing right (head down, leaning into the steer; flat for the wingsuit) and mirrored for left; turning squeezes Chris edge-on and out the other side (scale X eases +1 -> 0 -> -1) with the swap happening at the edge-on instant, so there's no somersault the long way round. The pose itself is eased too (tilts and opening the wingsuit are smooth).
+
+### v1.71
+- Freefall turning, done the way falling games usually do it: DIVING he never turns round; he stays head-down and banks up to ~30 degrees into the steer (head leading). The WINGSUIT faces the way he's travelling when it opens; steering the other way while it's open flips him round instantly (the classic 16-bit turn) with a swish and a cape flutter. The paper-squeeze turn is gone.
