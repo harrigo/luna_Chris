@@ -1160,3 +1160,8 @@ Built from the brief (`makeGorgeTextures`):
 - The drum now has a ring of teeth round its shell, driven by a steel pinion each side. Each pinion shares an axle with a big brass cog behind the drum, and the left one is driven by a finned green motor (its lamp glows hotter with the spin). All the cogs share a tooth pitch and mesh properly, so they speed up and slow down with the drum. Sparks fly where the teeth bite at high spin.
 - The drum's back plate has 8 glass portholes, dimmed (60% cut), through which the brass cogs behind can be glimpsed turning — visible without pulling focus.
 - Straight pipes removed. The back wall now has huge dark cogs turning in the gloom, warning beams sweeping in from the top corners (amber, flashing orange on a hatch warning, fast red while one is open), steam vents blowing off from the bottom corners, drifting dust, a cold glow off the drum, a light sheen and spin streaks on the steel, and a vignette. The maker's plate moved to the top right.
+
+### v1.76 — Centrifuge: twin-stick touch controls, inner portholes
+- Touch now uses the main game's controls: floating MOVE stick on the left (drag to run, tap or push up to jump, hold up for the jetpack) and floating AIM + FIRE stick on the right (touching fires, dragging aims; without a drag it picks the nearest rat). Controller: the "push left stick up to jump" option and the jet button now work here too.
+- Six small portholes nearer the middle of the drum. Behind them sits a brass sun cog (r150) on its own bearing, meshed with and turned by the left big cog, so you see it turning through the inner holes (and the edge of it through the big ones).
+- The SPIN gauge is smaller and moved to the top left, out of the move stick's way.

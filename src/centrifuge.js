@@ -12,7 +12,8 @@
 //
 // Controls are the main game's: left/right run (his own left/right, like on a planet), jump (Space/Up/W, controller A;
 // hold it in the air for the jetpack, which pushes you in towards the middle), fire (Z/X/J or the mouse, which aims;
-// controller X/RT, right stick aims). Touch: on-screen ◀ ▶ JUMP FIRE (fire auto-aims at the nearest rat).
+// controller X/RT, right stick aims). Touch: the main game's twin sticks (left: run, tap/push up to jump, hold up to
+// fly; right: drag to aim, touching fires; with no aim it picks the nearest rat).
 // ---- canvas-drawn cogs (smooth-filtered so they turn cleanly). Tooth 0 points along +x, so a cog's rotation is the
 // angle of one of its teeth: that's what the meshing maths in update() relies on. Spoke holes are cut right through.
 const CF_PAL = {
@@ -117,7 +118,11 @@ class CentrifugeScene extends Phaser.Scene {
       }
       return d;
     });
-    this.HOLES = Array.from({ length: 8 }, (_, k) => { const a = k / 8 * Math.PI * 2 + Math.PI / 8; return { x: Math.cos(a) * 184, y: Math.sin(a) * 184, r: 36 }; });
+    this.HOLES = Array.from({ length: 8 }, (_, k) => { const a = k / 8 * Math.PI * 2 + Math.PI / 8; return { x: Math.cos(a) * 184, y: Math.sin(a) * 184, r: 36 }; })
+      .concat(Array.from({ length: 6 }, (_, k) => { const a = k / 6 * Math.PI * 2; return { x: Math.cos(a) * 96, y: Math.sin(a) * 96, r: 19 }; }));
+    // a sun cog behind the middle of the drum (on its own bearing), turned by the left big cog: seen through the small holes
+    this.sun = this.add.image(0, 0, cfCog(this, 'cf_sun150', 150, 36, CF_PAL.brass)).setScale(1 / 1.5);
+    this.world.addAt(this.sun, 0);
     this.world.add(this.drum);
     this.buildDrum();
     for (const d of this.drive) { d.pin = this.add.image(d.cx, d.cy, cfCog(this, 'cf_pin50', 50, 12, CF_PAL.steel)).setScale(1 / 1.5); this.world.add(d.pin); }
@@ -159,6 +164,11 @@ class CentrifugeScene extends Phaser.Scene {
     this.exitBtn.on('pointerdown', () => this.leave());
     this.layout(); this.scale.on('resize', this.layout, this); this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
     this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
+    this.tapJumpT = 0; this.stickUp = false;
+    this.input.on('pointerdown', p => { if (p.wasTouch) this.isTouch = true; });
+    this.input.on('pointerup', p => {                                   // a quick tap on the MOVE side = jump, like the main game
+      if (p.wasTouch && !this.done && p.downX < this.scale.width * 0.45 && p.downY >= this.scale.height * 0.2 && p.upTime - p.downTime < 230 && Math.hypot(p.upX - p.downX, p.upY - p.downY) < 16) this.tapJumpT = 0.2;
+    });
 
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', x: 'X', j: 'J', space: 'SPACE' }) : null;
     const padOff = Pad.on(b => {
@@ -239,7 +249,7 @@ class CentrifugeScene extends Phaser.Scene {
     for (let i = this.steam.length - 1; i >= 0; i--) { const q = this.steam[i]; q.life -= dt; if (q.life <= 0) { this.steam.splice(i, 1); continue; } q.x += q.vx * dt; q.y += q.vy * dt; q.vy *= 1 - dt * 0.6; q.r += dt * 18; sg.fillStyle(0xdfe6ef, 0.16 * q.life / q.max).fillCircle(q.x, q.y, q.r); }
   }
   drawGauge() {                                                   // the SPIN gauge: a needle over a green / red dial
-    const W = this.scale.width, H = this.scale.height, g = this.gaugeG, x = W * 0.12, y = H * 0.72, r = Math.min(54, H * 0.14); g.clear();
+    const W = this.scale.width, H = this.scale.height, g = this.gaugeG, r = Math.max(28, Math.min(46, H * 0.1)), x = 20 + r, y = 58 + r; g.clear();
     g.fillStyle(0x0a0c10, 1).fillCircle(x, y, r + 6); g.fillStyle(0xd8dce4, 1).fillCircle(x, y, r + 2); g.fillStyle(0xf4f2ea, 1).fillCircle(x, y, r - 2);
     const a0 = Math.PI * 0.8, a1 = Math.PI * 2.2;
     for (let k = 0; k <= 10; k++) { const a = a0 + (a1 - a0) * k / 10; g.lineStyle(3, k < 4 ? 0x3aa040 : k < 7 ? 0xffb03a : 0xd62828, 1).lineBetween(x + Math.cos(a) * (r - 12), y + Math.sin(a) * (r - 12), x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4)); }
@@ -257,30 +267,50 @@ class CentrifugeScene extends Phaser.Scene {
   }
   puff(x, y, n, col, spd, life, size) { ZeroGScene.prototype.puff.call(this, x, y, n, col, spd, life, size); }
   pop(x, y, txt, col) { ZeroGScene.prototype.pop.call(this, x, y, txt, col); }
-  touchBtns() { const W = this.scale.width, H = this.scale.height, r = Math.max(28, Math.min(44, H * 0.1)); return { r, L: { x: 20 + r, y: H - 20 - r }, Rt: { x: 20 + r * 3.4, y: H - 20 - r }, B: { x: W - 30 - r * 1.6, y: H - 20 - r * 1.2 }, F: { x: W - 30 - r * 4.4, y: H - 20 - r } }; }
+  // ---- touch: the main game's twin sticks. LEFT half: a floating MOVE stick (drag to run, tap or push up to jump,
+  // hold up for the jetpack). RIGHT half: a floating AIM+FIRE stick (touching fires, dragging aims).
+  touchRest() { const W = this.scale.width, H = this.scale.height; return { move: { x: 92, y: H - 86, r: 52 }, aim: { x: W - 170, y: H - 86, r: 52 } }; }
   readTouch() {
-    const T = this.touchBtns(), st = { l: false, r: false, b: false, f: false };
+    const st = { ax: 0, jump: false, fire: false, aim: null, move: null, aimS: null }, W = this.scale.width, H = this.scale.height;
     if (!this.isTouch) return st;
+    let moveTouched = false;
     for (const p of this.input.manager.pointers) {
-      if (!p.isDown) continue;
-      if (Math.hypot(p.x - T.L.x, p.y - T.L.y) < T.r * 1.3) st.l = true;
-      else if (Math.hypot(p.x - T.Rt.x, p.y - T.Rt.y) < T.r * 1.3) st.r = true;
-      else if (Math.hypot(p.x - T.B.x, p.y - T.B.y) < T.r * 1.5) st.b = true;
-      else if (Math.hypot(p.x - T.F.x, p.y - T.F.y) < T.r * 1.3) st.f = true;
+      if (!p || !p.isDown || (p === this.input.manager.mousePointer && !p.wasTouch)) continue;
+      const ox = p.downX, oy = p.downY;
+      if (oy < H * 0.2) continue;                                       // the HUD / MAP button area isn't a stick
+      const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
+      if (ox < W * 0.45) {
+        st.move = { ox, oy, vx, vy }; moveTouched = true;
+        if (vx < -0.3) st.ax = -1; else if (vx > 0.3) st.ax = 1;
+        const upish = -vy > Math.abs(vx) * 0.6;
+        if (this.stickUp) { if (vy > -0.3) this.stickUp = false; } else if (vy < -0.6 && upish) this.stickUp = true;
+        if (this.stickUp) st.jump = true;
+      } else {
+        st.aimS = { ox, oy, vx, vy }; st.fire = true;
+        if (Math.hypot(vx, vy) > 0.35) st.aim = { sx: vx, sy: vy };
+      }
     }
+    if (!moveTouched) this.stickUp = false;
+    if (this.tapJumpT > 0) { this.tapJumpT -= 0.016; st.jump = true; }
     return st;
   }
   drawTouch(st) {
-    const g = this.touchG || (this.touchG = this.add.graphics().setDepth(22)), T = this.touchBtns(); g.clear();
+    const g = this.touchG || (this.touchG = this.add.graphics().setDepth(22)); g.clear();
     const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
-    if (this.touchLbl) this.touchLbl.setVisible(show);
+    if (!this.touchLbl) { const lab = t => this.add.text(0, 0, t, { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(23); this.touchLbl = this.add.container(0, 0).setDepth(23); this.touchLbl.add([lab('MOVE'), lab('AIM + FIRE')]); }
+    this.touchLbl.setVisible(show);
     if (!show) return;
-    const btn = (p, on, col, rr) => { g.fillStyle(0x000000, 0.35).fillCircle(p.x + 3, p.y + 3, rr); g.fillStyle(on ? col : 0x1a1020, on ? 0.85 : 0.5).fillCircle(p.x, p.y, rr); g.lineStyle(3, col, 0.9).strokeCircle(p.x, p.y, rr); };
-    btn(T.L, st.l, 0xffd23f, T.r); btn(T.Rt, st.r, 0xffd23f, T.r); btn(T.B, st.b, 0x7dff8a, T.r * 1.25); btn(T.F, st.f, 0xff7a3a, T.r);
-    const tri = (p, d) => g.fillStyle(0xffffff, 1).fillTriangle(p.x + d * T.r * 0.45, p.y, p.x - d * T.r * 0.3, p.y - T.r * 0.45, p.x - d * T.r * 0.3, p.y + T.r * 0.45);
-    tri(T.L, -1); tri(T.Rt, 1);
-    if (!this.touchLbl) { const lab = t => this.add.text(0, 0, t, { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(23); this.touchLbl = this.add.container(0, 0).setDepth(23); this.touchLbl.add([lab('JUMP'), lab('FIRE')]); }
-    this.touchLbl.list[0].setPosition(T.B.x, T.B.y); this.touchLbl.list[1].setPosition(T.F.x, T.F.y);
+    const R = this.touchRest();
+    this.touchLbl.list[0].setPosition(R.move.x, R.move.y + 64); this.touchLbl.list[1].setPosition(R.aim.x, R.aim.y + 64);
+    const stick = (rest, live) => {                       // base ring where the thumb landed (or a ghost at rest) + the knob
+      const bx = live ? live.ox : rest.x, by = live ? live.oy : rest.y;
+      g.fillStyle(0xffffff, live ? 0.12 : 0.06).fillCircle(bx, by, rest.r);
+      g.lineStyle(3, 0xffffff, live ? 0.6 : 0.25).strokeCircle(bx, by, rest.r);
+      const kx = bx + (live ? live.vx * rest.r * 0.75 : 0), ky = by + (live ? live.vy * rest.r * 0.75 : 0);
+      g.fillStyle(0xffffff, live ? 0.5 : 0.18).fillCircle(kx, ky, rest.r * 0.42);
+      g.lineStyle(2, 0x1a1020, live ? 0.6 : 0.2).strokeCircle(kx, ky, rest.r * 0.42);
+    };
+    stick(R.move, st.move); stick(R.aim, st.aimS);
   }
   bonk(why, secs) {
     if (this.penaltyT > 0 || this.done) return;
@@ -312,7 +342,11 @@ class CentrifugeScene extends Phaser.Scene {
     let ax = 0, jump = false, fire = false, aimAt = null;
     if (k) { ax = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); jump = k.up.isDown || k.w.isDown || k.space.isDown; fire = k.z.isDown || k.x.isDown || k.j.isDown; }
     if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) jump = true; if (Pad.state.fire) fire = true; if (Pad.state.aimOn) { fire = true; aimAt = { sx: Pad.state.aimX, sy: Pad.state.aimY }; } }
-    if (ts.l) ax = -1; if (ts.r) ax = 1; if (ts.b) jump = true; if (ts.f) fire = true;
+    if (Pad.state.connected) {
+      if (Pad.state.jet) jump = true;
+      if (Settings.padUpJump) { const ly = Pad.state.ly || 0, upish = -ly > Math.abs(Pad.state.lx || 0) * 0.6; if (this.padUp) { if (ly > -0.3) this.padUp = false; } else if (ly < -0.6 && upish) this.padUp = true; if (this.padUp) jump = true; }
+    }
+    if (ts.ax) ax = ts.ax; if (ts.jump) jump = true; if (ts.fire) fire = true; if (ts.aim) aimAt = ts.aim;
     const mp = this.input.mousePointer;
     if (!this.isTouch && mp && mp.leftButtonDown() && !this.exitBtn.getBounds().contains(mp.x, mp.y)) { fire = true; const q = this.world.pointToContainer({ x: mp.x, y: mp.y }); aimAt = { wx: q.x, wy: q.y }; }
     this.drawTouch(ts);
@@ -463,6 +497,7 @@ class CentrifugeScene extends Phaser.Scene {
     const mesh = (thA, u, rA, rB, nB) => -(rA / rB) * (thA - u) + u + Math.PI + Math.PI / nB;
     for (const d of this.drive) {
       const th = mesh(this.D, d.u, this.ringR, 50, 12); d.pin.setRotation(th); d.big.setRotation(th);
+      if (d.motor) this.sun.setRotation(mesh(th, d.u + Math.PI, d.bigR, 150, 36));
       if (d.mot) {
         d.mot.setRotation(mesh(th, d.um, d.bigR, 50, 12));
         const mg = d.motorG, x = d.mx, y = d.my; mg.clear();                     // the motor: a finned drum with a hot lamp
