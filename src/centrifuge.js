@@ -392,7 +392,8 @@ class CentrifugeScene extends Phaser.Scene {
         if (vt * vt / RD < -grav * Math.sin(phiW) - 1 && !jumpPress) { this.launch(0, this.run + this.slide); this.slide = 0; Sound.sfx('whoosh'); }
       } else this.slide *= 1 - Math.min(1, dt * 4);
       if (Math.abs(this.run) > 60 && Math.random() < dt * 14) { const phi = this.a + this.D; this.fx.push({ x: Math.cos(phi) * (RD - 4), y: Math.sin(phi) * (RD - 4), vx: -Math.sin(phi) * (this.w * RD) * 0.6 - Math.cos(phi) * 60, vy: Math.cos(phi) * (this.w * RD) * 0.6 - Math.sin(phi) * 60, life: 0.5, max: 0.5, col: 0xf0ecd0 }); }
-      if (jumpPress) { this.launch(400, this.run); Sound.sfx('jump'); this.puff(Math.cos(this.a + this.D) * RD, Math.sin(this.a + this.D) * RD, 5, 0xf0ecd0, 100, 0.3, 2); }
+      if (jumpPress) { this.launch(400 + 320 * Math.max(0, 1 - Math.abs(this.w) / 1.35), this.run);   // bigger jumps the slower it goes
+        Sound.sfx('jump'); this.puff(Math.cos(this.a + this.D) * RD, Math.sin(this.a + this.D) * RD, 5, 0xf0ecd0, 100, 0.3, 2); }
     } else {
       // ---- flying: a dead straight line while it spins (gravity only as it stops), with a touch of air-steer along his own sideways
       const phi = Math.atan2(this.pos.y, this.pos.x), tx = -Math.sin(phi), ty = Math.cos(phi);

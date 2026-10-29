@@ -1170,3 +1170,6 @@ Built from the brief (`makeGorgeTextures`):
 - The spin follows a programme (CF_SPIN, ~51 s loop): fast, slow down, spin up, STOP, reverse fast, reverse slow, spin up, slam into reverse (passing through a stop), STOP. Each change is shouted on screen; it eases between settings so a reversal passes through zero.
 - Gravity fades in as the drum stops (none above 0.45 rad/s, 560 at a dead stop). On the wall you slide down to the bottom; if the wall's turn can no longer hold you (v²/R < -g·sinφ — the top first) you drop off and fall to the bottom. The jetpack gets stronger with gravity so you can still fly when it's stopped.
 - The SPIN gauge now has zero in the middle (reverse to the left) and the label reads SPIN / REVERSE: FAST / SLOW, or STOPPED. Cogs, sparks, streaks, steam and judder all follow the spin's size and direction.
+
+### v1.78 — Centrifuge: bigger jumps as it slows
+- Jump speed off the wall scales with the spin: 400 at full speed, rising to 720 at a dead stop (400 + 320·(1 − |w|/1.35)). Measured from the bottom: closest approach to the axle 161 at full spin, 101 at 0.9, 51 at 0.5; stopped, a jump goes right up past the middle to near the top (2.5 s in the air).
