@@ -833,7 +833,7 @@ class SelectScene extends Phaser.Scene {
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
       { id: 'freefall', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: CERAMIC GRILL FREEFALL', blurb: 'BONUS: drop down a giant kamado grill to the coals.\nFind the gaps in the grates, dodge the flare-ups, hold JUMP to brake.' },
       { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the Triangle on level 3. Comes out at level 7.' },
-      { id: 'centrifuge', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: CENTRIFUGE FERMENTER', blurb: 'BONUS: inside a spinning drum. The spin holds you to the wall,\njumps fly straight while it turns. Grab all 12.' }
+      { id: 'centrifuge', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: CENTRIFUGE FERMENTER', blurb: 'BONUS: inside a spinning drum. The spin holds you to the wall,\nsurvive 60s of drones, then jump for the gun in the middle.' }
     ];
   }
   mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 5.5], [5.5, 'centrifuge'], ['centrifuge', 7]]; }

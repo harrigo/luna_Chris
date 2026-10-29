@@ -1173,3 +1173,9 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.78 — Centrifuge: bigger jumps as it slows
 - Jump speed off the wall scales with the spin: 400 at full speed, rising to 720 at a dead stop (400 + 320·(1 − |w|/1.35)). Measured from the bottom: closest approach to the axle 161 at full spin, 101 at 0.9, 51 at 0.5; stopped, a jump goes right up past the middle to near the top (2.5 s in the air).
+
+### v1.79 — Centrifuge: survive 60 s, robots, prize in the middle
+- Goal changed: SURVIVE 60 SECONDS (countdown from 60). Chris has 6 armour pips (HUD under the timer): a laser hit costs 1, being sucked out costs 2; at 0 it's KNOCKED OUT. Ingredients now patch 1 pip back.
+- Rats swapped for existing techy enemies flying in through the open hatches: DRONES (hp 3, orbit fast with a bob, single laser bolts every ~1.5–2.6 s) and RAT SAUCERS (`ratship`, 30%, hp 6, slow orbit, a fan of three bolts every ~2.6–3.6 s). Lasers are drawn as hot pink streaks with white cores.
+- At 0: SURVIVED! — every robot blows up, the hatches seal, the drum winds down to a stop, and the prize gun pops out (glowing, bobbing) in the very middle. Jump or jetpack through the middle (within 62 units) to grab it and clear the bonus. If you already own every gun, the prize is a gold wheel worth +1 life.
+- Map blurb updated.
