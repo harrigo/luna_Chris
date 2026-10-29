@@ -1150,3 +1150,8 @@ Built from the brief (`makeGorgeTextures`):
 - Left/right follow the screen (decided when pressed, kept while held), as in the FULL camera.
 - A factory round it: steel wall panels, copper and steel pipes feeding the drum, a big SPIN gauge (green/amber/red, needle trembling with the spin) and a "FERMENTER No. 9" maker's plate. HUD: SPIN: FAST / SLOW.
 - Chris starts at the bottom with the paddles well away from him.
+
+### v1.74 — Centrifuge: hatches, rats, standard controls
+- Standard controls in the centrifuge: left/right are Chris's own (like running round a planet), jump + hold for the jetpack (pushes in towards the axle), fire with Z/X/J, mouse (aims) or pad X/RT/right stick. Touch: ◀ ▶ JUMP FIRE (fire auto-aims at the nearest rat).
+- The stirring paddles are gone. Three hatches in the drum wall cycle closed → flashing warning (amber floor glow) → open onto space (red glow, air streaming out). An open hatch drags you along the wall towards it; reach the gap (or land in it) and you're SUCKED OUT: -3 s, then thrown back in at the bottom away from open hatches, with a short grace.
+- Every opening hatch lets in a rocket rat (max 4) that hovers inside and lobs pepperoni at you (-2 s a hit). 3 macaroni hits each; a kill is +1 s.
