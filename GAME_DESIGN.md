@@ -1125,3 +1125,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.68
 - FULL camera: on a side of the planet, holding DOWN walks Chris down it (away from the top, the same as RIGHT there) instead of crouching, and keeps going while held, on round underneath.
+
+### v1.69
+- Fixed the FULL-camera background suddenly snapping to a different arrangement: as Chris passed underneath the planet the camera lag wrapped from +180 to -180 degrees, jumping the parallax layers (which turn at fractional speeds) a whole turn. The lag is now tracked unwrapped (`lagU`). Measured: biggest frame-to-frame background jump going right round went from ~2000 px to 0.

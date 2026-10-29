@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.68';
+const BUILD = 'v1.69';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -201,7 +201,7 @@ class Level1 extends Phaser.Scene {
     // Parallax sky, all circling the planet centre at different speeds (k). Layers, far to near:
     //   milky-way dust band (slowest) -> faint far stars -> mid stars -> a few big twinkling near stars (fastest)
     this.bgStars = [];
-    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camV = 0; this.camLag = 0; this.fullCam = false; this.axHeld = false; this.axFlip = 1;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
+    this.unw = 0; this.lastTheta = 0; this.camT = undefined; this.camV = 0; this.camLag = 0; this.lagU = undefined; this.lastLag = 0; this.fullCam = false; this.axHeld = false; this.axFlip = 1;      // unwrapped player angle, so the sky never jumps when theta wraps past 2*pi
     const dust = this.def.dust;
     for (let i = 0; i < (this.def.bgDecor === 'cosmic' ? 0 : 46); i++) {
       const a = rnd(-0.55, 0.55) + (Math.random() < 0.5 ? 0 : Math.PI);        // two opposite smears so one is always passing
@@ -4329,7 +4329,11 @@ class Level1 extends Phaser.Scene {
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
-    const unwV = this.unw - this.camLag;
+    // the camera's own unwrapped angle (Chris's unwrapped angle minus how far behind it is). The lag is tracked unwrapped
+    // too: in FULL it runs past +-180 degrees when he's underneath, and a wrapped value would jump 360 degrees there,
+    // which snapped the parallax layers (they turn at fractional speeds) to a different arrangement
+    this.lagU = (this.lagU === undefined ? this.camLag : this.lagU + angDiff(this.camLag, this.lastLag || 0)); this.lastLag = this.camLag;
+    const unwV = this.unw - this.lagU;
     const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
     for (const b of this.bgStars) {
       const a = b.a - (unwV + this.t * 0.03) * b.k, rr = r0 + b.r * span;     // drifts slowly even when standing still
