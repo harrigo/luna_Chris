@@ -1128,3 +1128,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.69
 - Fixed the FULL-camera background suddenly snapping to a different arrangement: as Chris passed underneath the planet the camera lag wrapped from +180 to -180 degrees, jumping the parallax layers (which turn at fractional speeds) a whole turn. The lag is now tracked unwrapped (`lagU`). Measured: biggest frame-to-frame background jump going right round went from ~2000 px to 0.
+
+### v1.70
+- Freefall turning: changing direction is now a MIRROR, not a spin. The pose is computed as if facing right (head down, leaning into the steer; flat for the wingsuit) and mirrored for left; turning squeezes Chris edge-on and out the other side (scale X eases +1 -> 0 -> -1) with the swap happening at the edge-on instant, so there's no somersault the long way round. The pose itself is eased too (tilts and opening the wingsuit are smooth).
