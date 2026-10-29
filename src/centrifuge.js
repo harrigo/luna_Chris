@@ -13,6 +13,65 @@
 // Controls are the main game's: left/right run (his own left/right, like on a planet), jump (Space/Up/W, controller A;
 // hold it in the air for the jetpack, which pushes you in towards the middle), fire (Z/X/J or the mouse, which aims;
 // controller X/RT, right stick aims). Touch: on-screen ◀ ▶ JUMP FIRE (fire auto-aims at the nearest rat).
+// ---- canvas-drawn cogs (smooth-filtered so they turn cleanly). Tooth 0 points along +x, so a cog's rotation is the
+// angle of one of its teeth: that's what the meshing maths in update() relies on. Spoke holes are cut right through.
+const CF_PAL = {
+  brass: { body: '#b8893a', shade: '#6e4e1c', hi: '#f0d080', dark: '#2a1a08' },
+  steel: { body: '#8a929e', shade: '#4a5260', hi: '#dfe6ef', dark: '#1a1e26' },
+  far:   { body: '#1d2230', shade: '#161a24', hi: '#28303f', dark: '#0c0e13' },
+};
+function cfCog(scene, key, r, n, pal, S) {
+  if (scene.textures.exists(key)) return key;
+  S = S || 1.5;
+  const ad = 8, size = Math.ceil((r + ad + 3) * 2 * S), c = size / 2, ct = scene.textures.createCanvas(key, size, size), x = ct.getContext(), st = Math.PI * 2 / n;
+  x.save(); x.translate(c, c); x.scale(S, S);
+  x.beginPath();
+  for (let k = 0; k < n; k++) { const a = k * st; for (const [rr, da] of [[r - ad, -0.3], [r + ad, -0.16], [r + ad, 0.16], [r - ad, 0.3]]) x.lineTo(Math.cos(a + da * st) * rr, Math.sin(a + da * st) * rr); }
+  x.closePath(); x.fillStyle = pal.body; x.fill(); x.lineWidth = 2; x.strokeStyle = pal.dark; x.stroke();
+  const rw = r - ad - 5, rh = Math.max(10, r * 0.22);
+  x.beginPath(); x.arc(0, 0, rw, 0, 7); x.fillStyle = pal.shade; x.fill();
+  x.beginPath(); x.arc(0, 0, r - ad - 1, Math.PI * 1.05, Math.PI * 1.55); x.strokeStyle = pal.hi; x.lineWidth = 3; x.stroke();
+  if (r > 70) {                                                   // lightening holes between the spokes
+    const ns = r > 150 ? 6 : 5, hc = (rw + rh) / 2, hr = (rw - rh) * 0.36;
+    x.globalCompositeOperation = 'destination-out';
+    for (let k = 0; k < ns; k++) { const a = k / ns * Math.PI * 2 + st / 2; x.beginPath(); x.arc(Math.cos(a) * hc, Math.sin(a) * hc, hr, 0, 7); x.fill(); }
+    x.globalCompositeOperation = 'source-over';
+    for (let k = 0; k < ns; k++) { const a = k / ns * Math.PI * 2 + st / 2; x.beginPath(); x.arc(Math.cos(a) * hc, Math.sin(a) * hc, hr, 0, 7); x.strokeStyle = pal.dark; x.lineWidth = 3; x.stroke(); }
+  }
+  x.beginPath(); x.arc(0, 0, rh, 0, 7); x.fillStyle = pal.body; x.fill(); x.strokeStyle = pal.dark; x.lineWidth = 2; x.stroke();
+  for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; x.beginPath(); x.arc(Math.cos(a) * rh * 0.66, Math.sin(a) * rh * 0.66, Math.max(1.5, rh * 0.09), 0, 7); x.fillStyle = pal.dark; x.fill(); }
+  x.beginPath(); x.arc(0, 0, rh * 0.32, 0, 7); x.fillStyle = pal.dark; x.fill();
+  x.fillStyle = pal.hi; x.fillRect(rh * 0.32, -1.5, rh * 0.3, 3);  // a key mark, so you can see it turn
+  x.restore(); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  return key;
+}
+// the drum's back plate, with glass portholes: they let the brass cogs behind show through, dimmed
+function cfBackPlate(scene, RD, holes) {
+  const key = 'cf_back'; if (scene.textures.exists(key)) return key;
+  const S = 1.5, R = RD + 40, size = Math.ceil(R * 2 * S) + 4, c = size / 2, ct = scene.textures.createCanvas(key, size, size), x = ct.getContext();
+  x.save(); x.translate(c, c); x.scale(S, S);
+  x.fillStyle = '#1a120a'; x.beginPath(); x.arc(0, 0, R, 0, 7); x.fill();
+  for (let i = 7; i > 0; i--) { x.fillStyle = `rgb(${30 + i * 6},${22 + i * 4},${14 + i * 2})`; x.beginPath(); x.arc(0, 0, RD * i / 7, 0, 7); x.fill(); }
+  for (let i = 0; i < 40; i++) { const a = Math.random() * 6.3, r = 40 + Math.random() * (RD - 70); x.fillStyle = 'rgba(0,0,0,0.18)'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 8 + Math.random() * 16, 0, 7); x.fill(); }
+  x.globalCompositeOperation = 'destination-out';
+  for (const h of holes) { x.fillStyle = 'rgba(0,0,0,0.6)'; x.beginPath(); x.arc(h.x, h.y, h.r, 0, 7); x.fill(); }
+  x.globalCompositeOperation = 'source-over';
+  for (const h of holes) {
+    x.lineWidth = 8; x.strokeStyle = '#22262e'; x.beginPath(); x.arc(h.x, h.y, h.r + 3, 0, 7); x.stroke();
+    x.lineWidth = 3; x.strokeStyle = '#8a929e'; x.beginPath(); x.arc(h.x, h.y, h.r + 3, 0, 7); x.stroke();
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; x.fillStyle = '#c8d0dc'; x.fillRect(h.x + Math.cos(a) * (h.r + 3) - 1.5, h.y + Math.sin(a) * (h.r + 3) - 1.5, 3, 3); }
+    x.lineWidth = 3; x.strokeStyle = 'rgba(255,255,255,0.14)'; x.beginPath(); x.arc(h.x, h.y, h.r - 7, 3.7, 4.5); x.stroke();
+  }
+  x.restore(); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  return key;
+}
+function cfVignette(scene) {
+  const key = 'cf_vig'; if (scene.textures.exists(key)) return key;
+  const ct = scene.textures.createCanvas(key, 256, 256), x = ct.getContext(), gr = x.createRadialGradient(128, 128, 60, 128, 128, 182);
+  gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,0.6)'); x.fillStyle = gr; x.fillRect(0, 0, 256, 256);
+  ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR); return key;
+}
+
 class CentrifugeScene extends Phaser.Scene {
   constructor() { super('centrifuge'); }
 
@@ -33,11 +92,36 @@ class CentrifugeScene extends Phaser.Scene {
     // ---- the factory round it (screen space, behind the drum): steel wall panels, pipes feeding the drum, a big SPIN
     // gauge on the left and a maker's plate on the right
     this.backG = this.add.graphics().setDepth(0); this.gaugeG = this.add.graphics().setDepth(0.5);
+    // far cogs in the gloom on the back wall, light beams sweeping across it, steam and dust: all moving
+    this.farCogs = [[0.02, 0.18, 0.5, 0.35], [0.98, 0.92, 0.62, -0.28], [0.5, 1.15, 0.42, 0.5], [0.97, 0.05, 0.3, 0.6]].map(([fx, fy, fr, sp]) =>
+      ({ fx, fy, fr, sp, im: this.add.image(0, 0, cfCog(this, 'cf_cogfar', 200, 40, CF_PAL.far, 1)).setDepth(0.1) }));
+    this.beamG = this.add.graphics().setDepth(0.2).setBlendMode(Phaser.BlendModes.ADD);
+    this.steamG = this.add.graphics().setDepth(0.3);
+    this.steam = []; this.steamT = 1; this.dust = Array.from({ length: 36 }, () => ({ x: Math.random(), y: Math.random(), v: 0.004 + Math.random() * 0.01, ph: Math.random() * 6 }));
+    this.vig = this.add.image(0, 0, cfVignette(this)).setDepth(19).setOrigin(0);
     // ---- the world: everything inertial lives in this container, which is rotated/moved to make the camera
     this.world = this.add.container(0, 0).setDepth(1);
     this.drum = this.add.container(0, 0);                       // the drum and everything fixed to it, turned by D
+    // ---- THE DRIVE: a pinion each side meshes with the ring of teeth round the drum; on the same axle, behind the drum,
+    // a big brass cog (you see it through the portholes in the drum's back plate). An electric motor drives the left one.
+    const ringR = this.ringR = 300, ringN = this.ringN = 72;          // tooth pitch 2π·300/72: every cog here shares it
+    this.drive = [{ u: Math.PI + 0.44, bigR: 200, bigN: 48, motor: true }, { u: 0.44, bigR: 175, bigN: 42 }].map(d => {
+      const cx = Math.cos(d.u) * (ringR + 50), cy = Math.sin(d.u) * (ringR + 50);
+      d.cx = cx; d.cy = cy;
+      d.big = this.add.image(cx, cy, cfCog(this, 'cf_big' + d.bigR, d.bigR, d.bigN, CF_PAL.brass)).setScale(1 / 1.5);
+      this.world.add(d.big);
+      if (d.motor) {                                                  // the motor's pinion, meshing the big cog, out to the left
+        d.um = Math.PI - 0.32; d.mx = cx + Math.cos(d.um) * (d.bigR + 50); d.my = cy + Math.sin(d.um) * (d.bigR + 50);
+        d.motorG = this.add.graphics(); this.world.add(d.motorG);
+        d.mot = this.add.image(d.mx, d.my, cfCog(this, 'cf_pin50', 50, 12, CF_PAL.steel)).setScale(1 / 1.5); this.world.add(d.mot);
+      }
+      return d;
+    });
+    this.HOLES = Array.from({ length: 8 }, (_, k) => { const a = k / 8 * Math.PI * 2 + Math.PI / 8; return { x: Math.cos(a) * 184, y: Math.sin(a) * 184, r: 36 }; });
     this.world.add(this.drum);
     this.buildDrum();
+    for (const d of this.drive) { d.pin = this.add.image(d.cx, d.cy, cfCog(this, 'cf_pin50', 50, 12, CF_PAL.steel)).setScale(1 / 1.5); this.world.add(d.pin); }
+    this.sheenG = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD); this.world.add(this.sheenG);   // light on the steel, spin streaks
     // hatches in the wall (fixed in the drum): closed, then a flashing warning, then open onto space for a few seconds
     this.hatches = [0, 1, 2].map(k => ({ a: Math.PI * 1.5 + k * 2.094 + rnd(-0.2, 0.2), half: 0.16, st: 'closed', t: rnd(2.5, 5), open: 0 }));
     this.padG = this.add.graphics(); this.drum.add(this.padG);
@@ -91,9 +175,14 @@ class CentrifugeScene extends Phaser.Scene {
   // ---- the drum: a riveted stainless steel shell with portholes, a film of whey pinned to the wall, curd lumps, the hub
   buildDrum() {
     const RD = this.RD, g = this.add.graphics(), rnd = (a, b) => a + Math.random() * (b - a);
-    g.fillStyle(0x1a120a, 1).fillCircle(0, 0, RD + 60);
-    for (let i = 7; i > 0; i--) g.fillStyle(Phaser.Display.Color.GetColor(30 + i * 6, 22 + i * 4, 14 + i * 2), 1).fillCircle(0, 0, RD * i / 7);   // dim inside, a bit lighter at the wall
-    for (let i = 0; i < 40; i++) { const a = rnd(0, 6.3), r = rnd(40, RD - 30); g.fillStyle(0x000000, 0.18).fillCircle(Math.cos(a) * r, Math.sin(a) * r, rnd(8, 24)); }
+    this.drum.add(this.add.image(0, 0, cfBackPlate(this, RD, this.HOLES)).setScale(1 / 1.5));
+    // the ring gear round the outside of the shell, that the pinions drive
+    const n = this.ringN, st = Math.PI * 2 / n, R0 = this.ringR;
+    for (let k = 0; k < n; k++) {
+      const a = k * st, q = [[R0 - 8, -0.3], [R0 + 8, -0.16], [R0 + 8, 0.16], [R0 - 8, 0.3]].map(([rr, da]) => ({ x: Math.cos(a + da * st) * rr, y: Math.sin(a + da * st) * rr }));
+      g.fillStyle(0x8a929e, 1).fillPoints(q, true); g.lineStyle(1.5, 0x1a1e26, 1).strokePoints(q, true);
+    }
+    g.lineStyle(14, 0x2a2e38, 1).strokeCircle(0, 0, RD + 40); g.lineStyle(2, 0x6a7080, 1).strokeCircle(0, 0, RD + 46);
     // the wall: steel shell, rivets, portholes with light coming through
     g.lineStyle(34, 0x6a7080, 1).strokeCircle(0, 0, RD + 17); g.lineStyle(6, 0xc8d0dc, 1).strokeCircle(0, 0, RD + 3); g.lineStyle(4, 0x2a2e38, 1).strokeCircle(0, 0, RD + 34);
     for (let k = 0; k < 48; k++) { const a = k / 48 * Math.PI * 2; g.fillStyle(0x3a3e48, 1).fillCircle(Math.cos(a) * (RD + 20), Math.sin(a) * (RD + 20), 3); }
@@ -112,21 +201,42 @@ class CentrifugeScene extends Phaser.Scene {
     this.drum.add(g);
   }
 
-  drawFactory() {
+  drawFactory() {                                                 // the static back wall (the moving bits are in drawBack)
     const W = this.scale.width, H = this.scale.height, g = this.backG; g.clear();
-    g.fillStyle(0x15181f, 1).fillRect(0, 0, W, H);
-    for (let x = 0; x < W; x += 64) { g.fillStyle(x / 64 % 2 ? 0x1b1f28 : 0x181c24, 1).fillRect(x, 0, 62, H); g.fillStyle(0x2a303c, 1).fillRect(x + 62, 0, 2, H); for (let y = 20; y < H; y += 60) g.fillStyle(0x323a48, 1).fillCircle(x + 6, y, 2).fillCircle(x + 56, y, 2); }
-    const cy = H * 0.53, rr = H * 0.47 * (this.RD + 40) / (this.RD + 40);
-    for (const [y, c] of [[cy - rr * 0.55, 0x8a5a2a], [cy + rr * 0.4, 0x5a6a7a]]) {       // pipes running into the drum from both sides
-      g.fillStyle(0x0a0c10, 1).fillRect(0, y - 9, W, 18); g.fillStyle(c, 1).fillRect(0, y - 7, W, 14); g.fillStyle(0xffffff, 0.18).fillRect(0, y - 6, W, 3);
-      for (const x of [W * 0.12, W * 0.3, W * 0.7, W * 0.88]) { g.fillStyle(0x0a0c10, 1).fillRect(x - 6, y - 12, 12, 24); g.fillStyle(0xa8b0c0, 1).fillRect(x - 4, y - 10, 8, 20); }
-    }
-    g.fillStyle(0x000000, 0.55).fillCircle(W / 2, cy, rr + 12);                              // the drum's shadow on the wall
+    for (let i = 0; i < 16; i++) g.fillStyle(Phaser.Display.Color.GetColor(14 + i, 16 + i, 22 + i * 1.4), 1).fillRect(0, H * i / 16, W, H / 16 + 1);
+    for (let x = 0; x < W; x += 96) { g.fillStyle(0x0a0c10, 0.5).fillRect(x, 0, 2, H); for (let y = 30; y < H; y += 80) g.fillStyle(0x2a303c, 1).fillCircle(x + 8, y, 1.5).fillCircle(x + 88, y, 1.5); }
+    const sc = this.wsc(), cx = W / 2, cy = H * 0.53;
+    for (const d of this.drive) g.fillStyle(0x000000, 0.35).fillCircle(cx + d.cx * sc + 10, cy + d.cy * sc + 12, (d.bigR + 8) * sc);    // cogs' shadows on the wall
+    g.fillStyle(0x000000, 0.55).fillCircle(cx + 10, cy + 12, (this.RD + 48) * sc);                         // the drum's
+    for (const f of this.farCogs) f.im.setPosition(W * f.fx, H * f.fy).setScale(H * f.fr / 208);
+    this.vig.setDisplaySize(W, H);
     // maker's plate
-    const px = W * 0.86, py = H * 0.78;
+    const px = W * 0.88, py = H * 0.2;
     g.fillStyle(0x0a0c10, 1).fillRect(px - 62, py - 22, 124, 44); g.fillStyle(0xb89a5a, 1).fillRect(px - 60, py - 20, 120, 40); g.fillStyle(0x7a5a2a, 1).fillRect(px - 56, py - 16, 112, 32);
     this.plateTxt = this.plateTxt || this.add.text(0, 0, 'FERMENTER\nNo. 9', { fontFamily: PIXEL, fontSize: '7px', color: '#ffe8a8', align: 'center', lineSpacing: 4 }).setOrigin(0.5).setDepth(0.6);
     this.plateTxt.setPosition(px, py);
+  }
+  wsc() { return this.scale.height * 0.47 / (this.RD + 60); }
+  drawBack(dt) {                                                  // sweeping warning beams, steam vents, dust in the light
+    const W = this.scale.width, H = this.scale.height, bg = this.beamG, open = this.hatches.some(h => h.st === 'open'), warn = this.hatches.some(h => h.st === 'warn');
+    for (const f of this.farCogs) f.im.setRotation(this.D * f.sp);
+    bg.clear();
+    const col = open ? 0xff3a2a : warn ? 0xffb03a : 0xffd23f, al = open ? 0.11 : 0.05, spd = open ? 3 : 1.1;
+    for (const [ox, dir] of [[-0.02, 1], [1.02, -1]]) {
+      const a = Math.PI / 2 + dir * (0.55 + Math.sin(this.t * spd + (dir > 0 ? 0 : 2)) * 0.5), L = Math.hypot(W, H) * 1.2, wd = 0.13;
+      const x0 = W * ox, y0 = -H * 0.05;
+      for (const [k, m] of [[1, 1], [0.55, 0.6]]) bg.fillStyle(col, al * m).fillTriangle(x0, y0, x0 + Math.cos(a - wd * k) * L, y0 + Math.sin(a - wd * k) * L, x0 + Math.cos(a + wd * k) * L, y0 + Math.sin(a + wd * k) * L);
+    }
+    bg.fillStyle(0x9fb8ff, 0.035 + 0.02 * Math.sin(this.t * 1.3)).fillCircle(W / 2, H * 0.53, H * 0.62);     // a cold glow off the drum
+    for (const p of this.dust) {
+      p.y -= p.v * dt; p.x += Math.sin(this.t * 0.6 + p.ph) * 0.004 * dt; if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
+      bg.fillStyle(0xfff0c8, 0.25 + 0.2 * Math.sin(this.t * 2 + p.ph)).fillRect(p.x * W, p.y * H, 2, 2);
+    }
+    // steam: the vents in the bottom corners blow off now and then (more when it's spinning hard)
+    this.steamT -= dt;
+    if (this.steamT <= 0) { this.steamT = 1.4 + Math.random() * 2.2 - (this.w - 0.5) * 0.8; const sx = Math.random() < 0.5 ? W * 0.05 : W * 0.95; for (let i = 0; i < 9; i++) this.steam.push({ x: sx + (Math.random() - 0.5) * 16, y: H + 6, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 70, r: 6 + Math.random() * 6, life: 1.6 + Math.random() * 0.8, max: 2.4 }); Sound.sfx('hiss'); }
+    const sg = this.steamG; sg.clear();
+    for (let i = this.steam.length - 1; i >= 0; i--) { const q = this.steam[i]; q.life -= dt; if (q.life <= 0) { this.steam.splice(i, 1); continue; } q.x += q.vx * dt; q.y += q.vy * dt; q.vy *= 1 - dt * 0.6; q.r += dt * 18; sg.fillStyle(0xdfe6ef, 0.16 * q.life / q.max).fillCircle(q.x, q.y, q.r); }
   }
   drawGauge() {                                                   // the SPIN gauge: a needle over a green / red dial
     const W = this.scale.width, H = this.scale.height, g = this.gaugeG, x = W * 0.12, y = H * 0.72, r = Math.min(54, H * 0.14); g.clear();
@@ -348,6 +458,30 @@ class CentrifugeScene extends Phaser.Scene {
 
     // ---- draw: the drum turns, items glow, the paddles
     this.drum.setRotation(this.D);
+    // the gears: each pinion meshes the drum's ring; the big cog shares its axle; the motor pinion meshes the big cog.
+    // mesh(): rotation of a cog B driven by A, with a gap of B's facing A's tooth along the line of centres u
+    const mesh = (thA, u, rA, rB, nB) => -(rA / rB) * (thA - u) + u + Math.PI + Math.PI / nB;
+    for (const d of this.drive) {
+      const th = mesh(this.D, d.u, this.ringR, 50, 12); d.pin.setRotation(th); d.big.setRotation(th);
+      if (d.mot) {
+        d.mot.setRotation(mesh(th, d.um, d.bigR, 50, 12));
+        const mg = d.motorG, x = d.mx, y = d.my; mg.clear();                     // the motor: a finned drum with a hot lamp
+        mg.fillStyle(0x0a0c10, 1).fillRoundedRect(x - 170, y - 52, 150, 104, 10); mg.fillStyle(0x3a5a3a, 1).fillRoundedRect(x - 166, y - 48, 142, 96, 8);
+        for (let k = 0; k < 7; k++) mg.fillStyle(0x24382a, 1).fillRect(x - 158 + k * 19, y - 44, 9, 88);
+        mg.fillStyle(0x8a929e, 1).fillRect(x - 26, y - 10, 26, 20);
+        const hot = (this.w - 0.4) / 1.0; mg.fillStyle(0xff5a2a, 0.4 + 0.6 * hot * (0.7 + 0.3 * Math.sin(this.t * 30))).fillCircle(x - 150, y - 32, 6);
+      }
+      if (this.w > 1 && Math.random() < dt * 14 * (this.w - 1)) {            // sparks where the teeth bite, when it's going hard
+        const px = Math.cos(d.u) * this.ringR, py = Math.sin(d.u) * this.ringR;
+        for (let i = 0; i < 3; i++) this.fx.push({ x: px, y: py, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.7) * 260, life: 0.3, max: 0.3, col: 0xffb03a });
+      }
+    }
+    const sh = this.sheenG; sh.clear();                                       // light on the steel shell (it doesn't turn)...
+    sh.lineStyle(10, 0xffffff, 0.12).beginPath(); sh.arc(0, 0, RD + 17, Math.PI * 1.08, Math.PI * 1.55); sh.strokePath();
+    sh.lineStyle(4, 0xffffff, 0.1).beginPath(); sh.arc(0, 0, RD + 17, Math.PI * 0.1, Math.PI * 0.32); sh.strokePath();
+    const sw = Math.max(0, this.w - 0.6);                                     // ...and streaks whizzing round the wall
+    if (sw > 0) for (let k = 0; k < 5; k++) { const a0 = this.D * 1.0 + k * 1.2566; sh.lineStyle(3, 0xfff6d8, 0.18 * sw).beginPath(); sh.arc(0, 0, RD - 16 - (k % 2) * 12, a0, a0 + 0.45 * sw); sh.strokePath(); }
+    this.drawBack(dt);
     const gg = this.glowG; gg.clear();
     for (const it of this.items) if (!it.got) gg.fillStyle(it.col, 0.16 + 0.08 * Math.sin(this.t * 4 + it.ph)).fillCircle(it.x, it.y, 26);
     const pg = this.padG; pg.clear();
@@ -379,7 +513,7 @@ class CentrifugeScene extends Phaser.Scene {
     for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } q.x += (q.vx || 0) * dt; q.y += (q.vy || 0) * dt; fg.fillStyle(q.col || 0x9fd8ff, q.life / q.max * 0.6).fillCircle(q.x, q.y, 4); }
     // ---- camera: FIXED on the whole drum, so you SEE it spin and Chris get carried round it (upside down over the top)
     // like a hamster in a wheel. A faint judder that grows with the spin.
-    const sc = (H * 0.47) / (RD + 40), jud = (this.w - 0.5) * 1.6;
+    const sc = this.wsc(), jud = (this.w - 0.5) * 1.6;
     this.world.setScale(sc).setRotation(0).setPosition(W / 2 + (Math.random() - 0.5) * jud, H * 0.53 + (Math.random() - 0.5) * jud);
   }
   spawnRat(h) {                                                   // a rat on a rocket pack, in through the hatch
