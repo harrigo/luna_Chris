@@ -14,6 +14,19 @@
 // hold it in the air for the jetpack, which pushes you in towards the middle), fire (Z/X/J or the mouse, which aims;
 // controller X/RT, right stick aims). Touch: the main game's twin sticks (left: run, tap/push up to jump, hold up to
 // fly; right: drag to aim, touching fires; with no aim it picks the nearest rat).
+// ---- the spin programme: fast, slow-downs, dead stops (gravity takes over: off the top you fall) and reverses.
+// w = target spin (rad/s, + is clockwise on screen), t = how long it holds, msg = the shout when it starts
+const CF_SPIN = [
+  { w: 1.35, t: 7 },
+  { w: 0.5, t: 4, msg: 'SLOWING DOWN: JUMP ACROSS!', col: '#9fd8ff' },
+  { w: 1.35, t: 5, msg: 'SPIN UP!', col: '#ffb07a' },
+  { w: 0, t: 3.5, msg: 'STOPPING... MIND THE DROP!', col: '#ff7a5a' },
+  { w: -1.35, t: 7, msg: 'REVERSE SPIN!', col: '#ffd23f' },
+  { w: -0.5, t: 4, msg: 'SLOWING DOWN: JUMP ACROSS!', col: '#9fd8ff' },
+  { w: -1.35, t: 4, msg: 'SPIN UP!', col: '#ffb07a' },
+  { w: 1.35, t: 6, msg: 'SLAM INTO REVERSE!', col: '#ffd23f' },
+  { w: 0, t: 3.5, msg: 'STOPPING... MIND THE DROP!', col: '#ff7a5a' },
+];
 // ---- canvas-drawn cogs (smooth-filtered so they turn cleanly). Tooth 0 points along +x, so a cog's rotation is the
 // angle of one of its teeth: that's what the meshing maths in update() relies on. Spoke holes are cut right through.
 const CF_PAL = {
@@ -84,7 +97,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 50; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
     this.intro = 3.0; this.count = -1;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
-    this.D = 0; this.w = 1.3; this.spinPhase = 0; this.spinLow = false;
+    this.D = 0; this.w = 1.3; this.spinIdx = 0; this.segT = CF_SPIN[0].t; this.slide = 0;
     // Chris: on the wall (a = his angle IN THE DRUM, run = his running speed along it) or flying (pos/vel, inertial)
     this.onWall = true; this.a = Math.PI / 2; this.run = 0; this.pos = { x: 0, y: 0 }; this.vel = { x: 0, y: 0 };
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
@@ -244,7 +257,7 @@ class CentrifugeScene extends Phaser.Scene {
     }
     // steam: the vents in the bottom corners blow off now and then (more when it's spinning hard)
     this.steamT -= dt;
-    if (this.steamT <= 0) { this.steamT = 1.4 + Math.random() * 2.2 - (this.w - 0.5) * 0.8; const sx = Math.random() < 0.5 ? W * 0.05 : W * 0.95; for (let i = 0; i < 9; i++) this.steam.push({ x: sx + (Math.random() - 0.5) * 16, y: H + 6, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 70, r: 6 + Math.random() * 6, life: 1.6 + Math.random() * 0.8, max: 2.4 }); Sound.sfx('hiss'); }
+    if (this.steamT <= 0) { this.steamT = 1.4 + Math.random() * 2.2 - (Math.abs(this.w) - 0.5) * 0.8; const sx = Math.random() < 0.5 ? W * 0.05 : W * 0.95; for (let i = 0; i < 9; i++) this.steam.push({ x: sx + (Math.random() - 0.5) * 16, y: H + 6, vx: (Math.random() - 0.5) * 30, vy: -60 - Math.random() * 70, r: 6 + Math.random() * 6, life: 1.6 + Math.random() * 0.8, max: 2.4 }); Sound.sfx('hiss'); }
     const sg = this.steamG; sg.clear();
     for (let i = this.steam.length - 1; i >= 0; i--) { const q = this.steam[i]; q.life -= dt; if (q.life <= 0) { this.steam.splice(i, 1); continue; } q.x += q.vx * dt; q.y += q.vy * dt; q.vy *= 1 - dt * 0.6; q.r += dt * 18; sg.fillStyle(0xdfe6ef, 0.16 * q.life / q.max).fillCircle(q.x, q.y, q.r); }
   }
@@ -252,8 +265,8 @@ class CentrifugeScene extends Phaser.Scene {
     const W = this.scale.width, H = this.scale.height, g = this.gaugeG, r = Math.max(28, Math.min(46, H * 0.1)), x = 20 + r, y = 58 + r; g.clear();
     g.fillStyle(0x0a0c10, 1).fillCircle(x, y, r + 6); g.fillStyle(0xd8dce4, 1).fillCircle(x, y, r + 2); g.fillStyle(0xf4f2ea, 1).fillCircle(x, y, r - 2);
     const a0 = Math.PI * 0.8, a1 = Math.PI * 2.2;
-    for (let k = 0; k <= 10; k++) { const a = a0 + (a1 - a0) * k / 10; g.lineStyle(3, k < 4 ? 0x3aa040 : k < 7 ? 0xffb03a : 0xd62828, 1).lineBetween(x + Math.cos(a) * (r - 12), y + Math.sin(a) * (r - 12), x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4)); }
-    const v = Math.max(0, Math.min(1, (this.w - 0.4) / 1.1)), an = a0 + (a1 - a0) * v + Math.sin(this.t * 40) * 0.02 * this.w;
+    for (let k = 0; k <= 10; k++) { const a = a0 + (a1 - a0) * k / 10, m = Math.abs(k - 5); g.lineStyle(3, m < 2 ? 0x3aa040 : m < 4 ? 0xffb03a : 0xd62828, 1).lineBetween(x + Math.cos(a) * (r - 12), y + Math.sin(a) * (r - 12), x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4)); }
+    const v = Math.max(0, Math.min(1, 0.5 + this.w / 3)), an = a0 + (a1 - a0) * v + Math.sin(this.t * 40) * 0.02 * Math.abs(this.w);
     g.lineStyle(4, 0x1a1012, 1).lineBetween(x, y, x + Math.cos(an) * (r - 8), y + Math.sin(an) * (r - 8)); g.fillStyle(0xd62828, 1).fillCircle(x, y, 5);
     this.gaugeTxt = this.gaugeTxt || this.add.text(0, 0, 'SPIN', { fontFamily: PIXEL, fontSize: '8px', color: '#1a1012' }).setOrigin(0.5).setDepth(0.6);
     this.gaugeTxt.setPosition(x, y + r * 0.45);
@@ -330,13 +343,18 @@ class CentrifugeScene extends Phaser.Scene {
     const dt = Math.min(0.05, dms / 1000); this.t += dt;
     const P = this.P, W = this.scale.width, H = this.scale.height, RD = this.RD;
     this.penaltyT = Math.max(0, this.penaltyT - dt);
-    // ---- the spin: a slow cycle between fast (heavy, short throws) and slow (floaty, jumps fly right across)
-    this.spinPhase += dt;
-    const cyc = (this.spinPhase % 14) / 14, low = cyc > 0.55 && cyc < 0.9;
-    const wTarget = low ? 0.55 : 1.35;
-    this.w += (wTarget - this.w) * Math.min(1, dt * 1.2);
-    if (low !== this.spinLow) { this.spinLow = low; if (this.t > 1) { Sound.sfx(low ? 'whoosh' : 'charge'); this.pop(W / 2, H * 0.3, low ? 'SPIN DOWN: JUMP ACROSS!' : 'SPIN UP!', low ? '#9fd8ff' : '#ffb07a'); } }
+    // ---- the spin programme (CF_SPIN): eases from one setting to the next, so a reverse passes through a stop
+    if (this.intro <= 0 && !this.done) {
+      this.segT -= dt;
+      if (this.segT <= 0) {
+        this.spinIdx = (this.spinIdx + 1) % CF_SPIN.length; const sg = CF_SPIN[this.spinIdx]; this.segT = sg.t;
+        if (sg.msg) { this.pop(W / 2, H * 0.3, sg.msg, sg.col); Sound.sfx(sg.w === 0 ? 'whoosh' : Math.abs(sg.w) < 1 ? 'whoosh' : 'charge'); }
+      }
+    }
+    this.w += (CF_SPIN[this.spinIdx].w - this.w) * Math.min(1, dt * 1.2);
     this.D += this.w * dt;
+    // gravity: drowned out by the spin, but it takes over as the drum stops (none at all above ~0.45 rad/s)
+    const grav = this.grav = 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);
     // ---- input
     const k = this.keys, ts = this.readTouch();
     let ax = 0, jump = false, fire = false, aimAt = null;
@@ -366,16 +384,24 @@ class CentrifugeScene extends Phaser.Scene {
       this.run += (dirA * 230 - this.run) * Math.min(1, dt * 10);
       this.fuel = Math.min(1, this.fuel + dt * 0.8);
       this.a += this.run / RD * dt;
+      if (grav > 0) {                                                // gravity along the wall: slide down to the bottom (damped)
+        const phiW = this.a + this.D, vt = this.w * RD + this.run + this.slide;
+        this.slide += grav * Math.cos(phiW) * dt; this.slide *= 1 - Math.min(1, dt * 1.6);
+        this.a += this.slide / RD * dt;
+        // off the wall when gravity pulls harder than the wall's turn holds you (the top, once it's slow enough)
+        if (vt * vt / RD < -grav * Math.sin(phiW) - 1 && !jumpPress) { this.launch(0, this.run + this.slide); this.slide = 0; Sound.sfx('whoosh'); }
+      } else this.slide *= 1 - Math.min(1, dt * 4);
       if (Math.abs(this.run) > 60 && Math.random() < dt * 14) { const phi = this.a + this.D; this.fx.push({ x: Math.cos(phi) * (RD - 4), y: Math.sin(phi) * (RD - 4), vx: -Math.sin(phi) * (this.w * RD) * 0.6 - Math.cos(phi) * 60, vy: Math.cos(phi) * (this.w * RD) * 0.6 - Math.sin(phi) * 60, life: 0.5, max: 0.5, col: 0xf0ecd0 }); }
       if (jumpPress) { this.launch(400, this.run); Sound.sfx('jump'); this.puff(Math.cos(this.a + this.D) * RD, Math.sin(this.a + this.D) * RD, 5, 0xf0ecd0, 100, 0.3, 2); }
     } else {
-      // ---- flying: a dead straight line (no gravity in here), with a touch of air-steer along his own sideways
+      // ---- flying: a dead straight line while it spins (gravity only as it stops), with a touch of air-steer along his own sideways
       const phi = Math.atan2(this.pos.y, this.pos.x), tx = -Math.sin(phi), ty = Math.cos(phi);
       this.vel.x += tx * dirA * 160 * dt; this.vel.y += ty * dirA * 160 * dt;
       if (jump && !jumpPress && this.fuel > 0) {                // JETPACK: hold jump in the air to push in towards the middle
-        this.fuel = Math.max(0, this.fuel - dt / 1.6); this.vel.x -= Math.cos(phi) * 520 * dt; this.vel.y -= Math.sin(phi) * 520 * dt; this.jetting = true;
+        this.fuel = Math.max(0, this.fuel - dt / 1.6); const thr = 520 + grav * 0.6; this.vel.x -= Math.cos(phi) * thr * dt; this.vel.y -= Math.sin(phi) * thr * dt;   // (stronger once gravity's about) this.jetting = true;
         if (Math.random() < dt * 40) this.fx.push({ x: this.pos.x + Math.cos(phi) * 20, y: this.pos.y + Math.sin(phi) * 20, vx: Math.cos(phi) * 120, vy: Math.sin(phi) * 120, life: 0.3, max: 0.3, col: 0xffa21a });
       } else this.jetting = false;
+      this.vel.y += grav * dt;                                      // (only once the drum's slowed right down)
       this.pos.x += this.vel.x * dt; this.pos.y += this.vel.y * dt;
       const r = Math.hypot(this.pos.x, this.pos.y);
       if (r >= RD) {                                             // touch down: back on the wall, wherever it's turned to
@@ -487,7 +513,7 @@ class CentrifugeScene extends Phaser.Scene {
     if (!this.done && this.intro <= 0) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
     this.gotTxt.setText('INGREDIENTS ' + this.got + ' / ' + this.items.length);
-    this.spinTxt.setText(this.w < 0.8 ? 'SPIN: SLOW' : 'SPIN: FAST').setColor(this.w < 0.8 ? '#9fd8ff' : '#ffb07a');
+    { const aw = Math.abs(this.w), rev = this.w < -0.05; this.spinTxt.setText(aw < 0.15 ? 'SPIN: STOPPED' : (rev ? 'REVERSE: ' : 'SPIN: ') + (aw < 0.8 ? 'SLOW' : 'FAST')).setColor(aw < 0.15 ? '#ff7a5a' : aw < 0.8 ? '#9fd8ff' : '#ffb07a'); }
     this.drawGauge();
 
     // ---- draw: the drum turns, items glow, the paddles
@@ -504,9 +530,9 @@ class CentrifugeScene extends Phaser.Scene {
         mg.fillStyle(0x0a0c10, 1).fillRoundedRect(x - 170, y - 52, 150, 104, 10); mg.fillStyle(0x3a5a3a, 1).fillRoundedRect(x - 166, y - 48, 142, 96, 8);
         for (let k = 0; k < 7; k++) mg.fillStyle(0x24382a, 1).fillRect(x - 158 + k * 19, y - 44, 9, 88);
         mg.fillStyle(0x8a929e, 1).fillRect(x - 26, y - 10, 26, 20);
-        const hot = (this.w - 0.4) / 1.0; mg.fillStyle(0xff5a2a, 0.4 + 0.6 * hot * (0.7 + 0.3 * Math.sin(this.t * 30))).fillCircle(x - 150, y - 32, 6);
+        const hot = (Math.abs(this.w) - 0.4) / 1.0; mg.fillStyle(0xff5a2a, 0.4 + 0.6 * hot * (0.7 + 0.3 * Math.sin(this.t * 30))).fillCircle(x - 150, y - 32, 6);
       }
-      if (this.w > 1 && Math.random() < dt * 14 * (this.w - 1)) {            // sparks where the teeth bite, when it's going hard
+      if (Math.abs(this.w) > 1 && Math.random() < dt * 14 * (Math.abs(this.w) - 1)) {            // sparks where the teeth bite, when it's going hard
         const px = Math.cos(d.u) * this.ringR, py = Math.sin(d.u) * this.ringR;
         for (let i = 0; i < 3; i++) this.fx.push({ x: px, y: py, vx: (Math.random() - 0.5) * 260, vy: (Math.random() - 0.7) * 260, life: 0.3, max: 0.3, col: 0xffb03a });
       }
@@ -514,8 +540,8 @@ class CentrifugeScene extends Phaser.Scene {
     const sh = this.sheenG; sh.clear();                                       // light on the steel shell (it doesn't turn)...
     sh.lineStyle(10, 0xffffff, 0.12).beginPath(); sh.arc(0, 0, RD + 17, Math.PI * 1.08, Math.PI * 1.55); sh.strokePath();
     sh.lineStyle(4, 0xffffff, 0.1).beginPath(); sh.arc(0, 0, RD + 17, Math.PI * 0.1, Math.PI * 0.32); sh.strokePath();
-    const sw = Math.max(0, this.w - 0.6);                                     // ...and streaks whizzing round the wall
-    if (sw > 0) for (let k = 0; k < 5; k++) { const a0 = this.D * 1.0 + k * 1.2566; sh.lineStyle(3, 0xfff6d8, 0.18 * sw).beginPath(); sh.arc(0, 0, RD - 16 - (k % 2) * 12, a0, a0 + 0.45 * sw); sh.strokePath(); }
+    const sw = Math.max(0, Math.abs(this.w) - 0.6), sgn = this.w < 0 ? -1 : 1;                                     // ...and streaks whizzing round the wall
+    if (sw > 0) for (let k = 0; k < 5; k++) { const a0 = this.D * 1.0 + k * 1.2566; sh.lineStyle(3, 0xfff6d8, 0.18 * sw).beginPath(); sh.arc(0, 0, RD - 16 - (k % 2) * 12, Math.min(a0, a0 - sgn * 0.45 * sw), Math.max(a0, a0 - sgn * 0.45 * sw)); sh.strokePath(); }
     this.drawBack(dt);
     const gg = this.glowG; gg.clear();
     for (const it of this.items) if (!it.got) gg.fillStyle(it.col, 0.16 + 0.08 * Math.sin(this.t * 4 + it.ph)).fillCircle(it.x, it.y, 26);
@@ -548,7 +574,7 @@ class CentrifugeScene extends Phaser.Scene {
     for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } q.x += (q.vx || 0) * dt; q.y += (q.vy || 0) * dt; fg.fillStyle(q.col || 0x9fd8ff, q.life / q.max * 0.6).fillCircle(q.x, q.y, 4); }
     // ---- camera: FIXED on the whole drum, so you SEE it spin and Chris get carried round it (upside down over the top)
     // like a hamster in a wheel. A faint judder that grows with the spin.
-    const sc = this.wsc(), jud = (this.w - 0.5) * 1.6;
+    const sc = this.wsc(), jud = Math.max(0, Math.abs(this.w) - 0.5) * 1.6;
     this.world.setScale(sc).setRotation(0).setPosition(W / 2 + (Math.random() - 0.5) * jud, H * 0.53 + (Math.random() - 0.5) * jud);
   }
   spawnRat(h) {                                                   // a rat on a rocket pack, in through the hatch

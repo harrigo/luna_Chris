@@ -1165,3 +1165,8 @@ Built from the brief (`makeGorgeTextures`):
 - Touch now uses the main game's controls: floating MOVE stick on the left (drag to run, tap or push up to jump, hold up for the jetpack) and floating AIM + FIRE stick on the right (touching fires, dragging aims; without a drag it picks the nearest rat). Controller: the "push left stick up to jump" option and the jet button now work here too.
 - Six small portholes nearer the middle of the drum. Behind them sits a brass sun cog (r150) on its own bearing, meshed with and turned by the left big cog, so you see it turning through the inner holes (and the edge of it through the big ones).
 - The SPIN gauge is smaller and moved to the top left, out of the move stick's way.
+
+### v1.77 — Centrifuge: slow-downs, dead stops, reverses, gravity
+- The spin follows a programme (CF_SPIN, ~51 s loop): fast, slow down, spin up, STOP, reverse fast, reverse slow, spin up, slam into reverse (passing through a stop), STOP. Each change is shouted on screen; it eases between settings so a reversal passes through zero.
+- Gravity fades in as the drum stops (none above 0.45 rad/s, 560 at a dead stop). On the wall you slide down to the bottom; if the wall's turn can no longer hold you (v²/R < -g·sinφ — the top first) you drop off and fall to the bottom. The jetpack gets stronger with gravity so you can still fly when it's stopped.
+- The SPIN gauge now has zero in the middle (reverse to the left) and the label reads SPIN / REVERSE: FAST / SLOW, or STOPPED. Cogs, sparks, streaks, steam and judder all follow the spin's size and direction.
