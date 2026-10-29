@@ -1143,3 +1143,10 @@ Built from the brief (`makeGorgeTextures`):
 - **Stirring paddles** (3) creep round the wall; touching one knocks you off it (-2 s, "PADDLED"): jump them.
 - 50 s, +1 s per ingredient, all 12 = the prize (next gun, else +1 life). 3-2-1-GO intro, touch buttons (◀ ▶ JUMP), < MAP, MAP/AGAIN at the end.
 - Physics check: in slow spin, running against it and jumping passes right through the axle (closest 0); standing still in fast spin, a jump only gets ~85 units off the wall.
+
+### v1.73 — Centrifuge: you can SEE it spin
+- The camera no longer turns with Chris (which made the drum look still). It's fixed on the whole drum, so it visibly whizzes round and carries Chris with it, up the side and upside down over the top, like a hamster in a wheel; run against the spin to stay at the bottom. A faint judder grows with the spin.
+- Drum a bit smaller (radius 250) so it fills the screen height; yellow/black warning stripes round the wall; whey sprays off the wall as he runs.
+- Left/right follow the screen (decided when pressed, kept while held), as in the FULL camera.
+- A factory round it: steel wall panels, copper and steel pipes feeding the drum, a big SPIN gauge (green/amber/red, needle trembling with the spin) and a "FERMENTER No. 9" maker's plate. HUD: SPIN: FAST / SLOW.
+- Chris starts at the bottom with the paddles well away from him.

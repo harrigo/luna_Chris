@@ -14,25 +14,28 @@ class CentrifugeScene extends Phaser.Scene {
 
   create() {
     buildAllTextures(this);
-    const RD = this.RD = 330, rnd = (a, b) => a + Math.random() * (b - a);
+    const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level7');
-    this.leaving = false; this.done = false; this.t = 0; this.timeLeft = 50; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null;
+    this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 50; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
     this.intro = 3.0; this.count = -1;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
     this.D = 0; this.w = 1.3; this.spinPhase = 0; this.spinLow = false;
     // Chris: on the wall (a = his angle IN THE DRUM, run = his running speed along it) or flying (pos/vel, inertial)
-    this.onWall = true; this.a = -Math.PI / 2; this.run = 0; this.pos = { x: 0, y: 0 }; this.vel = { x: 0, y: 0 };
+    this.onWall = true; this.a = Math.PI / 2; this.run = 0; this.pos = { x: 0, y: 0 }; this.vel = { x: 0, y: 0 };
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.fx = [];
 
+    // ---- the factory round it (screen space, behind the drum): steel wall panels, pipes feeding the drum, a big SPIN
+    // gauge on the left and a maker's plate on the right
+    this.backG = this.add.graphics().setDepth(0); this.gaugeG = this.add.graphics().setDepth(0.5);
     // ---- the world: everything inertial lives in this container, which is rotated/moved to make the camera
     this.world = this.add.container(0, 0).setDepth(1);
     this.drum = this.add.container(0, 0);                       // the drum and everything fixed to it, turned by D
     this.world.add(this.drum);
     this.buildDrum();
     // paddles: stirring blades standing up off the wall, creeping round the drum (relative to it)
-    this.paddles = [0, 2.1, 4.2].map(p => ({ a: p + rnd(-0.3, 0.3), sp: 0.42, len: 95, hit: 0 }));
+    this.paddles = [0, 2.1, 4.2].map(p => ({ a: Math.PI * 1.5 + p + rnd(-0.3, 0.3), sp: 0.42, len: 95, hit: 0 }));
     this.padG = this.add.graphics(); this.drum.add(this.padG);
     // ingredients, fixed in the drum: most near the wall-ish, a few floating near the axle (slow spin needed)
     const kinds = ['wedge', 'goldwheel', 'meatball', 'ix_pancake', 'pepper', 'chili'], glow = [0xffd23f, 0xffc23a, 0xff8a5a, 0xffb36a, 0x7dff8a, 0xff4a3a];
@@ -60,7 +63,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20);
-    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nTHE SPIN HOLDS YOU TO THE WALL\nJUMPS FLY STRAIGHT: THE DRUM TURNS UNDER YOU\nWHEN THE SPIN SLOWS, JUMP RIGHT ACROSS!', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nIT SPINS YOU ROUND LIKE A HAMSTER WHEEL!\nRUN AGAINST IT TO STAY DOWN, JUMP TO FLY ACROSS\nWHEN THE SPIN SLOWS, JUMP RIGHT THROUGH THE MIDDLE', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -93,6 +96,8 @@ class CentrifugeScene extends Phaser.Scene {
       const a = k / 6 * Math.PI * 2 + 0.3, x = Math.cos(a) * (RD + 18), y = Math.sin(a) * (RD + 18);
       g.fillStyle(0x2a2e38, 1).fillCircle(x, y, 13); g.fillStyle(0x9fd8ff, 1).fillCircle(x, y, 9); g.fillStyle(0xffffff, 0.8).fillCircle(x - 3, y - 3, 3);
     }
+    // warning stripes round the inside of the wall, so you can see it whizz round
+    for (let k = 0; k < 16; k++) { const a0 = k / 16 * Math.PI * 2, a1 = a0 + 0.12; g.fillStyle(k % 2 ? 0xffd23f : 0x1a1012, 1).fillPoints([{ x: Math.cos(a0) * (RD - 2), y: Math.sin(a0) * (RD - 2) }, { x: Math.cos(a1) * (RD - 2), y: Math.sin(a1) * (RD - 2) }, { x: Math.cos(a1) * (RD + 6), y: Math.sin(a1) * (RD + 6) }, { x: Math.cos(a0) * (RD + 6), y: Math.sin(a0) * (RD + 6) }], true); }
     // whey film along the wall, and lumps of curd stuck in it
     g.lineStyle(10, 0xf0ecd0, 0.45).strokeCircle(0, 0, RD - 4);
     for (let k = 0; k < 26; k++) { const a = rnd(0, 6.3), r = RD - rnd(4, 10); g.fillStyle(0xfff6d8, 1).fillCircle(Math.cos(a) * r, Math.sin(a) * r, rnd(4, 9)); g.fillStyle(0xd8ccaa, 1).fillCircle(Math.cos(a) * r + 2, Math.sin(a) * r + 2, 3); }
@@ -102,8 +107,36 @@ class CentrifugeScene extends Phaser.Scene {
     this.drum.add(g);
   }
 
+  drawFactory() {
+    const W = this.scale.width, H = this.scale.height, g = this.backG; g.clear();
+    g.fillStyle(0x15181f, 1).fillRect(0, 0, W, H);
+    for (let x = 0; x < W; x += 64) { g.fillStyle(x / 64 % 2 ? 0x1b1f28 : 0x181c24, 1).fillRect(x, 0, 62, H); g.fillStyle(0x2a303c, 1).fillRect(x + 62, 0, 2, H); for (let y = 20; y < H; y += 60) g.fillStyle(0x323a48, 1).fillCircle(x + 6, y, 2).fillCircle(x + 56, y, 2); }
+    const cy = H * 0.53, rr = H * 0.47 * (this.RD + 40) / (this.RD + 40);
+    for (const [y, c] of [[cy - rr * 0.55, 0x8a5a2a], [cy + rr * 0.4, 0x5a6a7a]]) {       // pipes running into the drum from both sides
+      g.fillStyle(0x0a0c10, 1).fillRect(0, y - 9, W, 18); g.fillStyle(c, 1).fillRect(0, y - 7, W, 14); g.fillStyle(0xffffff, 0.18).fillRect(0, y - 6, W, 3);
+      for (const x of [W * 0.12, W * 0.3, W * 0.7, W * 0.88]) { g.fillStyle(0x0a0c10, 1).fillRect(x - 6, y - 12, 12, 24); g.fillStyle(0xa8b0c0, 1).fillRect(x - 4, y - 10, 8, 20); }
+    }
+    g.fillStyle(0x000000, 0.55).fillCircle(W / 2, cy, rr + 12);                              // the drum's shadow on the wall
+    // maker's plate
+    const px = W * 0.86, py = H * 0.78;
+    g.fillStyle(0x0a0c10, 1).fillRect(px - 62, py - 22, 124, 44); g.fillStyle(0xb89a5a, 1).fillRect(px - 60, py - 20, 120, 40); g.fillStyle(0x7a5a2a, 1).fillRect(px - 56, py - 16, 112, 32);
+    this.plateTxt = this.plateTxt || this.add.text(0, 0, 'FERMENTER\nNo. 9', { fontFamily: PIXEL, fontSize: '7px', color: '#ffe8a8', align: 'center', lineSpacing: 4 }).setOrigin(0.5).setDepth(0.6);
+    this.plateTxt.setPosition(px, py);
+  }
+  drawGauge() {                                                   // the SPIN gauge: a needle over a green / red dial
+    const W = this.scale.width, H = this.scale.height, g = this.gaugeG, x = W * 0.12, y = H * 0.72, r = Math.min(54, H * 0.14); g.clear();
+    g.fillStyle(0x0a0c10, 1).fillCircle(x, y, r + 6); g.fillStyle(0xd8dce4, 1).fillCircle(x, y, r + 2); g.fillStyle(0xf4f2ea, 1).fillCircle(x, y, r - 2);
+    const a0 = Math.PI * 0.8, a1 = Math.PI * 2.2;
+    for (let k = 0; k <= 10; k++) { const a = a0 + (a1 - a0) * k / 10; g.lineStyle(3, k < 4 ? 0x3aa040 : k < 7 ? 0xffb03a : 0xd62828, 1).lineBetween(x + Math.cos(a) * (r - 12), y + Math.sin(a) * (r - 12), x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4)); }
+    const v = Math.max(0, Math.min(1, (this.w - 0.4) / 1.1)), an = a0 + (a1 - a0) * v + Math.sin(this.t * 40) * 0.02 * this.w;
+    g.lineStyle(4, 0x1a1012, 1).lineBetween(x, y, x + Math.cos(an) * (r - 8), y + Math.sin(an) * (r - 8)); g.fillStyle(0xd62828, 1).fillCircle(x, y, 5);
+    this.gaugeTxt = this.gaugeTxt || this.add.text(0, 0, 'SPIN', { fontFamily: PIXEL, fontSize: '8px', color: '#1a1012' }).setOrigin(0.5).setDepth(0.6);
+    this.gaugeTxt.setPosition(x, y + r * 0.45);
+  }
+
   layout() {
     const W = this.scale.width, H = this.scale.height;
+    if (this.backG) this.drawFactory();
     this.timeTxt.setPosition(W / 2, 8); this.gotTxt.setPosition(W / 2, 32); this.spinTxt.setPosition(W - 12, 12);
     this.msg.setPosition(W / 2, H * 0.36); this.countTxt.setPosition(W / 2, H * 0.6); this.exitBtn.setPosition(10, 10);
   }
@@ -170,13 +203,17 @@ class CentrifugeScene extends Phaser.Scene {
       if (show !== this.count) { this.count = show; Sound.sfx(show === 'GO!' ? 'power' : 'combo'); this.countTxt.setText(show).setScale(1.8).setAlpha(1).setColor(show === 'GO!' ? '#7dff8a' : '#ffd23f'); this.tweens.add({ targets: this.countTxt, scale: 1, duration: 260, ease: 'Back.out' }); if (show === 'GO!') this.tweens.add({ targets: this.countTxt, alpha: 0, delay: 450, duration: 300 }); }
     }
     if (this.done) { ax = 0; jump = false; }
-    // "right" on screen = increasing angle round the drum (he's always shown standing at the bottom)
+    // left/right follow the SCREEN (like the FULL camera): decided when you press by which way the wall under him runs
+    // across the screen, and kept while held, so you can run on up the side and over the top
+    if (ax && !this.axHeld) { const tx = -Math.sin(this.onWall ? this.a + this.D : Math.atan2(this.pos.y, this.pos.x)); if (Math.abs(tx) > 0.3) this.axFlip = Math.sign(tx); else if (!this.axFlip) this.axFlip = 1; }
+    this.axHeld = !!ax; ax *= (this.axFlip || 1);
     if (ax) P.facing = ax;
     const jumpPress = jump && !this.jumpWas; this.jumpWas = jump;
     // ---- on the wall: run round it (the paddles creep round and shove you if you don't jump them)
     if (this.onWall) {
       this.run += (ax * 230 - this.run) * Math.min(1, dt * 10);
       this.a += this.run / RD * dt;
+      if (Math.abs(this.run) > 60 && Math.random() < dt * 14) { const phi = this.a + this.D; this.fx.push({ x: Math.cos(phi) * (RD - 4), y: Math.sin(phi) * (RD - 4), vx: -Math.sin(phi) * (this.w * RD) * 0.6 - Math.cos(phi) * 60, vy: Math.cos(phi) * (this.w * RD) * 0.6 - Math.sin(phi) * 60, life: 0.5, max: 0.5, col: 0xf0ecd0 }); }
       if (jumpPress) { this.launch(400, this.run); Sound.sfx('jump'); this.puff(Math.cos(this.a + this.D) * RD, Math.sin(this.a + this.D) * RD, 5, 0xf0ecd0, 100, 0.3, 2); }
     } else {
       // ---- flying: a dead straight line (no gravity in here), with a touch of air-steer along his own sideways
@@ -223,7 +260,8 @@ class CentrifugeScene extends Phaser.Scene {
     if (!this.done && this.intro <= 0) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
     this.gotTxt.setText('INGREDIENTS ' + this.got + ' / ' + this.items.length);
-    this.spinTxt.setText('SPIN ' + '|'.repeat(Math.round(this.w * 6))).setColor(this.w < 0.8 ? '#9fd8ff' : '#ffb07a');
+    this.spinTxt.setText(this.w < 0.8 ? 'SPIN: SLOW' : 'SPIN: FAST').setColor(this.w < 0.8 ? '#9fd8ff' : '#ffb07a');
+    this.drawGauge();
 
     // ---- draw: the drum turns, items glow, the paddles
     this.drum.setRotation(this.D);
@@ -242,14 +280,12 @@ class CentrifugeScene extends Phaser.Scene {
     this.rig.update(P, dt, cp.x, cp.y, 1, this.penaltyT > 0 && Math.floor(this.t * 20) % 2 ? 0.4 : 1, 0);
     this.rig.root.setRotation(phiC - Math.PI / 2 + (this.onWall ? 0 : 0));   // feet to the wall (outwards)
     const fg = this.fxG; fg.clear();
-    if (!this.onWall && Math.random() < dt * 30) this.fx.push({ x: cp.x, y: cp.y, life: 0.4, max: 0.4 });
-    for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } fg.fillStyle(0x9fd8ff, q.life / q.max * 0.5).fillCircle(q.x, q.y, 4); }
-    // ---- camera: turn the world so Chris's feet point down the screen, centred between him and the axle
-    let target = phiC;
-    this.camPhi = this.camPhi + angDiff(target, this.camPhi) * Math.min(1, dt * (this.onWall ? 8 : 3));
-    const rot = Math.PI / 2 - this.camPhi, sc = Math.min(1, H / 470) * 0.9;
-    const fx = cp.x * this.camK, fy = cp.y * this.camK, cr = Math.cos(rot), sr = Math.sin(rot);
-    this.world.setScale(sc).setRotation(rot).setPosition(W / 2 - (fx * cr - fy * sr) * sc, H * 0.5 - (fx * sr + fy * cr) * sc);
+    if (!this.onWall && Math.random() < dt * 30) this.fx.push({ x: cp.x, y: cp.y, vx: 0, vy: 0, life: 0.4, max: 0.4, col: 0x9fd8ff });
+    for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } q.x += (q.vx || 0) * dt; q.y += (q.vy || 0) * dt; fg.fillStyle(q.col || 0x9fd8ff, q.life / q.max * 0.6).fillCircle(q.x, q.y, 4); }
+    // ---- camera: FIXED on the whole drum, so you SEE it spin and Chris get carried round it (upside down over the top)
+    // like a hamster in a wheel. A faint judder that grows with the spin.
+    const sc = (H * 0.47) / (RD + 40), jud = (this.w - 0.5) * 1.6;
+    this.world.setScale(sc).setRotation(0).setPosition(W / 2 + (Math.random() - 0.5) * jud, H * 0.53 + (Math.random() - 0.5) * jud);
   }
   chrisPos() {
     if (!this.onWall) return this.pos;
