@@ -1134,3 +1134,12 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.71
 - Freefall turning, done the way falling games usually do it: DIVING he never turns round; he stays head-down and banks up to ~30 degrees into the steer (head leading). The WINGSUIT faces the way he's travelling when it opens; steering the other way while it's open flips him round instantly (the classic 16-bit turn) with a swish and a cape flutter. The paper-squeeze turn is gone.
+
+### v1.72 — Bonus: the Centrifuge Fermenter (src/centrifuge.js)
+- Replaces the warp route's Zero-G Room III (Fondue Fountain -> **Centrifuge** -> 7; opens when the Fondue Fountain is beaten). A steel drum icon on the map.
+- Inside a huge spinning steel drum (riveted shell, portholes, a film of whey and curd lumps on the wall, the axle at the centre). No gravity: the spin pins Chris to the wall, "down" is outwards, and the camera turns the world so his feet always point down the screen with the drum curving up round him.
+- **Real centrifuge physics:** on the wall he's carried round with it; in the air he flies in a straight line (inertial frame, nothing pulls him) while the drum turns under him, landing further round than expected (a little air-steer). Running against the spin cancels it, so a jump goes straight across.
+- **Spin cycle** (14 s): fast (1.35 rad/s: short, thrown-forward hops) and slow (0.55: "SPIN DOWN: JUMP ACROSS!" — jumps sail through the middle). Four of the 12 ingredients float near the axle and need a slow-spin jump across.
+- **Stirring paddles** (3) creep round the wall; touching one knocks you off it (-2 s, "PADDLED"): jump them.
+- 50 s, +1 s per ingredient, all 12 = the prize (next gun, else +1 life). 3-2-1-GO intro, touch buttons (◀ ▶ JUMP), < MAP, MAP/AGAIN at the end.
+- Physics check: in slow spin, running against it and jumping passes right through the axle (closest 0); standing still in fast spin, a jump only gets ~85 units off the wall.

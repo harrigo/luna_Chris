@@ -833,10 +833,10 @@ class SelectScene extends Phaser.Scene {
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
       { id: 'freefall', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: CERAMIC GRILL FREEFALL', blurb: 'BONUS: drop down a giant kamado grill to the coals.\nFind the gaps in the grates, dodge the flare-ups, hold JUMP to brake.' },
       { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the Triangle on level 3. Comes out at level 7.' },
-      { id: 'zerog3', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: ZERO-G ROOM III', blurb: bonus }
+      { id: 'centrifuge', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: CENTRIFUGE FERMENTER', blurb: 'BONUS: inside a spinning drum. The spin holds you to the wall,\njumps fly straight while it turns. Grab all 12.' }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 5.5], [5.5, 'zerog3'], ['zerog3', 7]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 5.5], [5.5, 'centrifuge'], ['centrifuge', 7]]; }
   // pick a stop: Chris boosts there along the route (straight across if they aren't joined)
   travel(id) {
     const from = this.sel; if (from === id) return;
@@ -856,7 +856,7 @@ class SelectScene extends Phaser.Scene {
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
     if (id === 5.5) return Progress.found(5.5);
-    if (id === 'zerog3') return Progress.secretBeat(5.5);
+    if (id === 'centrifuge') return Progress.secretBeat(5.5);
     if (id === 7 && Progress.secretBeat(5.5)) return true;
     return typeof id === 'number' && best >= id - 1;
   }
@@ -882,6 +882,7 @@ class SelectScene extends Phaser.Scene {
   go(n) {
     if (this.going) return;
     if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
+    if (n === 'centrifuge') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('centrifuge')); return; }
     if (n === 'freefall') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('freefall')); return; }
     if (/^zerog/.test(n)) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog', { room: n })); return; }
     if (!LEVELS[n]) return;
@@ -938,7 +939,14 @@ class SelectScene extends Phaser.Scene {
     for (const n of this.nodes) {
       const p = this.pos(n.id), L = LEVELS[n.id], open = this.isOpen(n.id), r = n.kind ? R * 0.8 : R;
       const g = this.add.graphics();
-      if (n.id === 'freefall') {                                  // the grill freefall: a little green kamado egg glowing inside
+      if (n.id === 'centrifuge') {                                // the centrifuge: a riveted steel drum with a hub
+        g.fillStyle(0x9fd8ff, 0.2).fillCircle(p.x, p.y, r + 6);
+        g.fillStyle(0x1a1020, 1).fillCircle(p.x + 2, p.y + 2, r); g.fillStyle(0x6a7080, 1).fillCircle(p.x, p.y, r); g.fillStyle(0x2a1a10, 1).fillCircle(p.x, p.y, r * 0.72);
+        g.lineStyle(2, 0xc8d0dc, 1).strokeCircle(p.x, p.y, r * 0.74);
+        for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2; g.fillStyle(0x3a3e48, 1).fillCircle(p.x + Math.cos(a) * r * 0.86, p.y + Math.sin(a) * r * 0.86, 1.6); }
+        g.fillStyle(0xa8b0c0, 1).fillCircle(p.x, p.y, r * 0.18); g.fillStyle(0xf0ecd0, 0.7).fillCircle(p.x - r * 0.4, p.y + r * 0.3, r * 0.12);
+        this.ui.add(g);
+      } else if (n.id === 'freefall') {                                  // the grill freefall: a little green kamado egg glowing inside
         g.fillStyle(0xff7a1a, 0.22).fillCircle(p.x, p.y, r + 6);
         g.fillStyle(0x1a1020, 1).fillEllipse(p.x + 2, p.y + 2, r * 1.7, r * 2); g.fillStyle(0x2f8a3c, 1).fillEllipse(p.x, p.y, r * 1.7, r * 2);
         g.fillStyle(0x6ad05a, 1).fillEllipse(p.x - r * 0.3, p.y - r * 0.45, r * 0.4, r * 0.6);
@@ -982,7 +990,7 @@ class SelectScene extends Phaser.Scene {
       // labels: "LV. 3" over the world's name (??? until it's open). Secret stops label to the side.
       const side = !!n.kind, lx = side ? p.x + r + 8 : p.x, ly = side ? p.y - 8 : p.y + r + 6, org = side ? 0 : 0.5;
       const top1 = n.kind === 'bonus' ? 'BONUS' : n.kind === 'warp' ? 'WARP' : 'LV. ' + n.id;
-      const name = n.kind === 'bonus' ? (n.id === 'zerog3' ? 'WARP BONUS' : n.id === 'freefall' ? 'GRILL FREEFALL' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
+      const name = n.kind === 'bonus' ? (n.id === 'centrifuge' ? 'CENTRIFUGE' : n.id === 'freefall' ? 'GRILL FREEFALL' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
       this.ui.add(this.add.text(lx, ly, top1, f(7, open ? '#ffd23f' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
       this.ui.add(this.add.text(lx, ly + 11, name, f(6, open ? '#ffffff' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3, align: side ? 'left' : 'center', lineSpacing: 3, wordWrap: { width: side ? 80 : Math.max(60, W * 0.1) } })).setOrigin(org, 0));
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
@@ -1081,7 +1089,7 @@ class SelectScene extends Phaser.Scene {
     if (this.pos) for (const [a, b] of this.mapLinks()) {
       if (!this.ids.includes(a) || !this.ids.includes(b)) continue;          // a secret stop you haven't found: no route either
       const A = this.pos(a), B = this.pos(b), d = Math.hypot(B.x - A.x, B.y - A.y), n = Math.floor(d / 10);
-      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => /^zerog/.test(id) || id === 'freefall' || id === 5.5);
+      const shut = !this.isOpen(a) || !this.isOpen(b), bonus = [a, b].some(id => /^zerog/.test(id) || id === 'freefall' || id === 'centrifuge' || id === 5.5);
       const cx = (A.x + B.x) / 2 - (B.y - A.y) * 0.18, cy = (A.y + B.y) / 2 + (B.x - A.x) * 0.18;
       for (let k = 1; k < n; k++) {
         const u = k / n, iu = 1 - u, x = iu * iu * A.x + 2 * iu * u * cx + u * u * B.x, y = iu * iu * A.y + 2 * iu * u * cy + u * u * B.y;
