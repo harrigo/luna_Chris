@@ -17,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.fuel = 1; this.penaltyT = 0;
+    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.timeMax = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
@@ -345,6 +345,11 @@ class FreefallScene extends Phaser.Scene {
     if (!this.done && this.pos.y >= this.SH - 20) { this.pos.y = this.SH - 20; this.vel.y = 0; this.finish(this.gotCheese >= this.need, true); }
     if (!this.done && !(this.intro > 0)) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false, false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
+    { const deep2 = Math.min(1, Math.max(0, this.pos.y / this.SH)), ok = this.gotCheese >= this.need;
+      (this.goalHud || (this.goalHud = new GoalHud(this))).update([
+        { label: 'CHEESE TRAIL', frac: this.gotCheese / this.need, right: this.gotCheese + '/' + this.need, done: ok },
+        { label: 'DIVE TO THE BOTTOM', frac: deep2, right: Math.round(deep2 * 100) + '%', done: this.done && ok },
+        { label: 'BEFORE THE CLOCK', frac: this.timeLeft / this.timeMax, right: Math.ceil(this.timeLeft) + 's', hot: this.timeLeft < 8 }]); }
     this.gotTxt.setText('CHEESE ' + this.gotCheese + ' / ' + this.need + (this.gotCheese >= this.need ? '  CAGE OPEN!' : ' TO OPEN THE CAGE') + (this.chain > 2 ? '   x' + this.chain : '')).setColor(this.gotCheese >= this.need ? '#7dff8a' : '#ffffff');
     if (this.gotCheese >= this.need && !this.cageOpen) { this.cageOpen = true; Sound.sfx('shine'); this.pop(this.pos.x, this.pos.y + 40, 'CAGE OPEN!', '#7dff8a'); }
 

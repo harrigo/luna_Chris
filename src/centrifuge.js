@@ -8,7 +8,7 @@
 // when it slows, jumps sail right across the middle, which is the only way to reach the ingredients floating near the
 // axle. HATCHES in the wall open now and then onto space: the air roars out and drags you towards them (get sucked
 // out and you're thrown back in, 3 s down), and rats fly in through them on rocket packs and take pot-shots. Shoot
-// them with the Mac-Grinder. Gaps tear open at random places and sizes (bigger = more robots, harder pull). SURVIVE
+// them with the Mac-Grinder, or land on them feet first (touching them any other way hurts). Gaps tear open at random places and sizes (bigger = more robots, harder pull). SURVIVE
 // 60 SECONDS and collect the ingredient in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
 // have to jump (or jetpack) right through the middle to grab it. 6 hits of armour; ingredients patch you up.
 //
@@ -234,11 +234,6 @@ class CentrifugeScene extends Phaser.Scene {
     g.fillStyle(0x000000, 0.55).fillCircle(cx + 10, cy + 12, (this.RD + 48) * sc);                         // the drum's
     for (const f of this.farCogs) f.im.setPosition(W * f.fx, H * f.fy).setScale(H * f.fr / 208);
     this.vig.setDisplaySize(W, H);
-    // maker's plate
-    const px = W * 0.88, py = H * 0.2;
-    g.fillStyle(0x0a0c10, 1).fillRect(px - 62, py - 22, 124, 44); g.fillStyle(0xb89a5a, 1).fillRect(px - 60, py - 20, 120, 40); g.fillStyle(0x7a5a2a, 1).fillRect(px - 56, py - 16, 112, 32);
-    this.plateTxt = this.plateTxt || this.add.text(0, 0, 'FERMENTER\nNo. 9', { fontFamily: PIXEL, fontSize: '7px', color: '#ffe8a8', align: 'center', lineSpacing: 4 }).setOrigin(0.5).setDepth(0.6);
-    this.plateTxt.setPosition(px, py);
   }
   wsc() { return this.scale.height * 0.47 / (this.RD + 60); }
   drawBack(dt) {                                                  // sweeping warning beams, steam vents, dust in the light
@@ -263,7 +258,7 @@ class CentrifugeScene extends Phaser.Scene {
     for (let i = this.steam.length - 1; i >= 0; i--) { const q = this.steam[i]; q.life -= dt; if (q.life <= 0) { this.steam.splice(i, 1); continue; } q.x += q.vx * dt; q.y += q.vy * dt; q.vy *= 1 - dt * 0.6; q.r += dt * 18; sg.fillStyle(0xdfe6ef, 0.16 * q.life / q.max).fillCircle(q.x, q.y, q.r); }
   }
   drawGauge() {                                                   // the SPIN gauge: a needle over a green / red dial
-    const W = this.scale.width, H = this.scale.height, g = this.gaugeG, r = Math.max(28, Math.min(46, H * 0.1)), x = 20 + r, y = 58 + r; g.clear();
+    const W = this.scale.width, H = this.scale.height, g = this.gaugeG, r = Math.max(28, Math.min(46, H * 0.1)), x = W - 16 - r, y = 34 + r; g.clear();
     g.fillStyle(0x0a0c10, 1).fillCircle(x, y, r + 6); g.fillStyle(0xd8dce4, 1).fillCircle(x, y, r + 2); g.fillStyle(0xf4f2ea, 1).fillCircle(x, y, r - 2);
     const a0 = Math.PI * 0.8, a1 = Math.PI * 2.2;
     for (let k = 0; k <= 10; k++) { const a = a0 + (a1 - a0) * k / 10, m = Math.abs(k - 5); g.lineStyle(3, m < 2 ? 0x3aa040 : m < 4 ? 0xffb03a : 0xd62828, 1).lineBetween(x + Math.cos(a) * (r - 12), y + Math.sin(a) * (r - 12), x + Math.cos(a) * (r - 4), y + Math.sin(a) * (r - 4)); }
@@ -478,6 +473,27 @@ class CentrifugeScene extends Phaser.Scene {
         e.im.destroy(); this.ens.splice(i, 1);
       }
     }
+    // bumping into a robot hurts (and knocks you back), unless you come down on it FEET FIRST: then it's crushed and you
+    // bounce off it. "Down" in here is outwards, towards the wall under your feet.
+    if (!this.out && !this.done) {
+      const pr = Math.atan2(cp0.y, cp0.x), rx = Math.cos(pr), ry = Math.sin(pr), bcx = cp0.x - rx * 28, bcy = cp0.y - ry * 28;
+      for (const e of this.ens) {
+        if (e.hp <= 0) continue;
+        const dx = e.x - bcx, dy = e.y - bcy, d = Math.hypot(dx, dy), rr = (e.kind === 'ratship' ? 34 : 22) + 16;
+        if (d > rr) continue;
+        const below = dx * rx + dy * ry, vOut = this.onWall ? 0 : this.vel.x * rx + this.vel.y * ry;
+        if (!this.onWall && vOut > 40 && below > 6) {                    // STOMP
+          e.hp = 0; e.quiet = true; this.pop(this.scale.width / 2, this.scale.height * 0.45, 'STOMP!', '#ffd23f'); Sound.sfx('bonk');
+          this.vel.x -= rx * (vOut + 320); this.vel.y -= ry * (vOut + 320); this.fuel = Math.min(1, this.fuel + 0.35);
+        } else if (this.penaltyT <= 0) {                                 // OUCH: knocked away from it
+          this.bonk(e.kind === 'ratship' ? 'RAMMED' : 'BUMPED', 1); this.puff(e.x, e.y, 8, 0xff6a3a, 160, 0.3, 2);
+          const ux = -dx / (d || 1), uy = -dy / (d || 1);
+          if (this.onWall) { const tx = -ry, ty = rx; this.run += Math.sign(ux * tx + uy * ty || 1) * 260; }
+          else { this.vel.x += ux * 260; this.vel.y += uy * 260; }
+          e.x -= ux * 30; e.y -= uy * 30;
+        }
+      }
+    }
     for (let i = this.ebul.length - 1; i >= 0; i--) {
       const b = this.ebul[i]; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt;
       const hitC = !this.out && this.penaltyT <= 0 && !this.done && Math.hypot(b.x - cp0.x, b.y - cp0.y) < 20;
@@ -527,7 +543,11 @@ class CentrifugeScene extends Phaser.Scene {
     if (this.survived) this.timeTxt.setText('GRAB IT!').setColor(Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
     else if (this.timeLeft <= 0) this.timeTxt.setText('SURVIVED').setColor('#7dff8a');
     else this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
-    this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'INGREDIENTS ' + this.got + ' / ' + this.items.length);
+    this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'ARMOUR');
+    (this.goalHud || (this.goalHud = new GoalHud(this))).update([
+      { label: 'SURVIVE 60s', frac: 1 - this.timeLeft / 60, right: this.timeLeft > 0 ? Math.ceil(this.timeLeft) + 's' : 'OK', done: this.timeLeft <= 0 },
+      { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
+      { label: 'GRAB THE GUN', locked: !this.survived, done: this.done && this.survived, hot: this.survived && !this.done }]);
     { const hg = this.hudG; hg.clear(); const n = this.hpMax, w = 14, x0 = W / 2 - n * (w + 4) / 2, y0 = 46;     // armour pips
       for (let k = 0; k < n; k++) { const x = x0 + k * (w + 4), on = k < this.hp; hg.fillStyle(0x1a1020, 1).fillRect(x - 1, y0 - 1, w + 2, 10); hg.fillStyle(on ? (this.hp <= 2 && Math.floor(this.t * 6) % 2 ? 0xff5a3a : 0x7dff8a) : 0x3a2a30, 1).fillRect(x, y0, w, 8); if (on) hg.fillStyle(0xffffff, 0.45).fillRect(x, y0, w, 2); } }
     if (this.prizeIm) {                                                       // the prize, bobbing in the middle: fly through it

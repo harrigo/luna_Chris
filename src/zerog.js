@@ -6,6 +6,35 @@
 // Controls: aim + fire as usual (touch: drag/hold anywhere = fire that way; mouse: point + click; keys: arrows/WASD
 // fire in that direction; controller: right stick). Remember: you FLY AWAY from where you shoot.
 // The < MAP button (top left), ESC or the controller's BACK leave at any time.
+// ---- GOAL panel for the bonus levels (top left, under the MAP button): what you have to do, ticked off as you go.
+// update(goals) with [{ label, frac 0..1, right: 'text', done, locked, hot }]. (No coloured edge stripes: a plain panel.)
+class GoalHud {
+  constructor(scene) { this.s = scene; this.g = scene.add.graphics().setScrollFactor(0).setDepth(20); this.rows = []; this.title = null; }
+  update(goals, x, y) {
+    const s = this.s, g = this.g, rowH = 20, w = Math.min(176, s.scale.width * 0.3), h = 20 + goals.length * rowH;
+    x = x === undefined ? 10 : x; y = y === undefined ? 48 : y;
+    const tf = (c) => ({ fontFamily: PIXEL, fontSize: '7px', color: c, stroke: '#0a0c14', strokeThickness: 2 });
+    if (!this.title) this.title = s.add.text(0, 0, 'GOAL', tf('#ffd23f')).setScrollFactor(0).setDepth(20.5);
+    this.title.setPosition(x + 8, y + 6);
+    g.clear(); g.fillStyle(0x0a0c14, 0.62).fillRoundedRect(x, y, w, h, 6);
+    goals.forEach((q, i) => {
+      if (!this.rows[i]) this.rows[i] = { l: s.add.text(0, 0, '', tf('#ffffff')).setScrollFactor(0).setDepth(20.5), r: s.add.text(0, 0, '', tf('#ffffff')).setOrigin(1, 0).setScrollFactor(0).setDepth(20.5) };
+      const R = this.rows[i], ry = y + 19 + i * rowH, flash = q.hot && Math.floor(s.t * 4) % 2;
+      const col = q.done ? '#7dff8a' : q.locked ? '#6a6a80' : flash ? '#ffd23f' : '#ffffff';
+      g.fillStyle(0x1a1020, 1).fillRect(x + 8, ry, 11, 11);
+      g.fillStyle(q.done ? 0x3aa040 : q.locked ? 0x2a2a3a : 0x3a3048, 1).fillRect(x + 9, ry + 1, 9, 9);
+      if (q.done) { g.fillStyle(0xffffff, 1).fillRect(x + 10, ry + 5, 2, 2).fillRect(x + 12, ry + 7, 2, 2).fillRect(x + 14, ry + 5, 2, 2).fillRect(x + 16, ry + 3, 2, 2); }
+      R.l.setText(q.label).setColor(col).setPosition(x + 25, ry);
+      R.r.setText(q.right || '').setColor(col).setPosition(x + w - 8, ry);
+      if (q.frac !== undefined && !q.locked) {
+        const bx = x + 25, bw = w - 33;
+        g.fillStyle(0x2a2a3a, 1).fillRect(bx, ry + 11, bw, 3);
+        g.fillStyle(q.done ? 0x7dff8a : 0xffb03a, 1).fillRect(bx, ry + 11, bw * Math.max(0, Math.min(1, q.frac)), 3);
+      }
+    });
+  }
+}
+
 class ZeroGScene extends Phaser.Scene {
   constructor() { super('zerog'); }
 
@@ -234,6 +263,10 @@ class ZeroGScene extends Phaser.Scene {
     if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
     this.gotTxt.setText('INGREDIENTS ' + this.got + ' / ' + this.items.length);
+    (this.goalHud || (this.goalHud = new GoalHud(this))).update([
+      { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: this.got >= this.items.length },
+      { label: 'BEFORE THE CLOCK', frac: this.timeLeft / 60, right: Math.ceil(this.timeLeft) + 's', hot: this.timeLeft < 10 },
+      { label: 'OPEN THE CRATE', done: this.done && this.got >= this.items.length, locked: this.got < this.items.length }]);
 
     // ---- draw
     const sc = this.scanG; sc.clear();

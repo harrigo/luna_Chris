@@ -1184,3 +1184,11 @@ Built from the brief (`makeGorgeTextures`):
 - The three fixed hatches are replaced by gaps that tear open at random places in the wall every ~1.4–3.8 s (up to 4 at once, never right under Chris, never overlapping). Sizes are random: small (40%), medium (40%) or huge (20%, only one at a time). Each flashes a warning (longer for bigger ones), opens for 2.6–4.6 s, then seals and fades away.
 - Bigger gaps let more robots in (1 / 2 / 3, staggered; up to 7 robots in the drum), pull harder and from further away, and give a bigger shake.
 - An ingredient now sits in the middle of every porthole in the drum (14: 8 outer, 6 inner). To finish you need ALL of them as well as surviving 60 s. If the clock runs out first it reads SURVIVED and the HUD says NOW GET THE LAST n!; the prize appears once both are done. Ingredients still patch 1 armour.
+
+### v1.81 — Bonus GOAL panel; centrifuge robots hurt on contact (stomp them)
+- New shared `GoalHud` (zerog.js) on all three bonus levels: a plain dark panel top-left under MAP listing the goals with tick boxes, progress bars and counts, greying out what's not unlocked yet and flashing what to do now.
+  - Centrifuge: SURVIVE 60s → INGREDIENTS n/14 → GRAB THE GUN.
+  - Zero-G: INGREDIENTS n/12, BEFORE THE CLOCK, OPEN THE CRATE.
+  - Freefall: CHEESE TRAIL n/need, DIVE TO THE BOTTOM %, BEFORE THE CLOCK.
+- Centrifuge: touching a drone or rat saucer now hurts (1 armour, knocks you away) unless you come down on it feet first (moving outwards, it below your feet): a STOMP crushes it, bounces you back up and refills a bit of jetpack.
+- Centrifuge: SPIN gauge moved to the top right; the maker's plate is gone to make room.
