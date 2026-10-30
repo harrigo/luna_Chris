@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.81';
+const BUILD = 'v1.82';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1759,13 +1759,18 @@ class Level1 extends Phaser.Scene {
     } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
       const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
       if (want && ok && P.fireCd <= 0) {
-        if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; }
+        if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; P.chargeAim = null; }
+        if (inp.aim) P.chargeAim = { facing: P.facing, aimA: P.aimA || 0, t: this.time.now };   // remember where it was aimed (the stick may be let go to fire)
         P.charge = Math.min(1, P.charge + dt / W.chargeTime * (0.55 + 0.45 * (inp.fireP || 1)));    // a harder trigger pull charges faster
         P.chargeSnd -= dt;
         if (P.charge < 1 && P.chargeSnd <= 0) { P.chargeSnd = 0.13; Sound.sfx('charge', P.charge); if (Pad.state.connected) Pad.pulse(60, 0.1 + 0.5 * P.charge, 0.2 + 0.4 * P.charge); }
         if (P.charge >= 1 && !P.chargeFull) { P.chargeFull = true; Sound.sfx('charged'); buzz(40); this.addLight(this.muzzle ? this.muzzle.theta : P.theta, this.muzzle ? this.muzzle.h : P.h + 40, 80, 0xffe27a, 1, 0.3); }
       } else if (P.charging) {                          // let go: fire it
         P.charging = false;
+        // letting go of the aim stick (or button) is what fires it, so by now the aim has gone and he'd face the way he's
+        // running: fire it where it was AIMED while charging instead
+        if (P.chargeAim && !inp.aim && this.time.now - P.chargeAim.t < 400) { P.facing = P.chargeAim.facing; P.aimA = P.chargeAim.aimA; }
+        P.chargeAim = null;
         if (ok) this.fireCharged(Math.max(0.2, P.charge), tgt);
         P.charge = 0;
       }

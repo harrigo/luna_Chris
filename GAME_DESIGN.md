@@ -1192,3 +1192,6 @@ Built from the brief (`makeGorgeTextures`):
   - Freefall: CHEESE TRAIL n/need, DIVE TO THE BOTTOM %, BEFORE THE CLOCK.
 - Centrifuge: touching a drone or rat saucer now hurts (1 armour, knocks you away) unless you come down on it feet first (moving outwards, it below your feet): a STOMP crushes it, bounces you back up and refills a bit of jetpack.
 - Centrifuge: SPIN gauge moved to the top right; the maker's plate is gone to make room.
+
+### v1.82 — Swiss-Shot fires where it was aimed, not where you're running
+- Bug: the Swiss-Shot fires on RELEASE, and letting go of the aim stick (touch right stick / controller right stick) is the release. That same frame the aim was gone, so Chris turned to face his running direction and the ball went that way. Now the aim (facing + angle) is remembered while charging and used for the shot if the aim was let go within the last 0.4 s. Tested: running right, aiming left, release → ball now goes left (before: right).
