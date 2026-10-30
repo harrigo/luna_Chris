@@ -8,7 +8,8 @@
 // when it slows, jumps sail right across the middle, which is the only way to reach the ingredients floating near the
 // axle. HATCHES in the wall open now and then onto space: the air roars out and drags you towards them (get sucked
 // out and you're thrown back in, 3 s down), and rats fly in through them on rocket packs and take pot-shots. Shoot
-// them with the Mac-Grinder. SURVIVE 60 SECONDS: then the prize gun pops out in the very middle of the drum, and you
+// them with the Mac-Grinder. Gaps tear open at random places and sizes (bigger = more robots, harder pull). SURVIVE
+// 60 SECONDS and collect the ingredient in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
 // have to jump (or jetpack) right through the middle to grab it. 6 hits of armour; ingredients patch you up.
 //
 // Controls are the main game's: left/right run (his own left/right, like on a planet), jump (Space/Up/W, controller A;
@@ -141,16 +142,15 @@ class CentrifugeScene extends Phaser.Scene {
     this.buildDrum();
     for (const d of this.drive) { d.pin = this.add.image(d.cx, d.cy, cfCog(this, 'cf_pin50', 50, 12, CF_PAL.steel)).setScale(1 / 1.5); this.world.add(d.pin); }
     this.sheenG = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD); this.world.add(this.sheenG);   // light on the steel, spin streaks
-    // hatches in the wall (fixed in the drum): closed, then a flashing warning, then open onto space for a few seconds
-    this.hatches = [0, 1, 2].map(k => ({ a: Math.PI * 1.5 + k * 2.094 + rnd(-0.2, 0.2), half: 0.16, st: 'closed', t: rnd(2.5, 5), open: 0 }));
+    // gaps that tear open in the wall (fixed in the drum) at random places and sizes: see openGap()
+    this.hatches = []; this.gapT = 2.5;
     this.padG = this.add.graphics(); this.drum.add(this.padG);
     this.ens = []; this.ebul = []; this.shots = []; this.fuel = 1; this.fireCd = 0; this.out = null;
     // ingredients, fixed in the drum: most near the wall-ish, a few floating near the axle (slow spin needed)
     const kinds = ['wedge', 'goldwheel', 'meatball', 'ix_pancake', 'pepper', 'chili'], glow = [0xffd23f, 0xffc23a, 0xff8a5a, 0xffb36a, 0x7dff8a, 0xff4a3a];
     this.items = [];
-    for (let i = 0; i < 12; i++) {
-      const ang = i / 12 * Math.PI * 2 + rnd(-0.15, 0.15), r = i % 4 === 3 ? rnd(30, 90) : rnd(RD - 210, RD - 60), k = i % kinds.length;
-      const x = Math.cos(ang) * r, y = Math.sin(ang) * r;
+    for (let i = 0; i < this.HOLES.length; i++) {                   // one in the middle of every porthole in the drum
+      const H0 = this.HOLES[i], x = H0.x, y = H0.y, ang = Math.atan2(y, x), r = Math.hypot(x, y), k = i % kinds.length;
       const im = this.add.image(x, y, kinds[k]).setScale(k === 3 ? 2.3 : 1.5);
       this.drum.add(im);
       this.items.push({ x, y, ang, r, im, got: false, col: glow[k], ph: rnd(0, 6) });
@@ -171,7 +171,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20);
-    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 60 SECONDS!\nKEEP AWAY FROM THE OPEN HATCHES, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 60 SECONDS AND GRAB EVERY INGREDIENT\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -420,19 +420,26 @@ class CentrifugeScene extends Phaser.Scene {
     this.grace = Math.max(0, (this.grace || 0) - dt);
     // ---- hatches: closed, a flashing warning, then open onto space: the air roars out and drags you along the wall towards
     // it. Get to the gap and you're SUCKED OUT. A rat on a rocket pack flies in whenever one opens.
-    for (const h of this.hatches) {
+    if (this.intro <= 0 && !this.survived && !this.done) { this.gapT -= dt; if (this.gapT <= 0) { this.gapT = 1.4 + Math.random() * 2.4; this.openGap(); } }
+    for (let i = this.hatches.length - 1; i >= 0; i--) {
+      const h = this.hatches[i];
       h.t -= dt;
       if (h.t <= 0) {
-        if (h.st === 'closed') { h.st = 'warn'; h.t = 1.0; }
-        else if (h.st === 'warn') { h.st = 'open'; h.t = 3.4; Sound.sfx('hiss'); if (this.ens.length < 4 && this.intro <= 0 && !this.survived) this.spawnBot(h); }
-        else { h.st = 'closed'; h.t = 3 + Math.random() * 3; }
+        if (h.st === 'warn') {                                        // it tears open: robots pour in, more through a bigger gap
+          h.st = 'open'; h.t = 2.6 + Math.random() * 2; Sound.sfx('hiss'); this.cameras.main.shake(120, 0.004 + h.half * 0.02);
+          const n = h.half < 0.11 ? 1 : h.half < 0.19 ? 2 : 3;
+          for (let k = 0; k < n; k++) this.time.delayedCall(k * 380, () => { if (h.st === 'open' && this.ens.length < 7 && !this.survived && !this.done) this.spawnBot(h); });
+        } else if (h.st === 'open') { h.st = 'shut'; h.t = 1e9; }
       }
       h.open += ((h.st === 'open' ? 1 : 0) - h.open) * Math.min(1, dt * 6);
+      h.vis += ((h.st === 'shut' && h.open < 0.05 ? 0 : 1) - h.vis) * Math.min(1, dt * 4);
+      if (h.st === 'shut' && h.vis < 0.03) { this.hatches.splice(i, 1); continue; }
       if (h.open > 0.3 && !this.out && this.intro <= 0 && !this.done) {
         if (this.onWall && !(this.grace > 0)) {
           const d = angDiff(h.a, this.a), arc = Math.abs(d) * RD;
-          if (arc < 150) this.a += Math.sign(d) * (150 - arc) / 150 * 1.1 * h.open * dt;      // the draught drags you towards it
-          if (Math.abs(d) < h.half * h.open) { this.suckOut(); break; }
+          const reach = 90 + h.half * 400;                              // a bigger gap pulls harder and from further off
+          if (arc < reach) this.a += Math.sign(d) * (reach - arc) / reach * (0.7 + h.half * 3) * h.open * dt;   // the draught drags you towards it
+          if (Math.abs(d) < h.half * h.open) { this.suckOut(); continue; }
         }
         if (Math.random() < dt * 30) { const ang = h.a + this.D + (Math.random() - 0.5) * 0.9, rr = RD - Math.random() * 120; this.fx.push({ x: Math.cos(ang) * rr, y: Math.sin(ang) * rr, vx: (Math.cos(h.a + this.D) * RD - Math.cos(ang) * rr) * 2, vy: (Math.sin(h.a + this.D) * RD - Math.sin(ang) * rr) * 2, life: 0.45, max: 0.45, col: 0xd8e8ff }); }
       }
@@ -441,7 +448,7 @@ class CentrifugeScene extends Phaser.Scene {
       this.out.t += dt;
       if (this.out.t > 1.1) {                                   // back in at the bottom, clear of any open hatch, with a moment's grace
         let a = Math.PI / 2 - this.D;
-        for (let k = 0; k < 8 && this.hatches.some(h => h.st !== 'closed' && Math.abs(angDiff(h.a, a)) < 0.9); k++) a += 0.5;
+        for (let k = 0; k < 8 && this.hatches.some(h => h.st !== 'shut' && Math.abs(angDiff(h.a, a)) < 0.9); k++) a += 0.5;
         this.out = null; this.onWall = true; this.a = a; this.run = 0; this.penaltyT = 1.2; this.grace = 1.8;
       }
     }
@@ -506,7 +513,7 @@ class CentrifugeScene extends Phaser.Scene {
     const cp = this.chrisPos(), ca = Math.cos(-this.D), sa = Math.sin(-this.D);
     const lx = cp.x * ca - cp.y * sa, ly = cp.x * sa + cp.y * ca;          // Chris in drum coordinates
     for (const it of this.items) {
-      if (it.got) continue;
+      if (it.got) continue;   // (all of them are needed, as well as the 60 s)
       it.im.setRotation(Math.sin(this.t * 1.4 + it.ph) * 0.3);
       if (!this.done && this.intro <= 0 && Math.hypot(lx - it.x, ly - it.y) < 40) {
         it.got = true; this.got++; Sound.sfx('pickup');
@@ -515,10 +522,12 @@ class CentrifugeScene extends Phaser.Scene {
       }
     }
     // ---- clock
-    if (!this.done && this.intro <= 0 && !this.survived) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.survive(); } }
+    const allGot = this.got >= this.items.length;
+    if (!this.done && this.intro <= 0 && !this.survived) { this.timeLeft = Math.max(0, this.timeLeft - dt); if (this.timeLeft <= 0 && allGot) this.survive(); }
     if (this.survived) this.timeTxt.setText('GRAB IT!').setColor(Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
+    else if (this.timeLeft <= 0) this.timeTxt.setText('SURVIVED').setColor('#7dff8a');
     else this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
-    this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : 'SURVIVE!');
+    this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'INGREDIENTS ' + this.got + ' / ' + this.items.length);
     { const hg = this.hudG; hg.clear(); const n = this.hpMax, w = 14, x0 = W / 2 - n * (w + 4) / 2, y0 = 46;     // armour pips
       for (let k = 0; k < n; k++) { const x = x0 + k * (w + 4), on = k < this.hp; hg.fillStyle(0x1a1020, 1).fillRect(x - 1, y0 - 1, w + 2, 10); hg.fillStyle(on ? (this.hp <= 2 && Math.floor(this.t * 6) % 2 ? 0xff5a3a : 0x7dff8a) : 0x3a2a30, 1).fillRect(x, y0, w, 8); if (on) hg.fillStyle(0xffffff, 0.45).fillRect(x, y0, w, 2); } }
     if (this.prizeIm) {                                                       // the prize, bobbing in the middle: fly through it
@@ -563,17 +572,18 @@ class CentrifugeScene extends Phaser.Scene {
     const pg = this.padG; pg.clear();
     for (const h of this.hatches) {                                       // a hatch in the wall: a window onto space when open
       const n = 10, pts = (r0, r1, f) => { const o = []; for (let k = 0; k <= n; k++) { const a2 = h.a - h.half * f + 2 * h.half * f * k / n; o.push({ x: Math.cos(a2) * r0, y: Math.sin(a2) * r0 }); } for (let k = n; k >= 0; k--) { const a2 = h.a - h.half * f + 2 * h.half * f * k / n; o.push({ x: Math.cos(a2) * r1, y: Math.sin(a2) * r1 }); } return o; };
-      if (h.st !== 'closed') pg.fillStyle(h.st === 'open' ? 0xff3a2a : 0xffd23f, h.st === 'open' ? 0.18 : (Math.floor(this.t * 8) % 2) * 0.22).fillPoints(pts(RD - 70, RD - 4, 1.5), true);   // danger glow on the floor
-      pg.fillStyle(0x1a1012, 1).fillPoints(pts(RD - 4, RD + 36, 1.25), true);
+      const V = h.vis;
+      if (h.st !== 'shut') pg.fillStyle(h.st === 'open' ? 0xff3a2a : 0xffd23f, h.st === 'open' ? 0.18 : (Math.floor(this.t * 8) % 2) * 0.22).fillPoints(pts(RD - 70, RD - 4, 1.5), true);   // danger glow on the floor
+      pg.fillStyle(0x1a1012, V).fillPoints(pts(RD - 4, RD + 36, 1.25), true);
       if (h.open > 0.02) { pg.fillStyle(0x020208, 1).fillPoints(pts(RD - 4, RD + 36, h.open), true); for (let k = 0; k < 6; k++) { const a2 = h.a + (k / 5 - 0.5) * h.half * h.open * 1.6, rr = RD + 8 + (k * 7) % 22; pg.fillStyle(0xffffff, 0.8).fillRect(Math.cos(a2) * rr, Math.sin(a2) * rr, 2, 2); } }
       for (const sd of [-1, 1]) {                                         // the two doors, sliding apart
         const a0 = h.a + sd * h.half * h.open, a1 = h.a + sd * h.half * 1.25, q = [];
         for (let k = 0; k <= 6; k++) { const a2 = a0 + (a1 - a0) * k / 6; q.push({ x: Math.cos(a2) * (RD - 2), y: Math.sin(a2) * (RD - 2) }); }
         for (let k = 6; k >= 0; k--) { const a2 = a0 + (a1 - a0) * k / 6; q.push({ x: Math.cos(a2) * (RD + 34), y: Math.sin(a2) * (RD + 34) }); }
-        if (Math.abs(a1 - a0) > 0.005) pg.fillStyle(0x8a929e, 1).fillPoints(q, true);
+        if (Math.abs(a1 - a0) > 0.005) pg.fillStyle(0x8a929e, V).fillPoints(q, true);
       }
-      const warn = h.st === 'warn' && Math.floor(this.t * 8) % 2, lightCol = h.st === 'open' ? 0xff3a2a : warn ? 0xffd23f : 0x3aa040;
-      for (const sd of [-1, 1]) { const a2 = h.a + sd * h.half * 1.4; pg.fillStyle(lightCol, 1).fillCircle(Math.cos(a2) * (RD + 12), Math.sin(a2) * (RD + 12), 5); }
+      const warn = h.st === 'warn' && Math.floor(this.t * 8) % 2, lightCol = h.st === 'open' ? 0xff3a2a : warn ? 0xffd23f : h.st === 'warn' ? 0x6a5020 : 0x3aa040;
+      for (const sd of [-1, 1]) { const a2 = h.a + sd * h.half * 1.25 + sd * 0.05; pg.fillStyle(lightCol, V).fillCircle(Math.cos(a2) * (RD + 12), Math.sin(a2) * (RD + 12), 5); }
     }
     // Chris
     const phiC = Math.atan2(cp.y, cp.x);
@@ -604,10 +614,21 @@ class CentrifugeScene extends Phaser.Scene {
     this.ens.push({ kind, x: Math.cos(ang) * this.RD, y: Math.sin(ang) * this.RD, ha: ang, dir: Math.random() < 0.5 ? -1 : 1, hr: kind === 'ratship' ? 70 + Math.random() * 50 : 90 + Math.random() * 80, hp: kind === 'ratship' ? 6 : 3, cd: 1.5, t: 0, flash: 0, im });
     Sound.sfx('whoosh');
   }
+  openGap() {                                                     // a new gap in the wall: a random size, somewhere clear
+    const live = this.hatches.length, big = this.hatches.filter(h => h.half > 0.19).length;
+    if (live >= 4) return;
+    const u = Math.random(), half = u < 0.4 ? 0.07 + Math.random() * 0.04 : u < 0.8 || big ? 0.12 + Math.random() * 0.06 : 0.2 + Math.random() * 0.07;
+    for (let tries = 0; tries < 20; tries++) {
+      const a = Math.random() * Math.PI * 2;
+      if (this.hatches.some(h => Math.abs(angDiff(h.a, a)) < h.half * 1.3 + half * 1.3 + 0.12)) continue;
+      if (Math.abs(angDiff(a, this.a)) < half + 0.45) continue;     // never right under your feet
+      this.hatches.push({ a, half, st: 'warn', t: 1.1 + half * 2, open: 0, vis: 0 }); Sound.sfx('clunk'); return;
+    }
+  }
   survive() {                                                     // 60 s survived: robots blow, hatches seal, the prize pops out in the middle
     this.survived = true;
     for (const e of this.ens) { e.hp = 0; e.quiet = true; } this.ebul.length = 0;
-    for (const h of this.hatches) { h.st = 'closed'; h.t = 1e9; }
+    for (const h of this.hatches) { h.st = 'shut'; h.t = 1e9; }
     this.spinIdx = 3; this.segT = 6;                               // and the drum winds down, so you can make the jump
     const W = this.scale.width, H = this.scale.height;
     this.pop(W / 2, H * 0.3, 'SURVIVED! THE PRIZE IS OUT!', '#ffd23f'); Sound.sfx('power'); this.cameras.main.flash(250, 255, 240, 180);

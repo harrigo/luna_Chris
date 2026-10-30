@@ -1179,3 +1179,8 @@ Built from the brief (`makeGorgeTextures`):
 - Rats swapped for existing techy enemies flying in through the open hatches: DRONES (hp 3, orbit fast with a bob, single laser bolts every ~1.5–2.6 s) and RAT SAUCERS (`ratship`, 30%, hp 6, slow orbit, a fan of three bolts every ~2.6–3.6 s). Lasers are drawn as hot pink streaks with white cores.
 - At 0: SURVIVED! — every robot blows up, the hatches seal, the drum winds down to a stop, and the prize gun pops out (glowing, bobbing) in the very middle. Jump or jetpack through the middle (within 62 units) to grab it and clear the bonus. If you already own every gun, the prize is a gold wheel worth +1 life.
 - Map blurb updated.
+
+### v1.80 — Centrifuge: random gaps, ingredients in the portholes
+- The three fixed hatches are replaced by gaps that tear open at random places in the wall every ~1.4–3.8 s (up to 4 at once, never right under Chris, never overlapping). Sizes are random: small (40%), medium (40%) or huge (20%, only one at a time). Each flashes a warning (longer for bigger ones), opens for 2.6–4.6 s, then seals and fades away.
+- Bigger gaps let more robots in (1 / 2 / 3, staggered; up to 7 robots in the drum), pull harder and from further away, and give a bigger shake.
+- An ingredient now sits in the middle of every porthole in the drum (14: 8 outer, 6 inner). To finish you need ALL of them as well as surviving 60 s. If the clock runs out first it reads SURVIVED and the HUD says NOW GET THE LAST n!; the prize appears once both are done. Ingredients still patch 1 armour.
