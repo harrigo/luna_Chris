@@ -1198,3 +1198,8 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.83 — Fix: bonus levels crashed on a second visit
 - Phaser reuses the scene object, so the GOAL panel (and the centrifuge's prize image) from the last run survived into the next one as destroyed objects → "Cannot read properties of null (reading 'cut')". create() now resets them (plus the centrifuge's jet/jump/grace/slide state) in all three bonus scenes. Tested: centrifuge, zero-G and freefall each entered, left and re-entered, and AGAIN — no errors.
+
+### v1.84 — Centrifuge: the main game's jetpack
+- Jetpack now follows the main-game rules: keep holding jump after take-off and it lights after 0.28 s; let go and press again in mid-air to light it at once; SHIFT / controller LT (jet) / touch stick pushed right to the top / left stick fully up (padUpJump) light it straight away. Thrust 2400 up to 300 u/s "up" (= in towards the axle; both rise with gravity when the drum stops), never slowing you. Tank = 2 s (drain 0.5/s), refills 0.7/s on the wall, trickles back at 0.21/s after 0.5 s off it. Jet loop sound on/off; flames now actually show (a stray comment had swallowed `this.jetting = true`).
+- Main-game JET bar (17 chunky blocks, red flash when low) under the armour pips. Stomping a robot is a BOOST!: full tank, re-armed, bar flashes white.
+- Measured at slow spin from the bottom: tap jump 0.8 s in the air, hold jump 3.1 s (jet 2 s, tank empty).

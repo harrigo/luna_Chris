@@ -96,7 +96,7 @@ class CentrifugeScene extends Phaser.Scene {
     const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level7');
-    this.goalHud = null; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 60; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
+    this.goalHud = null; this.jetLbl = null; this.jetArmed = false; this.holdT = 0; this.airRegenT = 0; this.fuelFlash = 0; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 60; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
     this.intro = 3.0; this.count = -1;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
     this.D = 0; this.w = 1.3; this.spinIdx = 0; this.segT = CF_SPIN[0].t; this.slide = 0;
@@ -184,12 +184,12 @@ class CentrifugeScene extends Phaser.Scene {
       if (p.wasTouch && !this.done && p.downX < this.scale.width * 0.45 && p.downY >= this.scale.height * 0.2 && p.upTime - p.downTime < 230 && Math.hypot(p.upX - p.downX, p.upY - p.downY) < 16) this.tapJumpT = 0.2;
     });
 
-    this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', x: 'X', j: 'J', space: 'SPACE' }) : null;
+    this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', x: 'X', j: 'J', space: 'SPACE', shift: 'SHIFT' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
       if (this.done && this.t - this.doneT > 0.8) { if (b === 'x' || b === 'y') this.again(); else if (b === 'a' || b === 'b' || b === 'start') this.leave(); }
     });
-    this.events.once('shutdown', padOff);
+    this.events.once('shutdown', padOff); this.events.once('shutdown', () => Sound.jet(false));
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-ESC', () => this.leave());
       this.input.keyboard.on('keydown', e => { if (!this.done || this.t - this.doneT < 0.8) return; if (e.key === 'r' || e.key === 'R') this.again(); else if (e.key === 'Enter') this.leave(); });
@@ -294,6 +294,7 @@ class CentrifugeScene extends Phaser.Scene {
         const upish = -vy > Math.abs(vx) * 0.6;
         if (this.stickUp) { if (vy > -0.3) this.stickUp = false; } else if (vy < -0.6 && upish) this.stickUp = true;
         if (this.stickUp) st.jump = true;
+        if (vy < -0.88) st.jetNow = true;                               // pushed right to the top: jetpack straight away
       } else {
         st.aimS = { ox, oy, vx, vy }; st.fire = true;
         if (Math.hypot(vx, vy) > 0.35) st.aim = { sx: vx, sy: vy };
@@ -354,13 +355,15 @@ class CentrifugeScene extends Phaser.Scene {
     const grav = this.grav = 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);
     // ---- input
     const k = this.keys, ts = this.readTouch();
-    let ax = 0, jump = false, fire = false, aimAt = null;
+    let ax = 0, jump = false, fire = false, aimAt = null, jetNow = false;
     if (k) { ax = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); jump = k.up.isDown || k.w.isDown || k.space.isDown; fire = k.z.isDown || k.x.isDown || k.j.isDown; }
     if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) jump = true; if (Pad.state.fire) fire = true; if (Pad.state.aimOn) { fire = true; aimAt = { sx: Pad.state.aimX, sy: Pad.state.aimY }; } }
     if (Pad.state.connected) {
-      if (Pad.state.jet) jump = true;
-      if (Settings.padUpJump) { const ly = Pad.state.ly || 0, upish = -ly > Math.abs(Pad.state.lx || 0) * 0.6; if (this.padUp) { if (ly > -0.3) this.padUp = false; } else if (ly < -0.6 && upish) this.padUp = true; if (this.padUp) jump = true; }
+      if (Pad.state.jet) { jump = true; jetNow = true; }
+      if (Settings.padUpJump) { const ly = Pad.state.ly || 0, upish = -ly > Math.abs(Pad.state.lx || 0) * 0.6; if (this.padUp) { if (ly > -0.3) this.padUp = false; } else if (ly < -0.6 && upish) this.padUp = true; if (this.padUp) jump = true; if (ly < -0.92 && upish) jetNow = true; }
     }
+    if (k && k.shift.isDown) { jump = true; jetNow = true; }          // SHIFT: straight onto the jetpack, like the main game
+    if (ts.jetNow) jetNow = true;
     if (ts.ax) ax = ts.ax; if (ts.jump) jump = true; if (ts.fire) fire = true; if (ts.aim) aimAt = ts.aim;
     const mp = this.input.mousePointer;
     if (!this.isTouch && mp && mp.leftButtonDown() && !this.exitBtn.getBounds().contains(mp.x, mp.y)) { fire = true; const q = this.world.pointToContainer({ x: mp.x, y: mp.y }); aimAt = { wx: q.x, wy: q.y }; }
@@ -370,7 +373,7 @@ class CentrifugeScene extends Phaser.Scene {
       const show = this.intro > 0.6 ? String(Math.max(1, Math.ceil(this.intro - 0.6))) : 'GO!';
       if (show !== this.count) { this.count = show; Sound.sfx(show === 'GO!' ? 'power' : 'combo'); this.countTxt.setText(show).setScale(1.8).setAlpha(1).setColor(show === 'GO!' ? '#7dff8a' : '#ffd23f'); this.tweens.add({ targets: this.countTxt, scale: 1, duration: 260, ease: 'Back.out' }); if (show === 'GO!') this.tweens.add({ targets: this.countTxt, alpha: 0, delay: 450, duration: 300 }); }
     }
-    if (this.done || this.out || this.intro > 0) { ax = 0; jump = false; fire = false; }
+    if (this.done || this.out || this.intro > 0) { ax = 0; jump = false; fire = false; jetNow = false; }
     // standard controls: left/right are HIS left/right (like running round a planet), so upside down over the top,
     // right runs screen-left. His right is the way the angle DEcreases round the drum.
     if (ax) P.facing = ax;
@@ -379,7 +382,7 @@ class CentrifugeScene extends Phaser.Scene {
     // ---- on the wall: run round it (the paddles creep round and shove you if you don't jump them)
     if (this.onWall) {
       this.run += (dirA * 230 - this.run) * Math.min(1, dt * 10);
-      this.fuel = Math.min(1, this.fuel + dt * 0.8);
+      this.fuel = Math.min(1, this.fuel + dt * 0.7); this.airRegenT = 0;
       this.a += this.run / RD * dt;
       if (grav > 0) {                                                // gravity along the wall: slide down to the bottom (damped)
         const phiW = this.a + this.D, vt = this.w * RD + this.run + this.slide;
@@ -389,16 +392,27 @@ class CentrifugeScene extends Phaser.Scene {
         if (vt * vt / RD < -grav * Math.sin(phiW) - 1 && !jumpPress) { this.launch(0, this.run + this.slide); this.slide = 0; Sound.sfx('whoosh'); }
       } else this.slide *= 1 - Math.min(1, dt * 4);
       if (Math.abs(this.run) > 60 && Math.random() < dt * 14) { const phi = this.a + this.D; this.fx.push({ x: Math.cos(phi) * (RD - 4), y: Math.sin(phi) * (RD - 4), vx: -Math.sin(phi) * (this.w * RD) * 0.6 - Math.cos(phi) * 60, vy: Math.cos(phi) * (this.w * RD) * 0.6 - Math.sin(phi) * 60, life: 0.5, max: 0.5, col: 0xf0ecd0 }); }
-      if (jumpPress) { this.launch(400 + 320 * Math.max(0, 1 - Math.abs(this.w) / 1.35), this.run);   // bigger jumps the slower it goes
+      if (jumpPress) { this.jetArmed = false; this.holdT = 0; this.launch(400 + 320 * Math.max(0, 1 - Math.abs(this.w) / 1.35), this.run);   // bigger jumps the slower it goes
         Sound.sfx('jump'); this.puff(Math.cos(this.a + this.D) * RD, Math.sin(this.a + this.D) * RD, 5, 0xf0ecd0, 100, 0.3, 2); }
     } else {
       // ---- flying: a dead straight line while it spins (gravity only as it stops), with a touch of air-steer along his own sideways
       const phi = Math.atan2(this.pos.y, this.pos.x), tx = -Math.sin(phi), ty = Math.cos(phi);
       this.vel.x += tx * dirA * 160 * dt; this.vel.y += ty * dirA * 160 * dt;
-      if (jump && !jumpPress && this.fuel > 0) {                // JETPACK: hold jump in the air to push in towards the middle
-        this.fuel = Math.max(0, this.fuel - dt / 1.6); const thr = 520 + grav * 0.6; this.vel.x -= Math.cos(phi) * thr * dt; this.vel.y -= Math.sin(phi) * thr * dt;   // (stronger once gravity's about) this.jetting = true;
+      // JETPACK, the main game's rules: keep holding jump after take-off and it lights after a beat; let go and press again
+      // in mid-air (or push the stick right up / SHIFT / LT) and it lights at once. It drives you "up" = in towards the
+      // middle, up to a top speed. A full tank lasts 2 s; it refills on the wall, and trickles back after 0.5 s off it.
+      if (jump) { this.holdT = (this.holdT || 0) + dt; if (this.holdT > 0.28 || jetNow) this.jetArmed = true; }
+      else { this.holdT = 1; this.jetArmed = true; }
+      const wasJet = this.jetting;
+      this.jetting = jump && this.jetArmed && this.fuel > 0;
+      if (this.jetting !== wasJet && Sound.jet) Sound.jet(this.jetting);
+      if (this.jetting) {
+        const rx = Math.cos(phi), ry = Math.sin(phi), vIn = -(this.vel.x * rx + this.vel.y * ry), maxV = 300 + grav * 0.5;
+        const vNew = Math.max(vIn, Math.min(maxV, vIn + (2400 + grav) * dt));          // (never slows you down)
+        this.vel.x -= rx * (vNew - vIn); this.vel.y -= ry * (vNew - vIn);
+        this.fuel = Math.max(0, this.fuel - 0.5 * dt); this.airRegenT = 0;
         if (Math.random() < dt * 40) this.fx.push({ x: this.pos.x + Math.cos(phi) * 20, y: this.pos.y + Math.sin(phi) * 20, vx: Math.cos(phi) * 120, vy: Math.sin(phi) * 120, life: 0.3, max: 0.3, col: 0xffa21a });
-      } else this.jetting = false;
+      } else { this.airRegenT = (this.airRegenT || 0) + dt; if (this.airRegenT > 0.5) this.fuel = Math.min(1, this.fuel + 0.21 * dt); }
       this.vel.y += grav * dt;                                      // (only once the drum's slowed right down)
       this.pos.x += this.vel.x * dt; this.pos.y += this.vel.y * dt;
       const r = Math.hypot(this.pos.x, this.pos.y);
@@ -406,7 +420,7 @@ class CentrifugeScene extends Phaser.Scene {
         const phi2 = Math.atan2(this.pos.y, this.pos.x);
         const hz = !(this.grace > 0) && this.hatches.find(h => h.open > 0.5 && Math.abs(angDiff(phi2 - this.D, h.a)) < h.half);
         if (hz) { this.suckOut(); return; }
-        this.a = phi2 - this.D; this.onWall = true;
+        this.a = phi2 - this.D; this.onWall = true; if (this.jetting) { this.jetting = false; if (Sound.jet) Sound.jet(false); }
         const vt = this.vel.x * -Math.sin(phi2) + this.vel.y * Math.cos(phi2);
         this.run = Math.max(-260, Math.min(260, (vt - this.w * RD) * 0.35));   // the skid as the moving floor grabs you
         Sound.sfx('clunk'); this.puff(Math.cos(phi2) * RD, Math.sin(phi2) * RD, 8, 0xf0ecd0, 140, 0.35, 2);
@@ -484,7 +498,7 @@ class CentrifugeScene extends Phaser.Scene {
         const below = dx * rx + dy * ry, vOut = this.onWall ? 0 : this.vel.x * rx + this.vel.y * ry;
         if (!this.onWall && vOut > 40 && below > 6) {                    // STOMP
           e.hp = 0; e.quiet = true; this.pop(this.scale.width / 2, this.scale.height * 0.45, 'STOMP!', '#ffd23f'); Sound.sfx('bonk');
-          this.vel.x -= rx * (vOut + 320); this.vel.y -= ry * (vOut + 320); this.fuel = Math.min(1, this.fuel + 0.35);
+          this.vel.x -= rx * (vOut + 320); this.vel.y -= ry * (vOut + 320); this.fuel = 1; this.jetArmed = true; this.fuelFlash = 0.35; this.pop(this.scale.width / 2, this.scale.height * 0.52, 'BOOST!', '#5ce1ff');
         } else if (this.penaltyT <= 0) {                                 // OUCH: knocked away from it
           this.bonk(e.kind === 'ratship' ? 'RAMMED' : 'BUMPED', 1); this.puff(e.x, e.y, 8, 0xff6a3a, 160, 0.3, 2);
           const ux = -dx / (d || 1), uy = -dy / (d || 1);
@@ -549,6 +563,13 @@ class CentrifugeScene extends Phaser.Scene {
       { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
       { label: 'GRAB THE GUN', locked: !this.survived, done: this.done && this.survived, hot: this.survived && !this.done }]);
     { const hg = this.hudG; hg.clear(); const n = this.hpMax, w = 14, x0 = W / 2 - n * (w + 4) / 2, y0 = 46;     // armour pips
+      { const gw = 136, gx = W / 2 - gw / 2, gy = 60, gh = 8, nb = 17, bw = gw / nb, fl = Math.floor(this.t * 8) % 2;   // the JET bar (as in the main game)
+        this.fuelFlash = Math.max(0, (this.fuelFlash || 0) - dt);
+        hg.fillStyle(0x1a1020, 1).fillRect(gx - 2, gy - 2, gw + 4, gh + 4); hg.fillStyle(0xc9cde0, 1).fillRect(gx - 1, gy - 1, gw + 2, gh + 2); hg.fillStyle(0x0c0a24, 1).fillRect(gx, gy, gw, gh);
+        const fc = this.fuelFlash > 0 && Math.floor(this.fuelFlash * 20) % 2 ? 0xffffff : (this.fuel > 0.3 ? 0x39c6ff : (fl ? 0xff5a3c : 0xa02a1a)), lit = Math.ceil(this.fuel * nb - 0.05);
+        for (let i = 0; i < lit; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
+        if (!this.jetLbl) this.jetLbl = this.add.text(0, 0, 'JET', { fontFamily: PIXEL, fontSize: '7px', color: '#9fd8ff', stroke: '#1a1020', strokeThickness: 2 }).setOrigin(1, 0.5).setDepth(20);
+        this.jetLbl.setPosition(gx - 6, gy + gh / 2); }
       for (let k = 0; k < n; k++) { const x = x0 + k * (w + 4), on = k < this.hp; hg.fillStyle(0x1a1020, 1).fillRect(x - 1, y0 - 1, w + 2, 10); hg.fillStyle(on ? (this.hp <= 2 && Math.floor(this.t * 6) % 2 ? 0xff5a3a : 0x7dff8a) : 0x3a2a30, 1).fillRect(x, y0, w, 8); if (on) hg.fillStyle(0xffffff, 0.45).fillRect(x, y0, w, 2); } }
     if (this.prizeIm) {                                                       // the prize, bobbing in the middle: fly through it
       this.prizeIm.setRotation(Math.sin(this.t * 2) * 0.2).setY(Math.sin(this.t * 3) * 4);
@@ -659,7 +680,7 @@ class CentrifugeScene extends Phaser.Scene {
   }
   suckOut() {
     const cp = this.chrisPos();
-    this.out = { t: 0, x: cp.x, y: cp.y }; this.onWall = true; this.run = 0;
+    this.out = { t: 0, x: cp.x, y: cp.y }; this.onWall = true; this.run = 0; this.jetting = false; Sound.jet(false);
     Sound.sfx('whoosh'); this.cameras.main.shake(300, 0.012);
     this.penaltyT = 0; this.bonk('SUCKED OUT!', 2);
   }
@@ -670,6 +691,7 @@ class CentrifugeScene extends Phaser.Scene {
 
   finish(won) {
     if (this.done) return;
+    this.jetting = false; Sound.jet(false);
     this.done = true; this.doneT = this.t;
     let body;
     if (won) {
