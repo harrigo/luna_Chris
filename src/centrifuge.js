@@ -96,7 +96,7 @@ class CentrifugeScene extends Phaser.Scene {
     const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level7');
-    this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 60; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
+    this.goalHud = null; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 60; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
     this.intro = 3.0; this.count = -1;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
     this.D = 0; this.w = 1.3; this.spinIdx = 0; this.segT = CF_SPIN[0].t; this.slide = 0;

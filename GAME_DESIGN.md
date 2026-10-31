@@ -1195,3 +1195,6 @@ Built from the brief (`makeGorgeTextures`):
 
 ### v1.82 — Swiss-Shot fires where it was aimed, not where you're running
 - Bug: the Swiss-Shot fires on RELEASE, and letting go of the aim stick (touch right stick / controller right stick) is the release. That same frame the aim was gone, so Chris turned to face his running direction and the ball went that way. Now the aim (facing + angle) is remembered while charging and used for the shot if the aim was let go within the last 0.4 s. Tested: running right, aiming left, release → ball now goes left (before: right).
+
+### v1.83 — Fix: bonus levels crashed on a second visit
+- Phaser reuses the scene object, so the GOAL panel (and the centrifuge's prize image) from the last run survived into the next one as destroyed objects → "Cannot read properties of null (reading 'cut')". create() now resets them (plus the centrifuge's jet/jump/grace/slide state) in all three bonus scenes. Tested: centrifuge, zero-G and freefall each entered, left and re-entered, and AGAIN — no errors.

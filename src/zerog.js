@@ -53,7 +53,7 @@ class ZeroGScene extends Phaser.Scene {
     const RW = this.RW = 1500, RH = this.RH = 900;
     this.cameras.main.setBackgroundColor(V.bg || '#05061a').setBounds(-80, -80, RW + 160, RH + 160).fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music(V.music || 'level6');
-    this.leaving = false; this.wallHit = null; this.flash = 0;           // (the scene object is reused: reset what leave() and the effects left behind)
+    this.goalHud = null; this.leaving = false; this.wallHit = null; this.flash = 0;           // (the scene object is reused: reset what leave() and the effects left behind)
     this.t = 0; this.timeLeft = V.time || 50; this.done = false; this.fireCd = 0; this.combo = 0; this.comboT = 0;
     this.P = { h: 60, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = new Phaser.Math.Vector2(RW / 2, RH / 2 + 150); this.vel = new Phaser.Math.Vector2(0, 0); this.aim = new Phaser.Math.Vector2(1, 0);

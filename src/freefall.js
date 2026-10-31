@@ -17,7 +17,7 @@ class FreefallScene extends Phaser.Scene {
     const SW = this.SW = 600, SH = this.SH = 7000, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0406').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
-    this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.timeMax = 27; this.fuel = 1; this.penaltyT = 0;
+    this.goalHud = null; this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.timeMax = 27; this.fuel = 1; this.penaltyT = 0;
     this.chain = 0; this.chainT = 0; this.gotCheese = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
