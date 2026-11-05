@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.84';
+const BUILD = 'v1.85';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -466,6 +466,7 @@ class Level1 extends Phaser.Scene {
     this.convPhase = 0; this.bladeT = 0;
 
     this.augerPhase = 0;
+    this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
     this.rig = new ChrisRig(this);
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
@@ -4084,6 +4085,44 @@ class Level1 extends Phaser.Scene {
   // the camera's angle round the planet. Normally exactly Chris's; with CAMERA: SWING it trails a little behind him, so
   // when he runs the planet visibly turns under him and catches up (and he leans with the curve)
   viewT() { return this.camT === undefined ? this.pl.theta : this.camT; }
+  // ---- MULTIPLAYER (src/net.js, server/): send my state each frame; draw everyone else on this planet
+  netTick() {
+    if (typeof Net === 'undefined' || (Net.status === 'off')) return;
+    const P = this.pl, dt = this.lastDt || 0.016, W = this.scale.width, H = this.scale.height;
+    if (Net.on && this.def) {
+      const grounded = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
+      const fl = (P.duck ? 1 : 0) | (P.thrusting ? 2 : 0) | (P.firing > 0 ? 4 : 0) | (P.power > 0 ? 8 : 0) | (grounded ? 16 : 0);
+      Net.send([this.def.id, P.theta, P.h, P.vx || 0, P.vh || 0, P.facing || 1, P.aimA || 0, fl, this.weaponIdx || 0]);
+    }
+    const COLS = [0x9fffb0, 0xffb0e0, 0xa0d8ff, 0xffe08a], seen = new Set();
+    const tintAll = (o, c) => { if (o.list) o.list.forEach(x => tintAll(x, c)); else if (o.setTint) o.setTint(c); };
+    for (const p of Net.peers()) {
+      const d = p.d; if (d[0] !== this.def.id) continue;              // only the ones on this planet
+      seen.add(p.id);
+      let N = this.netRigs.get(p.id);
+      if (!N) {
+        const col = COLS[p.id % COLS.length];
+        N = { rig: new ChrisRig(this), w: -1, col, tag: this.add.text(0, 0, p.name, { fontFamily: PIXEL, fontSize: '8px', color: '#' + col.toString(16).padStart(6, '0'), stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(7.5) };
+        N.rig.root.setDepth(6.95);
+        this.netRigs.set(p.id, N);
+      }
+      if (N.w !== d[8]) { N.w = d[8]; N.rig.setWeapon(WEAPONS[d[8]] || WEAPONS[0]); tintAll(N.rig.root, N.col); }
+      const f = d[7];
+      const Pp = { h: d[2], floor: f & 16 ? d[2] : -1, vh: d[4], vx: d[3], duck: !!(f & 1), facing: d[5] || 1, aimA: d[6], thrusting: !!(f & 2), firing: f & 4 ? 0.1 : 0, power: f & 8 ? 1 : 0 };
+      const s = this.screenPos(d[1], d[2]), top = this.screenPos(d[1], d[2] + 104);
+      N.rig.update(Pp, dt, s.x, s.y, this.zoom, s.vis ? 1 : 0, Math.floor(this.augerPhase) % 4);
+      N.rig.root.setRotation(angDiff(d[1], this.viewT()));
+      N.tag.setText(p.name).setPosition(top.x, top.y).setRotation(angDiff(d[1], this.viewT())).setVisible(s.vis);
+    }
+    for (const [id, N] of this.netRigs) if (!seen.has(id)) { N.rig.root.destroy(); N.tag.destroy(); this.netRigs.delete(id); }
+    // a little status line along the bottom: room, how many are in it, joins and leaves
+    if (!this.netTxt) this.netTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#9fd8ff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(21);
+    const ts = Net.takeToasts(), st = Net.status;
+    this.netTxt.setPosition(W / 2, H - 6).setText(ts.length ? ts[ts.length - 1].s
+      : st === 'online' ? 'ONLINE  ROOM ' + String(Net.room).toUpperCase() + '  ' + Net.count + ' PLAYER' + (Net.count === 1 ? '' : 'S')
+      : st === 'full' ? 'ROOM FULL' : 'CONNECTING...').setColor(ts.length ? '#ffd23f' : st === 'online' ? '#9fd8ff' : '#ff9a7a');
+  }
+
   screenPos(theta, h) {
     const d = angDiff(theta, this.viewT()), r = (R + h) * this.zoom;
     return { x: this.cx + r * Math.sin(d), y: this.cy - r * Math.cos(d), vis: Math.abs(this.fullCam ? angDiff(theta, this.pl.theta) : d) < 1.45 };
@@ -4509,6 +4548,7 @@ class Level1 extends Phaser.Scene {
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
     this.rig.root.setRotation(this.camLag || 0);                       // (camera swing: he stands square to the planet, wherever it's turned)
+    this.netTick();
     this.drawBuff();
     if (this.ko) {                                           // game over: flat on his back (rotates about his feet), little stars circling
       const r = this.rig.root; r.setRotation(this.ko.rot); r.y -= Math.abs(this.ko.rot) * 7 * this.zoom; r.x += this.ko.rot * 4 * this.zoom;   // lies ON the ground

@@ -1,0 +1,10 @@
+{
+  "name": "luna-chris-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Luna Chris multiplayer relay: rooms of up to 4 players, 60 Hz state snapshots over WebSocket",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "ws": "^8.18.0" },
+  "engines": { "node": ">=18" }
+}
