@@ -1846,11 +1846,15 @@ function makeBrieTextures(scene) {
     p.line([[30, 26], [42, 20]], 0xd8e4ec, 2); p.rect(29, 25, 31, 28, 0xffd23f);                            // cutlass
     p.line([[14, 28], [10, 24]], GH[2], 2);
   });
-  pixSprite(scene, 'polterwedge', 34, 28, p => {                    // a poltergeist wedge of cheese: hollow eyes, wispy tail
-    p.poly([[2, 22], [30, 22], [30, 6]], [0xfff4b0, 0xffd23f, 0xc09a20]); p.poly([[2, 22], [30, 6], [30, 3], [2, 18]], [0xffe890, 0xe0b830, 0xa07a10]);
-    for (const [x, y, r] of [[22, 16, 2.2], [14, 19, 1.6], [26, 10, 1.4]]) p.ell(x, y, r, r, 0xa07a10);
-    p.ell(17, 14, 2, 2.6, 0x1a0a2a); p.ell(24, 13, 1.8, 2.4, 0x1a0a2a);                                      // hollow eyes
-    p.poly([[2, 22], [8, 24], [4, 27], [10, 27]], [0xfff8d0, 0xffe890, 0xd0b050]);                           // wisp
+  pixSprite(scene, 'polterwedge', 36, 30, p => {                    // a poltergeist wedge: a cheese wedge gone BAD - ghost-green and mouldy,
+    const GHO = [0xd8ffec, 0x6ee0b0, 0x2a8a6a];                                                              // angry red eyes, fangs and a ghost tail
+    p.poly([[0, 22], [6, 18], [10, 24], [6, 28], [2, 29]], GHO); p.poly([[3, 26], [0, 29], [6, 27]], GHO);   // wispy ghost tail, trailing
+    p.poly([[6, 23], [33, 23], [33, 5]], GHO); p.poly([[6, 23], [33, 5], [33, 2], [6, 19]], [0xb070e0, 0x7a3aa8, 0x4a1a70]);   // rotten purple rind
+    for (const [x, y, r] of [[27, 19, 2], [13, 21, 1.4], [30, 11, 1.3]]) p.ell(x, y, r, r, 0x3a1a5a);         // mouldy holes
+    for (const [x, y] of [[20, 20], [24, 15], [31, 18]]) { p.px(x, y, 0x9a5ad0); p.px(x + 1, y, 0x9a5ad0); }
+    p.line([[16, 11], [21, 13]], 0x1a0a2a, 2); p.line([[29, 9], [24, 12]], 0x1a0a2a, 2);                       // angry brows
+    p.ell(19, 15, 2.2, 2, [0xfff0a0, 0xff3a3a, 0x9a1010]); p.ell(26, 14, 2, 2, [0xfff0a0, 0xff3a3a, 0x9a1010]);   // glowing red eyes
+    p.rect(16, 19, 28, 21, 0x1a0a2a); for (const x of [17, 21, 25]) p.poly([[x, 19], [x + 2, 19], [x + 1, 22]], 0xffffff);   // a fanged grin
   });
   pixSprite(scene, 'tribolt', 14, 14, p => { p.poly([[7, 1], [13, 12], [1, 12]], [0xe0ffe8, 0x5ae890, 0x1e8a4a]); p.poly([[7, 5], [10, 10], [4, 10]], 0xffffff); });
   for (const [k, c] of [['tri_p', 0xd070ff], ['tri_c', 0x5ce1ff], ['tri_k', 0xff7ad8]]) pixTex(scene, k, 40, 36, put => {   // glowing triangle anomalies (outlines)

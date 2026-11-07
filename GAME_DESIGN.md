@@ -1221,3 +1221,6 @@ New `src/milkmaid.js` (MilkmaidMixin, like mandoline.js); boss ai `milkmaid`, hp
 
 ### v1.87 — Volume options
 - OPTIONS (main menu and pause menu) now has MUSIC VOLUME and SFX VOLUME, 0-10 shown as a bar. Left/right step it, select goes up one and wraps to 0; changing SFX plays a pickup blip at the new level. Saved on the device (`lc_vol_music`, `lc_vol_sfx`); `Sound.setVolume(kind, 0..1)` / `Sound.getVolume(kind)` scale the music and SFX buses (the pause duck keeps the music volume). SOUND ON/OFF still mutes everything. Tested: music level measured 0.094 RMS at 7/10 and 0 at 0/10.
+
+### v1.88 — Poltergeist wedges no longer look like health
+- The L3 poltergeist wedge was a yellow cheese wedge, too close to the health wedge pickup. Redrawn (36x30, editable PNG): ghoulish ghost-green body with a rotten purple rind, mould spots, angry brows, glowing red eyes, a fanged grin and a wispy ghost tail. The health wedge stays plain yellow.
