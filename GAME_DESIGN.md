@@ -1218,3 +1218,6 @@ New `src/milkmaid.js` (MilkmaidMixin, like mandoline.js); boss ai `milkmaid`, hp
 - **Act 2 THE SOUR STAMPEDE** (<50%): bonnet shreds into rags, cow skull, she dives and SLAMS the churn into the ground (CLANG, big shake, hit-stop, shockwaves both ways). Adds GHOST-COW STAMPEDES: skeletal dithered cows clamber out of the ribcages near you and gallop round the planet at 330 (jump them). The heart is the weak spot: shots within 24 units of it do 2.4x ("HEART!"), elsewhere 0.45x (blasts with no position 0.6x).
 - **Juice**: orange milk splatters and a squishy micro hit-stop on hits (throttled), screaming face, after-images, new SFX `wail` (warbling 16-bit square wail on every attack), `churnclang` (heavy metal clang), `zap` (cage locks).
 - Generic: enemy bullets support `curl` (turning velocity); `hitK(e, theta, h)` can take where the hit landed.
+
+### v1.87 — Volume options
+- OPTIONS (main menu and pause menu) now has MUSIC VOLUME and SFX VOLUME, 0-10 shown as a bar. Left/right step it, select goes up one and wraps to 0; changing SFX plays a pickup blip at the new level. Saved on the device (`lc_vol_music`, `lc_vol_sfx`); `Sound.setVolume(kind, 0..1)` / `Sound.getVolume(kind)` scale the music and SFX buses (the pause duck keeps the music volume). SOUND ON/OFF still mutes everything. Tested: music level measured 0.094 RMS at 7/10 and 0 at 0/10.

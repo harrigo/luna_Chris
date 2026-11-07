@@ -22,12 +22,28 @@ const Settings = (() => {
   return S;
 })();
 
+// a volume row: 0-10, left/right step it, select goes up one and wraps round to 0
+function volItem(name, kind) {
+  const get = () => (typeof Sound !== 'undefined' && Sound.getVolume ? Math.round(Sound.getVolume(kind) * 10) : 10);
+  return {
+    label: () => { const n = get(); return name + ' VOLUME: ' + '|'.repeat(n) + '.'.repeat(10 - n) + ' ' + n; },
+    act: d => {
+      if (typeof Sound === 'undefined' || !Sound.setVolume) return;
+      Sound.init();
+      const n = get(), m = d ? Math.max(0, Math.min(10, n + d)) : (n + 1) % 11;
+      Sound.setVolume(kind, m / 10);
+      if (kind === 'sfx') Sound.sfx('pickup');                    // hear how loud it is now
+    }
+  };
+}
 // options shared by the main menu and the pause menu
 function optionItems(onGfx) {
   return [
     { label: () => 'DIFFICULTY: ' + Settings.diff.toUpperCase(), act: d => Settings.cycleDiff(d) },
     { label: () => 'GRAPHICS: ' + Settings.gfx.toUpperCase(), act: d => { Settings.cycleGfx(d); if (onGfx) onGfx(); } },
     { label: () => 'SOUND: ' + (Settings.soundOn() ? 'ON' : 'OFF'), act: () => Settings.toggleSound() },
+    volItem('MUSIC', 'music'),
+    volItem('SFX', 'sfx'),
     { label: () => 'SCREEN SHAKE: ' + (Settings.shake ? 'ON' : 'OFF'), act: () => Settings.set('shake', !Settings.shake) },
     { label: () => 'RUMBLE: ' + (Settings.rumble ? 'ON' : 'OFF'), act: () => { Settings.set('rumble', !Settings.rumble); if (Settings.rumble) buzzAll(120); } },
     { label: () => 'CAMERA: ' + Settings.cam.toUpperCase() + (Settings.cam === 'full' ? ' (LV 1)' : ''), act: d => { const o = ['locked', 'swing', 'full'], i = o.indexOf(Settings.cam); Settings.set('cam', o[((d ? i + d : i + 1) % 3 + 3) % 3]); } },

@@ -26,8 +26,8 @@ const Sound = (() => {
       const comp = ctx.createDynamicsCompressor();
       comp.threshold.value = -16; comp.knee.value = 20; comp.ratio.value = 6; comp.attack.value = 0.003; comp.release.value = 0.2;
       master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9;
-      sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9;
-      musicBus = ctx.createGain(); musicBus.gain.value = 0.5;
+      sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9 * vol.sfx;
+      musicBus = ctx.createGain(); musicBus.gain.value = 0.5 * vol.music;
       analyser = ctx.createAnalyser(); analyser.fftSize = 512;
       sfxBus.connect(comp); musicBus.connect(comp); comp.connect(master);
       master.connect(analyser); master.connect(ctx.destination);
@@ -40,6 +40,16 @@ const Sound = (() => {
     return true;
   }
 
+  // volumes (0..1), remembered on the device: OPTIONS > MUSIC VOLUME / SFX VOLUME
+  const vol = (() => { const g = (k) => { try { const v = localStorage.getItem('lc_vol_' + k); return v === null ? 1 : Math.max(0, Math.min(1, +v)); } catch (e) { return 1; } }; return { music: g('music'), sfx: g('sfx') }; })();
+  let paused = false;
+  function setVolume(kind, v) {
+    vol[kind] = Math.max(0, Math.min(1, v));
+    try { localStorage.setItem('lc_vol_' + kind, String(vol[kind])); } catch (e) { /* ignore */ }
+    if (!ctx) return;
+    if (kind === 'sfx' && sfxBus) sfxBus.gain.setTargetAtTime(0.9 * vol.sfx, ctx.currentTime, 0.02);
+    if (kind === 'music' && musicBus) musicBus.gain.setTargetAtTime((paused ? 0.12 : 0.5) * vol.music, ctx.currentTime, 0.02);
+  }
   function setMuted(m) {
     muted = m;
     try { localStorage.setItem('lc_mute', m ? '1' : '0'); } catch (e) { /* ignore */ }
@@ -634,7 +644,8 @@ const Sound = (() => {
 
   return {
     init, sfx, say, jet, music, fill, intensity: setIntensity,
-    pause(on) { if (musicBus) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.5, ctx.currentTime, 0.05); if (on) jet(false); },
+    pause(on) { paused = on; if (musicBus) musicBus.gain.setTargetAtTime((on ? 0.12 : 0.5) * vol.music, ctx.currentTime, 0.05); if (on) jet(false); },
+    setVolume, getVolume: (kind) => vol[kind],
     jingle: music,
     isMuted: () => muted,
     setMuted,
