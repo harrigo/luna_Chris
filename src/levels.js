@@ -17,7 +17,9 @@ const ENEMY = {
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer' },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
-  rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },               // L4 rocket rat: hovers over you, drops pepperoni bombs
+  rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },
+  anchovy:  { hp: 1, r: 9,  ch: 0,  tex: 'anchovy0', oy: 0.5,     drop: 0.08, ai: 'anchovy', k: 1.15 },    // L4 anchovy swarmer: shoals of five, one darts at you
+  ovendrone: { hp: 9, r: 34, ch: 0, tex: 'oven', oy: 0.5,         drop: 0.6, ai: 'ovendrone', k: 0.55, big: true },   // L4 Toasty Oven Drone: homing pizza cutters, SLAMS down               // L4 rocket rat: hovers over you, drops pepperoni bombs
   gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'welder' },         // L3 welder rat: riot shield + blowtorch
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
@@ -116,14 +118,14 @@ const LEVELS = {
   },
 
   4: {
-    id: 4, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'A volatile volcano planet.\nBoiling string cheese whips across the sky.',
-    music: 'level4', bossName: 'THE PIZZA OVEN OF DOOM', tip: 'WATCH FOR THE STRING CHEESE - IT SNAPS!',
-    radius: 440, sky: [0x0a0204, 0x5a140c], bg: '#0a0204', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12,
-    // a wood-fired pizza planet: white mozzarella surface, a charred, ashy crust rim, burnt black patches
-    surface: { pal: [0x7a4a24, 0xc89a6a, 0xe8d4b0, 0xf6ead2, 0xfff8ec, 0xffffff], seed: 4444, rim: [0x2a140a, 0x6a3418, 0xb06a30], spot: [0x1a0e08, 0x3a2414], rimD: 0.925, rimLight: [255, 170, 90], dark: [40, 10, 4] },
-    rimGlow: 0xff7a2a,
-    geysers: { n: 5, idle: [4, 8], warn: 1, erupt: 1.2, height: 150 },
-    planet: { fill: 0xf6ecdc, inner: 0xe8d4b8, rim: 0xffffff, glow: 0xff8a3a },
+    id: 4, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'The Pizza Inferno: a charred crust planet\nwith molten mozzarella pools and an angry volcano.',
+    music: 'level4', bossName: 'THE MOZZARELLA MAGMA-GOLEM', tip: 'MOLTEN CHEESE GRABS YOU: MASH OR HOLD JUMP TO RIP FREE!',
+    radius: 440, sky: [0x160302, 0x8a2408], bg: '#160302', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12, mozz: true,
+    // the PIZZA INFERNO: a charred, cratered pizza crust (golden where it's baked, black where it's burnt), lava light on the rim
+    surface: { pal: [0x1a0804, 0x4a200c, 0x8a4418, 0xc0782c, 0xe0a450, 0xf6d088], seed: 4444, rim: [0x120402, 0x4a1a08, 0xa04a18], spot: [0x0c0402, 0x2a1006], rimD: 0.925, rimLight: [255, 120, 40], dark: [40, 8, 2] },
+    rimGlow: 0xff5a1a,
+    geysers: { n: 5, idle: [4, 8], warn: 1, erupt: 1.2, height: 150, puff: 'marinara', marinara: true },   // marinara geysers
+    planet: { fill: 0xc0782c, inner: 0x8a4418, rim: 0xffd080, glow: 0xff5a1a },
     dust: [0xff6a3a, 0xffb03a, 0xff3a3a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTypes: ['panini', 'girder', 'crystal', 'panini', 'energy'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.9, half: 0.14, h: 90 }, { theta: 2.0, half: 0.12, h: 170 }, { theta: 3.2, half: 0.14, h: 90 }, { theta: 4.3, half: 0.12, h: 170 }, { theta: 5.4, half: 0.14, h: 90 }],
@@ -132,16 +134,17 @@ const LEVELS = {
       { tex: 'rock_dark', at: [[0.7, 1.4], [2.3, 1.6, 1], [3.5, 1.3], [5.1, 1.5, 1]], tint: 0x8a4a2a, h: -3 },
       { tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true, tint: 0xff7a3a }],
     // molten string-cheese pits: they GRAB you in stretchy strands - mash jump to tear free before you burn
-    goop: [{ theta: 1.2, half: 0.06 }, { theta: 2.6, half: 0.055 }, { theta: 3.95, half: 0.06 }, { theta: 5.7, half: 0.055 }],
-    goopMode: 'string', goopTex: 'cheesepit', goopBub: 'cheesebub', goopGlow: 0xff8a2a,
+    goop: [{ theta: 1.2, half: 0.065 }, { theta: 2.6, half: 0.06 }, { theta: 3.35, half: 0.05 }, { theta: 3.95, half: 0.065 }, { theta: 4.9, half: 0.05 }, { theta: 5.7, half: 0.06 }],
+    goopMode: 'string', goopTex: 'cheesepit', goopBub: 'cheesebub', goopGlow: 0xffb03a,
+    goopPal: { edge: 0x4a1404, deep: 0xff6a1a, mid: 0xffb84a, top: 0xfff0c0, gloss: 0xffffff },   // white-hot molten mozzarella
     strands: { every: [2.6, 4.5] },
     waves: [
-      { name: 'WAVE 1', spawns: [S('mouse', 0), S('rocketrat', 1), S('mouse', 1.8), S('mouse', 2.8), S('rocketrat', 3.6), S('mgolem', 4.6), S('mouse', 5.4), S('rocketrat', 6.4), S('mouse', 7.2)] },
-      { name: 'WAVE 2', spawns: [S('frog', 0), S('mouse', 0.8), S('rocketrat', 1.6), S('mgolem', 2.6), S('mouse', 3.2), S('frog', 4.2), S('rocketrat', 5), S('mouse', 5.8), S('mgolem', 7), S('rocketrat', 7.8)] },
-      { name: 'WAVE 3', spawns: [S('mgolem', 0), S('frog', 1), S('rocketrat', 1.8), S('mouse', 2.4), S('mgolem', 3.6), S('rocketrat', 4.2), S('frog', 5.2), S('mouse', 6), S('rocketrat', 6.8), S('mgolem', 8), S('rocketrat', 8.6)] }
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('rocketrat', 1), S('anchovy', 2.2), S('mouse', 3.4), S('rocketrat', 4.2), S('mgolem', 5.2), S('mouse', 6), S('rocketrat', 7)] },
+      { name: 'WAVE 2', spawns: [S('rocketrat', 0), S('ovendrone', 0.8), S('mouse', 1.8), S('anchovy', 2.8), S('mgolem', 3.8), S('rocketrat', 4.8), S('mouse', 5.6), S('anchovy', 6.6), S('rocketrat', 7.6)] },
+      { name: 'WAVE 3', spawns: [S('mgolem', 0), S('anchovy', 1), S('rocketrat', 1.8), S('ovendrone', 2.6), S('mouse', 3.4), S('mgolem', 4.4), S('anchovy', 5.4), S('rocketrat', 6.2), S('ovendrone', 7.2), S('rocketrat', 8.2)] }
     ],
-    boss: { tex: 'oven', hp: 150, ai: 'oven', armouredTop: true },
-    win: 'The Pizza Oven of Doom has gone cold!\nBessie popped out of the dough... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
+    boss: { tex: 'magmagolem', hp: 240, ai: 'magmagolem', scale: 1.25 },
+    win: 'The Magma-Golem has cooled into a crust!\nBessie popped out of the cheese... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
   },
 
   5: {
@@ -1576,7 +1579,8 @@ function makeRoadmapTextures(scene) {
     p.rrect(0, 60, 14, 74, 3, STEEL); p.rrect(136, 60, 150, 74, 3, STEEL);                                 // pepperoni chutes
     p.ell(75, 22, 20, 6, [0xfff0b0, 0xf0c050, 0xc08020]); for (const x of [64, 74, 84]) p.ell(x, 21, 3, 2, [0xff7a6a, 0xd0301a, 0x8a1a10]);   // a pizza cooking on top
   });
-  makeMilkmaidTextures(scene);                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
+  makeMilkmaidTextures(scene);
+  makeMozzTextures(scene);                                      // L4: the Magma-Golem, boulders, anchovies, the volcano (mozz.js)                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
   pixSprite(scene, 'wheel', 96, 96, p => {                      // L6: the gargantuan Spicy Pepper Jack
     p.ell(48, 48, 46, 46, [0xf0d890, 0xd8b050, 0x9a7020]);
     p.ell(48, 48, 39, 39, [0xfff8d0, 0xf6e6a0, 0xd8c070]);

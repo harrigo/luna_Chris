@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.88';
+const BUILD = 'v1.89';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -397,7 +397,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
       for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
     }
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.mz = null; this.eruptTip = false; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1372,6 +1372,7 @@ class Level1 extends Phaser.Scene {
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
+      if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1643,6 +1644,7 @@ class Level1 extends Phaser.Scene {
     }
     if (P.cheese) {
       P.vx = 0; P.vh = Math.min(P.vh, 0);
+      if (inp.jump && P.fuel > 0) { P.fuel = Math.max(0, P.fuel - dt * 0.9); P.mash = (P.mash || 0) + dt * 2.2; if (Math.random() < dt * 20) this.burst(P.theta, 6, 'flame', 1, 0.5); }   // ...or hold jump to burn jetpack fuel and rip out
       P.cheese.burnT -= dt;
       if (P.cheese.burnT <= 0) { P.cheese.burnT = 1.3; this.hurt(); Sound.sfx('hiss'); this.burst(P.theta, 10, 'flame', 6, 0.6); }
       if (P.mash >= 3 || !pool) {                        // TORE FREE: the strands snap and fling him up
@@ -1923,7 +1925,8 @@ class Level1 extends Phaser.Scene {
 
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
   hitK(e, th, h) {
-    if (e.ai === 'milkmaid') return this.mmHitK(e, th, h);   // act 2: her heart is the weak spot
+    if (e.ai === 'milkmaid') return this.mmHitK(e, th, h);
+    if (e.ai === 'magmagolem') return this.mgHitK(e, th, h);   // crust plates soak shots until they break   // act 2: her heart is the weak spot
     if (e.ai === 'wheel' && e.core) return 0.12;           // the gooey core shrugs off normal shots: charge up and hit the eye
     if (e.type === 'mgolem') {                          // charred crust armour: half damage, chips flying, until it cracks open
       if (!e.hot && e.hp < e.maxHp * 0.5) { e.hot = true; e.spr.setTexture('mgolem_hot'); bakedGlow(e.spr, 0xff8a2a, 2, 6); this.burst(e.theta, e.h + 30, 'crumb', 14, 1.2); Sound.sfx('crash'); this.banner('ARMOUR CRACKED!'); }
@@ -3143,6 +3146,7 @@ class Level1 extends Phaser.Scene {
       const full = d < rad * 0.55 + e.r;
       e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e, theta, h);
       if (e.ai === 'milkmaid') this.mmOnHit(e, theta, h);
+      if (e.ai === 'magmagolem') this.mgOnHit(e, theta, h);
       this.knock(e, theta, full ? 240 : 130);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
@@ -3256,6 +3260,7 @@ class Level1 extends Phaser.Scene {
     }
     const e = this.makeEnemy(type, theta, side);
     this.enemies.push(e);
+    if (type === 'anchovy') this.anchovySwarm(e);      // they come in shoals of five
     if (type === 'boss') { Sound.sfx('bossIn'); Sound.music(this.def.bossMusic || 'boss'); buzz(150); this.showBossCard(); }
     return e;
   }
@@ -3286,7 +3291,7 @@ class Level1 extends Phaser.Scene {
       const b = this.def.boss;
       st = { hp: b.hp, r: 54, ch: 0, drop: 0 }; tex = b.tex; oy = 0.5; k = b.scale || 1.12;
     } else {
-      st = ENEMY[type]; tex = st.tex; oy = st.oy; k = 1.22;
+      st = ENEMY[type]; tex = st.tex; oy = st.oy; k = st.k || 1.22;
     }
     const e = {
       type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp, maxHp: st.hp * Settings.dk.hp, r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
@@ -3440,6 +3445,10 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
+      } else if (ai === 'anchovy') {                    // L4 (mozz.js): a shoal of tin anchovies
+        this.anchovyAI(e, dt, P);
+      } else if (ai === 'ovendrone') {                  // L4 (mozz.js): the Toasty Oven Drone
+        this.ovenDroneAI(e, dt, P, dirP);
       } else if (ai === 'welder') {
         this.welderAI(e, dt, toP, distP, fooled);
 
@@ -3641,6 +3650,8 @@ class Level1 extends Phaser.Scene {
             for (let k = 0; k < n; k++) { const a = (k - (n - 1) / 2) * 0.32; this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5); }
             this.muzzleFlash(c.theta, c.h);
           }
+        } else if (e.ai === 'magmagolem') {              // L4: the Mozzarella Magma-Golem (mozz.js)
+          this.mgAI(e, dt, P, phase2);
         } else if (e.ai === 'milkmaid') {                // L3: the Phantom Milkmaid (milkmaid.js)
           this.mmAI(e, dt, P, phase2);
         } else if (e.ai === 'phantom') {                 // L5: spinning geometric pinwheel patterns, and she vanishes and reappears
@@ -3785,7 +3796,7 @@ class Level1 extends Phaser.Scene {
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -3835,7 +3846,7 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, ghostcow0: 0x7ab8ff }[kind] || 0xffc040;
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
@@ -3870,6 +3881,7 @@ class Level1 extends Phaser.Scene {
       if (!dead) for (let j = this.eBullets.length - 1; j >= 0; j--) {      // shootable enemy shots (the Croque's missiles)
         const m = this.eBullets[j];
         if (!m.shootable || dist2(b.theta, b.h, m.theta, m.h) > (m.r + 9) * (m.r + 9)) continue;
+        if (m.hp > 1) { m.hp--; m.spr.setTintFill(0xffffff); this.time.delayedCall(60, () => { if (m.spr.active) m.spr.clearTint(); }); this.burst(m.theta, m.h, 'crumb', 3, 0.6); Sound.sfx('bonk'); if (!b.plough) { dead = true; break; } continue; }   // tough ones (boulders) take a few
         this.bang(m.theta, m.h, 18); this.burst(m.theta, m.h, 'flame', 6, 0.8); Sound.sfx('kill'); buzz(20);
         this.addScore(100); this.popup(m.theta, m.h + 14, '+100', '#ffd23f', false);
         m.spr.destroy(); this.eBullets.splice(j, 1);
@@ -3908,6 +3920,7 @@ class Level1 extends Phaser.Scene {
             const hk = this.hitK(e, b.theta, b.h);
             if (hk === 0) { this.deflect(e, b.theta, b.h, b); break; }
             if (e.ai === 'milkmaid') this.mmOnHit(e, b.theta, b.h);
+            if (e.ai === 'magmagolem') this.mgOnHit(e, b.theta, b.h);
             e.hp -= (b.dmg || 1) * hk; if (this.buffOn('sauce')) e.burn = 2;
             this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
             this.hitSfx(e);
@@ -3956,7 +3969,8 @@ class Level1 extends Phaser.Scene {
       }
       if (b.bomb) {
         b.spr.setTint(Math.floor(this.t * 14) % 2 ? 0xffffff : 0xffd0a0);
-        if (b.h <= 4) {                                  // KA-BLAM: greasy shrapnel fans up and out
+        if (b.h <= 4 && !b.bounced) { b.bounced = true; b.h = 5; b.vh = 260; b.vt = (b.vt || 0) + (Math.random() < 0.5 ? -60 : 60); Sound.sfx('clunk'); }   // a Pepp-Grenade bounces once...
+        else if (b.h <= 4) {                                  // KA-BLAM: greasy shrapnel fans up and out
           this.bang(b.theta, 6, 24); this.burst(b.theta, 6, 'flame', 6, 0.8); Sound.sfx('kill'); this.cameras.main.shake(70, 0.004);
           for (let k = 0; k < 6; k++) { const a = -1.2 + k * 0.48, sh = this.addEBullet('pepper', b.theta, 8, Math.sin(a) * 210, Math.cos(a) * 240, 6, 1.4); sh.grav = 520; sh.spr.bsx = sh.spr.bsy = 0.6; }
           b.life = 0;
@@ -4035,6 +4049,7 @@ class Level1 extends Phaser.Scene {
         G.emitT -= dt;
         if (near && G.emitT <= 0) {
           G.emitT = 0.035;
+          if (gd.marinara && this.state === 'play' && Math.random() < 0.12) { const mb = this.addEBullet('marinara', G.theta, 30, rnd(-190, 190), rnd(460, 640), 7, 3); mb.grav = 760; mb.spinV = 5; }   // boiling marinara rains back down round the vent
           this.parts.push({ theta: G.theta, h: 2, vt: rnd(-55, 55), vh: gd.float ? rnd(300, 420) : rnd(420, 640), life: gd.float ? rnd(0.5, 0.7) : rnd(0.9, 1.3), noGrav: gd.float, grow: gd.float ? 2.2 : 0, spr: (() => { const im = this.add.image(0, 0, gd.puff || 'fondue').setDepth(2.7); im.bsx = im.bsy = rnd(0.9, 1.7); return im; })() });
         }
         // standing in the column hurts
@@ -4619,6 +4634,7 @@ class Level1 extends Phaser.Scene {
         if (e.spr.visible && e.jetT <= 0) { e.jetT = 0.05; this.fxRatJet.emitParticleAt(jx - Math.sin(r) * 9 * sc, jy + Math.cos(r) * 9 * sc, 1); }
       }
     }
+    if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     this.drawBeam();
     this.drawLights();
@@ -4738,7 +4754,8 @@ class Level1 extends Phaser.Scene {
 // 2. Planet radar (landscape): a little planet under the cow track with Chris on top, the slice you can see
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
 Object.assign(Level1.prototype, MandolineMixin);
-Object.assign(Level1.prototype, MilkmaidMixin);      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
+Object.assign(Level1.prototype, MilkmaidMixin);
+Object.assign(Level1.prototype, MozzMixin);          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {
   const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;
