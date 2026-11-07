@@ -1244,3 +1244,9 @@ New `src/depth.js` (DepthMixin), switched on per level with `depth: {...}` in LE
 - **Foreground rocks**: a low strip of chunky dark boulders along the bottom edge, lava light catching their tops, scrolling at 1.5x (they pass in front of everything).
 - **Lava cracks**: glowing cracks under the crust that turn with the planet and pulse.
 - L4 now has 6 mozzarella mountains (one of each), not 11.
+
+### v1.92 — Depth on levels 1-3, each to its own vibe
+depth.js gained styles: shade strengths (`shadeA`), atmosphere width/strength (`atmoW`/`atmoA`), ridge styles (`rolling`, `spires`, `wrecks`, default jagged `hills`; `holes` for Gruyère holes; `glow`/`glowP` lights; `size`), foreground styles (`rocks`, `cheese` holey boulders, `reeds` reeds + glowing toadstools, `bones` ribs + grave posts), crack style `veins` with `crackPulse`/`crackA`. Textures are made once per level.
+- **L1 Gruyère Globe** (bright, cheerful cheese moon in cosmic blue-purple): warm sun from the top left, shadows tinted space-purple and kept fairly light, pale golden halo; far holey Gruyère hills gone lavender in the haze, nearer muted-gold holey hills; holey cheese boulders in the foreground with golden lips.
+- **L2 Gorgonzola Gulch** (dark stinking swamp): the heaviest shadow, sickly green rim and a thick green fog; glowing blue-cheese VEINS creeping (slow pulse) under the surface; tall mould spires lost in the murk, swamp mounds with spore lights; bent reeds and glowing toadstools in front of the camera.
+- **L3 Brie-muda Triangle** (pale, ghostly): cold moonlight from the top RIGHT, soft light lavender shadows, a wide violet mist; the lost ships of the Triangle (tilted hulls, masts, yards, tattered sails) half-sunk on the far dunes with the odd will-o'-wisp, nearer brie dunes; great ribs and broken grave posts close to the camera.

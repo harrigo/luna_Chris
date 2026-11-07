@@ -35,6 +35,13 @@ const LEVELS = {
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
     radius: 420, sky: [0x111a6a, 0x4a2296], skyCols: [0x0a0c40, 0x11186a, 0x1d1f86, 0x2d2192, 0x45249a, 0x5e2a9c], bg: '#0a0c40', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
     surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242 },
+    // depth (depth.js) - a bright, cheerful cheese moon under a cosmic sky: warm sunlight from the top left, shadows that
+    // pick up the blue-purple of space, a pale golden halo; far-off holey Gruyère hills gone lavender in the haze, nearer
+    // golden ones, and holey cheese boulders right up against the camera
+    depth: { light: [-0.55, -0.75, 0.45], dark: [46, 24, 110], shadeA: [0, 55, 100, 140], rim: [255, 240, 180], atmo: [255, 226, 150], atmoW: 0.06, atmoA: 60,
+      ridges: [{ style: 'rolling', holes: true, n: 22, off: 84, amp: 46, col: [96, 72, 168], top: [150, 128, 214], k: 0.4, depth: 0.33, seed: 5 },
+               { style: 'rolling', holes: true, n: 16, off: 40, amp: 38, col: [118, 72, 92], top: [214, 160, 104], k: 0.68, depth: 0.37, seed: 9 }],
+      fg: { style: 'cheese', col: [44, 22, 84], glow: [255, 214, 120] } },
     geysers: { n: 7, idle: [3.5, 7], warn: 1.1, erupt: 1.3, height: 175 },
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
     dust: [0x6a4cff, 0xb04cff, 0x3aa0ff, 0xff6ab0], decorTint: 0xffffff, decorAlpha: 1,
@@ -57,6 +64,14 @@ const LEVELS = {
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
     radius: 580, sky: [0x000204, 0x021a16], bg: '#000204', starTint: 0xe8fff8, dustAlpha: 0.6, bgDecor: 'motes',
     surface: { pal: [0x04080e, 0x0a1220, 0x121e30, 0x1c2c42, 0x283c56, 0x3e5a74], seed: 2121, rim: [0x1d5a2a, 0x3a9a3a, 0x7ee05a], spot: [0x163a26, 0x2f7a3a], rimLight: [170, 255, 130], dark: [0, 4, 10] },
+    // depth (depth.js) - a dark, stinking swamp: heavy shadow, a sickly green rim and a thick green fog round the planet;
+    // glowing blue-cheese VEINS creeping slowly under the surface; tall mould spires lost in the murk behind, nearer
+    // swamp mounds pricked with spore lights, and bent reeds and glowing toadstools right in front of the camera
+    depth: { light: [-0.4, -0.85, 0.4], dark: [0, 6, 10], shadeA: [0, 85, 145, 195], rim: [150, 255, 120], atmo: [60, 200, 110], atmoW: 0.11, atmoA: 55,
+      cracks: [70, 210, 170], crackStyle: 'veins', crackPulse: 0.9, crackA: 0.35,
+      ridges: [{ style: 'spires', n: 20, off: 90, amp: 70, col: [10, 42, 44], top: [34, 100, 84], k: 0.42, depth: 0.33, seed: 3, glow: [120, 255, 200], glowP: 0.04 },
+               { style: 'rolling', off: 34, amp: 26, col: [4, 18, 22], top: [40, 120, 64], k: 0.7, depth: 0.37, seed: 8, glow: [90, 255, 160], glowP: 0.06 }],
+      fg: { style: 'reeds', col: [2, 8, 10], glow: [120, 255, 190] } },
     rimGlow: 0x6aff6a,
     nebula: { pal: [0x021614, 0x053a36, 0x0b5e52, 0x1f9a7e, 0x7ae8c8], n: 4, sparkles: [0xffffff, 0x8af5d2, 0x5ce1ff, 0xc8ffd0] },
     planet: { fill: 0x7a9ea6, inner: 0x5f868f, rim: 0xb5e3d2, glow: 0x3aff8a },
@@ -94,6 +109,13 @@ const LEVELS = {
     // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
     surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
     rimGlow: 0xb07aff, squish: true,
+    // depth (depth.js) - pale and ghostly: cold moonlight from the top RIGHT, soft lavender shadows (kept light, it's a
+    // pale world), a wide violet mist round the planet; the lost ships of the Triangle half-sunk on the far dunes with
+    // the odd will-o'-wisp, nearer brie dunes, and great ribs and a broken grave post close to the camera
+    depth: { light: [0.5, -0.8, 0.45], dark: [44, 24, 80], shadeA: [0, 40, 75, 110], rim: [236, 226, 255], atmo: [196, 170, 255], atmoW: 0.13, atmoA: 55,
+      ridges: [{ style: 'wrecks', n: 20, size: 1.5, off: 54, amp: 30, col: [74, 56, 116], top: [140, 124, 190], k: 0.4, depth: 0.33, seed: 13, glow: [210, 250, 255], glowP: 0.015 },
+               { style: 'rolling', off: 26, amp: 20, col: [112, 98, 150], top: [206, 196, 236], k: 0.68, depth: 0.37, seed: 17 }],
+      fg: { style: 'bones', col: [34, 24, 56], glow: [220, 210, 255] } },
     planet: { fill: 0xececf4, inner: 0xd8d8e4, rim: 0xffffff, glow: 0xa070ff },
     dust: [0xc8a8ff, 0xffffff, 0xd8c8ff, 0xa8f0ff], decorTint: 0xe0e8ff, decorAlpha: 0.8,
     gravity: 1, ledgeTypes: ['bone', 'bone', 'bone', 'bone', 'bone', 'bone'], ledgeTex: 'ledge1',
