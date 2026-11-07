@@ -124,6 +124,11 @@ const LEVELS = {
     // the PIZZA INFERNO: a charred, cratered pizza crust (golden where it's baked, black where it's burnt), lava light on the rim
     surface: { pal: [0x1a0804, 0x4a200c, 0x8a4418, 0xc0782c, 0xe0a450, 0xf6d088], seed: 4444, rim: [0x120402, 0x4a1a08, 0xa04a18], spot: [0x0c0402, 0x2a1006], rimD: 0.925, rimLight: [255, 120, 40], dark: [40, 8, 2] },
     rimGlow: 0xff5a1a,
+    // depth (depth.js): lit from the top left, hazy crust hills behind (with lava lights), black crags up against the camera, lava cracks
+    depth: { light: [-0.55, -0.75, 0.45], dark: [30, 6, 2], rim: [255, 196, 120], atmo: [255, 110, 40], cracks: [255, 120, 40],
+      ridges: [{ off: 74, amp: 40, col: [150, 56, 30], top: [200, 96, 50], k: 0.45, depth: 0.33, seed: 11, glow: [255, 170, 60] },
+               { off: 34, amp: 26, col: [86, 26, 10], top: [140, 50, 20], k: 0.7, depth: 0.37, seed: 23, glow: [255, 120, 40] }],
+      fg: { col: [20, 6, 2], glow: [255, 110, 30] } },
     geysers: { n: 5, idle: [4, 8], warn: 1, erupt: 1.2, height: 150, puff: 'marinara', marinara: true },   // marinara geysers
     planet: { fill: 0xc0782c, inner: 0x8a4418, rim: 0xffd080, glow: 0xff5a1a },
     dust: [0xff6a3a, 0xffb03a, 0xff3a3a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
@@ -131,9 +136,9 @@ const LEVELS = {
     ledges: [{ theta: 0.9, half: 0.14, h: 90 }, { theta: 2.0, half: 0.12, h: 170 }, { theta: 3.2, half: 0.14, h: 90 }, { theta: 4.3, half: 0.12, h: 170 }, { theta: 5.4, half: 0.14, h: 90 }],
     props: [
       // mountains of molten mozzarella on the horizon, all different (mozz.js), steaming and bubbling
-      { tex: 'mozzmtn0', at: [[0.4, 1.15], [3.05, 0.95, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn1', at: [[1.45, 1.0, 1], [4.35, 0.9]], tint: 0xffe2c4 },
-      { tex: 'mozzmtn2', at: [[2.15, 1.05], [5.55, 1.1, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn3', at: [[2.75, 0.95, 1]], tint: 0xffe2c4 },
-      { tex: 'mozzmtn4', at: [[3.75, 1.2], [0.95, 0.85, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn5', at: [[4.85, 1.0], [5.95, 0.9, 1]], tint: 0xffe2c4 },
+      { tex: 'mozzmtn0', at: [[0.4, 1.15]], tint: 0xffe2c4 }, { tex: 'mozzmtn1', at: [[1.55, 1.0, 1]], tint: 0xffe2c4 },
+      { tex: 'mozzmtn2', at: [[2.7, 1.05]], tint: 0xffe2c4 }, { tex: 'mozzmtn3', at: [[3.75, 0.95, 1]], tint: 0xffe2c4 },
+      { tex: 'mozzmtn4', at: [[4.75, 1.2]], tint: 0xffe2c4 }, { tex: 'mozzmtn5', at: [[5.7, 1.0, 1]], tint: 0xffe2c4 },
       { tex: 'rock_dark', at: [[0.7, 1.4], [2.3, 1.6, 1], [3.5, 1.3], [5.1, 1.5, 1]], tint: 0x8a4a2a, h: -3 },
       { tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true, tint: 0xff7a3a }],
     // molten string-cheese pits: they GRAB you in stretchy strands - mash jump to tear free before you burn

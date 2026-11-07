@@ -1236,3 +1236,11 @@ New `src/mozz.js` (MozzMixin, level flag `mozz: true`).
 
 ### v1.90 — Mount Mozzarella: mountains of molten mozzarella
 - The yellow triangular "rind pile" props on L4 are replaced by six different MOZZARELLA MOUNTAINS (`mozzmtn0`-`5`, generated in mozz.js from a table: 1-3 rounded gooey domes with soft lumps, hand-shaded and dithered from the top left, glossy melted top edge, white drips running down, browned blisters and glossy bubbles, a charred crust foot; some with a bubbling lava crater, some with cheese strings stretched between peaks). 11 placed round the planet at different sizes and flips, warm-tinted. Near Chris their peaks steam and spit cheese bubbles. Exported as editable PNGs.
+
+### v1.91 — Planet depth (neo-retro), first on Mount Mozzarella
+New `src/depth.js` (DepthMixin), switched on per level with `depth: {...}` in LEVELS (L4 only so far):
+- **Sphere shading**: a screen-fixed overlay lights the planet from the top left in four dithered shade steps; a thin warm rim light on the lit edge and a dithered atmosphere glow just outside it (ADD).
+- **Parallax hills**: two rings of jagged crust hills behind the planet (far one hazier/lighter, with tiny lava lights), turning at 0.45x and 0.7x the planet's speed so they slide past at different rates as you run.
+- **Foreground rocks**: a low strip of chunky dark boulders along the bottom edge, lava light catching their tops, scrolling at 1.5x (they pass in front of everything).
+- **Lava cracks**: glowing cracks under the crust that turn with the planet and pulse.
+- L4 now has 6 mozzarella mountains (one of each), not 11.

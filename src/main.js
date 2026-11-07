@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.90';
+const BUILD = 'v1.91';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -341,6 +341,7 @@ class Level1 extends Phaser.Scene {
       this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
     }
+    this.depthFx = null; this.depthInit();               // neo-retro depth: sphere shading, parallax hills, foreground rocks (depth.js)
     if (!this.def.surface) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
       spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3);
@@ -4477,6 +4478,7 @@ class Level1 extends Phaser.Scene {
       const ps = (2 * Rz) / this.planetImg.width;
       this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-unwV);
       this.planetShade.setPosition(cx, cy).setScale(ps);
+      this.drawDepth(cx, cy, Rz, unwV);
       this.rimG.clear().lineStyle(3, 0x1a1020, 1).strokeCircle(cx, cy, Rz + 1);
       if (this.def.rimGlow) {                           // neon rim light (level 2)
         const gl = this.def.rimGlow, pulse = 0.85 + 0.15 * Math.sin(this.t * 2);
@@ -4755,7 +4757,8 @@ class Level1 extends Phaser.Scene {
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
-Object.assign(Level1.prototype, MozzMixin);          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
+Object.assign(Level1.prototype, MozzMixin);
+Object.assign(Level1.prototype, DepthMixin);         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {
   const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;
