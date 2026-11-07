@@ -130,7 +130,10 @@ const LEVELS = {
     gravity: 1, ledgeTypes: ['panini', 'girder', 'crystal', 'panini', 'energy'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.9, half: 0.14, h: 90 }, { theta: 2.0, half: 0.12, h: 170 }, { theta: 3.2, half: 0.14, h: 90 }, { theta: 4.3, half: 0.12, h: 170 }, { theta: 5.4, half: 0.14, h: 90 }],
     props: [
-      { tex: 'pile_rind', at: [[0.4, 1.4], [1.45, 1.2, 1], [2.6, 1.5], [3.75, 1.3, 1], [4.85, 1.4], [5.95, 1.2, 1]], tint: 0xc88a5a },
+      // mountains of molten mozzarella on the horizon, all different (mozz.js), steaming and bubbling
+      { tex: 'mozzmtn0', at: [[0.4, 1.15], [3.05, 0.95, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn1', at: [[1.45, 1.0, 1], [4.35, 0.9]], tint: 0xffe2c4 },
+      { tex: 'mozzmtn2', at: [[2.15, 1.05], [5.55, 1.1, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn3', at: [[2.75, 0.95, 1]], tint: 0xffe2c4 },
+      { tex: 'mozzmtn4', at: [[3.75, 1.2], [0.95, 0.85, 1]], tint: 0xffe2c4 }, { tex: 'mozzmtn5', at: [[4.85, 1.0], [5.95, 0.9, 1]], tint: 0xffe2c4 },
       { tex: 'rock_dark', at: [[0.7, 1.4], [2.3, 1.6, 1], [3.5, 1.3], [5.1, 1.5, 1]], tint: 0x8a4a2a, h: -3 },
       { tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true, tint: 0xff7a3a }],
     // molten string-cheese pits: they GRAB you in stretchy strands - mash jump to tear free before you burn

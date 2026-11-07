@@ -24,7 +24,75 @@ const MG = {
   footH: 82                // his centre's height when he stands on the crust (texture half-height x scale)
 };
 
+// mountains of molten mozzarella on the horizon: six different heaps (one to three lumpy peaks, drips running down,
+// browned blisters, a charred crust foot, some with a bubbling lava crater or cheese strings stretched between peaks).
+// MOZZ_PEAKS[key] = the tops (px from the bottom centre) where steam and bubbles come off them.
+const MOZZ_PEAKS = {};
+const MOZZ_MTNS = [
+  { w: 112, h: 78, peaks: [[0.5, 1, 0.34]], crater: true },
+  { w: 132, h: 70, peaks: [[0.32, 0.95, 0.24], [0.7, 0.72, 0.22]], strings: true },
+  { w: 92, h: 92, peaks: [[0.48, 1, 0.26], [0.72, 0.55, 0.16]] },
+  { w: 150, h: 60, peaks: [[0.25, 0.75, 0.2], [0.52, 1, 0.22], [0.8, 0.6, 0.16]], crater: true },
+  { w: 84, h: 64, peaks: [[0.5, 1, 0.36]], slump: true },
+  { w: 124, h: 86, peaks: [[0.4, 1, 0.22], [0.66, 0.85, 0.2]], strings: true, crater: true }
+];
+function makeMozzMountains(scene) {
+  MOZZ_MTNS.forEach((M, idx) => {
+    const key = 'mozzmtn' + idx, W = M.w, H = M.h, base = H - 1, r = rng(900 + idx * 37);
+    const MOZ = [0xfffbe8, 0xf4dea0, 0xc89650];
+    const top = x => {                                          // the silhouette: lumpy rounded peaks + a wobble
+      let y = 0;
+      for (const [c, hh, wd] of M.peaks) { const d = (x / W - c) / (wd * 1.5); y = Math.max(y, hh * (d * d < 1 ? Math.pow(1 - d * d, 0.6) : 0)); }   // round, gooey domes
+      y += 0.045 * Math.sin(x * 0.13 + idx * 2) * Math.min(1, y * 4);                               // a few soft lumps
+      if (M.slump) y *= 1 - 0.25 * Math.max(0, x / W - 0.55);
+      return base - y * (H - 10);
+    };
+    const tops = []; for (let x = 0; x <= W; x += 2) tops.push([x, top(x)]);
+    MOZZ_PEAKS[key] = M.peaks.map(([c, hh]) => [Math.round(c * W - W / 2), Math.round(hh * (H - 10))]);
+    pixSprite(scene, key, W, H, p => {
+      // the heap of cheese, shaded by hand: lit from the top left, shadowed on slopes facing right and low down, dithered
+      const T5 = [0xffffff, 0xfff4d0, 0xf0d898, 0xd8b068, 0xa87a3a];
+      for (let x = 0; x < W; x++) {
+        const y0 = Math.round(top(x)), sl = (top(x + 4) - top(x - 4)) / 2.6;
+        for (let y = y0; y <= base; y++) {
+          const t = (y - y0) / Math.max(4, base - y0);
+          let k = 2 + (sl < -0.6 ? -1 : sl > 0.6 ? 1 : 0) + (t > 0.62 ? 1 : 0) + (t > 0.88 ? 1 : 0);
+          if (y - y0 < 2) k -= 1;
+          const edge = (sl < -0.6 || sl > 0.6) && Math.abs(Math.abs(sl) - 0.6) < 0.35;            // dither where the shading changes
+          if (edge && (x + y) % 2) k += sl > 0 ? -1 : 1;
+          p.px(x, y, T5[Math.max(0, Math.min(4, k))]);
+        }
+      }
+      for (let k = 0; k < Math.round(W / 14); k++) {                                               // little glossy bubbles on the surface
+        const x = 6 + r() * (W - 12), y = top(x) + 4 + r() * Math.max(1, (base - top(x)) * 0.5);
+        if (y < base - 10) { p.ell(x, y, 2, 2, 0xfff6d8); p.px(Math.round(x) - 1, Math.round(y) - 1, 0xffffff); }
+      }
+      for (let x = 3; x < W - 3; x += 2) { const y0 = Math.round(top(x)); p.px(x, y0 + 1, 0xffffff); }   // glossy melted top edge
+      for (let k = 0; k < Math.round(W / 16); k++) {                                               // drips running down
+        const x = 6 + Math.floor(r() * (W - 12)), y0 = Math.round(top(x)) + 2, len = 6 + Math.floor(r() * (H * 0.45));
+        p.line([[x, y0], [x, Math.min(base - 6, y0 + len)]], 0xffffff, 2); p.ell(x, Math.min(base - 6, y0 + len) + 1, 1.6, 1.8, 0xfff6d8);
+        p.line([[x + 1, y0 + 2], [x + 1, Math.min(base - 7, y0 + len - 1)]], 0xe8c880);
+      }
+      for (let k = 0; k < Math.round(W / 10); k++) {                                               // browned, blistered spots
+        const x = 6 + r() * (W - 12), y = top(x) + 6 + r() * (base - top(x) - 14);
+        if (y < base - 8) p.ell(x, y, 1.5 + r() * 2.5, 1 + r() * 1.5, r() < 0.5 ? [0xe0a050, 0xb86a24, 0x7a3a10] : [0xa05a20, 0x6a3010, 0x3a1808]);
+      }
+      p.poly([[0, base]].concat(tops.map(([x]) => [x, base - 4 - 3 * Math.abs(Math.sin(x * 0.21 + idx))])).concat([[W, base]]), [0x8a4a1c, 0x4a200c, 0x1a0804]);   // charred crust foot
+      if (M.crater) {                                                                               // a bubbling lava crater on the top peak
+        const [c] = M.peaks.reduce((a, b) => (b[1] > a[1] ? b : a)), cx = c * W, cy = top(cx) + 3;
+        p.ell(cx, cy, 7, 2.5, [0xffe080, 0xff7a1a, 0xc02a0a]); p.px(cx - 2, cy - 1, 0xffffff);
+        p.line([[cx + 3, cy + 2], [cx + 6, cy + 9], [cx + 4, cy + 16]], 0xff6a1a);
+      }
+      if (M.strings && M.peaks.length > 1) {                                                        // stretchy cheese strings between two peaks
+        const [a, b] = M.peaks, xa = a[0] * W, xb = b[0] * W, ya = top(xa) + 4, yb = top(xb) + 4;
+        for (let s = 0; s < 3; s++) { const sag = 8 + s * 5, pts = []; for (let t = 0; t <= 1.001; t += 0.1) pts.push([xa + (xb - xa) * t, ya + (yb - ya) * t + Math.sin(t * Math.PI) * sag]); p.line(pts, s === 1 ? 0xfff6d8 : 0xffffff); }
+      }
+    });
+  });
+}
+
 function makeMozzTextures(scene) {
+  makeMozzMountains(scene);
   const MOL = [0xfff6d0, 0xffc25a, 0xd0601a], CR = [0x7a4422, 0x40200e, 0x1c0c06], DARK = 0x2a0804;
   const crackIt = (p, pts) => p.line(pts, 0xff6a1a, 1);
   // ---- the boss: a lumpy giant of molten mozzarella, fanged maw, burning eyes, dripping arms
@@ -132,6 +200,19 @@ const MozzMixin = {
     for (let i = z.rings.length - 1; i >= 0; i--) {
       const Rg = z.rings[i]; Rg.t -= dt;
       if (Rg.t <= 0) { z.rings.splice(i, 1); const b = this.addEBullet('mg_glob', Rg.theta, 420, 0, -620, 12, 3); b.lava = true; b.spr.bsx = b.spr.bsy = 1.5; }
+    }
+    // the mozzarella mountains steam and blip
+    z.steamT = (z.steamT || 0) - dt;
+    if (z.steamT <= 0) {
+      z.steamT = 0.12;
+      const near = this.props.filter(q => q.spr.texture && /^mozzmtn/.test(q.spr.texture.key) && Math.abs(angDiff(q.theta, P.theta)) < this.visHalf + 0.1);
+      const q = near[Math.floor(Math.random() * near.length)];
+      if (q) {
+        const pk = MOZZ_PEAKS[q.spr.texture.key], [px, py] = pk[Math.floor(Math.random() * pk.length)], fl = q.spr.flipX ? -1 : 1;
+        const th = wrap(q.theta + px * fl * q.spr.bsx / R), h = q.h + py * q.spr.bsy - 4;
+        if (Math.random() < 0.6) { const im = this.add.image(0, 0, 'puff').setDepth(2.45).setAlpha(0.35).setTint(0xfff0d0); im.bsx = im.bsy = rnd(0.2, 0.35); this.parts.push({ theta: th, h, vt: rnd(-12, 12), vh: rnd(30, 60), life: rnd(1, 1.6), noGrav: true, grow: 0.5, spr: im }); }
+        else { const im = this.add.image(0, 0, 'cheesebub').setDepth(2.55); im.bsx = im.bsy = rnd(0.6, 1); this.parts.push({ theta: th, h, vt: rnd(-40, 40), vh: rnd(90, 160), life: 0.5, spr: im }); }
+      }
     }
     // the boss's parts go when he does
     if (z.boss && !this.enemies.includes(z.boss)) { this.mgParts(z.boss); z.boss = null; }
