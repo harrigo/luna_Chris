@@ -12,7 +12,7 @@ const PIXEL = '"Press Start 2P", monospace';
 const SPRITE_FILES = new Set();
 const madeTex = (scene, key) => scene.textures.exists(key) && !SPRITE_FILES.has(key);   // "this generator already ran"
 
-function pixSprite(scene, key, w, h, paint, outline) {
+function pixSprite(scene, key, w, h, paint, outline, post) {   // post(grid, w, h): after the outline (e.g. dithering holes)
   if (SPRITE_FILES.has(key)) return;
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const grid = new Array(w * h).fill(-1);
@@ -49,6 +49,7 @@ function pixSprite(scene, key, w, h, paint, outline) {
     const src = grid.slice(), at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : src[y * w + x];
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (src[y * w + x] < 0 && (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0)) grid[y * w + x] = OUTL;
   }
+  if (post) post(grid, w, h);
   const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
   for (let i = 0; i < w * h; i++) { const c = grid[i]; if (c < 0) continue; D[i * 4] = (c >> 16) & 255; D[i * 4 + 1] = (c >> 8) & 255; D[i * 4 + 2] = c & 255; D[i * 4 + 3] = 255; }
   ctx.putImageData(img, 0, 0); tex.refresh();

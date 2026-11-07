@@ -111,7 +111,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
       { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
     ],
-    boss: { tex: 'milkmaid', hp: 160, ai: 'phantom' },
+    boss: { tex: 'milkmaid', hp: 200, ai: 'milkmaid', scale: 1.25 },
     win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a smoking volcano planet.'
   },
 
@@ -1576,17 +1576,7 @@ function makeRoadmapTextures(scene) {
     p.rrect(0, 60, 14, 74, 3, STEEL); p.rrect(136, 60, 150, 74, 3, STEEL);                                 // pepperoni chutes
     p.ell(75, 22, 20, 6, [0xfff0b0, 0xf0c050, 0xc08020]); for (const x of [64, 74, 84]) p.ell(x, 21, 3, 2, [0xff7a6a, 0xd0301a, 0x8a1a10]);   // a pizza cooking on top
   });
-  pixSprite(scene, 'milkmaid', 124, 96, p => {                  // L5: the phantom milkmaid
-    const GH = [0xffffff, 0xd8ecff, 0x8ab0e0];
-    p.poly([[34, 44], [90, 44], [104, 88], [92, 78], [82, 95], [70, 80], [58, 95], [46, 80], [34, 94], [26, 80], [18, 90]], GH);
-    p.ell(62, 32, 18, 17, GH);
-    p.ell(62, 18, 26, 10, [0xffffff, 0xf0f4ff, 0xb8c8e8]); p.rect(36, 20, 88, 22, 0xe8b8d8);
-    p.ell(55, 32, 4, 5, 0x1a2a4a); p.ell(69, 32, 4, 5, 0x1a2a4a); p.px(54, 30, 0x9fd8ff); p.px(68, 30, 0x9fd8ff);
-    p.ell(62, 42, 4, 5, 0x1a2a4a);
-    p.line([[38, 48], [16, 60]], 0xd8ecff, 3); p.line([[86, 48], [108, 60]], 0xd8ecff, 3);
-    p.rrect(4, 56, 22, 74, 2, STEEL); p.rrect(102, 56, 120, 74, 2, STEEL);                                 // two milk pails (the guns)
-    p.ell(13, 57, 8, 2, 0xffffff); p.ell(111, 57, 8, 2, 0xffffff);
-  });
+  makeMilkmaidTextures(scene);                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
   pixSprite(scene, 'wheel', 96, 96, p => {                      // L6: the gargantuan Spicy Pepper Jack
     p.ell(48, 48, 46, 46, [0xf0d890, 0xd8b050, 0x9a7020]);
     p.ell(48, 48, 39, 39, [0xfff8d0, 0xf6e6a0, 0xd8c070]);

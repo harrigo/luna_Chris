@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.85';
+const BUILD = 'v1.86';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -397,7 +397,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
       for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
     }
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -1371,6 +1371,7 @@ class Level1 extends Phaser.Scene {
       this.updatePickups(dt);
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
+      if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1921,7 +1922,8 @@ class Level1 extends Phaser.Scene {
   }
 
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
-  hitK(e) {
+  hitK(e, th, h) {
+    if (e.ai === 'milkmaid') return this.mmHitK(e, th, h);   // act 2: her heart is the weak spot
     if (e.ai === 'wheel' && e.core) return 0.12;           // the gooey core shrugs off normal shots: charge up and hit the eye
     if (e.type === 'mgolem') {                          // charred crust armour: half damage, chips flying, until it cracks open
       if (!e.hot && e.hp < e.maxHp * 0.5) { e.hot = true; e.spr.setTexture('mgolem_hot'); bakedGlow(e.spr, 0xff8a2a, 2, 6); this.burst(e.theta, e.h + 30, 'crumb', 14, 1.2); Sound.sfx('crash'); this.banner('ARMOUR CRACKED!'); }
@@ -3073,7 +3075,7 @@ class Level1 extends Phaser.Scene {
   camKick(x, y) { if (Settings.shake) { this.kick.vx += x * 22; this.kick.vy += y * 22; } }          // directional camera knock (springs back)
   // what an enemy sounds like: squishy cheese (most of them), clanking metal, or a ghost
   matOf(e) {
-    if (e.type === 'boss') return ['mandoline', 'flagship', 'king', 'paladin'].includes(e.ai) ? 'metal' : (e.ai === 'phantom' ? 'ghost' : 'squish');
+    if (e.type === 'boss') return ['mandoline', 'flagship', 'king', 'paladin'].includes(e.ai) ? 'metal' : (e.ai === 'phantom' || e.ai === 'milkmaid' ? 'ghost' : 'squish');
     return ({ drone: 'metal', slicer: 'metal', paladin: 'metal', ghostpirate: 'ghost', phantom: 'ghost', polterwedge: 'ghost' })[e.type] || 'squish';
   }
   hitSfx(e) { Sound.sfx(({ metal: 'tink', ghost: 'hit', squish: 'squish' })[this.matOf(e)]); }
@@ -3139,7 +3141,8 @@ class Level1 extends Phaser.Scene {
       const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
-      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e);
+      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e, theta, h);
+      if (e.ai === 'milkmaid') this.mmOnHit(e, theta, h);
       this.knock(e, theta, full ? 240 : 130);
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
@@ -3509,13 +3512,13 @@ class Level1 extends Phaser.Scene {
       } else if (e.type === 'boss') {
         if (e.ai === 'croque' || e.ai === 'baron') this.croqueStage(e, P);
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
-        if (e.ai !== 'wheel' && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
+        if (e.ai !== 'wheel' && !e.mmLock && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
           const baron = e.ai === 'baron';
           const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head
           const maxV = baron ? (e.hp < e.maxHp * 0.5 ? 270 : 225) / R : (e.hp < e.maxHp * 0.5 ? 0.3 : 0.24);   // (the Baron runs about as fast as Chris)
           const step = Math.max(-maxV, Math.min(maxV, angDiff(target, e.theta) * 0.9));
           if (!(e.charge > 0)) e.theta = wrap(e.theta + step * dt);
-          if (!(e.charge > 0)) e.h = (e.ai === 'paladin' ? 130 : (baron ? 165 : 175)) + Math.sin(e.t * (baron ? 2.2 : 1.3)) * (baron ? 18 : 30);       // low enough to hit with a jump (shots fly straight)
+          if (!(e.charge > 0)) e.h = (e.ai === 'paladin' ? 130 : e.ai === 'milkmaid' ? MM.idleH : (baron ? 165 : 175)) + Math.sin(e.t * (baron ? 2.2 : 1.3)) * (baron ? 18 : 30);       // low enough to hit with a jump (shots fly straight)
         }
         const phase2 = e.hp < e.maxHp * 0.5;
 
@@ -3638,6 +3641,8 @@ class Level1 extends Phaser.Scene {
             for (let k = 0; k < n; k++) { const a = (k - (n - 1) / 2) * 0.32; this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5); }
             this.muzzleFlash(c.theta, c.h);
           }
+        } else if (e.ai === 'milkmaid') {                // L3: the Phantom Milkmaid (milkmaid.js)
+          this.mmAI(e, dt, P, phase2);
         } else if (e.ai === 'phantom') {                 // L5: spinning geometric pinwheel patterns, and she vanishes and reappears
           if (!e.blinking) e.spr.setAlpha(0.7 + 0.25 * Math.sin(e.t * 4));
           e.spinA = (e.spinA || 0) + dt * (phase2 ? 1.6 : 1.1);
@@ -3830,7 +3835,7 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff }[kind] || 0xffc040;
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, ghostcow0: 0x7ab8ff }[kind] || 0xffc040;
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
@@ -3900,8 +3905,9 @@ class Level1 extends Phaser.Scene {
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
           const rr = e.r + 8;
           if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
-            const hk = this.hitK(e);
+            const hk = this.hitK(e, b.theta, b.h);
             if (hk === 0) { this.deflect(e, b.theta, b.h, b); break; }
+            if (e.ai === 'milkmaid') this.mmOnHit(e, b.theta, b.h);
             e.hp -= (b.dmg || 1) * hk; if (this.buffOn('sauce')) e.burn = 2;
             this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
             this.hitSfx(e);
@@ -3933,6 +3939,7 @@ class Level1 extends Phaser.Scene {
         b.vt += (ex / len * v - b.vt) * Math.min(1, dt * 2.2); b.vh += (ey / len * v - b.vh) * Math.min(1, dt * 2.2);
       }
       if (b.grav) b.vh -= b.grav * dt;
+      if (b.curl) { const c = Math.cos(b.curl * dt), sn = Math.sin(b.curl * dt), vt0 = b.vt; b.vt = vt0 * c - b.vh * sn; b.vh = vt0 * sn + b.vh * c; }   // curling paths (the Milkmaid's spiral rings)
       b.theta = wrap(b.theta + (b.vt / R) * dt);
       b.h += b.vh * dt;
       b.life -= dt;
@@ -4597,6 +4604,7 @@ class Level1 extends Phaser.Scene {
     for (const e of this.enemies) {
       this.place(e.spr, e.theta, e.h + (e.lift || 0), e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
       if (e.ai === 'baron') this.drawBaron(e);
+      if (e.ai === 'milkmaid') this.mmDraw(e);
       if (e.ai === 'wheel') this.drawWheelFace(e);
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
       if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
@@ -4729,7 +4737,8 @@ class Level1 extends Phaser.Scene {
 //    about to come into view = blinking. Big enemies are orange, the boss red, the rest yellow.
 // 2. Planet radar (landscape): a little planet under the cow track with Chris on top, the slice you can see
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
-Object.assign(Level1.prototype, MandolineMixin);     // L3's Mega-Mandoline (src/mandoline.js)
+Object.assign(Level1.prototype, MandolineMixin);
+Object.assign(Level1.prototype, MilkmaidMixin);      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {
   const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;

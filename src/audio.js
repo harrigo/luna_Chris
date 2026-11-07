@@ -232,6 +232,10 @@ const Sound = (() => {
     beat:    () => { tone({ type: 'sine', f: 70, f2: 40, dur: 0.12, vol: 0.4 }); tone({ type: 'sine', f: 62, f2: 38, dur: 0.12, vol: 0.3, t: ctx.currentTime + 0.18 }); },   // low-health heartbeat
     combo:   () => arp([660, 990], 0.04, { type: 'pulse', duty: 0.25, vol: 0.08 }),
     blip:    () => tone({ type: 'pulse', duty: 0.5, f: 740 + Math.random() * 120, dur: 0.025, vol: 0.035 }),     // caption typewriter
+    // the Phantom Milkmaid: a high, warbling, crunchy 16-bit wail; her churn hitting the ground; her laser cage locking on
+    wail:    () => { wobble({ type: 'square', f: 1250, f2: 620, dur: 0.75, vol: 0.07, rate: 7, depth: 90 }); wobble({ type: 'square', f: 1262, f2: 640, dur: 0.75, vol: 0.05, rate: 5.5, depth: 70 }); noise({ ft: 'bandpass', f1: 2400, f2: 1200, dur: 0.6, vol: 0.05 }); },
+    churnclang: () => { tone({ type: 'square', f: 170, f2: 55, dur: 0.5, vol: 0.32 }); tone({ type: 'square', f: 523, f2: 500, dur: 0.6, vol: 0.09 }); tone({ type: 'square', f: 787, f2: 760, dur: 0.45, vol: 0.07 }); tone({ type: 'triangle', f: 1310, f2: 1290, dur: 0.35, vol: 0.06 }); noise({ ft: 'lowpass', f1: 1800, f2: 120, dur: 0.35, vol: 0.35 }); },
+    zap:     () => { tone({ type: 'sawtooth', f: 1600, f2: 200, dur: 0.25, vol: 0.12 }); tone({ type: 'square', f: 90, f2: 60, dur: 0.3, vol: 0.12 }); },
     alarm:   () => { for (let i = 0; i < 3; i++) tone({ type: 'square', f: 880, f2: 620, dur: 0.18, vol: 0.09, t: ctx.currentTime + i * 0.24 }); },
     shine:   () => arp([1320, 1760, 2640], 0.05, { type: 'pulse', duty: 0.125, vol: 0.08 }),
     ufoFly:  () => tone({ type: 'sawtooth', f: 1100, f2: 180, dur: 0.85, vol: 0.1 }),
