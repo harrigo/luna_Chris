@@ -48,7 +48,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   });
   // parallax hill rings
   (cfg.ridges || []).forEach((rg, n) => {
-    const outer = Rw + rg.off + rg.amp + (rg.style === 'wrecks' ? 90 * (rg.size || 1) : 0), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
+    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
     const rnd = rng(rg.seed || (77 + n * 31)), steps = 720, prof = [];
     let v = 0; for (let i = 0; i < steps; i++) { v += (rnd() - 0.5) * 0.35; v *= 0.96; prof.push(v); }
     const walk = a => prof[Math.floor((a / (Math.PI * 2)) * steps + steps * 4) % steps];
@@ -62,10 +62,44 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         for (const f of feats) { const d = Math.abs(dA(a, f.a)) / f.w; if (d < 1) h = Math.max(h, f.h * Math.pow(1 - d, 0.7)); }
         return h;
       }
-      if (st === 'wrecks') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
+      if (st === 'wrecks' || st === 'factory' || st === 'cogs') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
       return 0.55 + 0.25 * Math.sin(a * 7 + n) + 0.15 * Math.sin(a * 19 + n * 2) + 0.35 * walk(a);   // jagged hills
     };
     // the lost ships of the Brie-muda Triangle, half sunk on the far dunes: a tilted hull, masts, crossbars, rags of sail
+    // a factory city on the far horizon: blocks, chimneys, the odd crane, rows of lit windows (2 = a lit window)
+    const factory = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        const u = dA(a, f.a) * Rw / Z, w = 16 + f.s * 34, hh = 26 + f.h * 64;
+        if (Math.abs(u) < w / 2 && v < hh && v > -10) {
+          if (v > 4 && v < hh - 5 && Math.abs(u) < w / 2 - 3 && (Math.floor(v) % 7) < 3 && (Math.floor(u + 50) % 6) < 3) {
+            const lit = Math.sin(Math.floor((u + 50) / 6) * 12.9898 + Math.floor(v / 7) * 78.233 + f.a * 9) * 43758.5;
+            if (lit - Math.floor(lit) < 0.35) return 2;
+          }
+          return 1;
+        }
+        if (f.s < 0.35 && Math.abs(u - w * 0.25) < 3 && v < hh + 26 + f.h * 18 && v > 0) return 1;           // chimney
+        if (f.s > 0.85) {                                                                                    // gantry crane
+          if (Math.abs(u + w * 0.6) < 2 && v < hh + 50 && v > 0) return 1;
+          if (Math.abs(v - (hh + 48)) < 1.6 && u > -w * 0.6 - 4 && u < -w * 0.6 + 46) return 1;
+          if (Math.abs(u - (-w * 0.6 + 40)) < 0.8 && v > hh + 22 && v < hh + 48) return 1;
+        }
+      }
+      return 0;
+    };
+    // great half-buried cogwheels (teeth, a hub hole)
+    const cogs = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        if (f.s > 0.55) continue;
+        const rad = 16 + f.h * 26, u = dA(a, f.a) * Rw / Z, cy0 = rad * 0.35, q = Math.hypot(u, v - cy0);
+        if (q > rad + 5) continue;
+        if (q < rad * 0.28) return 0;
+        const ang = Math.atan2(v - cy0, u), teeth = Math.round(rad / 3.2), tooth = ((ang / (2 * Math.PI) * teeth * 2 + 64) % 2) < 1;
+        if (q < rad || (tooth && q < rad + 5)) return q > rad * 0.5 && q < rad * 0.62 ? 2 : 1;
+      }
+      return 0;
+    };
     const wreck = (a, dd) => {
       for (const f of feats) {
         if (f.s > 0.45) continue;                                               // (only some of them are ships)
@@ -93,6 +127,8 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           col = top - dd < 3 && th < 0.6 ? TOP : C;
           if (holes) for (const H of holes) { const hu = dA(a, H.a) * Rw, hv = dd - (Rw + rg.off + rg.amp * H.d * 0.6), q = Math.hypot(hu, hv); if (q < H.r) { col = q > H.r - 1.6 ? TOP : null; break; } }
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
+        else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
+        else if (st === 'cogs') { const w = cogs(a, dd); if (w) col = w === 2 ? TOP : C; }
         if (!col) continue;
         D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
         if (rg.glow && top - dd > 6 && th < 0.03 && rnd() < (rg.glowP || 0.08)) { D[i] = rg.glow[0]; D[i + 1] = rg.glow[1]; D[i + 2] = rg.glow[2]; }   // little lights in the hills (lava, spores, will-o'-wisps)
@@ -118,6 +154,15 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           for (let y = 0; y < w * 0.7; y++) { const half = Math.sqrt(1 - Math.pow(y / (w * 0.7), 2)) * w; for (let x = -half; x <= half; x++) set(cx + x, H - hh - y, FC); }   // cap
           if (GL) for (let k = 0; k < 4; k++) set(cx - w * 0.6 + k * w * 0.4, H - hh - 3 - (k % 2) * 4, GL);
         }
+      } else if (st === 'girders') {                                            // factory floor: a leaning truss, hazard bollards, a pipe arch
+        for (const [x0, len, ang] of [[20, 70, -0.9], [540, 64, -2.1]]) {
+          const ex = x0 + Math.cos(ang) * len, ey = H - 1 + Math.sin(ang) * len;
+          for (let t = 0; t <= 1; t += 0.006) for (const off of [-4, 4]) { const x = x0 + (ex - x0) * t - Math.sin(ang) * off, y = H - 1 + (ey - H + 1) * t + Math.cos(ang) * off; set(x, y, FC); set(x + 1, y, FC); }
+          for (let k = 0; k < 6; k++) { const t0 = k / 6, t1 = (k + 1) / 6; for (let t = 0; t <= 1; t += 0.05) { const tt = t0 + (t1 - t0) * t, off = -4 + 8 * ((k % 2) ? t : 1 - t); set(x0 + (ex - x0) * tt - Math.sin(ang) * off, H - 1 + (ey - H + 1) * tt + Math.cos(ang) * off, FC); } }   // cross-bracing
+        }
+        for (const [x0, hh] of [[300, 26], [322, 20], [460, 30]]) for (let y = H - hh; y < H; y++) for (let x = x0; x < x0 + 7; x++) set(x, y, GL && ((y + x) >> 2) % 2 ? GL : FC);   // hazard bollards, striped
+        for (let t = 0; t <= Math.PI; t += 0.004) for (let w = 0; w < 7; w++) set(150 + Math.cos(t) * (40 - w), H - 1 - Math.sin(t) * (34 - w), FC);   // pipe arch
+        if (GL) for (let t = 0.2; t < Math.PI; t += 0.35) set(150 + Math.cos(t) * 40, H - 2 - Math.sin(t) * 34, GL);
       } else if (st === 'bones') {                                              // graveyard: great curved ribs and a broken grave post
         for (const [x0, span, hgt] of [[40, 60, 46], [500, 70, 52]]) for (let rib = 0; rib < 4; rib++) {
           const xs = x0 + rib * span / 4, hh = hgt * (1 - rib * 0.15);
@@ -161,6 +206,11 @@ function makeDepthTextures(scene, id, Rw, cfg) {
     const CC = cfg.cracks, rnd = rng(9090);
     depthCanvas(scene, 'dcrack' + id, S, S, D => {
       const put = (x, y, a) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= S || y >= S) return; const i = (y * S + x) * 4; D[i] = CC[0]; D[i + 1] = CC[1]; D[i + 2] = CC[2]; D[i + 3] = Math.max(D[i + 3], a); };
+      if (cfg.crackStyle === 'seams') {                                         // machine plating: glowing seams round and across the deck, lights where they meet
+        for (const f of [0.9, 0.82]) for (let a = 0; a < Math.PI * 2; a += 0.0015) if ((Math.floor(a * 40) % 5) !== 0) put(c + Math.cos(a) * c * f, c + Math.sin(a) * c * f, 150);
+        for (let a = 0; a < Math.PI * 2; a += 0.11) { for (let f = 0.78; f < 0.95; f += 0.002) put(c + Math.cos(a) * c * f, c + Math.sin(a) * c * f, 130); for (const f of [0.9, 0.82]) for (let k = -1; k <= 1; k++) put(c + Math.cos(a) * c * f + k, c + Math.sin(a) * c * f, 255); }
+        return;
+      }
       const veins = cfg.crackStyle === 'veins';                                  // blue-cheese veins: longer, wandering, branching
       for (let n = 0; n < (veins ? 46 : 70); n++) {
         let a = rnd() * Math.PI * 2, r = c * (0.8 + rnd() * 0.16);

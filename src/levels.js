@@ -182,6 +182,15 @@ const LEVELS = {
     music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
+    // depth (depth.js) - a grim industrial asteroid: hard cold floodlight from above, deep blue-black shadow, a steel-white
+    // rim, a thin haze of sodium-orange smog; glowing seams in the deck plating; a factory city on the far horizon (lit
+    // windows, chimneys, cranes), giant half-buried cogs nearer; a leaning truss, striped hazard bollards and a pipe arch
+    // right in front of the camera
+    depth: { light: [-0.3, -0.9, 0.35], dark: [4, 6, 18], shadeA: [0, 85, 145, 195], rim: [200, 225, 255], atmo: [255, 150, 60], atmoW: 0.06, atmoA: 45,
+      cracks: [90, 200, 255], crackStyle: 'seams', crackPulse: 1.1, crackA: 0.3,
+      ridges: [{ style: 'factory', n: 30, off: 60, amp: 18, col: [22, 26, 40], top: [60, 70, 96], k: 0.4, depth: 0.33, seed: 31, glow: [255, 196, 90], glowP: 0 },
+               { style: 'cogs', n: 18, off: 22, amp: 14, col: [40, 46, 62], top: [110, 122, 146], k: 0.66, depth: 0.37, seed: 37 }],
+      fg: { style: 'girders', col: [8, 10, 18], glow: [255, 196, 40] } },
     geysers: { n: 7, idle: [2.5, 5], warn: 1.0, erupt: 1.3, height: 180, puff: 'steam', vent: 'steamvent', glow: 0xffffff, float: true },   // steam vents
     planet: { fill: 0x707a86, inner: 0x59616d, rim: 0xd5dde8, glow: 0x9ab8e8 },
     dust: [0xff9a3a, 0xffd23f, 0x5a6a8a, 0xff6a3a], decorTint: 0x8a929c, decorAlpha: 0.55,
