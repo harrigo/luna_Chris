@@ -39,6 +39,10 @@ const MOZZ_MTNS = [
 function makeMozzMountains(scene) {
   MOZZ_MTNS.forEach((M, idx) => {
     const key = 'mozzmtn' + idx, W = M.w, H = M.h, base = H - 1, r = rng(900 + idx * 37);
+    // the planet curves away under a wide flat-bottomed sprite, leaving its ends in the air: so the foot runs DOWN at the
+    // ends to follow the curve (at the scale they're shown, ~1.4 world units a pixel on an R440 planet), into extra rows
+    // below the base, and the texture's origin sits at the base row (see customData.oy, used by the prop code)
+    const PAD = 12, sag = x => Math.min(PAD, Math.pow(x - W / 2, 2) * 1.4 / (2 * 440)), bot = x => Math.round(base + sag(x));
     const MOZ = [0xfffbe8, 0xf4dea0, 0xc89650];
     const top = x => {                                          // the silhouette: lumpy rounded peaks + a wobble
       let y = 0;
@@ -49,13 +53,13 @@ function makeMozzMountains(scene) {
     };
     const tops = []; for (let x = 0; x <= W; x += 2) tops.push([x, top(x)]);
     MOZZ_PEAKS[key] = M.peaks.map(([c, hh]) => [Math.round(c * W - W / 2), Math.round(hh * (H - 10))]);
-    pixSprite(scene, key, W, H, p => {
+    pixSprite(scene, key, W, H + PAD, p => {
       // the heap of cheese, shaded by hand: lit from the top left, shadowed on slopes facing right and low down, dithered
       const T5 = [0xffffff, 0xfff4d0, 0xf0d898, 0xd8b068, 0xa87a3a];
       for (let x = 0; x < W; x++) {
         const y0 = Math.round(top(x)), sl = (top(x + 4) - top(x - 4)) / 2.6;
-        for (let y = y0; y <= base; y++) {
-          const t = (y - y0) / Math.max(4, base - y0);
+        for (let y = y0; y <= bot(x); y++) {
+          const t = (y - y0) / Math.max(4, bot(x) - y0);
           let k = 2 + (sl < -0.6 ? -1 : sl > 0.6 ? 1 : 0) + (t > 0.62 ? 1 : 0) + (t > 0.88 ? 1 : 0);
           if (y - y0 < 2) k -= 1;
           const edge = (sl < -0.6 || sl > 0.6) && Math.abs(Math.abs(sl) - 0.6) < 0.35;            // dither where the shading changes
@@ -77,7 +81,16 @@ function makeMozzMountains(scene) {
         const x = 6 + r() * (W - 12), y = top(x) + 6 + r() * (base - top(x) - 14);
         if (y < base - 8) p.ell(x, y, 1.5 + r() * 2.5, 1 + r() * 1.5, r() < 0.5 ? [0xe0a050, 0xb86a24, 0x7a3a10] : [0xa05a20, 0x6a3010, 0x3a1808]);
       }
-      p.poly([[0, base]].concat(tops.map(([x]) => [x, base - 4 - 3 * Math.abs(Math.sin(x * 0.21 + idx))])).concat([[W, base]]), [0x8a4a1c, 0x4a200c, 0x1a0804]);   // charred crust foot
+      for (let x = 0; x < W; x++) {                                                                 // charred crust foot, following the curve
+        const b = bot(x), f = 4 + Math.round(3 * Math.abs(Math.sin(x * 0.21 + idx)));
+        if (Math.round(top(x)) > b - 1) continue;
+        for (let y = b - f; y <= b; y++) p.px(x, y, y > b - 2 ? 0x1a0804 : y > b - f + 1 ? 0x4a200c : 0x8a4a1c);
+      }
+      for (const sd of [-1, 1]) for (let k = 0; k < 10; k++) {                                       // cheese oozing out over the crust at its feet
+        const x = Math.round(W / 2 + sd * (W / 2 - 4 - k * 1.5)); if (x < 0 || x >= W) continue;
+        const b = bot(x), y0 = Math.round(top(x)); if (y0 > b - 3) continue;
+        p.px(x, b - 5 - (k % 3), 0xf4dea0); p.px(x, b - 4 - (k % 3), 0xfff4d0);
+      }
       if (M.crater) {                                                                               // a bubbling lava crater on the top peak
         const [c] = M.peaks.reduce((a, b) => (b[1] > a[1] ? b : a)), cx = c * W, cy = top(cx) + 3;
         p.ell(cx, cy, 7, 2.5, [0xffe080, 0xff7a1a, 0xc02a0a]); p.px(cx - 2, cy - 1, 0xffffff);
@@ -87,7 +100,8 @@ function makeMozzMountains(scene) {
         const [a, b] = M.peaks, xa = a[0] * W, xb = b[0] * W, ya = top(xa) + 4, yb = top(xb) + 4;
         for (let s = 0; s < 3; s++) { const sag = 8 + s * 5, pts = []; for (let t = 0; t <= 1.001; t += 0.1) pts.push([xa + (xb - xa) * t, ya + (yb - ya) * t + Math.sin(t * Math.PI) * sag]); p.line(pts, s === 1 ? 0xfff6d8 : 0xffffff); }
       }
-    });
+    }, 1);
+    const T = scene.textures.get(key); if (T && T.customData) T.customData.oy = H / (H + PAD);   // base row, not the texture bottom
   });
 }
 

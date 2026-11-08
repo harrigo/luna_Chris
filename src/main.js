@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.92';
+const BUILD = 'v1.93';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -424,6 +424,7 @@ class Level1 extends Phaser.Scene {
       for (let i = 0; i < (pr.at ? pr.at.length : pr.n); i++) {
         const spot = pr.at ? pr.at[i] : null;                         // hand-placed: [theta, scale, flipX]
         const spr = this.add.image(0, 0, pr.tex).setOrigin(0.5, 1).setDepth(pr.depth || (pr.fg ? 8.2 : 2.5));
+        const cd = spr.texture.customData; if (pr.oy || (cd && cd.oy)) spr.setOrigin(0.5, pr.oy || cd.oy);   // feet below the base row (mozz.js mountains)
         if (pr.tint) spr.setTint(pr.tint);
         if (pr.alpha) spr.setAlpha(pr.alpha);
         spr.bsx = spr.bsy = (spot ? spot[1] : rnd(pr.sc[0], pr.sc[1])) * 1.35;

@@ -102,7 +102,8 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   // foreground rocks: a strip along the bottom of the screen, mostly empty, a crag every so often
   if (cfg.fg) {
     const W = 640, H = 64, FC = cfg.fg.col, GL = cfg.fg.glow, rnd = rng(4242);
-    depthCanvas(scene, 'dfg' + id, W, H, D => {
+    const D = new Uint8ClampedArray(W * H * 4);                               // the strip, drawn first...
+    (() => {
       const set = (x, y, c) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H) return; const i = (y * W + x) * 4; D[i] = c[0]; D[i + 1] = c[1]; D[i + 2] = c[2]; D[i + 3] = 255; };
       const clr = (x, y) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H) return; D[(y * W + x) * 4 + 3] = 0; };
       const st = cfg.fg.style || 'rocks';
@@ -141,6 +142,18 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           if (GL) for (let k = 0; k < 8; k++) { const q = k / 8 * Math.PI; set(hx + Math.cos(q + Math.PI) * hr, hy + Math.sin(q + Math.PI) * hr, GL); }   // lit lip
         }
       }
+    })();
+    // ...then wrapped round a RING, so the foreground follows a curve just like the planet (convex: highest in the middle
+    // of the screen, dropping away out of sight at the sides) instead of a flat strip that rose up at the screen edges
+    const Rb = Math.round(Rw / 1.2), reps = Math.max(1, Math.round(2 * Math.PI * Rb / W)), Sr = 2 * (Rb + H) + 2, cr = Sr / 2;
+    depthCanvas(scene, 'dfg' + id, Sr, Sr, R2 => {
+      for (let y = 0; y < Sr; y++) for (let x = 0; x < Sr; x++) {
+        const dx = x + 0.5 - cr, dy = y + 0.5 - cr, dd = Math.hypot(dx, dy), v = Math.floor(H - (dd - Rb));
+        if (v < 0 || v >= H) continue;
+        const u = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * reps * W) % W, j = (v * W + u) * 4;
+        if (!D[j + 3]) continue;
+        const i = (y * Sr + x) * 4; R2[i] = D[j]; R2[i + 1] = D[j + 1]; R2[i + 2] = D[j + 2]; R2[i + 3] = 255;
+      }
     });
   }
   // lava cracks under the crust, in the outer band (that's the bit you ever see)
@@ -173,7 +186,7 @@ const DepthMixin = {
     F.shade = this.add.image(0, 0, 'dshade' + id).setDepth(1.108);
     F.rim = this.add.image(0, 0, 'drim' + id).setDepth(1.115).setBlendMode(Phaser.BlendModes.ADD);
     if (cfg.cracks) F.crack = this.add.image(0, 0, 'dcrack' + id).setDepth(1.06).setBlendMode(Phaser.BlendModes.ADD);
-    if (cfg.fg) F.fg = this.add.tileSprite(0, 0, 10, 64, 'dfg' + id).setOrigin(0, 1).setDepth(8.45).setScrollFactor(0);
+    if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + id).setDepth(8.45).setScrollFactor(0); F.fgRb = Math.round(R / 1.2); }
   },
   drawDepth(cx, cy, Rz, unwV) {
     const F = this.depthFx; if (!F) return;
@@ -183,8 +196,10 @@ const DepthMixin = {
     if (F.crack) F.crack.setPosition(cx, cy).setScale(ps).setRotation(-unwV).setAlpha((F.cfg.crackA || 0.55) + 0.3 * Math.sin(this.t * (F.cfg.crackPulse || 1.7)));
     for (const r of F.ridges) r.im.setPosition(cx, cy).setScale(ps).setRotation(-unwV * r.k);   // same pixels-per-unit as the planet: same scale
     if (F.fg) {
-      const W = this.scale.width, H = this.scale.height, k = Math.max(1, this.zoom * 1.6);
-      F.fg.setPosition(0, H + 2).setSize(W, 64 * k).setTileScale(k).setTilePosition(unwV * R * this.zoom * 1.5 / k, 0);
+      // a ring a bit bigger than the planet on screen (gentler curve, closer to us), its base just under the bottom edge,
+      // turning faster than the planet (parallax: it's nearer)
+      const H = this.scale.height, Rs = Rz * 1.25, k = Rs / F.fgRb;
+      F.fg.setPosition(cx, H - 2 + Rs).setScale(k).setRotation(-unwV * 1.5 * (Rz / Rs));
     }
   }
 };
