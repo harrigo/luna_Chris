@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.95';
+const BUILD = 'v1.96';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -398,7 +398,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
       for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
     }
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.mz = null; this.eruptTip = false; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.mz = null; this.eruptTip = false; this.crownTip = false; this.baronDazeTip = false; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -2128,6 +2128,10 @@ class Level1 extends Phaser.Scene {
       return;
     }
     e.slamCd = Math.max(0, (e.slamCd || 0) - dt);
+    if (st === 1 && !e.slam) {                                  // act 1 flops too now (so there's a daze window to stomp in)
+      e.slam1Cd = (e.slam1Cd === undefined ? 5 : e.slam1Cd) - dt;
+      if (e.slam1Cd <= 0 && Math.abs(toP) * R < 170 && F.st === 'hang') { e.slam1Cd = rnd(6.5, 8.5); e.slam = { st: 'rise', t: 0, th: wrap(e.theta + Math.max(-60, Math.min(60, toP * R)) / R), h0: e.h }; e.charge = 1; Sound.sfx('growl'); M.f = 2; }
+    }
     if (st >= 2 && !e.slam) {                                   // hunting: race over Chris's head
       const top = (st === 2 ? 360 : 290) / R, want = Math.max(-top, Math.min(top, angDiff(P.theta, e.theta) * 6));
       e.huntV = (e.huntV || 0) + (want - (e.huntV || 0)) * Math.min(1, dt * (st === 2 ? 5 : 3.5));
@@ -2152,13 +2156,16 @@ class Level1 extends Phaser.Scene {
           for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);   // spore wash skimming the floor both ways: jump it
           for (let k = 0; k < (st >= 3 ? 6 : 4); k++) { const a = (k - (st >= 3 ? 2.5 : 1.5)) * 0.42; this.addEBullet('spore', e.theta, 70, 250 * Math.sin(a), 380 * Math.cos(a) * 0.8, 10, 3).grav = 480; }
         }
-      } else if (SL.st === 'land') {
-        if (SL.t > (st === 2 ? 1.0 : 0.85)) SL.st = 'up';     // sat in the muck: hit him now
+      } else if (SL.st === 'land') {                          // DAZED in the muck, spore crown squashed flat: STOMP HIM NOW
+        if (!SL.told && !this.baronDazeTip) { SL.told = this.baronDazeTip = true; this.banner('HE\'S DAZED - STOMP HIM!'); }
+        if (SL.t > (st >= 3 ? 1.7 : 2.0)) SL.st = 'up';
       } else if (SL.st === 'up') {
         e.h += 190 * dt;
         if (e.h >= 160) { e.slam = null; e.charge = 0; e.slamCd = st === 2 ? 1.8 : 2.6; e.spitCd = Math.max(e.spitCd || 0, 0.6); }
+        if (st === 1 && e.h >= 160) e.slam = null;
       }
     }
+    e.mmLock = !!e.slam;                                        // (keeps the usual hovering from fighting the flop)
     const hunting = st >= 2 && (e.slam || e.slamCd <= 0);     // no flail or spit while he's diving in for a flop
     if (st >= 3) {                                               // homing mould rockets: shoot them down
       e.missCd = (e.missCd === undefined ? 1.5 : e.missCd) - dt;
@@ -2527,6 +2534,30 @@ class Level1 extends Phaser.Scene {
     const tw = Math.floor(t * 9 + e.seed) % 7 === 0 ? rnd(-1.5, 1.5) : 0;                                            // the tiny one twitches
     atOff(O.pr, 22 + lookX * 0.4 + tw, -9 + lookY * 0.4 + tw * 0.5); O.pr.setScale(O.pr.scaleX * 0.55, O.pr.scaleY * 0.55);
     for (const o of [O.mouth, O.pl, O.pr, O.clawA, O.clawB]) { o.setAlpha(e.spr.alpha); if (e.flash > 0) o.setTintFill(0xffffff); else if (e.baseTint && o !== O.mouth && o !== O.pl && o !== O.pr) o.setTint(e.baseTint); else o.clearTint(); }
+    // his SPORE CROWN: mouldy caps on top that puff when you land on them; squashed flat while he's dazed (stars spin round)
+    if (!O.crown) {
+      if (!this.textures.exists('baron_crown')) pixSprite(this, 'baron_crown', 64, 20, p => {
+        for (const [x, w, h] of [[8, 7, 8], [20, 9, 12], [33, 11, 15], [46, 9, 11], [57, 6, 7]]) {
+          p.rect(x - 1, 20 - h + 4, x + 1, 19, 0xc8e8d0);                                    // stalk
+          p.ell(x, 20 - h + 3, w, w * 0.55, [0x9fe8ff, 0x4aa8c8, 0x1a5a7a]);               // mouldy cap
+          p.px(x - 2, 20 - h + 2, 0xeaffff); p.px(x + 2, 20 - h + 3, 0x7dff9a); p.px(x, 20 - h + 1, 0x7dff9a);   // spores
+        }
+      }, 1);
+      O.crown = this.add.image(0, 0, 'baron_crown').setDepth(6.12).setOrigin(0.5, 1); O.stars = this.add.graphics().setDepth(6.4);
+    }
+    const dazed = e.slam && e.slam.st === 'land', topOff = -(e.spr.height / 2) + 10;
+    e.crownPuff = Math.max(0, (e.crownPuff || 0) - (this.lastDt || 0.016));
+    atOff(O.crown, 0, topOff);
+    O.crown.setScale(O.crown.scaleX * 1.1 * (1 + e.crownPuff * 0.6), O.crown.scaleY * 1.1 * (dazed ? 0.35 : 1 + e.crownPuff * 0.8)).setAlpha(e.spr.alpha).setTint(dazed ? 0x6a8a90 : 0xffffff);
+    O.stars.clear();
+    if (dazed && e.spr.visible) {
+      const c = this.screenPos(e.theta, e.h - topOff * k * gy + 26);
+      for (let i = 0; i < 4; i++) {
+        const a = t * 5 + i * Math.PI / 2, x = c.x + Math.cos(a) * 34 * z, y = c.y + Math.sin(a) * 10 * z, rr = 6 * z;
+        const pts = []; for (let j = 0; j < 10; j++) { const q = j * Math.PI / 5 - Math.PI / 2, rad = j % 2 ? rr * 0.45 : rr; pts.push({ x: x + Math.cos(q) * rad, y: y + Math.sin(q) * rad }); }
+        O.stars.fillStyle(0xffe24a, 1).fillPoints(pts, true);
+      }
+    }
     // the claws on their stretchy, bubbling strands of mould
     const F = e.fl;
     O.chain.clear();
@@ -3750,6 +3781,14 @@ class Level1 extends Phaser.Scene {
             this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.banner('OUCH! NOT THE SAW!');
             continue;
           }
+          if (e.ai === 'baron' && !(e.slam && e.slam.st === 'land')) {     // BARON's SPORE CROWN: it bursts in your face and throws you off
+            P.vh = 430; P.h = top + 1; P.jetArmed = false; this.hurt();
+            P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 230;
+            for (let k = 0; k < 14; k++) this.parts.push({ theta: wrap(P.theta + rnd(-24, 24) / R), h: top + rnd(0, 20), vt: rnd(-120, 120), vh: rnd(40, 200), life: rnd(0.6, 1.1), noGrav: true, grow: 1.2, spr: (() => { const im = this.add.image(0, 0, 'puff').setDepth(6.4).setTint(0x7dff9a).setAlpha(0.6); im.bsx = im.bsy = rnd(0.25, 0.45); return im; })() });
+            Sound.sfx('squelch'); Sound.sfx('hiss'); e.crownPuff = 0.4;
+            if (!this.crownTip) { this.crownTip = true; this.banner('SPORE CROWN! SHOOT HIM...\nSTOMP ONLY WHEN HE\'S DAZED'); }
+            continue;
+          }
           if (e.type === 'boss' && this.def.boss.armouredTop) {           // armour plating: Chris just bounces off
             P.vh = 380; P.h = top + 1; P.jetArmed = false; P.invuln = Math.max(P.invuln, 0.2);
             this.burst(P.theta, top, 'spark', 12, 1.1); this.cameras.main.shake(80, 0.005);
@@ -3769,7 +3808,8 @@ class Level1 extends Phaser.Scene {
           }
           if (e.stompCd > 0) continue;                                    // one stomp per landing: no double hits
           e.stompCd = 0.45;
-          if (e.type === 'boss') e.hp -= pound ? 12 : 6;
+          if (e.ai === 'baron') { e.hp -= pound ? 22 : 15; e.slam.t = 99; this.hitStop = Math.max(this.hitStop || 0, 0.07); this.cameras.main.shake(160, 0.01); this.popup(e.theta, top + 30, pound ? 'SQUELCH!!' : 'SQUELCH!', '#7dff8a', true); }   // a dazed stomp: big, and it wakes him
+          else if (e.type === 'boss') e.hp -= pound ? 12 : 6;
           else { e.stomps = (e.stomps || 0) + 1; if (e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - (pound ? 5 : 3)); }   // big ones always take two
           P.vh = pound ? 560 : 480; P.h = top + 1; P.diving = false; P.bounceT = 0.45;   // a real bounce: holding down can't cancel it
           if (e.hp > 0) P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 170;   // bounced back off them, not down onto them again

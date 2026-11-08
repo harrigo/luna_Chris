@@ -1262,3 +1262,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v1.95 — Foreground layer grounded and calmer
 - The foreground ring was sized from the planet (1.25x its screen radius). On small planets (the Grater, R300) that ring was narrower than the screen, so it curled UP at the sides and its pieces floated above the bottom edge. It's now a fixed big ring (radius 700 strip px, scale max(1, zoom*1.4)) whose base sits 6 px BELOW the bottom edge: a gentle curve on every level, with everything standing on the screen's bottom edge.
 - It slides past at 1.2x the planet surface's speed (was 1.5x).
+
+### v1.96 — Baron von Blue: spore crown + daze window (no more stomp-farming)
+- He now wears a SPORE CROWN (`baron_crown`, mouldy blue caps with spores, on top of his head). Landing on him normally bursts it in your face: no damage to him, it hurts you and throws you off (first time: "SPORE CROWN! SHOOT HIM... STOMP ONLY WHEN HE'S DAZED").
+- After every BELLY-FLOP he lies DAZED in the muck for 2 s (1.7 s in act 3): crown squashed flat and greyed, stars spinning round his head ("HE'S DAZED - STOMP HIM!"). A stomp then does 15 (22 with a dive), a hit-stop and "SQUELCH!", and wakes him up (one big stomp per flop).
+- Act 1 now has belly-flops too (every 6.5-8.5 s when you're within ~170 of him), so there's a daze window from the start. The usual hovering is locked out while he flops.
+- Tested: a normal stomp did 0 to him and cost Chris 1; a dazed stomp did 15 and cost nothing.
