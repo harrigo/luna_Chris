@@ -1258,3 +1258,7 @@ depth.js gained styles: shade strengths (`shadeA`), atmosphere width/strength (`
 ### v1.94 — Depth on the Great Grater
 New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit windows, chimneys, gantry cranes), ridge `cogs` (great half-buried cogwheels with teeth, a hub hole and an inner ring), foreground `girders` (leaning cross-braced trusses, striped hazard bollards, a pipe arch with lights), crack style `seams` (glowing seams round and across the deck plating with lights where they cross).
 - **L5 The Great Grater** (grim industrial asteroid): hard cold floodlight from almost straight above, deep blue-black shadow, steel-white rim, a thin haze of sodium-orange smog; pulsing cyan seams in the deck; the factory city on the far horizon with warm lit windows (0.4x), big cogs nearer (0.66x); truss, hazard bollards and pipe arch in front of the camera.
+
+### v1.95 — Foreground layer grounded and calmer
+- The foreground ring was sized from the planet (1.25x its screen radius). On small planets (the Grater, R300) that ring was narrower than the screen, so it curled UP at the sides and its pieces floated above the bottom edge. It's now a fixed big ring (radius 700 strip px, scale max(1, zoom*1.4)) whose base sits 6 px BELOW the bottom edge: a gentle curve on every level, with everything standing on the screen's bottom edge.
+- It slides past at 1.2x the planet surface's speed (was 1.5x).

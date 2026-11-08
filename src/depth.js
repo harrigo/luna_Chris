@@ -190,7 +190,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
     })();
     // ...then wrapped round a RING, so the foreground follows a curve just like the planet (convex: highest in the middle
     // of the screen, dropping away out of sight at the sides) instead of a flat strip that rose up at the screen edges
-    const Rb = Math.round(Rw / 1.2), reps = Math.max(1, Math.round(2 * Math.PI * Rb / W)), Sr = 2 * (Rb + H) + 2, cr = Sr / 2;
+    const Rb = 700, reps = Math.max(1, Math.round(2 * Math.PI * Rb / W)), Sr = 2 * (Rb + H) + 2, cr = Sr / 2;
     depthCanvas(scene, 'dfg' + id, Sr, Sr, R2 => {
       for (let y = 0; y < Sr; y++) for (let x = 0; x < Sr; x++) {
         const dx = x + 0.5 - cr, dy = y + 0.5 - cr, dd = Math.hypot(dx, dy), v = Math.floor(H - (dd - Rb));
@@ -236,7 +236,7 @@ const DepthMixin = {
     F.shade = this.add.image(0, 0, 'dshade' + id).setDepth(1.108);
     F.rim = this.add.image(0, 0, 'drim' + id).setDepth(1.115).setBlendMode(Phaser.BlendModes.ADD);
     if (cfg.cracks) F.crack = this.add.image(0, 0, 'dcrack' + id).setDepth(1.06).setBlendMode(Phaser.BlendModes.ADD);
-    if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + id).setDepth(8.45).setScrollFactor(0); F.fgRb = Math.round(R / 1.2); }
+    if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + id).setDepth(8.45).setScrollFactor(0); F.fgRb = 700; }
   },
   drawDepth(cx, cy, Rz, unwV) {
     const F = this.depthFx; if (!F) return;
@@ -248,8 +248,11 @@ const DepthMixin = {
     if (F.fg) {
       // a ring a bit bigger than the planet on screen (gentler curve, closer to us), its base just under the bottom edge,
       // turning faster than the planet (parallax: it's nearer)
-      const H = this.scale.height, Rs = Rz * 1.25, k = Rs / F.fgRb;
-      F.fg.setPosition(cx, H - 2 + Rs).setScale(k).setRotation(-unwV * 1.5 * (Rz / Rs));
+      // a big ring (radius 700 strip px, not tied to the planet - on a small planet like the Grater a planet-sized ring
+      // curled up at the screen sides and its rocks floated), its base just BELOW the bottom edge so they stand on it,
+      // sliding past only a little faster than the planet's surface (1.2x)
+      const H = this.scale.height, k = Math.max(1, this.zoom * 1.4), Rs = F.fgRb * k;
+      F.fg.setPosition(cx, H + 6 + Rs).setScale(k).setRotation(-unwV * 1.2 * (Rz / Rs));
     }
   }
 };
