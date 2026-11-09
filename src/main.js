@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.02';
+const BUILD = 'v2.03';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -341,6 +341,7 @@ class Level1 extends Phaser.Scene {
       this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
     }
+    this.fx = null;
     this.depthFx = null; this.depthInit();               // neo-retro depth: sphere shading, parallax hills, foreground rocks (depth.js)
     if (!this.def.surface) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
@@ -471,6 +472,7 @@ class Level1 extends Phaser.Scene {
     this.augerPhase = 0;
     this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
     this.rig = new ChrisRig(this);
+    this.fxInit();                                        // neo-retro lighting (fx.js)
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
       this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
@@ -1470,6 +1472,7 @@ class Level1 extends Phaser.Scene {
 
   // graphics setting changed mid-level: drop shader glows if they're now off (lights follow the setting live)
   applyGfx() {
+    this.fxApply();                                     // camera bloom, vignette (fx.js)
     if (!Settings.glow) {
       for (const o of this.children.list) {
         try { if (o.preFX) o.preFX.clear(); if (o.postFX) o.postFX.clear(); } catch (e) { /* ignore */ }
@@ -4814,6 +4817,7 @@ class Level1 extends Phaser.Scene {
     if (this.scoreShown > this.score) this.scoreShown = this.score;
     this.scoreText.setText('SCORE: ' + String(this.scoreShown).padStart(7, '0'));
     P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
+    this.fxDraw();                                        // ground shadows, rim light (fx.js)
   }
 }
 
@@ -4827,7 +4831,8 @@ Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
-Object.assign(Level1.prototype, DepthMixin);         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
+Object.assign(Level1.prototype, DepthMixin);
+Object.assign(Level1.prototype, FxMixin);            // neo-retro lighting: bloom, vignette, ground shadows, rim light (src/fx.js)         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {
   const P = this.pl, W = this.W, H = this.H, z = this.zoom, t = this.t;

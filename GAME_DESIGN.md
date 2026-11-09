@@ -1296,3 +1296,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.02 - Spire and circus come round with the planet
 - The fountain spire and the circus now stand on the planet's far rim and turn with it (at the far fountain tiers' parallax rate, FD_FAR_K 0.45), rotated to the curve with their bases tucked behind the edge, instead of being stuck to the screen. The spire's spurts launch along its tilt. Both a little smaller (spire 1.4x, circus 1.2x).
 - Circus re-laid out: wider, the two red-and-white tents taller and further out so both show; the big top's door is smaller.
+
+## v2.03 - Neo-retro lighting on every level (src/fx.js, FxMixin)
+- BLOOM (graphics HIGH, WebGL): a custom one-pass camera post pipeline ('LCBloom'). Only pixels brighter than a threshold bleed (two/three little rings of taps added back on top), so the pixel art stays crisp - Phaser's built-in bloom FX blurs the whole frame, so it isn't used. Strength 0.6 by default; `def.bloom` turns it down on levels with a very bright planet (L3 0.28, L5.5 0.42). Follows the GRAPHICS option live (applyGfx -> fxApply).
+- VIGNETTE (MEDIUM+): an image under the HUD (depth 19.5), tinted with the level's shadow colour.
+- GROUND SHADOWS (all settings): a pooled dark blob under Chris and every enemy, placed on the floor beneath them (ledge or ground); shrinks and fades with height. `e.noShadow` opts an enemy out.
+- RIM LIGHT (MEDIUM+): each level's light (def.depth.light direction, rim/atmo colour) puts a thin coloured edge on the lit side of Chris (every rig part) and every enemy: a pooled copy of each sprite, tint-filled with the light colour, just behind it and nudged 1.4px towards the light. Skipped for see-through sprites. `e.noRim` opts out.
+- SHADE (MEDIUM+): enemy sprites fall off into the level's shadow colour on the side away from the light (a 4-corner gradient tint worked out from the sprite's rotation); left alone whenever game code is tinting or flashing the sprite.
+- Not done: recolouring the black outlines per level - the sprites all share one packed sheet, so that would need a copy of the sheet per level.
+- Bonus scenes (zero-g, freefall, centrifuge) don't have these yet.

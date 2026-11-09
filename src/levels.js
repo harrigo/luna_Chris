@@ -109,7 +109,7 @@ const LEVELS = {
   3: {
     id: 3, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
     music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
-    radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
+    bloom: 0.28, radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
     // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
     surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
     rimGlow: 0xb07aff, squish: true,
@@ -317,7 +317,7 @@ const LEVELS = {
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
   5.5: {
     id: 5.5, secret: true, name: 'The Forbidden Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A gilded fondue fountain in a party nebula.\nCurtains of hot cheese, soggy croutons -\nand a very posh rat.',
-    music: 'level55', bossName: 'LE GRAND FROMAGE', tip: 'DODGE THE CHEESE CURTAINS - OR BASH THEM APART!', fondue: true,
+    music: 'level55', bloom: 0.42, bossName: 'LE GRAND FROMAGE', tip: 'DODGE THE CHEESE CURTAINS - OR BASH THEM APART!', fondue: true,
     radius: 460, sky: [0x0c0420, 0x4a1a6a], skyCols: [0x0a0418, 0x160830, 0x240c46, 0x34125a, 0x4a1a6a, 0x66247a], bg: '#0a0418', starTint: 0xffe0ff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 0,
     // a polished gold fountain basin: bright gilt crust, darker brass beneath
     surface: { fountain: true, pal: [0x4a2a08, 0x8a5a14, 0xc08a24, 0xe8b83a, 0xffd860, 0xfff0b0], seed: 5555, rim: [0x2a1404, 0x6a4010, 0xc89030], spot: [0x3a2006, 0x6a4410], rimD: 0.93, rimLight: [255, 230, 150], dark: [30, 14, 40] },
