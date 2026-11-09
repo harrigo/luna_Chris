@@ -1286,3 +1286,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - READABILITY: the Dipped are now mouldy green with dark rot spots, toxic blisters and a purple toadstool cap; Fork Fanatics wear purple bandanas; Dipped, Fork Fanatics and Kamikaze Croutons have a 2px dark outline.
 - SKEWER ZIPLINES: skewers are longer (and lower, h 135). Jump up into one from underneath and Chris grabs it and slides along to the end the way he's facing, keeping his speed when he lets go. Jump to let go early, down to drop.
 - BOUNCY CROUTONS: land on one and it squishes and springs you up higher than a jump (P.springT stops the short-hop cap cutting it), but each bounce soaks it more (3 bounces and it sinks). Hold down to land softly.
+
+## v2.00 - Circus big tops on the Fondue Fountain
+- Three big red-and-white striped circus tops (p_bigtop: purple pennant, scalloped valance with gold trim, striped drum walls, gold stars, a rat-face sign, entrance curtains tied back with gold rope) and three smaller tents (p_tent, gold pennant), behind Chris (depth 2.4), placed clear of the fondue pools. Prop `oy` sits their base row on the crust with a skirt below for the planet's curve.

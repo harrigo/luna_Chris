@@ -138,6 +138,41 @@ function makeFondueTextures(scene) {
     const cols = [[0xff6a8a, 0xe02a4a, 0x8a1020], [0xffe080, 0xf0b020, 0x8a6010], [0x9ad8ff, 0x3a9ae0, 0x1a4a8a], [0xc89aff, 0x8a4ae0, 0x4a2a8a]];
     for (let k = 0; k < 9; k++) { const [x, y] = pts[k + 1]; p.poly([[x - 3, y], [x + 3, y], [x, y + 9]], cols[k % 4]); p.px(Math.round(x), Math.round(y + 3), DARK); }
   });
+  // circus BIG TOPS: red-and-white striped cones, a scalloped valance, striped walls, the entrance curtains drawn back
+  const bigTop = (key, W, H, o) => {
+    const PAD = 8, cx = W / 2, apex = o.apex, eave = o.eave, wallT = eave + 7, RED = [0xff6a6a, 0xe02a2a, 0x8a1010], WHT = [0xffffff, 0xf0e8e0, 0xb8a8a0];
+    pixSprite(scene, key, W, H + PAD, p => {
+      p.line([[cx, 0], [cx, apex + 2]], 0x6a4a2a, 2);                                          // flagpole and pennant
+      p.poly([[cx + 1, 1], [cx + 14, 4], [cx + 1, 8]], o.flag);
+      p.ell(cx, apex + 1, 2.5, 2.5, [0xfff0a0, 0xf0c040, 0xa87818]);
+      for (let y = apex + 2; y <= eave; y++) {                                                  // the roof: stripes fanning from the apex
+        const half = (y - apex) / (eave - apex) * (W / 2 - o.over), sag = 1;
+        for (let x = Math.ceil(cx - half); x <= cx + half; x++) {
+          const u = (x - cx) / Math.max(1, y - apex + 2), st = Math.floor(u * o.fan + 20) % 2, edge = Math.abs(x - cx) / Math.max(1, half);
+          const T = st ? WHT : RED; p.px(x, y, edge > 0.82 ? T[2] : (edge < 0.25 && y < eave - 6 ? T[0] : T[1]));
+        }
+      }
+      const sc = o.scallop, wl = o.over + 3;
+      for (let x = wl - 2; x <= W - wl + 2; x++) {                                              // the scalloped valance
+        const k = Math.floor((x - wl + 2) / sc), f = ((x - wl + 2) % sc) / sc, drop = Math.sqrt(Math.max(0, 1 - Math.pow(f * 2 - 1, 2))) * 5;
+        for (let y = eave; y <= eave + 2 + drop; y++) p.px(x, y, (k % 2 ? WHT : RED)[y === Math.floor(eave + 2 + drop) ? 2 : 1]);
+        p.px(x, eave, 0xffd040);
+      }
+      for (let y = wallT; y < H + PAD; y++) for (let x = wl; x <= W - wl; x++) {               // striped walls, shaded like a drum
+        const st = Math.floor((x - wl) / o.stripe) % 2, e = Math.abs(x - cx) / (W / 2 - wl), T = st ? WHT : RED;
+        p.px(x, y, y >= H ? 0x5a0a14 : (e > 0.8 ? T[2] : (e < 0.3 ? T[0] : T[1])));
+      }
+      const dw = o.door, dt = H - o.doorH;                                                       // the entrance: dark inside, curtains tied back with gold rope
+      for (let y = dt; y < H; y++) for (let x = cx - dw; x <= cx + dw; x++) { const ay = dt + 6 - Math.sqrt(Math.max(0, dw * dw - (x - cx) * (x - cx))) * 6 / dw; if (y >= ay) p.px(x, y, 0x2a0a1a); }
+      p.poly([[cx - dw, dt + 2], [cx - 2, dt + 2], [cx - dw, H - 1]], RED); p.poly([[cx + dw, dt + 2], [cx + 2, dt + 2], [cx + dw, H - 1]], RED);
+      p.line([[cx - dw, dt + o.doorH * 0.55], [cx - dw + 5, dt + o.doorH * 0.5]], 0xffd040, 2); p.line([[cx + dw, dt + o.doorH * 0.55], [cx + dw - 5, dt + o.doorH * 0.5]], 0xffd040, 2);
+      if (o.star) for (const sx of [-1, 1]) { const x = cx + sx * (W / 2 - wl) * 0.55, y = wallT + 9; p.poly([[x, y - 4], [x + 1.2, y - 1], [x + 4, y - 1], [x + 1.8, y + 1], [x + 2.6, y + 4], [x, y + 2], [x - 2.6, y + 4], [x - 1.8, y + 1], [x - 4, y - 1], [x - 1.2, y - 1]], [0xfff0a0, 0xf0c040, 0xa87818]); }
+      if (o.sign) { p.rrect(cx - 12, wallT + 2, cx + 12, wallT + 9, 2, [0xfff0a0, 0xf0c040, 0xa87818]); p.ell(cx, wallT + 5.5, 2.5, 2.2, 0x8a7a74); p.px(cx - 2, wallT + 3, 0xffa8b8); p.px(cx + 2, wallT + 3, 0xffa8b8); }   // a rat's face on the sign
+    });
+    const T = scene.textures.get(key); if (T && T.customData) T.customData.oy = H / (H + PAD);   // base row, not the texture bottom
+  };
+  bigTop('p_bigtop', 112, 100, { apex: 12, eave: 50, over: 2, fan: 3.2, scallop: 12, stripe: 9, door: 13, doorH: 30, flag: 0x9a3ae8, star: true, sign: true });
+  bigTop('p_tent', 70, 70, { apex: 10, eave: 36, over: 2, fan: 2.6, scallop: 9, stripe: 7, door: 8, doorH: 18, flag: 0xffd040 });
   pixSprite(scene, 'p_goblet', 22, 34, p => { p.poly([[2, 2], [20, 2], [16, 14], [6, 14]], GOLD); p.ell(11, 3, 9, 2, CH); p.rect(10, 14, 12, 28, GOLD[1]); p.ell(11, 30, 7, 3, GOLD); });
   pixSprite(scene, 'p_mushroom', 22, 18, p => { p.ell(11, 8, 10, 7, [0xf6eadc, 0xd8c4b0, 0x9a8470]); p.rect(8, 10, 14, 17, 0xf0e4d4); p.px(7, 5, 0xffffff); });
   // the great fountain spire on the horizon (screen space)

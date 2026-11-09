@@ -342,6 +342,8 @@ const LEVELS = {
              { theta: 5.75, half: 0.065, h: 60, type: 'crouton', sink: true }],
     curtains: [0.85, 1.95, 2.95, 4.0, 5.0, 6.05],                  // waterfalls of hot cheese out of the sky (fondue.js)
     props: [
+      { tex: 'p_bigtop', depth: 2.4, oy: 100 / 108, at: [[1.27, 1.5], [3.37, 1.4, 1], [5.38, 1.5]] },        // circus big tops (fondue.js)
+      { tex: 'p_tent', depth: 2.4, oy: 70 / 78, at: [[0.15, 1.2, 1], [2.3, 1.15], [4.38, 1.2, 1]] },
       { tex: 'p_bunting', at: [[0.25, 1.1], [1.35, 1.0, 1], [2.4, 1.1], [3.45, 1.0, 1], [4.5, 1.1], [5.5, 1.0, 1]] },
       { tex: 'p_goblet', at: [[0.95, 1.0], [2.25, 0.9, 1], [3.3, 1.1], [4.45, 0.9, 1], [5.95, 1.0]] },
       { tex: 'p_mushroom', at: [[0.7, 0.9], [1.85, 1.0, 1], [3.95, 0.9], [5.4, 1.0, 1]] }],
