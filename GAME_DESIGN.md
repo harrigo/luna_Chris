@@ -1305,3 +1305,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - SHADE (MEDIUM+): enemy sprites fall off into the level's shadow colour on the side away from the light (a 4-corner gradient tint worked out from the sprite's rotation); left alone whenever game code is tinting or flashing the sprite.
 - Not done: recolouring the black outlines per level - the sprites all share one packed sheet, so that would need a copy of the sheet per level.
 - Bonus scenes (zero-g, freefall, centrifuge) don't have these yet.
+
+## v2.04 - Cleaner sprite edges
+- Rim light: the light-coloured copy is now nudged by exactly one of the sprite's OWN pixels along its own pixel grid (the axes that face the light) instead of 1.4 screen px - the old way left a ragged, uneven cream sliver round rotated sprites. Slightly fainter (0.8).
+- Fondue enemies (Fork Fanatic, Dipped, Kamikaze Crouton) back to the same 1px outline as every other sprite - the 2px one looked heavy and odd next to the rest. Skimmers skip the rim light (their dithered wings showed it through).
+- The shadow-side shade on enemies is gentler (it was turning dark sprites into blobs).

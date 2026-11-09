@@ -66,7 +66,7 @@ const FxMixin = {
     const X = this.fx = {
       lx: L[0] / n, ly: L[1] / n,
       rim: dp.rim ? rgb(dp.atmo ? dp.rim.map((v, i) => Math.round(v * 0.6 + dp.atmo[i] * 0.4)) : dp.rim) : (this.def.rimGlow || 0xfff0c0),
-      shade: [0, 1, 2].map(i => Math.round(255 * 0.5 + (dk[i] / mx) * 255 * 0.5)),      // the far side of a sprite is multiplied by this
+      shade: [0, 1, 2].map(i => Math.round(255 * 0.62 + (dk[i] / mx) * 255 * 0.38)),      // the far side of a sprite is multiplied by this
       shadows: [], rims: [], tmp: new Phaser.GameObjects.Components.TransformMatrix(), bloom: null
     };
     X.vig = this.add.image(0, 0, '__vignette').setOrigin(0).setDepth(19.5).setScrollFactor(0)
@@ -115,7 +115,6 @@ const FxMixin = {
     // ---- RIM LIGHT: light-coloured copies tucked behind, nudged towards the light
     let nr = 0;
     if (Settings.lights) {
-      const ox = X.lx * 1.4 * z, oy = X.ly * 1.4 * z;
       const copy = (o, depth, alpha) => {
         if (!o.texture || !o.frame || o.__glowBase || o.texture.key === '__DEFAULT' || o.texture.key === '__MISSING') return;
         let r = X.rims[nr]; if (!r) r = X.rims[nr] = this.add.image(0, 0, o.texture.key);
@@ -123,24 +122,29 @@ const FxMixin = {
         if (r.texture !== o.texture || r.frame !== o.frame) r.setTexture(o.texture.key, o.frame.name);
         const d = o.getWorldTransformMatrix(X.tmp).decomposeMatrix();
         r.setDisplayOrigin(o.displayOriginX, o.displayOriginY);
-        r.setPosition(d.translateX + ox, d.translateY + oy).setRotation(d.rotation).setScale(d.scaleX, d.scaleY).setFlip(o.flipX, o.flipY);
+        // nudged by exactly ONE of the sprite's own pixels along its own pixel grid (whichever of its axes face the
+        // light), so the lit edge is a clean one-pixel line however the sprite is turned - never a ragged sliver
+        const c = Math.cos(d.rotation), sn = Math.sin(d.rotation), ax = (X.lx * c + X.ly * sn) * Math.sign(d.scaleX || 1), ay = (-X.lx * sn + X.ly * c) * Math.sign(d.scaleY || 1);
+        const tx = Math.abs(ax) > 0.38 ? Math.sign(ax) * Math.abs(d.scaleX) : 0, ty = Math.abs(ay) > 0.38 ? Math.sign(ay) * Math.abs(d.scaleY) : 0;
+        r.setPosition(d.translateX + c * tx * Math.sign(d.scaleX || 1) - sn * ty * Math.sign(d.scaleY || 1), d.translateY + sn * tx * Math.sign(d.scaleX || 1) + c * ty * Math.sign(d.scaleY || 1))
+          .setRotation(d.rotation).setScale(d.scaleX, d.scaleY).setFlip(o.flipX, o.flipY);
         r.setTintFill(X.rim).setAlpha(alpha).setDepth(depth).setVisible(true);
       };
       const walk = (o, depth, alpha) => {
         if (!o.visible || o.alpha <= 0) return;
         const a = alpha * o.alpha;
         if (o.list) { for (const c of o.list) walk(c, depth, a); return; }
-        if (a > 0.9) copy(o, depth, 0.9);
+        if (a > 0.9) copy(o, depth, 0.8);
       };
       if (this.rig && this.rig.root && this.state !== 'intro') walk(this.rig.root, this.rig.root.depth - 0.005, 1);
       for (const e of this.enemies) {
         const s = e.spr; if (!s || !s.visible || e.hp <= 0 || e.noRim) continue;
-        if (s.alpha > 0.9) copy(s, s.depth - 0.005, 0.9);
+        if (s.alpha > 0.9) copy(s, s.depth - 0.005, 0.8);
         // ...and the far side falls off into the level's shadow colour (unless something else is tinting it)
         if (s.tintFill || (s.isTinted && !(s.__fxT && s.tintTopLeft === s.__fxT[0] && s.tintTopRight === s.__fxT[1] && s.tintBottomLeft === s.__fxT[2] && s.tintBottomRight === s.__fxT[3]))) continue;
         const c = Math.cos(s.rotation), sn = Math.sin(s.rotation), fx = s.flipX ? -1 : 1, T = [];
         for (const [ux, uy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {            // each corner: how much does it face the light?
-          const wx = ux * fx * c - uy * sn, wy = ux * fx * sn + uy * c, f = Math.max(0, Math.min(0.75, 0.42 - (wx * X.lx + wy * X.ly) * 0.38));
+          const wx = ux * fx * c - uy * sn, wy = ux * fx * sn + uy * c, f = Math.max(0, Math.min(0.6, 0.3 - (wx * X.lx + wy * X.ly) * 0.34));
           T.push(Phaser.Display.Color.GetColor(Math.round(255 + (X.shade[0] - 255) * f), Math.round(255 + (X.shade[1] - 255) * f), Math.round(255 + (X.shade[2] - 255) * f)));
         }
         s.setTint(T[0], T[1], T[2], T[3]);
