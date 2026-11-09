@@ -20,6 +20,10 @@ const ENEMY = {
   rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },
   anchovy:  { hp: 1, r: 9,  ch: 0,  tex: 'anchovy0', oy: 0.5,     drop: 0.08, ai: 'anchovy', k: 1.15 },    // L4 anchovy swarmer: shoals of five, one darts at you
   ovendrone: { hp: 9, r: 34, ch: 0, tex: 'oven', oy: 0.5,         drop: 0.6, ai: 'ovendrone', k: 0.55, big: true },   // L4 Toasty Oven Drone: homing pizza cutters, SLAMS down               // L4 rocket rat: hovers over you, drops pepperoni bombs
+  forkrat:  { hp: 3, r: 14, ch: 11, tex: 'forkrat0', oy: 0.95, drop: 0.2, ai: 'forkrat', k: 1.1 },        // L5.5 Fork Fanatic: pole-vaults over you, lance-charges
+  dipped:   { hp: 5, r: 18, ch: 12, tex: 'dipped', oy: 0.9, drop: 0.4, ai: 'dipped', k: 1.1 },            // L5.5 the Dipped: crawls out of the fondue, lobs soggy lumps, bursts sticky
+  kamikaze: { hp: 2, r: 15, ch: 0, tex: 'kamikaze', oy: 0.5, drop: 0.2, ai: 'kamikaze', k: 1.05 },        // L5.5 Kamikaze Crouton: dives into the fondue - a wave rolls round
+  skimmer:  { hp: 2, r: 12, ch: 0, tex: 'skimmer', oy: 0.5, drop: 0.2, ai: 'skimmer', k: 1.15 },          // L5.5 Skimmer: orbits you firing spirals of cheese drops
   gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'welder' },         // L3 welder rat: riot shield + blowtorch
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
@@ -312,26 +316,43 @@ const LEVELS = {
 
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
   5.5: {
-    id: 5.5, secret: true, name: 'The Forbidden Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A molten cheese moon, deep in a warp.\nFondue fountains everywhere.',
-    music: 'level55', bossName: 'LE GRAND FROMAGE', tip: 'WARP ZONE! MIND THE FONDUE FOUNTAINS!',
-    radius: 460, sky: [0x12030a, 0x6a1220], skyCols: [0x12030a, 0x24050f, 0x3c0816, 0x580e1c, 0x781a20, 0x9a2c22], bg: '#12030a', starTint: 0xffd0a0, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 14,
-    surface: { pal: [0x5a1406, 0xa8380e, 0xe06c18, 0xf6a62e, 0xffd65e, 0xfff0b0], seed: 6161 },
-    geysers: { n: 11, idle: [2.2, 4.6], warn: 0.9, erupt: 1.5, height: 235 },
-    planet: { fill: 0xf6a62e, inner: 0xe06c18, rim: 0xffd65e, glow: 0xffb060 },
-    dust: [0xff6a3a, 0xffb03a, 0xff3a6a, 0xffd23f], decorTint: 0xffffff, decorAlpha: 1,
-    gravity: 1, ledgeTypes: ['carnival', 'panini', 'energy', 'carnival', 'panini', 'energy'], ledgeTex: 'ledge1',
-    ledges: [{ theta: 0.6, half: 0.12, h: 90 }, { theta: 1.5, half: 0.11, h: 175 }, { theta: 2.6, half: 0.12, h: 90 }, { theta: 3.6, half: 0.11, h: 175 }, { theta: 4.6, half: 0.12, h: 90 }, { theta: 5.5, half: 0.11, h: 175 }],
+    id: 5.5, secret: true, name: 'The Forbidden Fondue Fountain', short: 'FONDUE FOUNTAIN', blurb: 'A gilded fondue fountain in a party nebula.\nCurtains of hot cheese, soggy croutons -\nand a very posh rat.',
+    music: 'level55', bossName: 'LE GRAND FROMAGE', tip: 'DODGE THE CHEESE CURTAINS - OR BASH THEM APART!', fondue: true,
+    radius: 460, sky: [0x0c0420, 0x4a1a6a], skyCols: [0x0a0418, 0x160830, 0x240c46, 0x34125a, 0x4a1a6a, 0x66247a], bg: '#0a0418', starTint: 0xffe0ff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 0,
+    // a polished gold fountain basin: bright gilt crust, darker brass beneath
+    surface: { pal: [0x4a2a08, 0x8a5a14, 0xc08a24, 0xe8b83a, 0xffd860, 0xfff0b0], seed: 5555, rim: [0x2a1404, 0x6a4010, 0xc89030], spot: [0x3a2006, 0x6a4410], rimD: 0.93, rimLight: [255, 230, 150], dark: [30, 14, 40] },
+    rimGlow: 0xffc040,
+    depth: { light: [-0.5, -0.8, 0.4], dark: [26, 8, 46], shadeA: [0, 55, 100, 145], rim: [255, 240, 190], atmo: [200, 120, 255], atmoW: 0.1, atmoA: 55,
+      ornate: { hi: [255, 246, 190], mid: [226, 172, 52], lo: [120, 70, 18], w: 0.045 },
+      ridges: [{ style: 'tiers', off: 60, amp: 70, col: [120, 80, 150], top: [190, 150, 210], cheese: [230, 190, 110], k: 0.45, depth: 0.33, seed: 55, n: 22, glow: [255, 200, 255], glowP: 0.04 },
+               { style: 'tiers', off: 26, amp: 58, col: [150, 100, 40], top: [240, 200, 100], cheese: [255, 210, 80], k: 0.7, depth: 0.37, seed: 56, n: 16 }],
+      fg: { style: 'banquet', col: [20, 8, 32], glow: [255, 200, 90] } },
+    planet: { fill: 0xe8b83a, inner: 0xc08a24, rim: 0xfff0b0, glow: 0xc080ff },
+    dust: [0xff5a9a, 0xffd23f, 0x7ad8ff, 0xc08aff], decorTint: 0xffffff, decorAlpha: 1,
+    gravity: 1,
+    // pools of hot fondue: they suck you down. Soggy croutons float over them; skewers are solid
+    goop: [{ theta: 0.55, half: 0.1 }, { theta: 1.6, half: 0.09 }, { theta: 2.65, half: 0.1 }, { theta: 3.7, half: 0.09 }, { theta: 4.75, half: 0.1 }, { theta: 5.75, half: 0.08 }],
+    goopTex: 'cheesepit', goopBub: 'cheesebub', goopGlow: 0xffc040,
+    goopPal: { edge: 0x5a3008, deep: 0xffa020, mid: 0xffd060, top: 0xfff4c0, gloss: 0xffffff },
+    ledges: [{ theta: 0.55, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 1.08, half: 0.09, h: 150, type: 'skewer' },
+             { theta: 1.6, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 2.12, half: 0.09, h: 160, type: 'skewer' },
+             { theta: 2.65, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 3.18, half: 0.09, h: 150, type: 'skewer' },
+             { theta: 3.7, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 4.22, half: 0.09, h: 160, type: 'skewer' },
+             { theta: 4.75, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 5.25, half: 0.09, h: 150, type: 'skewer' },
+             { theta: 5.75, half: 0.065, h: 60, type: 'crouton', sink: true }],
+    curtains: [0.85, 1.95, 2.95, 4.0, 5.0, 6.05],                  // waterfalls of hot cheese out of the sky (fondue.js)
     props: [
-      { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffc8a8 },
-      { tex: 'pile_bones', n: 4, sc: [1.1, 1.6], tint: 0xe8a888, alpha: 0.92 },
-      { tex: 'p_tuft1', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xff9a5a }],
+      { tex: 'p_bunting', at: [[0.25, 1.1], [1.35, 1.0, 1], [2.4, 1.1], [3.45, 1.0, 1], [4.5, 1.1], [5.5, 1.0, 1]] },
+      { tex: 'p_goblet', at: [[0.95, 1.0], [2.25, 0.9, 1], [3.3, 1.1], [4.45, 0.9, 1], [5.95, 1.0]] },
+      { tex: 'p_mushroom', at: [[0.7, 0.9], [1.85, 1.0, 1], [3.95, 0.9], [5.4, 1.0, 1]] }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('mouse', 0), S('flyer', 0.8), S('mouse', 1.6), S('drone', 2.4), S('mouse', 3.2), S('flyer', 4), S('golem', 5), S('mouse', 5.8), S('drone', 6.6), S('flyer', 7.4), S('mouse', 8.2)] },
-      { name: 'WAVE 2', spawns: [S('frog', 0), S('drone', 0.8), S('mouse', 1.4), S('golem', 2.4), S('flyer', 3), S('drone', 3.8), S('frog', 4.8), S('mouse', 5.4), S('flyer', 6.2), S('drone', 7), S('golem', 8), S('mouse', 8.6)] },
-      { name: 'WAVE 3', spawns: [S('golem', 0), S('slicer', 0.8), S('flyer', 1.6), S('drone', 2.2), S('frog', 3), S('mouse', 3.6), S('golem', 4.6), S('drone', 5.2), S('slicer', 6), S('flyer', 6.8), S('frog', 7.6), S('drone', 8.4), S('golem', 9.4)] }
+      { name: 'WAVE 1', spawns: [S('forkrat', 0), S('skimmer', 0.8), S('mouse', 1.6), S('forkrat', 2.4), S('dipped', 3.2), S('skimmer', 4), S('forkrat', 5), S('mouse', 5.8), S('dipped', 6.6), S('skimmer', 7.4), S('forkrat', 8.2)] },
+      { name: 'WAVE 2', spawns: [S('kamikaze', 0), S('dipped', 0.8), S('forkrat', 1.4), S('skimmer', 2.4), S('kamikaze', 3), S('forkrat', 3.8), S('dipped', 4.8), S('skimmer', 5.4), S('kamikaze', 6.2), S('forkrat', 7), S('dipped', 8), S('skimmer', 8.6)] },
+      { name: 'WAVE 3', spawns: [S('dipped', 0), S('kamikaze', 0.8), S('forkrat', 1.6), S('skimmer', 2.2), S('kamikaze', 3), S('forkrat', 3.6), S('dipped', 4.6), S('kamikaze', 5.2), S('skimmer', 6), S('forkrat', 6.8), S('kamikaze', 7.6), S('dipped', 8.4), S('forkrat', 9.4)] }
     ],
-    boss: { tex: 'croque', hp: 170, ai: 'croque', armouredTop: true, tint: 0xff9a6a },
-    win: 'Le Grand Fromage melted into the fountain!\nBessie bobbed up out of the fondue... and straight into another rat-ship.\nMore warps are out there somewhere...'
+    boss: { tex: 'gf_pot', hp: 190, ai: 'grandfromage' },
+    win: 'Le Grand Fromage toppled into his own fondue!\nBessie bobbed up out of the fountain... and straight into another rat-ship.\nMore warps are out there somewhere...'
+
   }
 };
 
@@ -1619,7 +1640,8 @@ function makeRoadmapTextures(scene) {
     p.ell(75, 22, 20, 6, [0xfff0b0, 0xf0c050, 0xc08020]); for (const x of [64, 74, 84]) p.ell(x, 21, 3, 2, [0xff7a6a, 0xd0301a, 0x8a1a10]);   // a pizza cooking on top
   });
   makeMilkmaidTextures(scene);
-  makeMozzTextures(scene);                                      // L4: the Magma-Golem, boulders, anchovies, the volcano (mozz.js)                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
+  makeMozzTextures(scene);
+  makeFondueTextures(scene);                                    // L5.5: the Fondue Fountain, its rats and Le Grand Fromage (fondue.js)                                      // L4: the Magma-Golem, boulders, anchovies, the volcano (mozz.js)                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
   pixSprite(scene, 'wheel', 96, 96, p => {                      // L6: the gargantuan Spicy Pepper Jack
     p.ell(48, 48, 46, 46, [0xf0d890, 0xd8b050, 0x9a7020]);
     p.ell(48, 48, 39, 39, [0xfff8d0, 0xf6e6a0, 0xd8c070]);
@@ -1736,7 +1758,9 @@ const PLATFORMS = {
   panini:   { key: 'pl_panini', top: 3 },
   crystal:  { key: 'pl_crystal', top: 14 },
   carnival: { key: 'pl_carnival', top: 4 },
-  bone:     { key: 'pl_bone', top: 5 }
+  bone:     { key: 'pl_bone', top: 5 },
+  crouton:  { key: 'pl_crouton', top: 4 },         // L5.5 (fondue.js): soggy - sinks if you stand on it
+  skewer:   { key: 'pl_skewer', top: 2 }
 };
 function makePlatformTextures(scene) {
   if (madeTex(scene, 'pl_girder')) return;

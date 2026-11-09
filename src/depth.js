@@ -48,7 +48,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   });
   // parallax hill rings
   (cfg.ridges || []).forEach((rg, n) => {
-    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
+    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
     const rnd = rng(rg.seed || (77 + n * 31)), steps = 720, prof = [];
     let v = 0; for (let i = 0; i < steps; i++) { v += (rnd() - 0.5) * 0.35; v *= 0.96; prof.push(v); }
     const walk = a => prof[Math.floor((a / (Math.PI * 2)) * steps + steps * 4) % steps];
@@ -62,7 +62,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         for (const f of feats) { const d = Math.abs(dA(a, f.a)) / f.w; if (d < 1) h = Math.max(h, f.h * Math.pow(1 - d, 0.7)); }
         return h;
       }
-      if (st === 'wrecks' || st === 'factory' || st === 'cogs') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
+      if (st === 'wrecks' || st === 'factory' || st === 'cogs' || st === 'tiers') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
       return 0.55 + 0.25 * Math.sin(a * 7 + n) + 0.15 * Math.sin(a * 19 + n * 2) + 0.35 * walk(a);   // jagged hills
     };
     // the lost ships of the Brie-muda Triangle, half sunk on the far dunes: a tilted hull, masts, crossbars, rags of sail
@@ -100,6 +100,22 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       }
       return 0;
     };
+    // gilded fountain tiers: stepped basins, cheese pouring off every lip (3 = cheese)
+    const tiers = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        if (f.s > 0.5) continue;
+        const u = dA(a, f.a) * Rw / Z, Wb = 34 + f.s * 60, hl = (24 + f.h * 26) / 3;
+        if (Math.abs(u) > Wb + 8) continue;
+        if (Math.abs(u) < 2.2 && v >= 3 * hl && v < 3 * hl + 14 + f.h * 10) return 3;                        // the spout on top
+        for (let k = 2; k >= 0; k--) {
+          const wk = Wb * (1 - k / 3.3), lo = k * hl, hi = (k + 1) * hl;
+          if (Math.abs(u) < wk && v < hi && v >= lo - 1) return hi - v < 2 ? 2 : (hi - v < 4 && ((Math.floor(u) & 3) === 0) ? 3 : 1);
+          if (Math.abs(u) >= wk && Math.abs(u) < wk + 2.6 && v < hi && v >= 0) return 3;   // a curtain pouring off the lip
+        }
+      }
+      return 0;
+    };
     const wreck = (a, dd) => {
       for (const f of feats) {
         if (f.s > 0.45) continue;                                               // (only some of them are ships)
@@ -129,6 +145,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
         else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
         else if (st === 'cogs') { const w = cogs(a, dd); if (w) col = w === 2 ? TOP : C; }
+        else if (st === 'tiers') { const w = tiers(a, dd); if (w) col = w === 3 ? (rg.cheese || TOP) : (w === 2 ? TOP : C); }
         if (!col) continue;
         D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
         if (rg.glow && top - dd > 6 && th < 0.03 && rnd() < (rg.glowP || 0.08)) { D[i] = rg.glow[0]; D[i + 1] = rg.glow[1]; D[i + 2] = rg.glow[2]; }   // little lights in the hills (lava, spores, will-o'-wisps)
@@ -163,6 +180,14 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         for (const [x0, hh] of [[300, 26], [322, 20], [460, 30]]) for (let y = H - hh; y < H; y++) for (let x = x0; x < x0 + 7; x++) set(x, y, GL && ((y + x) >> 2) % 2 ? GL : FC);   // hazard bollards, striped
         for (let t = 0; t <= Math.PI; t += 0.004) for (let w = 0; w < 7; w++) set(150 + Math.cos(t) * (40 - w), H - 1 - Math.sin(t) * (34 - w), FC);   // pipe arch
         if (GL) for (let t = 0.2; t < Math.PI; t += 0.35) set(150 + Math.cos(t) * 40, H - 2 - Math.sin(t) * 34, GL);
+      } else if (st === 'banquet') {                                            // a giant's banquet: a fondue fork stuck in, a kebab skewer, a goblet
+        const thick = (x0, y0, x1, y1, w, c) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let k = 0; k <= n; k++) { const t = k / n; for (let o = -w / 2; o < w / 2; o++) set(x0 + (x1 - x0) * t + o, y0 + (y1 - y0) * t, c); } };
+        thick(40, H - 1, 96, 6, 5, FC); thick(96, 6, 104, -8, 3, FC); thick(90, 9, 82, -6, 3, FC); thick(84, 12, 104, 14, 4, FC);   // the fork: shaft, two prongs, a collar
+        if (GL) { thick(41, H - 2, 95, 7, 1, GL); set(104, -7, GL); }
+        thick(500, H - 1, 610, 18, 3, FC);                                                                  // the skewer...
+        for (const [t, rw, rh] of [[0.22, 9, 8], [0.42, 7, 10], [0.62, 10, 7], [0.8, 6, 6]]) { const x = 500 + 110 * t, y = H - 1 - (H - 19) * t; for (let yy = -rh; yy <= rh; yy++) for (let xx = -rw; xx <= rw; xx++) if ((xx * xx) / (rw * rw) + (yy * yy) / (rh * rh) <= 1) set(x + xx, y + yy, FC); if (GL) set(x - rw * 0.5, y - rh * 0.6, GL); }   // ...with chunks on it
+        for (let y = 0; y < 30; y++) { const half = y < 14 ? 13 - y * 0.55 : (y < 26 ? 2 : 2 + (y - 25) * 2.4); for (let x = -half; x <= half; x++) set(320 + x, H - 31 + y, FC); }   // a goblet
+        if (GL) for (let x = -12; x <= 12; x++) set(320 + x, H - 31, GL);
       } else if (st === 'bones') {                                              // graveyard: great curved ribs and a broken grave post
         for (const [x0, span, hgt] of [[40, 60, 46], [500, 70, 52]]) for (let rib = 0; rib < 4; rib++) {
           const xs = x0 + rib * span / 4, hh = hgt * (1 - rib * 0.15);
@@ -201,6 +226,28 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       }
     });
   }
+  // a gilded, riveted rim with scrollwork round the edge of the planet (turns with it; normal blend)
+  if (cfg.ornate) {
+    const O = cfg.ornate, G0 = O.hi || [255, 240, 160], G1 = O.mid || [232, 182, 60], G2 = O.lo || [138, 92, 20], b0 = O.w || 0.05;
+    depthCanvas(scene, 'dorn' + id, S, S, D => {
+      for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+        const dx = x + 0.5 - c, dy = y + 0.5 - c, r = Math.hypot(dx, dy) / c;
+        if (r > 1 || r < 1 - b0) continue;
+        const a = Math.atan2(dy, dx), q = (1 - r) / b0, px = 1 / c / b0, i = (y * S + x) * 4;   // q: 0 at the lip, 1 at the inner edge
+        let col = G1;
+        if (q < 2.2 * px || q > 1 - 1.6 * px) col = G0;                                                      // bright lip and inner bead
+        else if (q < 3.4 * px || q > 1 - 2.8 * px) col = G2;
+        else {
+          const per = 0.035, ph = ((a / per) % 1 + 1) % 1, rv = Math.hypot((ph - 0.5) * per * c, (q - 0.5) / px);   // rivets
+          const sw = 0.5 + 0.28 * Math.sin(a / per * Math.PI * 2 + (ph < 0.5 ? 0 : Math.PI));                        // scrollwork
+          if (rv < 2.3) col = rv < 1.1 ? G0 : G2;
+          else if (Math.abs(q - sw) < 1.2 * px && Math.abs(ph - 0.5) > 0.12) col = G2;
+          else if (Math.abs(q - sw) < 2.2 * px && Math.abs(ph - 0.5) > 0.12) col = G0;
+        }
+        D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
+      }
+    });
+  }
   // lava cracks under the crust, in the outer band (that's the bit you ever see)
   if (cfg.cracks) {
     const CC = cfg.cracks, rnd = rng(9090);
@@ -236,6 +283,7 @@ const DepthMixin = {
     F.shade = this.add.image(0, 0, 'dshade' + id).setDepth(1.108);
     F.rim = this.add.image(0, 0, 'drim' + id).setDepth(1.115).setBlendMode(Phaser.BlendModes.ADD);
     if (cfg.cracks) F.crack = this.add.image(0, 0, 'dcrack' + id).setDepth(1.06).setBlendMode(Phaser.BlendModes.ADD);
+    if (cfg.ornate) F.orn = this.add.image(0, 0, 'dorn' + id).setDepth(1.125);
     if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + id).setDepth(8.45).setScrollFactor(0); F.fgRb = 700; }
   },
   drawDepth(cx, cy, Rz, unwV) {
@@ -244,6 +292,7 @@ const DepthMixin = {
     F.shade.setPosition(cx, cy).setScale(ps);
     F.rim.setPosition(cx, cy).setScale(ps);
     if (F.crack) F.crack.setPosition(cx, cy).setScale(ps).setRotation(-unwV).setAlpha((F.cfg.crackA || 0.55) + 0.3 * Math.sin(this.t * (F.cfg.crackPulse || 1.7)));
+    if (F.orn) F.orn.setPosition(cx, cy).setScale(ps).setRotation(-unwV);
     for (const r of F.ridges) r.im.setPosition(cx, cy).setScale(ps).setRotation(-unwV * r.k);   // same pixels-per-unit as the planet: same scale
     if (F.fg) {
       // a ring a bit bigger than the planet on screen (gentler curve, closer to us), its base just under the bottom edge,

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.96';
+const BUILD = 'v1.97';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -398,7 +398,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.bgDecor === 'haze') {                   // fog banks that drift IN FRONT of everything, sometimes hiding what's coming
       for (let i = 0; i < 6; i++) { const f = this.add.image(0, 0, 'fogbank' + (i % 2)).setDepth(8.6).setTint(0xe8dcff); f.bsx = rnd(2.2, 3.4); f.bsy = f.bsx * 0.8; this.fogFg.push({ spr: f, theta: i * TAU / 6 + rnd(0, 0.5), h: rnd(10, 130), v: rnd(0.025, 0.06) * (i % 2 ? 1 : -1), ph: rnd(0, 6) }); }
     }
-    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.mm = null; this.mz = null; this.eruptTip = false; this.crownTip = false; this.baronDazeTip = false; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
+    this.goopTip = false; this.blocks = []; this.dynLedges = []; this.strG = null; this.bgUfo = null; this.embers = null; this.clawT = undefined; this.mando = null; this.potTip = false; this.mm = null; this.mz = null; this.fd = null; this.stickyTip = false; this.eruptTip = false; this.crownTip = false; this.baronDazeTip = false; this.facG = null; this.slimeTip = false; this.frogNextLash = 0; this.frogLow = false; this.tongueG = null;
     this.ledgeSprs = [];
     makePlatformTextures(this); makeRoadmapTextures(this); makePowerupTextures(this);
     (this.def.ledges || []).forEach((L, i) => {
@@ -419,6 +419,7 @@ class Level1 extends Phaser.Scene {
       if (type === 'panini') { q.glow = ex('puff', 0, 4, 2.95, true).setTint(0xffb040); q.glow.bsx = 2.2; q.glow.bsy = 0.45; q.dripT = rnd(0.2, 1); }
       this.ledgeSprs.push(q);
     });
+    if (this.def.fondue) this.fdInit();                   // L5.5: resets the soggy croutons too (fondue.js)
     this.props = [];
     for (const pr of (this.def.props || [])) {
       for (let i = 0; i < (pr.at ? pr.at.length : pr.n); i++) {
@@ -1375,6 +1376,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
+      if (this.def.fondue) this.fondueUpdate(dt);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1922,6 +1924,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0;
     Sound.sfx('swish');
+    if (this.def.fondue) this.fondueBash();                                           // L5.5: a swipe parts a curtain of cheese
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
   }
 
@@ -3482,6 +3485,14 @@ class Level1 extends Phaser.Scene {
         this.anchovyAI(e, dt, P);
       } else if (ai === 'ovendrone') {                  // L4 (mozz.js): the Toasty Oven Drone
         this.ovenDroneAI(e, dt, P, dirP);
+      } else if (ai === 'forkrat') {                    // L5.5 (fondue.js): Fork Fanatics
+        this.forkratAI(e, dt, P, dirP);
+      } else if (ai === 'dipped') {                     // L5.5: the Dipped
+        this.dippedAI(e, dt, P);
+      } else if (ai === 'kamikaze') {                   // L5.5: Kamikaze Croutons
+        this.kamikazeAI(e, dt, P);
+      } else if (ai === 'skimmer') {                    // L5.5: Skimmer flies
+        this.skimmerAI(e, dt, P);
       } else if (ai === 'welder') {
         this.welderAI(e, dt, toP, distP, fooled);
 
@@ -3683,6 +3694,8 @@ class Level1 extends Phaser.Scene {
             for (let k = 0; k < n; k++) { const a = (k - (n - 1) / 2) * 0.32; this.addEBullet('crumb', c.theta, c.h, 230 * Math.sin(a), -230 * Math.cos(a), 7, 2.5); }
             this.muzzleFlash(c.theta, c.h);
           }
+        } else if (e.ai === 'grandfromage') {            // L5.5: Le Grand Fromage (fondue.js)
+          this.gfAI(e, dt, P, phase2);
         } else if (e.ai === 'magmagolem') {              // L4: the Mozzarella Magma-Golem (mozz.js)
           this.mgAI(e, dt, P, phase2);
         } else if (e.ai === 'milkmaid') {                // L3: the Phantom Milkmaid (milkmaid.js)
@@ -3789,6 +3802,13 @@ class Level1 extends Phaser.Scene {
             if (!this.crownTip) { this.crownTip = true; this.banner('SPORE CROWN! SHOOT HIM...\nSTOMP ONLY WHEN HE\'S DAZED'); }
             continue;
           }
+          if (e.ai === 'grandfromage' && !(e.gfS && e.gfS.p2)) {          // a pot of boiling fondue: OUCH
+            P.vh = 460; P.h = top + 1; P.jetArmed = false; this.hurt();
+            P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 230;
+            this.burst(P.theta, top, 'fdrop', 14, 1.3); Sound.sfx('splat');
+            if (!this.potTip) { this.potTip = true; this.banner('THAT POT\'S BOILING!\nSHOOT HIM OFF IT!'); }
+            continue;
+          }
           if (e.type === 'boss' && this.def.boss.armouredTop) {           // armour plating: Chris just bounces off
             P.vh = 380; P.h = top + 1; P.jetArmed = false; P.invuln = Math.max(P.invuln, 0.2);
             this.burst(P.theta, top, 'spark', 12, 1.1); this.cameras.main.shake(80, 0.005);
@@ -3837,8 +3857,12 @@ class Level1 extends Phaser.Scene {
       const e = this.enemies[i];
       if (e.hp > 0) continue;
       if (this.pl.grabbed === e) this.releaseGrab(false);
+      if (e.quietKill) {                               // (a kamikaze crouton that hit the fondue: no points, no drop)
+        e.spr.destroy(); this.enemies.splice(i, 1); continue;
+      }
+      if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
@@ -4663,6 +4687,7 @@ class Level1 extends Phaser.Scene {
       this.place(e.spr, e.theta, e.h + (e.lift || 0), e.type === 'boss' ? (e.ai === 'wheel' ? e.roll : Math.sin(e.t * 1.5) * 0.08) : (e.roll !== undefined ? e.roll : 0));
       if (e.ai === 'baron') this.drawBaron(e);
       if (e.ai === 'milkmaid') this.mmDraw(e);
+      if (e.ai === 'grandfromage') this.gfDraw(e);
       if (e.ai === 'wheel') this.drawWheelFace(e);
       if (e.type !== 'boss' && e.type !== 'slicer') e.spr.setFlipX(e.dir < 0);
       if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
@@ -4678,6 +4703,7 @@ class Level1 extends Phaser.Scene {
       }
     }
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
+    if (this.def.fondue) this.fondueDraw(this.unw - (this.lagU || 0));   // L5.5: curtains, waves, party lights, the fountain (fondue.js)
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
     this.drawBeam();
     this.drawLights();
@@ -4799,6 +4825,7 @@ class Level1 extends Phaser.Scene {
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
+Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {
