@@ -1289,3 +1289,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.00 - Circus big tops on the Fondue Fountain
 - Three big red-and-white striped circus tops (p_bigtop: purple pennant, scalloped valance with gold trim, striped drum walls, gold stars, a rat-face sign, entrance curtains tied back with gold rope) and three smaller tents (p_tent, gold pennant), behind Chris (depth 2.4), placed clear of the fondue pools. Prop `oy` sits their base row on the crust with a skirt below for the planet's curve.
+
+## v2.01 - The circus moves to the horizon
+- The six ground tents are gone. Instead ONE circus cluster sits way off on the horizon, left of the fountain spire (screen space, behind the planet, slightly hazed): a big blue/yellow/orange striped top with a red cap, orange scalloped valance with coloured bulbs, orange and blue wall panels with red medallions, blue curtains over red - flanked by two red-and-white tents, with lantern poles and bunting strung between. The walls run on below the horizon so the cluster never floats where the planet curves away (fcircus, fondue.js drawTent).
