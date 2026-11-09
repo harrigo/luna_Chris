@@ -175,16 +175,16 @@ function makeFondueTextures(scene) {
   };
   const RED = [0xff6a6a, 0xe02a2a, 0x8a1010], WHT = [0xffffff, 0xf0e8e0, 0xb8a8a0];
   const BLU = [0x8ae0ff, 0x2a9ad0, 0x14507a], YEL = [0xfff08a, 0xffc832, 0xb07a10], ORA = [0xffb060, 0xf07a1a, 0x9a3a0a];
-  pixSprite(scene, 'fcircus', 270, 236, p => {
-    drawTent(p, 4, 46, 96, 112, { apex: 10, eave: 46, fan: 3, roof: [RED, WHT], wall: [RED, WHT], scallop: 10, stripe: 8, door: 10, doorH: 26, flag: 0xffd040 });            // red-and-white tents either side...
-    drawTent(p, 172, 54, 92, 104, { apex: 10, eave: 44, fan: 3, roof: [RED, WHT], wall: [WHT, RED], scallop: 10, stripe: 8, door: 9, doorH: 24, flag: 0x9a3ae8 });
-    drawTent(p, 64, 8, 144, 150, { apex: 12, eave: 70, fan: 3.4, roof: [BLU, YEL, ORA, YEL], cap: 18, capC: [RED, ORA], wall: [ORA, BLU], val: [ORA], bulbs: [0xff3a5a, 0x5ad8ff, 0xffe040, 0x7dff8a],
-      scallop: 9, stripe: 13, door: 17, doorH: 50, curt: BLU, inner: RED, deco: true, flag: 0xf07a1a });                                                                   // ...and the big blue-and-gold top in the middle
-    const poles = [[56, 52], [96, 64], [176, 64], [214, 50], [12, 96], [258, 100]];
+  pixSprite(scene, 'fcircus', 320, 236, p => {
+    drawTent(p, 2, 30, 100, 128, { apex: 10, eave: 50, fan: 3, roof: [RED, WHT], wall: [RED, WHT], scallop: 10, stripe: 8, door: 10, doorH: 26, flag: 0xffd040 });            // red-and-white tents either side...
+    drawTent(p, 218, 34, 100, 124, { apex: 10, eave: 48, fan: 3, roof: [RED, WHT], wall: [WHT, RED], scallop: 10, stripe: 8, door: 9, doorH: 24, flag: 0x9a3ae8 });
+    drawTent(p, 88, 8, 144, 150, { apex: 12, eave: 70, fan: 3.4, roof: [BLU, YEL, ORA, YEL], cap: 18, capC: [RED, ORA], wall: [ORA, BLU], val: [ORA], bulbs: [0xff3a5a, 0x5ad8ff, 0xffe040, 0x7dff8a],
+      scallop: 9, stripe: 13, door: 11, doorH: 34, curt: BLU, inner: RED, deco: true, flag: 0xf07a1a });                                                                   // ...and the big blue-and-gold top in the middle
+    const poles = [[80, 52], [116, 64], [204, 64], [240, 50], [8, 92], [312, 96]];
     for (const [x, y] of poles) { p.line([[x, y], [x, 235]], 0xb07a3a, 1); p.ell(x, y - 3, 4, 4.5, [0xff8a6a, 0xe0402a, 0x8a1a10]); p.line([[x, y - 8], [x, y - 11]], 0xffd040); }   // lantern poles
     const flagC = [[0xff6a8a, 0xe02a4a, 0x8a1020], [0xfff08a, 0xffc832, 0xb07a10], [0x8ae0ff, 0x2a9ad0, 0x14507a], [0xffb060, 0xf07a1a, 0x9a3a0a]];
     const string = (a, b, n) => { for (let k = 0; k <= n; k++) { const t = k / n, x = a[0] + (b[0] - a[0]) * t, y = a[1] + (b[1] - a[1]) * t + Math.sin(t * Math.PI) * 8; p.px(Math.round(x), Math.round(y), 0x5a3a2a); if (k % 3 === 1 && k < n) p.poly([[x - 2, y], [x + 2, y], [x, y + 5]], flagC[k % 4]); } };
-    string([12, 96], [56, 52], 30); string([56, 52], [96, 64], 30); string([176, 64], [214, 50], 30); string([214, 50], [258, 100], 30);
+    string([8, 92], [80, 52], 36); string([80, 52], [116, 64], 24); string([204, 64], [240, 50], 24); string([240, 50], [312, 96], 36);
   });
   pixSprite(scene, 'p_goblet', 22, 34, p => { p.poly([[2, 2], [20, 2], [16, 14], [6, 14]], GOLD); p.ell(11, 3, 9, 2, CH); p.rect(10, 14, 12, 28, GOLD[1]); p.ell(11, 30, 7, 3, GOLD); });
   pixSprite(scene, 'p_mushroom', 22, 18, p => { p.ell(11, 8, 10, 7, [0xf6eadc, 0xd8c4b0, 0x9a8470]); p.rect(8, 10, 14, 17, 0xf0e4d4); p.px(7, 5, 0xffffff); });
@@ -229,7 +229,7 @@ function makeFondueTextures(scene) {
   });
 }
 
-const FD_SPOUT = 245, FD_ZIP = 340;   // curtain spout height, zipline speed
+const FD_FAR_K = 0.45, FD_SPOUT = 245, FD_ZIP = 340;   // curtain spout height, zipline speed
 
 const FondueMixin = {
   fdInit() {
@@ -502,11 +502,18 @@ const FondueMixin = {
     const W = this.scale.width, H = this.scale.height, z = this.zoom, Rz = R * z, vt = this.viewT(), g = F.g, gl = F.gl;
     g.clear(); gl.clear();
     // the fountain spire on the right of the horizon, spurting
-    const sx0 = this.cx + Rz * 0.52, sy0 = this.cy - Rz * 0.86, ss = z * 1.6;
-    F.spire.setPosition(sx0, sy0).setScale(ss);
-    F.circus.setPosition(this.cx - Rz * 0.46, this.cy - Rz * 0.86).setScale(z * 1.45);
-    const top = { x: sx0, y: sy0 - 160 * ss * 0.86 - 4 * ss };
-    if (Math.random() < 0.7) F.spurt.push({ x: top.x, y: top.y, vx: rnd(-40, 40) * ss, vy: rnd(-170, -120) * ss, life: 1.2 });
+    // the fountain spire and the circus stand on the far side of the planet and come round with it (turning at the far
+    // fountain tiers' parallax rate), their bases tucked behind the planet's edge
+    if (F.u0 === undefined) F.u0 = unwV || 0;
+    const turn = ((unwV || 0) - F.u0) * FD_FAR_K, onRim = (im, a0, sc) => {
+      const a = Math.atan2(Math.sin(a0 - turn), Math.cos(a0 - turn)), Rb = Rz * 0.995;
+      im.setVisible(Math.abs(a) < 1.7).setPosition(this.cx + Math.sin(a) * Rb, this.cy - Math.cos(a) * Rb).setRotation(a).setScale(sc);
+      return a;
+    };
+    const ss = z * 1.4, sa = onRim(F.spire, 0.6, ss);
+    onRim(F.circus, -0.55, z * 1.2);
+    const L = 147 * ss, top = { x: F.spire.x + Math.sin(sa) * L, y: F.spire.y - Math.cos(sa) * L };
+    if (F.spire.visible && Math.random() < 0.7) { const vu = rnd(120, 170) * ss, vs = rnd(-40, 40) * ss; F.spurt.push({ x: top.x, y: top.y, vx: Math.sin(sa) * vu + Math.cos(sa) * vs, vy: -Math.cos(sa) * vu + Math.sin(sa) * vs, life: 1.2 }); }
     const lg = F.lightsGl; lg.clear();
     for (let i = F.spurt.length - 1; i >= 0; i--) { const q = F.spurt[i]; q.life -= this.lastDt || 0.016; q.vy += 200 * ss * (this.lastDt || 0.016); q.x += q.vx * (this.lastDt || 0.016); q.y += q.vy * (this.lastDt || 0.016); if (q.life <= 0) { F.spurt.splice(i, 1); continue; } lg.fillStyle(0xffd040, 0.8).fillRect(q.x - 2 * ss, q.y - 2 * ss, 4 * ss, 4 * ss); }
     // party lights: three sagging strings across the sky, swaying, sliding a little as you run

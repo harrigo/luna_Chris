@@ -1292,3 +1292,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.01 - The circus moves to the horizon
 - The six ground tents are gone. Instead ONE circus cluster sits way off on the horizon, left of the fountain spire (screen space, behind the planet, slightly hazed): a big blue/yellow/orange striped top with a red cap, orange scalloped valance with coloured bulbs, orange and blue wall panels with red medallions, blue curtains over red - flanked by two red-and-white tents, with lantern poles and bunting strung between. The walls run on below the horizon so the cluster never floats where the planet curves away (fcircus, fondue.js drawTent).
+
+## v2.02 - Spire and circus come round with the planet
+- The fountain spire and the circus now stand on the planet's far rim and turn with it (at the far fountain tiers' parallax rate, FD_FAR_K 0.45), rotated to the curve with their bases tucked behind the edge, instead of being stuck to the screen. The spire's spurts launch along its tilt. Both a little smaller (spire 1.4x, circus 1.2x).
+- Circus re-laid out: wider, the two red-and-white tents taller and further out so both show; the big top's door is smaller.
