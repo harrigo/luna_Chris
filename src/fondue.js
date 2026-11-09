@@ -125,7 +125,7 @@ function makeFondueTextures(scene) {
 
 const FondueMixin = {
   fdInit() {
-    const F = this.fd = { curtains: [], waves: [], puddles: [], t: 0, lastTh: this.pl.theta };
+    const F = this.fd = { curtains: [], waves: [], puddles: [], t: 0, lastTh: null };   // (called from create before Chris exists)
     (this.def.curtains || []).forEach((th, i) => F.curtains.push({ theta: th, st: 'idle', t: rnd(0.5, 3) + i * 0.4, part: 0, w: 16 }));
     F.g = this.add.graphics().setDepth(6.7);                                            // curtains, waves, puddles
     F.gl = this.add.graphics().setDepth(7.62).setBlendMode(Phaser.BlendModes.ADD);
@@ -165,6 +165,7 @@ const FondueMixin = {
     for (let i = F.waves.length - 1; i >= 0; i--) { const Wv = F.waves[i]; Wv.t += dt; if (Wv.t > 4.2) F.waves.splice(i, 1); }
     if (F.waves.length && P.invuln <= 0 && this.state === 'play') { const L = this.fdWaveAt(P.theta); if (P.h < L - 4) { this.hurt(); P.vh = Math.max(P.vh, 380); } }
     // STICKY puddles (the Dipped burst into them): wading through one drags at you
+    if (F.lastTh === null) F.lastTh = P.theta;
     const dTh = angDiff(P.theta, F.lastTh);
     for (let i = F.puddles.length - 1; i >= 0; i--) { const D = F.puddles[i]; D.life -= dt; if (D.life <= 0) F.puddles.splice(i, 1); }
     if (grounded && P.floor === 0 && F.puddles.some(D => Math.abs(angDiff(P.theta, D.theta)) < D.half)) { P.theta = wrap(F.lastTh + dTh * 0.45); if (!this.stickyTip) { this.stickyTip = true; this.banner('STICKY! JUMP OUT!'); } }

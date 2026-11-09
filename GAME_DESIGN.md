@@ -1275,3 +1275,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - SOGGY CROUTONS over the six fondue pools: stand on one ~1 s and it sinks into the pool, popping back up 3 s later. Skewer ledges between them are solid.
 - ENEMIES: Fork Fanatics (pole-vault right over you, land, lance-charge), the Dipped (haul themselves out of the pools, lob soggy lumps, burst into STICKY puddles that drag at you), Kamikaze Croutons (lock on, dive into the fondue - a wave rolls round the planet both ways: jump it), Skimmers (orbit you firing spirals of curling cheese drops).
 - BOSS: LE GRAND FROMAGE (hp 190) - a pompous rat in a top hat and monocle riding a copper fondue pot. Act 1: fork lance (aim, glint, thrust - the tip hurts), tips the pot (a pour, then a flood wave round the planet), crouton rain. The boiling pot hurts if you stomp it. Act 2 (half health): the pot shatters (big wave) and he fights on foot - fork charges, leaping slams with shockwaves, crouton rain, lances - and now he CAN be stomped.
+
+## v1.98 - fix
+- Fondue Fountain crashed on a fresh start ("reading 'theta'"): fdInit runs in create before Chris exists; it now picks up his position on the first update.
