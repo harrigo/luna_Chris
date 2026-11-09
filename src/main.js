@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v1.98';
+const BUILD = 'v1.99';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1376,7 +1376,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
-      if (this.def.fondue) this.fondueUpdate(dt);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
+      if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
@@ -1681,7 +1681,8 @@ class Level1 extends Phaser.Scene {
     }
     if (!grounded && inp.jump) { P.holdT = (P.holdT || 0) + dt; if (P.holdT > CFG.jetHoldDelay || inp.jetNow) P.jetArmed = true; }   // keep holding jump: the jetpack kicks in after a beat
     else if (!inp.jump) P.holdT = CFG.jetHoldDelay + 1;                                                                                // (a fresh press in mid-air lights it at once)
-    if (!inp.jump && P.vh > 320) P.vh = 320;      // release early = shorter hop
+    P.springT = Math.max(0, (P.springT || 0) - dt);
+    if (!inp.jump && P.vh > 320 && !(P.springT > 0)) P.vh = 320;      // release early = shorter hop (not off a spring: L5.5's croutons)
     if (!grounded && !inp.jump) P.jetArmed = true; // let go in mid-air, then hold again to light the jetpack
 
     if (P.bounceT > 0) P.bounceT -= dt;

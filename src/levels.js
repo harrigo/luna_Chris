@@ -320,7 +320,7 @@ const LEVELS = {
     music: 'level55', bossName: 'LE GRAND FROMAGE', tip: 'DODGE THE CHEESE CURTAINS - OR BASH THEM APART!', fondue: true,
     radius: 460, sky: [0x0c0420, 0x4a1a6a], skyCols: [0x0a0418, 0x160830, 0x240c46, 0x34125a, 0x4a1a6a, 0x66247a], bg: '#0a0418', starTint: 0xffe0ff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 0,
     // a polished gold fountain basin: bright gilt crust, darker brass beneath
-    surface: { pal: [0x4a2a08, 0x8a5a14, 0xc08a24, 0xe8b83a, 0xffd860, 0xfff0b0], seed: 5555, rim: [0x2a1404, 0x6a4010, 0xc89030], spot: [0x3a2006, 0x6a4410], rimD: 0.93, rimLight: [255, 230, 150], dark: [30, 14, 40] },
+    surface: { fountain: true, pal: [0x4a2a08, 0x8a5a14, 0xc08a24, 0xe8b83a, 0xffd860, 0xfff0b0], seed: 5555, rim: [0x2a1404, 0x6a4010, 0xc89030], spot: [0x3a2006, 0x6a4410], rimD: 0.93, rimLight: [255, 230, 150], dark: [30, 14, 40] },
     rimGlow: 0xffc040,
     depth: { light: [-0.5, -0.8, 0.4], dark: [26, 8, 46], shadeA: [0, 55, 100, 145], rim: [255, 240, 190], atmo: [200, 120, 255], atmoW: 0.1, atmoA: 55,
       ornate: { hi: [255, 246, 190], mid: [226, 172, 52], lo: [120, 70, 18], w: 0.045 },
@@ -334,11 +334,11 @@ const LEVELS = {
     goop: [{ theta: 0.55, half: 0.1 }, { theta: 1.6, half: 0.09 }, { theta: 2.65, half: 0.1 }, { theta: 3.7, half: 0.09 }, { theta: 4.75, half: 0.1 }, { theta: 5.75, half: 0.08 }],
     goopTex: 'cheesepit', goopBub: 'cheesebub', goopGlow: 0xffc040,
     goopPal: { edge: 0x5a3008, deep: 0xffa020, mid: 0xffd060, top: 0xfff4c0, gloss: 0xffffff },
-    ledges: [{ theta: 0.55, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 1.08, half: 0.09, h: 150, type: 'skewer' },
-             { theta: 1.6, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 2.12, half: 0.09, h: 160, type: 'skewer' },
-             { theta: 2.65, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 3.18, half: 0.09, h: 150, type: 'skewer' },
-             { theta: 3.7, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 4.22, half: 0.09, h: 160, type: 'skewer' },
-             { theta: 4.75, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 5.25, half: 0.09, h: 150, type: 'skewer' },
+    ledges: [{ theta: 0.55, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 1.08, half: 0.15, h: 135, type: 'skewer' },
+             { theta: 1.6, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 2.12, half: 0.15, h: 135, type: 'skewer' },
+             { theta: 2.65, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 3.18, half: 0.15, h: 135, type: 'skewer' },
+             { theta: 3.7, half: 0.07, h: 60, type: 'crouton', sink: true }, { theta: 4.22, half: 0.15, h: 135, type: 'skewer' },
+             { theta: 4.75, half: 0.075, h: 60, type: 'crouton', sink: true }, { theta: 5.25, half: 0.15, h: 135, type: 'skewer' },
              { theta: 5.75, half: 0.065, h: 60, type: 'crouton', sink: true }],
     curtains: [0.85, 1.95, 2.95, 4.0, 5.0, 6.05],                  // waterfalls of hot cheese out of the sky (fondue.js)
     props: [
@@ -1230,6 +1230,7 @@ const BAYER4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (
 function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   opts = opts || {};
   if (opts.grater) return makeMetalPlanet(scene, key, Rw, pal, seed);
+  if (opts.fountain) return makeFountainPlanet(scene, key, Rw, pal, seed);   // L5.5 (fondue.js)
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, r = S / 2;                  // texture is Rw x Rw, shown at 2x = full diameter
   let sd = seed || 1;

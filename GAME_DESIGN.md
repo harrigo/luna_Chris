@@ -1278,3 +1278,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v1.98 - fix
 - Fondue Fountain crashed on a fresh start ("reading 'theta'"): fdInit runs in create before Chris exists; it now picks up his position on the first update.
+
+## v1.99 - Fondue Fountain polish
+- PLANET: no more cratered rock - its own texture (makeFountainPlanet, fondue.js): two rows of riveted gold and silver panels, a channel of bubbling fondue between bronze posts just under the gilded rim, engraved bronze rings deeper in.
+- POOLS: wading through a fondue pool sends ripples out from Chris's legs, with splashes.
+- CURTAINS: now pour from golden spouts hanging on chains (h 245) instead of from nowhere. WARNING phase (1 s): an alarm, the spout's mouth glows and pulses red, sparks spit out, a red target pulses on the ground. POURING: a continuous splash of drops and rising steam at the splash zone. You're safe above the spout.
+- READABILITY: the Dipped are now mouldy green with dark rot spots, toxic blisters and a purple toadstool cap; Fork Fanatics wear purple bandanas; Dipped, Fork Fanatics and Kamikaze Croutons have a 2px dark outline.
+- SKEWER ZIPLINES: skewers are longer (and lower, h 135). Jump up into one from underneath and Chris grabs it and slides along to the end the way he's facing, keeping his speed when he lets go. Jump to let go early, down to drop.
+- BOUNCY CROUTONS: land on one and it squishes and springs you up higher than a jump (P.springT stops the short-hop cap cutting it), but each bounce soaks it more (3 bounces and it sinks). Hold down to land softly.

@@ -19,6 +19,60 @@
 //
 // Mixed into Level1; level state in this.fd, the boss's in e.gfS.
 
+// THE PLANET: a polished gold-and-silver fountain basin (not a rock): riveted panels in two rows, a channel of bubbling
+// fondue round the crust between bronze posts, engraved rings further in. (The gilded rim itself is depth.js 'ornate'.)
+function makeFountainPlanet(scene, key, Rw, pal, seed) {
+  if (scene.textures.exists(key)) return;
+  const S = Math.round(Rw), c = S / 2, hex = v => [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  const GOLD = pal.map(hex), SIL = [0x2a3040, 0x5a6272, 0x8a94a4, 0xbcc6d4, 0xe4ecf6, 0xffffff].map(hex), CH = [0x7a3a06, 0xc8741a, 0xf0a828, 0xffd050, 0xffeea0].map(hex);
+  const OUT = hex(0x2a1404);
+  let sd = seed || 7; const rand = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+  const bubbles = []; for (let i = 0; i < 260; i++) bubbles.push({ a: rand() * Math.PI * 2, d: 0.912 + rand() * 0.034, r: 0.6 + rand() * 1.6 });
+  const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
+  const tone = (arr, v, th) => arr[Math.max(0, Math.min(arr.length - 1, Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0)))];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const dx = x + 0.5 - c, dy = y + 0.5 - c, d = Math.hypot(dx, dy) / c;
+    if (d > 1) continue;
+    const th = BAYER4[(y & 3) * 4 + (x & 3)], ang = Math.atan2(dy, dx), lit = (-dx - dy) / S, i = (y * S + x) * 4;
+    let col;
+    if (d > 0.986) col = OUT;
+    else if (d > 0.955) col = GOLD[3];                                              // (under the gilded rim)
+    else if (d > 0.905) {                                                           // the FONDUE CHANNEL, between bronze posts
+      const seg = ang / (Math.PI * 2) * 48 + 48, f = seg - Math.floor(seg);
+      if (d > 0.949 || d < 0.911) col = d > 0.949 ? GOLD[1] : GOLD[5];               // basin lips
+      else if (f < 0.1) col = f < 0.03 ? GOLD[5] : (f < 0.07 ? GOLD[3] : GOLD[1]);  // a post
+      else {
+        const v = 2.2 + Math.sin(ang * 260 + d * 300) * 0.6 + Math.sin(ang * 77 - d * 140) * 0.4 + (0.95 - d) * 14;
+        col = tone(CH, v, th);
+      }
+    } else if (d > 0.79) {                                                          // riveted panels, gold and silver in two rows
+      const row = d > 0.85 ? 0 : 1, n = row ? 40 : 48, seg = ang / (Math.PI * 2) * n + n, k = Math.floor(seg), f = seg - k;
+      const P2 = (k + row) % 2 ? SIL : GOLD, v = 2.6 + lit * 2.4 + Math.sin(d * 140) * 0.35 + (f - 0.5) * 0.6;
+      const edge = Math.abs(d - 0.85) < 0.004 || d < 0.794 || d > 0.901;
+      if (edge) col = GOLD[0];
+      else if (f < 0.035) col = P2[0];                                              // seam
+      else if (f < 0.07) col = P2[5 - (P2 === SIL ? 0 : 0)];                        // lit seam edge
+      else col = tone(P2, v, th);
+      const rv = Math.min(f, 1 - f), dv = row ? Math.min(d - 0.794, 0.85 - d) : Math.min(d - 0.85, 0.901 - d);
+      if (rv < 0.16 && rv > 0.08 && dv > 0.008 && dv < 0.018) col = rv < 0.12 && dv < 0.013 ? GOLD[5] : GOLD[0];   // rivets in the corners
+    } else {                                                                        // engraved bronze, deeper in
+      const fb = d * 26 - Math.floor(d * 26), fil = Math.sin(ang * 16 + Math.sin(d * 40) * 2.5);
+      let v = 1.6 + lit * 2 + (fb < 0.12 ? 1.2 : 0) + (Math.abs(fil) < 0.08 ? 1 : 0);
+      col = tone(GOLD, v, th);
+    }
+    D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
+  }
+  for (const b of bubbles) {                                                        // bubbles in the fondue
+    const bx = c + Math.cos(b.a) * b.d * c, by = c + Math.sin(b.a) * b.d * c, seg = b.a / (Math.PI * 2) * 48 + 48;
+    if (seg - Math.floor(seg) < 0.14) continue;
+    for (let y = Math.floor(by - b.r - 1); y <= by + b.r + 1; y++) for (let x = Math.floor(bx - b.r - 1); x <= bx + b.r + 1; x++) {
+      const q = Math.hypot(x + 0.5 - bx, y + 0.5 - by); if (q > b.r + 0.5) continue;
+      const col = q > b.r - 0.6 ? CH[4] : CH[2], i = (y * S + x) * 4; D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2];
+    }
+  }
+  ctx.putImageData(img, 0, 0); tex.refresh(); tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+
 function makeFondueTextures(scene) {
   const GOLD = [0xfff0a0, 0xf0c040, 0xa87818], SIL = [0xf4f8ff, 0xb8c0cc, 0x6a7280], CH = [0xfff4b0, 0xffc83a, 0xd88a1a];
   const RAT = [0xc8b8b0, 0x8a7a74, 0x4a3e3c], PINK = 0xffa8b8, DARK = 0x1a1018;
@@ -27,7 +81,7 @@ function makeFondueTextures(scene) {
     p.ell(x + 6 * s, y - 11 * s, 3 * s, 3 * s, [0xffd0d8, PINK, 0xc87888]);
     p.px(Math.round(x + 10 * s), Math.round(y - 7 * s), DARK); p.px(Math.round(x + 14 * s), Math.round(y - 5 * s), PINK);
     p.line([[x - 9 * s, y], [x - 15 * s, y - 4 * s], [x - 18 * s, y - 2 * s]], PINK);
-    p.rect(Math.round(x + 3 * s), Math.round(y - 10 * s), Math.round(x + 12 * s), Math.round(y - 8 * s), 0xe02a3a);
+    p.rect(Math.round(x + 3 * s), Math.round(y - 10 * s), Math.round(x + 12 * s), Math.round(y - 8 * s), 0x9a3ae8);
   };
   const fork = (p, x0, y0, x1, y1) => {                          // a long two-pronged fondue fork
     p.line([[x0, y0], [x1, y1]], SIL[1], 2);
@@ -35,24 +89,28 @@ function makeFondueTextures(scene) {
     for (const sd of [-2, 2]) p.line([[x1 + nx * sd, y1 + ny * sd], [x1 + nx * sd + Math.cos(a) * 7, y1 + ny * sd + Math.sin(a) * 7]], SIL[0]);
     p.rect(Math.round(x0) - 1, Math.round(y0) - 1, Math.round(x0) + 2, Math.round(y0) + 2, 0x8a4a2a);
   };
-  pixSprite(scene, 'forkrat0', 46, 34, p => { rat(p, 20, 24, 1); p.line([[14, 31], [12, 33]], RAT[2], 2); p.line([[24, 31], [26, 33]], RAT[2], 2); fork(p, 10, 22, 42, 16); });   // running, fork levelled
-  pixSprite(scene, 'forkrat1', 46, 34, p => { rat(p, 22, 18, 1); fork(p, 30, 8, 8, 33); p.line([[20, 24], [16, 30]], RAT[2], 2); });   // vaulting on it
+  pixSprite(scene, 'forkrat0', 46, 34, p => { rat(p, 20, 24, 1); p.line([[14, 31], [12, 33]], RAT[2], 2); p.line([[24, 31], [26, 33]], RAT[2], 2); fork(p, 10, 22, 42, 16); }, 2);   // running, fork levelled
+  pixSprite(scene, 'forkrat1', 46, 34, p => { rat(p, 22, 18, 1); fork(p, 30, 8, 8, 33); p.line([[20, 24], [16, 30]], RAT[2], 2); }, 2);   // vaulting on it
   pixSprite(scene, 'dipped', 46, 40, p => {                      // a soggy mutant of food that fell in years ago
-    p.ell(23, 24, 20, 15, CH);
-    p.ell(12, 18, 5, 4, [0xf0e0d0, 0xc8b4a0, 0x8a7460]); p.rect(9, 18, 14, 22, 0xd8c8b4);       // a mushroom
+    const MOULD = [0xb8d860, 0x6a9a2a, 0x2e4a12];
+    p.ell(23, 24, 20, 15, MOULD);
+    for (const [x, y, r] of [[30, 18, 3], [16, 30, 2.5], [36, 28, 2], [22, 14, 2]]) p.ell(x, y, r, r, 0x1e3a0a);   // dark rot spots
+    for (const [x, y] of [[33, 21], [11, 27], [27, 34]]) p.ell(x, y, 2, 1.5, [0xd8ff8a, 0x9aff4a, 0x4aa82a]);   // toxic green blisters
+    p.ell(12, 13, 8, 5, [0xd8a0ff, 0x9a4ae0, 0x4a1a8a]); p.rect(10, 16, 14, 21, 0xe8d8f0);   // a purple toadstool cap stuck on top
+    p.px(9, 11, 0xffffff); p.px(15, 12, 0xffffff);
     p.rrect(30, 26, 38, 33, 2, [0xb06048, 0x7a3a2a, 0x4a2018]);                             // a lump of meat
     p.ell(26, 12, 4, 3, [0x9ad86a, 0x5aa83a, 0x2a6a1a]);                                    // a mouldy sprout
     p.ell(17, 24, 3, 3, 0xffffff); p.px(17, 24, DARK); p.ell(26, 22, 2, 2, 0xffffff); p.px(26, 22, DARK);
     p.ell(21, 31, 4, 3, DARK); p.px(19, 30, 0xffffff);                                      // screaming
     for (const [x, l] of [[6, 6], [14, 8], [30, 7], [40, 5]]) p.line([[x, 34], [x, 34 + l]], CH[1], 2);
-  });
+  }, 2);
   pixSprite(scene, 'kamikaze', 42, 26, p => {                    // an angry toast missile
     p.poly([[4, 13], [10, 3], [34, 3], [40, 8], [40, 18], [34, 23], [10, 23]], [0xf0c070, 0xc08030, 0x7a4a14]);
     p.rect(12, 6, 32, 20, 0xf6dca0);                                                        // the crumb
     p.poly([[4, 13], [0, 6], [8, 10]], 0x8a4a14); p.poly([[4, 13], [0, 20], [8, 16]], 0x8a4a14);   // fins
     p.line([[20, 9], [26, 11]], DARK, 2); p.line([[34, 9], [28, 11]], DARK, 2);             // furious brows
     p.px(24, 13, 0xff3a2a); p.px(30, 13, 0xff3a2a); p.line([[22, 18], [32, 18]], DARK, 1);
-  });
+  }, 2);
   pixSprite(scene, 'skimmer', 30, 20, p => {                     // a robot fly with a toothpick lance
     p.ell(9, 6, 6, 4, [0xe8f4ff, 0xa8c0d8, 0x6a7a90]); p.ell(17, 6, 6, 4, [0xe8f4ff, 0xa8c0d8, 0x6a7a90]);   // wings
     p.ell(13, 12, 7, 5, SIL); p.ell(20, 11, 4, 4, SIL); p.px(21, 10, 0xff3a3a); p.px(23, 11, 0xff3a3a);
@@ -123,6 +181,8 @@ function makeFondueTextures(scene) {
   });
 }
 
+const FD_SPOUT = 245, FD_ZIP = 340;   // curtain spout height, zipline speed
+
 const FondueMixin = {
   fdInit() {
     const F = this.fd = { curtains: [], waves: [], puddles: [], t: 0, lastTh: null };   // (called from create before Chris exists)
@@ -137,20 +197,60 @@ const FondueMixin = {
     return F;
   },
 
-  fondueUpdate(dt) {
+  fondueUpdate(dt, inp) {
     const F = this.fd || this.fdInit(), P = this.pl;
+    inp = inp || {};
     F.t += dt;
     const grounded = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
+    // SKEWER ZIPLINES: jump up into one from underneath and Chris grabs it and slides along to the end (jump to let go)
+    P.zipCd = Math.max(0, (P.zipCd || 0) - dt);
+    if (P.zip) {
+      const Z = P.zip, L = Z.L;
+      Z.th = wrap(Z.th + Z.dir * FD_ZIP / R * dt);
+      P.theta = Z.th; P.h = L.h - 54; P.vh = 0; P.facing = Z.dir; P.fuel = Math.min(1, P.fuel + dt * 0.5); P.vx = 0;
+      if (Math.random() < dt * 30) this.burst(Z.th, L.h - 4, 'spark', 1, 0.4);
+      const off = angDiff(Z.th, L.theta) * Z.dir, jumpPress = inp.jump && !Z.held;
+      Z.held = !!inp.jump;
+      if (off > L.half * 0.98 || jumpPress || inp.down || this.state !== 'play') {
+        P.zip = null; P.zipCd = 0.45; P.vh = jumpPress ? CFG.jumpV : 160; P.jetArmed = false; P.holdT = 0;
+        P.vx = Z.dir * FD_ZIP; Sound.sfx(jumpPress ? 'jump' : 'whoosh');
+      }
+    } else if (!grounded && P.vh > -80 && P.zipCd <= 0 && this.state === 'play') {
+      for (const L of (this.def.ledges || [])) {
+        if (L.type !== 'skewer' || Math.abs(angDiff(P.theta, L.theta)) > L.half * 0.9) continue;
+        if (P.h + 54 >= L.h - 22 && P.h + 54 <= L.h + 14) {
+          const dir = P.facing || 1;
+          P.zip = { L, th: P.theta, dir, held: !!inp.jump };
+          Sound.sfx('clunk'); this.burst(P.theta, L.h - 4, 'spark', 6, 0.6);
+          if (!this.zipTip) { this.zipTip = true; this.banner('SKEWER ZIPLINE!\nJUMP TO LET GO'); }
+          break;
+        }
+      }
+    }
+    // CROUTON BOUNCE: land on a crouton and it squishes and springs you up high - but every bounce soaks it a bit more
+    const onCrouton = grounded && P.floor > 0 && (this.def.ledges || []).find(L => L.sink && Math.abs(P.floor - L.h) < 1 && Math.abs(angDiff(P.theta, L.theta)) < L.half);
+    if (onCrouton && (F.lastVh || 0) < -150 && !inp.down) {
+      P.vh = Math.min(820, CFG.jumpV * 1.05 + Math.abs(F.lastVh) * 0.3); P.h += 1; P.springT = 0.6; P.jetArmed = false; P.holdT = 0;
+      onCrouton.soak += 0.32; onCrouton.squash = 1; Sound.sfx('bonk'); Sound.sfx('squish');
+      this.burst(P.theta, onCrouton.h, 'crumb', 6, 0.7);
+      if (!this.bounceTip) { this.bounceTip = true; this.banner('BOUNCY CROUTONS!\nHOLD DOWN TO LAND SOFTLY'); }
+    }
+    F.lastVh = P.vh;
+    for (const L of (this.def.ledges || [])) if (L.squash) L.squash = Math.max(0, L.squash - dt * 4);
     // CURTAINS of hot cheese
     for (const C of F.curtains) {
       C.t -= dt; C.part = Math.max(0, C.part - dt);
       if (C.t <= 0) {
-        if (C.st === 'idle') { C.st = 'warn'; C.t = 0.9; }
+        if (C.st === 'idle') { C.st = 'warn'; C.t = 1.0; if (Math.abs(angDiff(C.theta, P.theta)) < this.visHalf) Sound.sfx('alarm'); }
         else if (C.st === 'warn') { C.st = 'pour'; C.t = rnd(1.8, 2.6); if (Math.abs(angDiff(C.theta, P.theta)) < this.visHalf) Sound.sfx('splat'); }
         else { C.st = 'idle'; C.t = rnd(1.6, 3.2); }
       }
-      if (C.st === 'pour' && C.part <= 0 && P.invuln <= 0 && this.state === 'play' && Math.abs(angDiff(P.theta, C.theta)) * R < C.w + 8) { this.hurt(); P.vx = (Math.sign(angDiff(P.theta, C.theta)) || 1) * 220; }
-      if (C.st === 'pour' && C.part <= 0 && Math.random() < dt * 14) this.burst(C.theta, 4, 'fdrop', 1, 0.6);
+      if (C.st === 'warn' && Math.random() < dt * 18) this.burst(C.theta, FD_SPOUT - 30, 'spark', 1, 0.5);   // sparks spit from the spout
+      if (C.st === 'pour' && C.part <= 0 && P.invuln <= 0 && this.state === 'play' && P.h < FD_SPOUT - 40 && Math.abs(angDiff(P.theta, C.theta)) * R < C.w + 8) { this.hurt(); P.vx = (Math.sign(angDiff(P.theta, C.theta)) || 1) * 220; }
+      if (C.st === 'pour' && C.part <= 0) {                                   // the splash zone: drops fly, steam rises
+        if (Math.random() < dt * 30) this.burst(wrap(C.theta + rnd(-12, 12) / R), 4, 'fdrop', 1, 0.7);
+        if (Math.random() < dt * 9) { const im = this.add.image(0, 0, 'puff').setDepth(6.6).setTint(0xfff4d0).setAlpha(0.55); im.bsx = im.bsy = rnd(0.25, 0.45); this.parts.push({ theta: wrap(C.theta + rnd(-30, 30) / R), h: 6, vt: rnd(-20, 20), vh: rnd(50, 90), life: rnd(0.8, 1.2), noGrav: true, grow: 1.4, spr: im }); }
+      }
     }
     // soggy CROUTON ledges sink when you stand on them, then bob back up
     for (const L of (this.def.ledges || [])) {
@@ -169,6 +269,11 @@ const FondueMixin = {
     const dTh = angDiff(P.theta, F.lastTh);
     for (let i = F.puddles.length - 1; i >= 0; i--) { const D = F.puddles[i]; D.life -= dt; if (D.life <= 0) F.puddles.splice(i, 1); }
     if (grounded && P.floor === 0 && F.puddles.some(D => Math.abs(angDiff(P.theta, D.theta)) < D.half)) { P.theta = wrap(F.lastTh + dTh * 0.45); if (!this.stickyTip) { this.stickyTip = true; this.banner('STICKY! JUMP OUT!'); } }
+    // wading through a fondue pool: ripples spread out from Chris's legs
+    F.ripples = F.ripples || [];
+    F.ripT = (F.ripT || 0) - dt;
+    if (P.goop && F.ripT <= 0) { F.ripT = Math.abs(dTh) > 1e-4 ? 0.12 : 0.4; F.ripples.push({ theta: P.theta, t: 0 }); if (Math.abs(dTh) > 1e-4) this.burst(P.theta, 4, 'fdrop', 1, 0.5); }
+    for (let i = F.ripples.length - 1; i >= 0; i--) { F.ripples[i].t += dt; if (F.ripples[i].t > 0.8) F.ripples.splice(i, 1); }
     F.lastTh = P.theta;
     // the boss's parts go when he does
     if (F.boss && !this.enemies.includes(F.boss)) { this.gfParts(F.boss); F.boss = null; }
@@ -366,7 +471,19 @@ const FondueMixin = {
     // curtains of hot cheese pouring out of the sky
     for (const C of F.curtains) {
       const d = angDiff(C.theta, vt); if (Math.abs(d) > this.visHalf + 0.1) continue;
-      const wid = C.st === 'pour' ? C.w : C.st === 'warn' ? 4 : 1.5, top2 = 700, left = [], right = [];
+      const wid = C.st === 'pour' ? C.w : C.st === 'warn' ? 2.5 : 1.5, top2 = FD_SPOUT - 34, left = [], right = [];
+      // the golden spout it pours from, hanging on a chain from the sky
+      const sp = k => this.screenPos(C.theta, FD_SPOUT + k), chainTop = sp(400), chainBot = sp(40);
+      g.lineStyle(2 * z, 0x8a6a2a, 1).lineBetween(chainTop.x, chainTop.y, chainBot.x, chainBot.y);
+      const fun = [[-16, 30], [16, 30], [7, 0], [5, -34], [-5, -34], [-7, 0]].map(([u, v]) => this.screenPos(wrap(C.theta + u / R), FD_SPOUT + v));
+      g.fillStyle(0xc89a2a, 1).fillPoints(fun, true); g.lineStyle(2 * z, 0x2a1404, 1).strokePoints(fun, true);
+      const lip = [sp(26), sp(-30)]; g.lineStyle(3 * z, 0xfff0a0, 1).lineBetween(this.screenPos(wrap(C.theta - 12 / R), FD_SPOUT + 26).x, this.screenPos(wrap(C.theta - 12 / R), FD_SPOUT + 26).y, lip[0].x, lip[0].y);
+      if (C.st === 'warn') {                                       // WARNING: the spout's mouth glows red-hot and pulses, a red target on the ground
+        const pulse = 0.5 + 0.5 * Math.sin(this.t * 26), m = sp(-34), gr = this.screenPos(C.theta, 2);
+        gl.fillStyle(0xff2a1a, 0.5 + 0.4 * pulse).fillCircle(m.x, m.y, (8 + 6 * pulse) * z);
+        gl.fillStyle(0xff3a2a, 0.25 + 0.35 * pulse).fillEllipse(gr.x, gr.y, (C.w * 3 + 10 * pulse) * z, 10 * z);
+        g.lineStyle(2 * z, 0xff3a2a, 0.6 + 0.4 * pulse).strokeEllipse(gr.x, gr.y, C.w * 3.2 * z, 11 * z);
+      }
       if (C.st === 'idle') continue;
       const parted = C.part > 0 && C.st === 'pour';
       for (let k = 0; k <= 16; k++) {
@@ -384,7 +501,7 @@ const FondueMixin = {
         g.lineStyle(2 * z, 0xfff4b0, 1).beginPath(); run.forEach((k, j) => { const p = left[k]; if (j) g.lineTo(p.x, p.y); else g.moveTo(p.x, p.y); }); g.strokePath();
         if (C.st === 'pour') gl.fillStyle(0xffa020, 0.2).fillPoints(poly, true);
       }
-      if (C.st === 'pour' && !parted) { const p = this.screenPos(C.theta, 4); g.fillStyle(0xfff0a0, 0.9).fillEllipse(p.x, p.y, 44 * z, 12 * z); }
+      if (C.st === 'pour' && !parted) { const p = this.screenPos(C.theta, 4), sw = 1 + 0.15 * Math.sin(this.t * 20); g.fillStyle(0xfff0a0, 0.9).fillEllipse(p.x, p.y, 48 * z * sw, 13 * z); gl.fillStyle(0xff8a1a, 0.35).fillEllipse(p.x, p.y, 70 * z * sw, 22 * z); }
     }
     // the boss's pour
     if (F.pour) {
@@ -407,6 +524,15 @@ const FondueMixin = {
       g.fillStyle(0xd8a020, 0.85 * a).fillPoints(top3.concat(bot.reverse()), true);
       for (let k = 1; k < 8; k += 3) g.fillStyle(0xfff0a0, a).fillCircle(top3[k].x, top3[k].y, 2 * z);
     }
+    // ripples where Chris wades through the fondue
+    for (const Rp of (F.ripples || [])) {
+      const p = this.screenPos(Rp.theta, 2), k = Rp.t / 0.8;
+      g.lineStyle(2 * z, 0xfff4c0, 1 - k);
+      g.strokeEllipse(p.x, p.y, (14 + 60 * k) * z, (4 + 8 * k) * z);
+    }
+    // the zipline handle
+    if (this.pl.zip) { const L = this.pl.zip.L, a = this.screenPos(this.pl.theta, L.h - 4), b = this.screenPos(this.pl.theta, this.pl.h + 50); g.lineStyle(3 * z, 0xc8d0dc, 1).lineBetween(a.x, a.y, b.x, b.y); g.fillStyle(0xffd040, 1).fillCircle(a.x, a.y, 3 * z); }
+    for (const q of this.ledgeSprs || []) if (q.L.sink) { const k = q.L.squash || 0; q.spr.sqx = 1 + 0.18 * k * Math.cos(k * 9); q.spr.sqy = 1 - 0.3 * k * Math.cos(k * 9); }
     // soggy croutons darken as they soak
     for (const q of this.ledgeSprs || []) if (q.L.sink) { const s2 = Math.min(1, (q.L.soak || 0) / 0.9); q.spr.setTint(Phaser.Display.Color.GetColor(255, 255 - s2 * 60, 255 - s2 * 140)); q.spr.setVisible(q.L.h > -100); }
   }
