@@ -1310,3 +1310,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Rim light: the light-coloured copy is now nudged by exactly one of the sprite's OWN pixels along its own pixel grid (the axes that face the light) instead of 1.4 screen px - the old way left a ragged, uneven cream sliver round rotated sprites. Slightly fainter (0.8).
 - Fondue enemies (Fork Fanatic, Dipped, Kamikaze Crouton) back to the same 1px outline as every other sprite - the 2px one looked heavy and odd next to the rest. Skimmers skip the rim light (their dithered wings showed it through).
 - The shadow-side shade on enemies is gentler (it was turning dark sprites into blobs).
+
+## v2.05 - Rat-frog jump legs
+- The rat-frog's leap frame had stick legs (single thin lines). Redrawn with proper frog limbs: a big thigh, a thick shin, long webbed feet with three clawed toes, a far leg and arm in shadow behind, a belly. Two air frames now: `frog_leap` going up (hind legs kicked out behind, arms reaching) and a new `frog_fall` coming down (legs swung forward under it, arms braced, tail whipping up), picked from its vertical speed.

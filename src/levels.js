@@ -427,13 +427,36 @@ function makeLevelTextures(scene) {
     const FUR = [0xb08ab0, 0x7a5a80, 0x3e2a48], SKIN = [0xffb8c8, 0xe07890, 0x9a4058], NEON = 0xb8ff5a, NEON2 = 0x6ae83a, VEIN = 0xc070ff;
     const dy = o.crouch ? 4 : 0, push = o.open ? 4 : 0;                                         // open: lunging forward
     const rim = (cx, cy, rx, ry, x0, x1) => { for (let x = Math.ceil(cx - rx * 0.92); x <= Math.floor(cx + rx * 0.92); x++) { if (x < x0 || x > x1) continue; const u = (x - cx) / rx, y = Math.round(cy - ry * Math.sqrt(Math.max(0, 1 - u * u))); a.px(x, y, NEON); a.px(x, y + 1, NEON2); } };
-    if (o.leap) {                                                   // stretched out mid-leap, tail streaming behind, claws forward
-      a.line([[16, 24], [8, 26], [2, 22], [0, 16]], SKIN[1], 3); a.line([[16, 23], [8, 25], [2, 21]], SKIN[0]);
-      a.line([[20, 30], [12, 36], [6, 40]], FUR[1], 4); a.poly([[6, 40], [2, 42], [8, 42]], SKIN);   // hind legs kicked back
+    if (o.leap) {                                                   // in the air. RISING: hind legs kicked right out behind, arms reaching.
+      const DK = [FUR[1], FUR[2], 0x2a1a34], CLAW = 0xfff0a0;         // FALLING (o.fall): legs swung forward under it to land, arms down, tail up
+      const leg = (pts, w, c) => a.line(pts, c, w);
+      const toes = (x, y, dx, dy) => { for (const k of [-1, 0, 1]) { a.line([[x, y], [x + dx * 4 + k * dy * 2, y + dy * 4 + k * dx * 2]], SKIN[1]); a.px(Math.round(x + dx * 5 + k * dy * 2), Math.round(y + dy * 5 + k * dx * 2), CLAW); } };
+      if (o.fall) {
+        a.line([[16, 22], [9, 17], [4, 10], [3, 4]], SKIN[1], 3); a.line([[15, 21], [9, 16], [5, 10]], SKIN[0]);         // tail whipping up behind
+        leg([[20, 30], [26, 37], [33, 39]], 3, DK[1]); toes(33, 39, 1, 0.4);                                             // far hind leg, tucked forward
+        leg([[41, 27], [45, 35], [46, 40]], 3, DK[1]);                                                                   // far arm
+      } else {
+        a.line([[16, 24], [8, 26], [2, 22], [0, 16]], SKIN[1], 3); a.line([[16, 23], [8, 25], [2, 21]], SKIN[0]);        // tail streaming behind
+        leg([[19, 27], [12, 30], [8, 31]], 3, DK[1]); toes(8, 31, -1, 0.2);                                              // far hind leg, kicked back
+        leg([[40, 26], [48, 28], [54, 28]], 3, DK[1]);                                                                   // far arm, reaching
+      }
       a.ell(30, 24, 17, 9, FUR); rim(30, 24, 17, 9, 14, 46);
       a.ell(26, 22, 4, 3, SKIN[1]); a.px(26, 22, NEON); a.px(33, 20, NEON);                         // a bald patch + pustules
       a.line([[20, 22], [28, 26], [36, 24]], VEIN);
-      a.line([[40, 28], [48, 34], [53, 36]], FUR[1], 3); for (const [x, y] of [[53, 36], [55, 34], [54, 38]]) a.px(x, y, 0xfff0a0);   // claws out front
+      a.ell(34, 30, 7, 3, [0xc8a0b0, 0x9a7080, 0x6a4050]);                                          // scrawny belly
+      if (o.fall) {
+        a.ell(20, 29, 8, 6, FUR);                                                                    // a big frog thigh...
+        leg([[17, 33], [22, 39]], 5, FUR[1]); leg([[22, 39], [30, 42]], 4, FUR[1]); a.line([[18, 33], [22, 38]], FUR[0]);   // ...shin folded under, foot swung forward
+        a.ell(22, 39, 2.5, 2.5, FUR); toes(31, 42, 1, 0.25);
+        leg([[39, 28], [43, 35]], 4, FUR[1]); leg([[43, 35], [45, 41]], 3, FUR[1]); a.line([[40, 28], [43, 34]], FUR[0]);   // near arm braced for the landing
+        toes(45, 41, 0.3, 1);
+      } else {
+        a.ell(18, 28, 8, 6, FUR);                                                                    // a big frog thigh...
+        leg([[14, 31], [8, 36]], 5, FUR[1]); leg([[8, 36], [6, 39]], 4, FUR[1]); a.line([[14, 30], [9, 34]], FUR[0]);       // ...long shin and foot trailing
+        a.ell(8, 36, 2.5, 2.5, FUR); toes(6, 39, -1, 0.5);
+        leg([[39, 28], [46, 33]], 4, FUR[1]); leg([[46, 33], [52, 35]], 3, FUR[1]); a.line([[40, 27], [46, 31]], FUR[0]);   // near arm stretched out, claws spread
+        toes(52, 35, 1, 0.3);
+      }
     } else {
       // the long naked tail, curling round behind
       a.line([[16, 40 + dy * 0.5], [8, 42], [2, 38], [1, 30], [4, 24], [9, 22]], SKIN[1], 3); a.line([[16, 39 + dy * 0.5], [8, 41], [3, 37], [2, 30]], SKIN[0]);
@@ -482,6 +505,7 @@ function makeLevelTextures(scene) {
   pixSprite(scene, 'frog_blink', 60, 46, a => drawFrog(a, { blink: true }));
   pixSprite(scene, 'frog_crouch', 60, 46, a => drawFrog(a, { crouch: true }));
   pixSprite(scene, 'frog_leap', 60, 46, a => drawFrog(a, { leap: true }));
+  pixSprite(scene, 'frog_fall', 60, 46, a => drawFrog(a, { leap: true, fall: true }));          // coming down: legs swung forward to land
   pixSprite(scene, 'frog_open', 60, 46, a => drawFrog(a, { open: true }));
   pixSprite(scene, 'frog_open_c', 60, 46, a => drawFrog(a, { open: true, crouch: true }));
   pixSprite(scene, 'frog_open_t', 60, 46, a => drawFrog(a, { open: true, twitch: true }));          // grab: the pupil twitches about

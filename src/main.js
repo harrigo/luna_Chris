@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.04';
+const BUILD = 'v2.05';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2098,7 +2098,7 @@ class Level1 extends Phaser.Scene {
     // which frame: leaping in the air, crouched just before a hop, mouth open for the tongue, blinking now and then
     let fr = 'frog';
     if (e.state === 'tell' || e.state === 'lash' || e.state === 'grab') { const tw = e.state === 'grab' && Math.floor(this.t * 14 + e.seed) % 3 === 0; fr = e.low ? (tw ? 'frog_open_ct' : 'frog_open_c') : (tw ? 'frog_open_t' : 'frog_open'); }   // (the pupil twitches while it reels you in)
-    else if (e.h > 2 || e.state === 'pounce') fr = 'frog_leap';
+    else if (e.h > 2 || e.state === 'pounce') fr = e.vh < -60 && e.h > 2 ? 'frog_fall' : 'frog_leap';   // rising: stretched out; falling: legs swung forward
     else if (e.state === 'approach' && (e.hopT || 0) < 0.08) fr = 'frog_crouch';
     else if (e.state === 'stun' || e.state === 'goop') fr = 'frog_blink';
     else if ((e.t + e.seed * 3) % 3.2 < 0.14) fr = 'frog_blink';

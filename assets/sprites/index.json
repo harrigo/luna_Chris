@@ -110,6 +110,7 @@
   "frog",
   "frog_blink",
   "frog_crouch",
+  "frog_fall",
   "frog_leap",
   "frog_open",
   "frog_open_c",
