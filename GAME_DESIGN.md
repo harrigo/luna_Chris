@@ -1375,3 +1375,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - CRACK: when the tip is moving fast (> 1500 px/s) it cracks - a flash ring and sparks at the tip, a snap sound, a tiny shake, and the tip's hit radius is 1.8x for that moment. Sauce flies off the tip while it swings.
 - REACH follows how hard you push: range 250 -> 320 at full push, `reachMin` 0.4 -> 0.3; on touch the stick's drag now maps over the whole range (0.12..1, was 0.5..1), so a light push is a short lash (~105) and a full push the whole 320. Pad trigger pressure as before; keyboard / mouse is always full reach.
 - LIGHTSABRE HITS (beamHit, every frame, not every 0.1 s): each enemy is tested against the whole length of the stream AND the path every link swept since the last frame, so a fast sweep can't skip anything. Each enemy is hit at most once per tick (`e.beamCd`), so damage per second is unchanged (non-bosses die on contact, bosses 25/s). Tested: one half-circle sweep through nine hovering jetpack rats took out all nine.
+
+## v2.18 Swiss-Shot overhaul
+- Charge is quicker (0.8s, was 1.1s) and only slows Chris by 30% (was 55%).
+- The ball BOUNCES: once, or twice above ~55% charge, with a small splat blast on each bounce (half radius, 45% damage) and the full blast on the last impact.
+- CLUSTER: above 70% charge the final blast throws out 4 bomblets (6 at full charge), each with its own small blast.
+- While charging, a dotted arc shows the flight and bounces, with a pulsing ring where it first lands; sparks streak into the ball.
+- In flight the ball spins, stretches along its path, squashes on a bounce, and leaves fading ghost images and drips.
+- Blast effect: sagging strings of molten cheese fling out and snap back, Swiss holes pop open, steam rolls up, more chunks; a screen flash on charged shots. Bounce splats and bomblets use a lighter version.
+- Particles can now fade (`fade` on a part).

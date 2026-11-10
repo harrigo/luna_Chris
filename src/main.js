@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.17';
+const BUILD = 'v2.18';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -56,8 +56,8 @@ const WEAPONS = [
     beam: true, range: 320, reachMin: 0.3, droop: 50, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
     blurb: 'A whip of spaghetti: push harder to reach further, swing it and the tip CRACKS. Cuts through everything it passes.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
-    lob: true, aimed: true, plough: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.075, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
-    blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
+    lob: true, aimed: true, plough: true, charge: true, chargeTime: 0.8, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.075, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. It BOUNCES, bursting each time; a full charge splits into a cluster of little ones.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
 CFG.powerT = 15;                 // seconds the Parmesan Power-Up lasts (a hit still knocks it off sooner)
@@ -1594,7 +1594,7 @@ class Level1 extends Phaser.Scene {
     if (P.duck && ax) P.facing = ax;
 
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
-    P.vx += (ax * CFG.runSpeed * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.55 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
+    P.vx += (ax * CFG.runSpeed * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.3 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.chips && this.chips.length) {               // tortilla chips are solid: you can't run (or be pushed) through them
       this.pinT = Math.max(0, this.pinT - dt);
@@ -1810,7 +1810,8 @@ class Level1 extends Phaser.Scene {
   // release a charged Swiss-Shot: everything scales with the charge (c = 0.2 .. 1)
   fireCharged(c, tgt) {
     const P = this.pl, W = this.weapon;
-    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c });
+    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c,
+      bounce: c > 0.55 ? 2 : 1, cluster: c >= 0.97 ? 6 : (c > 0.7 ? 4 : 0) });     // it skips along the ground bursting as it goes; big ones split into a cluster
     P.fireCd = W.interval * (this.buffOn('sauce') ? 0.5 : 1);
     if (P.power <= 0) {
       P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c)); P.ammoHold = CFG.ammoDelay;
@@ -3114,7 +3115,7 @@ class Level1 extends Phaser.Scene {
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life * (o.lifeK || 1), wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0,
         blast: o.blast || W.blast || 0, blastDmg: o.blastDmg || W.blastDmg || 0, bossDmg: o.bossDmg, charged: (o.scaleK || 0) > 1.1,
-        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32,
+        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32, bounce: o.bounce || 0, cluster: o.cluster || 0, rot: 0, trailT: 0,
         spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = (W.ballScale || 1) * (o.scaleK || 1); if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
     }
@@ -3239,7 +3240,7 @@ class Level1 extends Phaser.Scene {
   }
 
   // Swiss-Shot burst: hurts everything within the blast radius
-  swissBlast(theta, h, rad, dmg, bossDmg, charged) {
+  swissBlast(theta, h, rad, dmg, bossDmg, charged, lite) {     // lite: a bounce splat or a cluster bomblet (smaller fx, no stop-frame)
     if (this.chaser && Math.sqrt(dist2(theta, h, this.chaser.theta, this.chaser.r)) < rad + this.chaser.r) this.stunChaser(1.8);   // a Swiss-Shot blast knocks the wheel silly
     if (this.chips) for (const C of this.chips) if (C.alive && Math.abs(angDiff(theta, C.theta)) * R < rad + 12) this.chipHit(C.theta, 20, dmg * 2);
     for (const e of this.enemies) if (e.ai === 'wheel' && e.core && charged && Math.sqrt(dist2(theta, h, e.theta, e.h)) < rad + 30) {   // a CHARGED shot into the exposed eye
@@ -3260,17 +3261,23 @@ class Level1 extends Phaser.Scene {
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
-    this.blastFx.push({ theta, h, rad, t: 0 });            // shockwave drawn in planet coordinates (see drawBlastFx), so it bends with the surface
-    this.bang(theta, h + 6, 60);
-    this.burst(theta, h + 6, 'crumb', 26, 1.8);
-    for (let k = 0; k < 6; k++) { const im = this.add.image(0, 0, 'swissball').setDepth(9); im.bsx = im.bsy = rnd(0.5, 0.9);   // flying cheese chunks
-      this.parts.push({ theta, h: h + 8, vt: rnd(-260, 260), vh: rnd(250, 520), life: rnd(0.6, 1), spr: im }); }
-    for (let k = 0; k < 18; k++) this.fxBang.emitParticleAt(s.x + rnd(-10, 10) * z, s.y + rnd(-10, 10) * z, 1);
-    if (h < 30) this.puddles.push({ theta, rad, t: 0, life: 2.6 });   // landed: a melted-cheese smear that hugs the curve of the ground, then fades
-    this.cameras.main.shake(160 + rad * 0.6, 0.006 + rad * 0.00005);       // bigger blast, bigger shake
-    this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camPunch(0.035);
-    this.addLight(theta, h + 10, rad * 1.6, 0xffe080, 1, 0.45);
-    Sound.sfx('boom'); buzz([60, 30, 90]);
+    // (shockwave, stretchy strings of molten cheese and popping Swiss holes: drawn in planet coordinates by drawBlastFx)
+    const FXB = { theta, h, rad, t: 0, lite: !!lite, strs: [], holes: [] };
+    for (let k = 0, n = lite ? 4 : 8; k < n; k++) FXB.strs.push({ a: (h < 20 ? Math.PI * (0.06 + 0.88 * (k + rnd(0.2, 0.8)) / n) : TAU * (k + rnd(0, 1)) / n), l: rnd(0.75, 1.35), w: rnd(0.7, 1.3) });
+    if (!lite) for (let k = 0; k < 6; k++) FXB.holes.push({ a: rnd(0, TAU), d: rnd(0.2, 0.75), r: rnd(0.1, 0.22), t0: rnd(0, 0.18) });
+    this.blastFx.push(FXB);
+    this.bang(theta, h + 6, lite ? 30 : 60);
+    this.burst(theta, h + 6, 'crumb', lite ? 9 : 26, lite ? 1.2 : 1.8);
+    for (let k = 0; k < (lite ? 2 : 8); k++) { const im = this.add.image(0, 0, 'swissball').setDepth(9); im.bsx = im.bsy = rnd(0.5, 0.9);   // flying cheese chunks
+      this.parts.push({ theta, h: h + 8, vt: rnd(-300, 300), vh: rnd(250, 560), life: rnd(0.6, 1), spr: im, rot: 0, rv: rnd(-12, 12) }); }
+    for (let k = 0; k < (lite ? 2 : 5); k++) { const im = this.add.image(0, 0, 'puff').setDepth(8.4).setTint(0xfff0c0).setAlpha(0.6); im.bsx = im.bsy = rnd(0.3, 0.55) * (rad / 130 + 0.4);   // steam rolling up off it
+      this.parts.push({ theta: wrap(theta + rnd(-rad, rad) * 0.5 / R), h: h + rnd(4, 20), vt: rnd(-30, 30), vh: rnd(60, 130), life: rnd(0.6, 1), fade: 1, noGrav: true, grow: 0.9, spr: im, rot: 0, rv: 0 }); }
+    for (let k = 0; k < (lite ? 6 : 18); k++) this.fxBang.emitParticleAt(s.x + rnd(-10, 10) * z, s.y + rnd(-10, 10) * z, 1);
+    if (h < 30) this.puddles.push({ theta, rad: lite ? rad * 0.8 : rad, t: 0, life: lite ? 1.6 : 2.6 });   // landed: a melted-cheese smear that hugs the curve of the ground, then fades
+    this.cameras.main.shake(lite ? 70 : 160 + rad * 0.6, lite ? 0.003 : 0.006 + rad * 0.00005);       // bigger blast, bigger shake
+    if (!lite) { this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camPunch(charged ? 0.05 : 0.035); if (charged) this.cameras.main.flash(120, 255, 236, 170); }
+    this.addLight(theta, h + 10, rad * 1.6, 0xffe080, 1, lite ? 0.25 : 0.45);
+    Sound.sfx(lite ? 'splat' : 'boom'); if (!lite) buzz([60, 30, 90]);
   }
 
   // THE SPAGHETTI SPINNER is a WHIP. The stream is a chain of links: the first leaves the nozzle the way Chris is aiming,
@@ -4064,6 +4071,21 @@ class Level1 extends Phaser.Scene {
         b.bh = b.bh < 0 ? -b.bh : 2 * roofH - b.bh; b.vh = -b.vh; b.bnc = (b.bnc || 0) + 1; b.age = Math.max(0, b.age - 0.2);
         b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
       }
+      if (b.blast) {                                      // SWISS-SHOT in flight: spinning, stretched along its path, shedding ghosts and molten drips
+        b.rot += dt * 11 * Math.sign(b.vt || 1); b.sq = Math.max(0, (b.sq || 0) - dt * 5);
+        const spd = Math.hypot(b.vt, b.vh), st = Math.min(0.28, spd / 2600), q = b.sq * Math.cos(b.sq * 9);
+        b.spr.sqx = (1 + st) * (1 + 0.45 * q); b.spr.sqy = (1 - st * 0.6) * (1 - 0.4 * q);
+        if ((b.trailT -= dt) <= 0) {
+          b.trailT = 0.035;
+          const gh2 = this.add.image(0, 0, 'swissball').setDepth(7.9).setTint(0xffc040).setAlpha(0.5); gh2.bsx = gh2.bsy = b.spr.bsx * 0.8;
+          this.parts.push({ theta: b.theta, h: b.h, vt: 0, vh: 0, life: 0.22, fade: 0.44, spr: gh2, noGrav: true, grow: -b.spr.bsx * 2.4, rot: b.rot, rv: 0 });
+          if (Math.random() < 0.6) this.burst(b.theta, b.h, 'crumb', 1, 0.35);
+        }
+        if (b.bounce > 0 && b.bh < 0 && b.vh < 0) {       // BOUNCE: it skips off the ground with a splat and a small burst, and carries on
+          b.bounce--; b.bh = 2; b.h = 2; b.vh = Math.max(190, -b.vh * 0.62); b.vt *= 0.86; b.sq = 1; b.age = Math.max(0, b.age - 0.9);
+          this.swissBlast(b.theta, 0, b.blast * 0.5, b.blastDmg * 0.45, (b.bossDmg || this.weapon.bossDmg) * 0.45, false, true);
+        }
+      }
       let dead = b.age > (b.life || CFG.bulletLife) || b.h < 0;
       if (!dead) for (let j = this.eBullets.length - 1; j >= 0; j--) {      // shootable enemy shots (the Croque's missiles)
         const m = this.eBullets[j];
@@ -4121,7 +4143,15 @@ class Level1 extends Phaser.Scene {
       if (!dead && this.relics.length && this.relicHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (!dead && this.blocks && this.blocks.length && this.blockHit(b.theta, b.h, b.dmg || 1)) dead = true;
       if (!dead && this.chips && this.chips.length && this.chipHit(b.theta, b.h, b.dmg || 1)) dead = true;
-      if (dead && b.blast) this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, b.bossDmg || this.weapon.bossDmg, b.charged);
+      if (dead && b.blast) {
+        this.swissBlast(b.theta, Math.max(0, b.h), b.blast, b.blastDmg, b.bossDmg || this.weapon.bossDmg, b.charged, b.mini);
+        for (let k = 0; k < (b.cluster || 0); k++) {       // CLUSTER: a big one bursts into little ones that scatter and pop
+          const an = Math.PI * (0.18 + 0.64 * (k + 0.5) / b.cluster) + rnd(-0.12, 0.12), v = rnd(260, 380), th0 = b.theta, h0 = Math.max(6, b.h);
+          const im = this.add.image(0, 0, 'swissball').setDepth(8); im.bsx = im.bsy = (this.weapon.ballScale || 2.2) * 0.42;
+          this.pBullets.push({ bt: th0, bh: h0, theta: th0, h: h0, vt: Math.cos(an) * v, vh: Math.sin(an) * v, px: 0, py: 0, ph: 0, age: 0, life: 2.4, wob: 0, dmg: 0, pierce: 0, hits: null, grav: 620,
+            blast: b.blast * 0.42, blastDmg: b.blastDmg * 0.3, bossDmg: (b.bossDmg || this.weapon.bossDmg) * 0.3, charged: false, plough: false, ploughDmg: 0, minScale: 0, bounce: 0, cluster: 0, rot: 0, trailT: 0, mini: true, spr: im });
+        }
+      }
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
     this.reapEnemies();
@@ -4256,6 +4286,7 @@ class Level1 extends Phaser.Scene {
       p.h += p.vh * dt;
       p.life -= dt;
       if (p.rv) p.rot += p.rv * dt;
+      if (p.fade) p.spr.setAlpha(Math.max(0, p.life / p.fade));
       if (p.flashT > 0) { p.flashT -= dt; if (p.flashT <= 0) p.spr.setTint(0xff9d9d); }
       if (p.stay && p.h < 0) { p.h = 0; p.vh = Math.abs(p.vh) > 120 ? -p.vh * 0.35 : 0; p.vt *= 0.5; p.rv *= 0.5; if (!p.vh) { p.vt = 0; p.rv = 0; } if (Math.abs(p.vh) > 0) Sound.sfx('clang'); }
       if (p.corpse && p.h < 0 && p.vh < 0) { this.burst(p.theta, 4, 'spark', 3, 0.4); p.h = 0; p.life = 0; }    // a little poof as it lands
@@ -4524,6 +4555,25 @@ class Level1 extends Phaser.Scene {
           pts.push(hh < 0 ? null : at(wrap(B.theta + Math.cos(ang) * rr / base), hh));        // clipped at the ground
         }
         stroke(g, pts, Math.max(1.5, w * a * z), col, al);
+      }
+      // strings of molten cheese fling out, stretch thin, then snap back; blobs on the ends
+      { const out = k < 0.4 ? 1 - Math.pow(1 - k / 0.4, 2) : 1 - Math.pow((k - 0.4) / 0.6, 2) * 0.85;
+        for (const S of B.strs) {
+          const L = B.rad * S.l * out, hh = Math.max(1, B.h + Math.sin(S.a) * L), c1 = at(wrap(B.theta + Math.cos(S.a) * L / base), hh);
+          const w = Math.max(1.5, (8 * S.w * (1 - out * 0.6)) * z * (B.lite ? 0.7 : 1)), pts = [];
+          for (let q = 0; q <= 6; q++) { const u = q / 6, sag = Math.sin(u * Math.PI) * L * 0.22 * (k > 0.4 ? 1 + (k - 0.4) * 1.5 : 1);     // the string sags in the middle, more as it cools
+            pts.push(at(wrap(B.theta + Math.cos(S.a) * L * u / base), Math.max(1, B.h + Math.sin(S.a) * L * u - sag))); }
+          g.lineStyle(w + 2 * z, 0x8a4a08, a).strokePoints(pts);
+          g.lineStyle(w, 0xffc83a, a).strokePoints(pts);
+          g.lineStyle(Math.max(1, w * 0.35), 0xfff4b0, a).strokePoints(pts);
+          g.fillStyle(0xffc83a, a).fillCircle(c1.x, c1.y, (3 + 3 * S.w) * z * (B.lite ? 0.7 : 1)); g.fillStyle(0xfff4b0, a).fillCircle(c1.x - z, c1.y - z, 1.5 * z);
+        } }
+      // Swiss HOLES popping open across the blast
+      for (const Hh of B.holes) {
+        const kk = (k - Hh.t0) / 0.5; if (kk <= 0 || kk >= 1) continue;
+        const hx = Math.cos(Hh.a) * B.rad * Hh.d, hy = Math.max(4, B.h + Math.abs(Math.sin(Hh.a)) * B.rad * Hh.d), c = at(wrap(B.theta + hx / base), hy), rr = B.rad * Hh.r * (0.3 + 0.7 * kk) * z;
+        g.lineStyle(Math.max(1.5, 4 * (1 - kk) * z), 0xffe27a, 1 - kk).strokeCircle(c.x, c.y, rr);
+        g.lineStyle(Math.max(1, 1.5 * z), 0xffffff, (1 - kk) * 0.8).strokeCircle(c.x, c.y, rr * 0.7);
       }
       if (B.h < r * 1.1) {                                             // ground ripple, curving with the planet
         const span = (Math.sqrt(Math.max(0, r * r - B.h * B.h)) * 1.2 + 8) / R, pts = [];
@@ -4805,7 +4855,20 @@ class Level1 extends Phaser.Scene {
         this.chargeSpr.setPosition(M.x + M.dx * r * 0.8, M.y + M.dy * r * 0.8).setScale(sc * wob, sc / wob).setRotation(this.t * 2).setVisible(true);
         if (P.chargeFull && Math.floor(this.t * 16) % 2) this.chargeSpr.setTint(0xfff6c0); else this.chargeSpr.clearTint();
         if (Math.random() < c * 0.5) this.fxBang.emitParticleAt(M.x + M.dx * r + rnd(-r, r), M.y + M.dy * r + rnd(-r, r), 1);    // sizzling sparks
-      } else this.chargeSpr.setVisible(false);
+        // energy streaking IN to the ball, and the ARC it will fly (dotted: first flight, then the bounce), with a ring where it lands
+        if (!this.chargeG) this.chargeG = this.add.graphics().setDepth(8.55);
+        const cg = this.chargeG; cg.clear();
+        const bx = M.x + M.dx * r * 0.8, by = M.y + M.dy * r * 0.8;
+        for (let k = 0; k < 7; k++) { const an = k * 0.898 + this.t * 2.2, ph = ((this.t * (2.2 + c * 2.5) + k * 0.37) % 1), d0 = r * (2.6 - 1.7 * ph), d1 = d0 - r * 0.55; cg.lineStyle(Math.max(1, 2 * z), ph > 0.6 ? 0xffffff : 0xffe27a, 0.35 + 0.6 * ph).lineBetween(bx + Math.cos(an) * d0, by + Math.sin(an) * d0, bx + Math.cos(an) * d1, by + Math.sin(an) * d1); }
+        { const spd = W.speed * (0.65 + 0.75 * c), dir = P.facing || 1, aa = P.aimA || 0, RR = R + M.h;
+          let th = M.theta, hh = M.h, vt = dir * Math.cos(aa) * spd, vh = Math.sin(aa) * spd, bn = c > 0.55 ? 2 : 1, n = 0, land = null;
+          for (let step = 0; step < 150; step++) {
+            th = wrap(th + vt / RR * 0.03); vh -= (W.gravity || 420) * 0.03; hh += vh * 0.03;
+            if (hh < 0) { if (!land) land = th; if (bn-- <= 0) break; hh = 2; vh = Math.max(190, -vh * 0.62); vt *= 0.86; }
+            if (step % 2 === 0 && step > 1) { const q = this.screenPos(th, hh), rr = Math.max(2, (land ? 2.4 : 3.4) * z); cg.fillStyle(0x5a2c06, land ? 0.4 : 0.7).fillCircle(q.x, q.y, rr + 1.5); cg.fillStyle(land ? 0xffc83a : 0xfff4b0, land ? 0.7 : 1).fillCircle(q.x, q.y, rr); }
+          }
+          if (land !== null) { const rad = W.blast * (0.45 + 0.85 * c) * 0.5, pts = []; for (let k = 0; k <= 12; k++) pts.push(this.screenPos(wrap(land + (-1 + 2 * k / 12) * rad / R), 1.5)); cg.lineStyle(Math.max(4, 7 * z), 0x5a2c06, 0.5).strokePoints(pts); cg.lineStyle(Math.max(2.5, 4 * z), 0xfff4b0, 0.7 + 0.3 * Math.sin(this.t * 14)).strokePoints(pts); } }
+      } else { this.chargeSpr.setVisible(false); if (this.chargeG) this.chargeG.clear(); }
     }
 
     for (const e of this.enemies) {
@@ -4829,7 +4892,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
     if (this.def.fondue) this.fondueDraw(this.unw - (this.lagU || 0));   // L5.5: curtains, waves, party lights, the fountain (fondue.js)
-    for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, Math.atan2(-b.vh, b.vt));
+    for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, b.blast ? b.rot : Math.atan2(-b.vh, b.vt));   // (the Swiss ball spins)
     this.drawBeam();
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
