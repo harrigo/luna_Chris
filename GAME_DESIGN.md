@@ -1331,3 +1331,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.08 - No more highlighted outline on enemies
 - Dropped the rim-light copy behind enemies too (fx.js): at game size it read as a pale highlighted outline round every sprite. Enemies keep the gentle shadow-side shading and ground shadows; nothing now draws a copy behind any sprite.
+
+## v2.09 - The rat saucer, redrawn and animated (toons.js)
+- `ratship` (the saucer that carries Bessie off; also in the intro, the map, the ending, level backgrounds and the centrifuge) is now a battered junk-heap saucer in the grotesque cartoon style: a scowling bug-eyed rat in a red bandana at the levers under a big cracked glass dome (sticking plaster over the crack), dented tin hull patched with a rust plate and a nailed-on plank, a cheese-and-crossbones, a bent aerial, a tail-pipe.
+- SIX frames (`ratship`, `ratship1`..`ratship5`, 84x64): rim lights chase round, the pilot bounces, his eyes dart left and right and blink, the lever waggles, his bandana knot and drool flap, the aerial sways and its bulb winks, the tail-pipe belches smoke, the thrusters gutter, the tractor lens pulses, slime drips off the rim.
+- `shipAnim(game)`: one game-wide ticker (game 'poststep', ~10 fps) flips every image showing a ratship frame to the next - so every scene's saucer animates with no per-scene code.
+- The pale baked-glow halo on the saucer is gone (it blurred the art).

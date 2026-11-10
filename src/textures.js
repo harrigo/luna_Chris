@@ -139,15 +139,7 @@ function makeTextures(scene) {
     g.fillStyle(0x7ad7ff, 0.35).fillCircle(52, 14, 16);                     // little space-helmet bubble
   });
 
-  // Rodent rescue-snatcher ship (small, seen at the start of a level).
-  mk('ratship', 84, 40, g => {
-    g.fillStyle(0x6f7a8c, 1).fillEllipse(42, 28, 82, 20);                   // saucer
-    g.fillStyle(0x8b5a2b, 1).fillRect(10, 26, 10, 4).fillRect(60, 24, 12, 5);  // junk plates
-    g.fillStyle(0x7ad7ff, 0.9).fillEllipse(42, 16, 28, 20);                 // dome
-    g.fillStyle(0x9aa3b2, 1).fillCircle(42, 18, 7);                         // rat pilot
-    g.fillStyle(0xf4a6b8, 1).fillCircle(37, 11, 3).fillCircle(47, 11, 3);
-    g.fillStyle(0xff8c1a, 1).fillCircle(20, 34, 3).fillCircle(42, 36, 3).fillCircle(64, 34, 3);   // lights
-  });
+  // (the rat saucer is drawn in toons.js: six animated frames)
 
   // (the Gouda-Golem is drawn in toons.js)
 

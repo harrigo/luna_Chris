@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.08';
+const BUILD = 'v2.09';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -265,7 +265,7 @@ class Level1 extends Phaser.Scene {
         ship: this.add.image(0, 0, 'ratship').setDepth(0.64).setAlpha(0),
         f: 0, ft: 0, a: 0
       };
-      glowFx(this.abduct.beam, 0xffd23f, 3, 10); bakedGlow(this.abduct.ship, 0x9fd8ff, 1, 6);
+      glowFx(this.abduct.beam, 0xffd23f, 3, 10);            // (no halo on the saucer: it blurred the hand-drawn art)
     }
     if (this.def.nebula) {                              // big swirling pixel nebulae + four-point sparkle stars (level 2: turquoise)
       const NB = this.def.nebula;
@@ -880,7 +880,7 @@ class Level1 extends Phaser.Scene {
     const r = this.rescue;
     const ship = { spr: this.add.image(0, 0, 'ratship').setDepth(7), theta: r.cow.theta, h: 720, rot: 0 };
     const beam = this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(5.9).setAlpha(0);
-    glowFx(beam, 0xffd23f, 3, 10); bakedGlow(ship.spr, 0x9fd8ff, 1, 6);
+    glowFx(beam, 0xffd23f, 3, 10);
     this.actors.push(ship);
     r.snatch = { ship, beam, t: 0, f: 0, ft: 0, grabbed: false };
     const lines = ['WAIT... WHAT\'S THAT NOISE?', 'OH NO. NOT AGAIN...', 'IS THAT... ANOTHER SHIP?!', 'SQUEAK SQUEAK SQUEAK!'];

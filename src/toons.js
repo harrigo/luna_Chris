@@ -232,8 +232,84 @@ function makeToonTextures(scene) {
   pixSprite(scene, 'ghostpirate', 46, 44, a => pirate(a, 0));
   pixSprite(scene, 'ghostpirate_b', 46, 44, a => pirate(a, 1));
 
+  // ---- THE RAT SAUCER (it carries Bessie off; seen all over the game): a battered junk-heap of a flying saucer with a
+  // bug-eyed rat at the levers under a cracked glass dome. SIX frames, played everywhere by shipAnim below: the rim
+  // lights chase round, the pilot bounces and his eyes dart about (and blink), the lever waggles, the aerial sways and
+  // its bulb winks, the tail-pipe belches smoke, the thrusters gutter, slime drips off the rim.
+  const saucer = (a, f) => {
+    const HULL = [0xd8e2f0, 0x7a8aa4, 0x384460], TOP = [0xf0f6ff, 0xa8b6cc, 0x62728e], BELLY = [0x5a6684, 0x363f5a, 0x1c2236], GLASS = [0xe0fbff, 0x8ad8f0, 0x4a98c8];
+    const RUST = [0xe09a5a, 0xa85a2a, 0x5e2e14], BRASS = [0xffe08a, 0xd09a2a, 0x7a5210], RFUR = [0xc4c8dc, 0x868ca6, 0x4e5270];
+    const bob = [0, 0, -1, -1, 0, 1][f], sway = [0, 1, 1, 0, -1, -1][f], look = [0.7, 0.7, -0.6, -0.6, 0.2, 0.2][f];
+    // the tail-pipe, belching
+    a.rect(0, 41, 6, 44, BELLY[1]); a.rect(0, 41, 6, 41, BELLY[0]);
+    for (const [k, r] of [[f % 3, 2.4], [(f + 1) % 3, 1.6]]) a.ell(3 - k * 0.6, 36 - k * 4 - (r < 2 ? 3 : 0), r + k * 0.5, r + k * 0.4, [0xe8e8f0, 0xa8a8b8, 0x6a6a7c]);
+    // the aerial: a bent bit of wire, a bulb winking on the end
+    a.line([[44, 7], [47, 4], [51 + sway, 2]], 0x384460); a.ell(52 + sway, 2, 2, 2, f % 2 ? [0xff9a8a, 0xff3a3a, 0x8a1010] : [0xa84a4a, 0x7a1a1a, 0x4a0a0a]); if (f % 2) a.px(51 + sway, 1, 0xffffff);
+    // the dome: a great glass bubble
+    a.ell(42, 24, 20, 18.5, GLASS);
+    // ...and the pilot inside: torn ears, a mad red bandana, eyes on stalks, buck teeth, drool
+    a.ell(29, 17 + bob, 5, 6, PINK); a.ell(29, 17.5 + bob, 2.5, 3.5, PINK[2]); a.ell(55, 16 + bob, 5, 6, PINK); a.ell(55, 16.5 + bob, 2.5, 3.5, PINK[2]); a.px(58, 11 + bob, GLASS[1]); a.px(57, 11 + bob, GLASS[1]);
+    a.ell(42, 27 + bob, 11.5, 10, RFUR);
+    a.ell(47, 32 + bob, 7, 4.2, RFUR); a.ell(53.5, 31 + bob, 2, 2, PINK); a.px(53, 30 + bob, 0xffffff);
+    a.line([[50, 31 + bob], [57, 28 + bob]], 0xe8e0d0); a.line([[50, 33 + bob], [58, 34 + bob]], 0xe8e0d0);                             // whiskers
+    a.line([[40, 34 + bob], [52, 34 + bob]], DARK); a.rect(44, 34 + bob, 46, 38 + bob, TOOTH[0]); a.rect(47, 34 + bob, 49, 37 + bob, TOOTH[1]); a.line([[46, 35 + bob], [46, 37 + bob]], TOOTH[2]);
+    a.px(41, 36 + bob, 0xb8ffe8); a.px(41, 37 + bob, 0xb8ffe8); if (f % 2) a.px(41, 38 + bob, 0xe0fff4);
+    a.poly([[31, 19 + bob], [53, 16 + bob], [53, 18 + bob], [31, 21 + bob]], [0xff7a6a, 0xd82a2a, 0x7a1010]); a.line([[31, 20 + bob], [26, 17 + bob + (f % 2)]], 0xd82a2a, 2); a.line([[31, 21 + bob], [27, 23 + bob - (f % 2)]], 0xd82a2a);
+    eye(a, 37, 25 + bob, 5.8, look, 0.25, f === 5 ? { lid: 0.86, lidC: RFUR[1] } : { pr: 1.4 }); eye(a, 48, 25 + bob, 4.4, look, 0.3, f === 5 ? { lid: 0.86, lidC: RFUR[1] } : { pr: 1.1 });
+    if (f !== 5) { a.line([[31, 23 + bob], [35, 20 + bob]], 0xe0302a); a.line([[52, 23 + bob], [50, 21 + bob]], 0xe0302a); }               // bloodshot
+    a.line([[32, 19 + bob], [42, 22 + bob]], DARK, 2); a.line([[53, 19 + bob], [45, 22 + bob]], DARK, 2);                               // a scowl
+    // the lever he's wrenching about
+    a.line([[27, 40], [25 + (f % 2 ? 2 : -1), 31]], 0x384460, 2); a.ell(25 + (f % 2 ? 2 : -1), 30, 2.2, 2.2, [0xff9a8a, 0xe02a2a, 0x7a0a10]); a.ell(28, 37, 2.8, 2.2, RFUR);
+    // glass: glints, a crack with a sticking plaster over it
+    a.line([[26, 16], [30, 10]], 0xffffff); a.line([[27, 18], [28, 16]], 0xffffff); a.px(33, 8, 0xffffff); a.line([[58, 12], [60, 17], [58, 21], [60, 25]], 0x2a5a8a);
+    a.poly([[56, 18], [63, 20], [62, 24], [55, 22]], [0xffe8c0, 0xe8c090, 0xa87a50]); a.px(58, 20, 0xa87a50); a.px(60, 22, 0xa87a50);
+    a.rrect(22, 39, 62, 43, 2, BRASS); for (const x of [26, 34, 42, 50, 58]) a.px(x, 41, BRASS[2]);                                   // brass collar
+    // the hull: dented tin, patched with rust and a plank
+    a.ell(42, 46, 41, 9, HULL); a.ell(42, 44, 35, 4.5, TOP);
+    a.poly([[7, 44], [20, 41], [22, 46], [9, 49]], RUST); for (const [x, y] of [[9, 45], [19, 43], [20, 46], [11, 48]]) a.px(x, y, 0xffd8a0);
+    a.poly([[60, 42], [75, 44], [74, 48], [59, 46]], [0xc89a5a, 0x8a5a2a, 0x4a2a10]); a.px(62, 44, DARK); a.px(72, 46, DARK); a.line([[64, 44], [70, 45]], 0x6a4018);
+    a.poly([[36, 45], [48, 45], [42, 52]], [0xfff0a0, 0xffc83a, 0xc8860f]); a.px(40, 46, 0xa87008); a.px(44, 47, 0xa87008); a.px(45, 46, DARK); a.px(41, 48, DARK); a.px(42, 50, 0xa87008);   // the cheese-and-crossbones
+    a.line([[26, 48], [30, 50]], HULL[2]); a.line([[52, 50], [56, 48]], HULL[2]);                                                     // dents
+    for (let i = 0; i < 9; i++) {                                                                                                   // rim lights, chasing round
+      const an = (12 + i * 19.5) * Math.PI / 180, x = 42 + Math.cos(an) * 38, y = 47 + Math.sin(an) * 7, on = (i + f) % 3 === 0;
+      a.ell(x, y, 2.2, 2.2, on ? [0xffffff, 0xfff0a0, 0xffa020] : [0xa85a2a, 0x7a3a14, 0x4a1e08]);
+    }
+    // underneath: a dark belly, guttering thrusters, the tractor lens
+    a.ell(42, 53, 23, 4.5, BELLY);
+    for (const x of [22, 62]) { a.rect(x - 3, 55, x + 3, 57, BELLY[1]); const l = 2 + ((f + (x > 40 ? 1 : 0)) % 3); a.poly([[x - 2, 58], [x + 2, 58], [x, 58 + l]], [0xfff0a0, 0xffa020, 0xd0401a]); }
+    a.rrect(36, 55, 48, 58, 1, BRASS); a.ell(42, 59, 4, 1.6, f % 2 ? [0xffffff, 0xb8f4ff, 0x5ad8ff] : [0xb8f4ff, 0x5ad8ff, 0x2a8ac8]);
+    // slime off the rim
+    a.line([[14, 52], [14, 54 + (f % 3)]], 0xb8ff7a); a.px(14, 55 + (f % 3), 0xe0ffb0); a.line([[69, 52], [69, 53 + ((f + 1) % 3)]], 0xb8ff7a);
+  };
+  for (let f = 0; f < 6; f++) pixSprite(scene, 'ratship' + (f || ''), 84, 64, a => saucer(a, f));
+  shipAnim(scene.game);
+
   // the eyeball that bulges out when something is hit
   pixSprite(scene, 'toon_eye', 18, 18, a => { a.ell(9, 9, 7, 7, WH); for (const [x0, y0, x1, y1] of [[2, 8, 5, 9], [15, 11, 12, 10], [9, 15, 9, 13]]) a.line([[x0, y0], [x1, y1]], 0xe0302a); a.ell(11, 9.5, 1.5, 1.5, DARK); a.px(6, 5, 0xffffff); });
+}
+
+// The rat saucer is drawn by plain images in half a dozen scenes (levels, the intro, the map, the ending, the
+// centrifuge): rather than animate each one, a game-wide ticker flips every image showing a 'ratship' frame on to the
+// next one (keeping any '_g...' baked-glow suffix).
+function shipAnim(game) {
+  if (game.__shipAnim) return;
+  game.__shipAnim = true;
+  let last = -1;
+  const walk = (list, f) => {
+    for (const o of list) {
+      if (o.list) { walk(o.list, f); continue; }
+      const k = o.texture && o.texture.key; if (!k || k.charCodeAt(0) !== 114 || k.slice(0, 7) !== 'ratship') continue;
+      const m = /^ratship\d?(_g.*)?$/.exec(k); if (!m) continue;
+      const nk = 'ratship' + (f || '') + (m[1] || '');
+      if (nk !== k && game.textures.exists(nk)) o.setTexture(nk);
+    }
+  };
+  game.events.on('poststep', () => {
+    const f = Math.floor(game.loop.time / 95) % 6;
+    if (f === last) return;
+    last = f;
+    for (const sc of game.scene.getScenes(true)) walk(sc.children.list, f);
+  });
 }
 
 const ToonMixin = {
