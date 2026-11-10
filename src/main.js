@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.06';
+const BUILD = 'v2.07';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -341,7 +341,7 @@ class Level1 extends Phaser.Scene {
       this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
     }
-    this.fx = null;
+    this.fx = null; this.toon = null;
     this.depthFx = null; this.depthInit();               // neo-retro depth: sphere shading, parallax hills, foreground rocks (depth.js)
     if (!this.def.surface) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
@@ -1371,6 +1371,7 @@ class Level1 extends Phaser.Scene {
       this.updatePlayer(dt, inp);
       if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
+      this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
       this.updatePlayerBullets(dt);
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
@@ -4231,9 +4232,9 @@ class Level1 extends Phaser.Scene {
     const z = this.zoom, r = (R + h) * z;
     o.setVisible(true);
     o.setPosition(this.cx + r * Math.sin(d), this.cy - r * Math.cos(d));
-    o.setRotation(d + (extraRot || 0));
+    o.setRotation(d + (extraRot || 0) + (o.trot || 0));                    // (trot / tqx / tqy: the cartoon squash-and-stretch, toons.js)
     const hq = o.hsq || 0;                                   // hit squash (impact) on top of any other squash
-    o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (1 - 0.22 * hq));
+    o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (o.tqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (o.tqy || 1) * (1 - 0.22 * hq));
   }
 
   // ================================================================= level hazards (roadmap levels)
@@ -4697,7 +4698,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'flyer') {                          // wobbly jet flame under the tank + a little exhaust stream
         if (!e.jet) e.jet = this.add.image(0, 0, 'ratjet0').setOrigin(0.5, 0).setDepth(4.9);
         const sc = Math.abs(e.spr.scaleX), fl = e.dir < 0 ? -1 : 1, r = e.spr.rotation;
-        const ox = -8 * fl * sc, oy = 4.5 * sc;                       // tank bottom, relative to the sprite origin
+        const ox = -9 * fl * sc, oy = 5 * sc;                         // tank bottom, relative to the sprite origin
         const jx = e.spr.x + ox * Math.cos(r) - oy * Math.sin(r), jy = e.spr.y + ox * Math.sin(r) + oy * Math.cos(r);
         e.jet.setTexture('ratjet' + (Math.floor(this.t * 18 + e.theta * 10) % 3)).setPosition(jx, jy)
           .setRotation(r + Math.sin(this.t * 23 + e.theta * 7) * 0.18).setScale(sc * 1.3 * (0.95 + Math.sin(this.t * 31) * 0.08), sc * 1.3 * (0.85 + Math.abs(Math.sin(this.t * 17 + e.theta)) * 0.35))
@@ -4818,6 +4819,7 @@ class Level1 extends Phaser.Scene {
     this.scoreText.setText('SCORE: ' + String(this.scoreShown).padStart(7, '0'));
     P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
     this.fxDraw();                                        // ground shadows, rim light (fx.js)
+    this.toonDraw();                                      // eyes popping out of whatever's been hit (toons.js)
   }
 }
 
@@ -4832,6 +4834,7 @@ Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
+Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
 Object.assign(Level1.prototype, FxMixin);            // neo-retro lighting: bloom, vignette, ground shadows, rim light (src/fx.js)         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {

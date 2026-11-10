@@ -89,8 +89,7 @@ function makeFondueTextures(scene) {
     for (const sd of [-2, 2]) p.line([[x1 + nx * sd, y1 + ny * sd], [x1 + nx * sd + Math.cos(a) * 7, y1 + ny * sd + Math.sin(a) * 7]], SIL[0]);
     p.rect(Math.round(x0) - 1, Math.round(y0) - 1, Math.round(x0) + 2, Math.round(y0) + 2, 0x8a4a2a);
   };
-  pixSprite(scene, 'forkrat0', 46, 34, p => { rat(p, 20, 24, 1); p.line([[14, 31], [12, 33]], RAT[2], 2); p.line([[24, 31], [26, 33]], RAT[2], 2); fork(p, 10, 22, 42, 16); });   // running, fork levelled
-  pixSprite(scene, 'forkrat1', 46, 34, p => { rat(p, 22, 18, 1); fork(p, 30, 8, 8, 33); p.line([[20, 24], [16, 30]], RAT[2], 2); });   // vaulting on it
+  // (the Fork Fanatic, Skimmer and Kamikaze Crouton are drawn in toons.js)
   pixSprite(scene, 'dipped', 46, 40, p => {                      // a soggy mutant of food that fell in years ago
     const MOULD = [0xb8d860, 0x6a9a2a, 0x2e4a12];
     p.ell(23, 24, 20, 15, MOULD);
@@ -104,19 +103,6 @@ function makeFondueTextures(scene) {
     p.ell(21, 31, 4, 3, DARK); p.px(19, 30, 0xffffff);                                      // screaming
     for (const [x, l] of [[6, 6], [14, 8], [30, 7], [40, 5]]) p.line([[x, 34], [x, 34 + l]], CH[1], 2);
   });
-  pixSprite(scene, 'kamikaze', 42, 26, p => {                    // an angry toast missile
-    p.poly([[4, 13], [10, 3], [34, 3], [40, 8], [40, 18], [34, 23], [10, 23]], [0xf0c070, 0xc08030, 0x7a4a14]);
-    p.rect(12, 6, 32, 20, 0xf6dca0);                                                        // the crumb
-    p.poly([[4, 13], [0, 6], [8, 10]], 0x8a4a14); p.poly([[4, 13], [0, 20], [8, 16]], 0x8a4a14);   // fins
-    p.line([[20, 9], [26, 11]], DARK, 2); p.line([[34, 9], [28, 11]], DARK, 2);             // furious brows
-    p.px(24, 13, 0xff3a2a); p.px(30, 13, 0xff3a2a); p.line([[22, 18], [32, 18]], DARK, 1);
-  });
-  pixSprite(scene, 'skimmer', 30, 20, p => {                     // a robot fly with a toothpick lance
-    p.ell(9, 6, 6, 4, [0xe8f4ff, 0xa8c0d8, 0x6a7a90]); p.ell(17, 6, 6, 4, [0xe8f4ff, 0xa8c0d8, 0x6a7a90]);   // wings
-    p.ell(13, 12, 7, 5, SIL); p.ell(20, 11, 4, 4, SIL); p.px(21, 10, 0xff3a3a); p.px(23, 11, 0xff3a3a);
-    p.line([[23, 13], [29, 16]], 0xe8c890, 1);                                              // toothpick
-    p.line([[9, 16], [7, 19]], SIL[2]); p.line([[15, 16], [15, 19]], SIL[2]);
-  }, 1, (g, w) => { for (let y = 2; y < 10; y++) for (let x = 3; x < 23; x++) if ((x + y) % 2 && g[y * w + x] >= 0 && y < 9) g[y * w + x] = -2; });
   pixSprite(scene, 'crouton', 14, 12, p => { p.rrect(1, 1, 12, 10, 2, [0xf6d090, 0xc88a3a, 0x7a4a14]); p.px(4, 4, 0xfff0c0); p.px(9, 7, 0x8a5a24); });
   pixSprite(scene, 'fdrop', 8, 10, p => { p.ell(4, 6, 3, 3.5, CH); p.poly([[2, 4], [6, 4], [4, 0]], CH); p.px(3, 5, 0xffffff); });
   // platforms
@@ -396,7 +382,6 @@ const FondueMixin = {
     }
   },
   skimmerAI(e, dt, P) {
-    e.noRim = true;                                                      // (see-through dithered wings: a rim-light copy behind would fill them in)
     e.orb = (e.orb === undefined ? rnd(0, TAU) : e.orb) + dt * 1.6;
     const cx = P.theta, want = wrap(cx + Math.cos(e.orb) * 0.32), wantH = 190 + Math.sin(e.orb * 1.3) * 60;
     e.theta = wrap(e.theta + angDiff(want, e.theta) * Math.min(1, dt * 2.2)); e.h += (wantH - e.h) * Math.min(1, dt * 2.2);

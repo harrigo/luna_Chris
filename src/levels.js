@@ -6,29 +6,29 @@ const S = (type, t) => ({ type, t });     // spawn helper: S('mouse', 2.5) = a m
 // Per-enemy stats. hp = shots to kill, r = hit radius, ch = centre height above its feet, drop = chance of a cheese wedge,
 // big = may drop the Parmesan Power-Up, oy = sprite origin Y.
 const ENEMY = {
-  mouse:    { hp: 2,  r: 14, ch: 10, tex: 'mouse',    oy: 22 / 24, drop: 0.15 },
-  flyer:    { hp: 2,  r: 15, ch: 12, tex: 'flyer',    oy: 0.6,     drop: 0.28 },
-  golem:    { hp: 14, r: 26, ch: 28, tex: 'golem',    oy: 1,       drop: 0.65, big: true },
-  germ:     { hp: 3,  r: 17, ch: 15, tex: 'germ',     oy: 0.85,    drop: 0.18 },
-  minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05 },
-  frog:     { hp: 6,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true },
+  mouse:    { hp: 2,  r: 14, ch: 10, tex: 'mouse',    oy: 29 / 30, drop: 0.15, k: 1.1, frames: ['mouse', 'mouse_b'], eyes: [[31, 11, 4.2], [36.5, 11.5, 2.6]] },   // (frames / eyes: toons.js)
+  flyer:    { hp: 2,  r: 15, ch: 12, tex: 'flyer',    oy: 0.6,     drop: 0.28, eyes: [[35, 13, 4.2], [40.5, 13.5, 2.6]] },
+  golem:    { hp: 14, r: 26, ch: 28, tex: 'golem',    oy: 1,       drop: 0.65, big: true, frames: ['golem', 'golem_b'], eyes: [[21, 25, 9], [41, 24, 6]] },
+  germ:     { hp: 3,  r: 17, ch: 15, tex: 'germ',     oy: 0.85,    drop: 0.18, frames: ['germ', 'germ_b'], eyes: [[16, 15, 7], [29, 14, 3.6]] },
+  minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05, frames: ['minigerm', 'minigerm_b'], eyes: [[10, 10, 4], [17, 10, 2.2]] },
+  frog:     { hp: 6,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true, eyes: [[45, 15, 7.5]] },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
   miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel' },             // L6: little wheels the Pepper Jack spits out
-  ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer' },             // L5 phantom pirate: triangle-zigzag bolts
+  ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer', frames: ['ghostpirate', 'ghostpirate_b'], fps: 7, eyes: [[27, 14, 4]] },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
   rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },
   anchovy:  { hp: 1, r: 9,  ch: 0,  tex: 'anchovy0', oy: 0.5,     drop: 0.08, ai: 'anchovy', k: 1.15 },    // L4 anchovy swarmer: shoals of five, one darts at you
   ovendrone: { hp: 9, r: 34, ch: 0, tex: 'oven', oy: 0.5,         drop: 0.6, ai: 'ovendrone', k: 0.55, big: true },   // L4 Toasty Oven Drone: homing pizza cutters, SLAMS down               // L4 rocket rat: hovers over you, drops pepperoni bombs
-  forkrat:  { hp: 3, r: 14, ch: 11, tex: 'forkrat0', oy: 0.95, drop: 0.2, ai: 'forkrat', k: 1.1 },        // L5.5 Fork Fanatic: pole-vaults over you, lance-charges
+  forkrat:  { hp: 3, r: 14, ch: 11, tex: 'forkrat0', oy: 0.95, drop: 0.2, ai: 'forkrat', k: 1.1, frames: ['forkrat0', 'forkrat0b'], eyes: [[31, 15, 4.2], [36.5, 15.5, 2.6]] },        // L5.5 Fork Fanatic: pole-vaults over you, lance-charges
   dipped:   { hp: 5, r: 18, ch: 12, tex: 'dipped', oy: 0.9, drop: 0.4, ai: 'dipped', k: 1.1 },            // L5.5 the Dipped: crawls out of the fondue, lobs soggy lumps, bursts sticky
-  kamikaze: { hp: 2, r: 15, ch: 0, tex: 'kamikaze', oy: 0.5, drop: 0.2, ai: 'kamikaze', k: 1.05 },        // L5.5 Kamikaze Crouton: dives into the fondue - a wave rolls round
-  skimmer:  { hp: 2, r: 12, ch: 0, tex: 'skimmer', oy: 0.5, drop: 0.2, ai: 'skimmer', k: 1.15 },          // L5.5 Skimmer: orbits you firing spirals of cheese drops
+  kamikaze: { hp: 2, r: 15, ch: 0, tex: 'kamikaze', oy: 0.5, drop: 0.2, ai: 'kamikaze', k: 1.05, frames: ['kamikaze', 'kamikaze_b'], fps: 14, eyes: [[24, 10, 4.6], [33, 10, 3.8]] },        // L5.5 Kamikaze Crouton: dives into the fondue - a wave rolls round
+  skimmer:  { hp: 2, r: 12, ch: 0, tex: 'skimmer', oy: 0.5, drop: 0.2, ai: 'skimmer', k: 1.15, frames: ['skimmer', 'skimmer_b'], fps: 18, eyes: [[25, 10, 5], [29, 14, 3.6]] },          // L5.5 Skimmer: orbits you firing spirals of cheese drops
   gogglerat: { hp: 3, r: 15, ch: 12, tex: 'gogglerat', oy: 0.95, drop: 0.2, ai: 'welder' },         // L3 welder rat: riot shield + blowtorch
   slicer:   { hp: 5,  r: 21, ch: 17, tex: 'slicer',   oy: 0.9,     drop: 0.55, big: true },
   // roadmap enemies (ai = which existing behaviour they use)
-  phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone' },          // ghostly dairy-maid: hovers, then rams
-  stinkfly: { hp: 2,  r: 15, ch: 12, tex: 'stinkfly', oy: 0.55,    drop: 0.2,  ai: 'flyer' },          // L2: bloated swamp fly that drops spore bombs
+  phantom:  { hp: 3,  r: 15, ch: 14, tex: 'phantom',  oy: 0.6,     drop: 0.25, ai: 'drone', frames: ['phantom', 'phantom_b'], fps: 7, eyes: [[14, 14, 3.6], [23.5, 13, 2.6]] },          // ghostly dairy-maid: hovers, then rams
+  stinkfly: { hp: 2,  r: 15, ch: 12, tex: 'stinkfly', oy: 0.55,    drop: 0.2,  ai: 'flyer', frames: ['stinkfly', 'stinkfly_b'], fps: 18, eyes: [[26.5, 11, 4.6], [31.5, 14.5, 3]] },          // L2: bloated swamp fly that drops spore bombs
   paladin:  { hp: 8,  r: 17, ch: 12, tex: 'paladin',  oy: 0.92,    drop: 0.5,  big: true, ai: 'mouse' } // armoured Rat-Paladin
 };
 
@@ -405,17 +405,6 @@ function makeLevelTextures(scene) {
     a.ell(cx - r * 0.35, cy - r * 0.4, r * 0.25, r * 0.2, 0xd8ffe8);
     a.px(cx + r * 0.4, cy + r * 0.3, 0x2a8a62); a.px(cx - r * 0.5, cy + r * 0.5, 0x2a8a62);
   };
-  pixSprite(scene, 'germ', 42, 40, a => {
-    germ(a, 21, 21, 13, 16);
-    a.ell(15, 17, 4.5, 4.5, 0xffffff); a.ell(27, 17, 4.5, 4.5, 0xffffff);
-    a.rect(15, 17, 17, 19, OUTPX); a.rect(25, 17, 27, 19, OUTPX);
-    a.rrect(14, 25, 28, 29, 1, 0x1d4a3a); a.rect(17, 25, 18, 27, 0xffffff); a.rect(23, 25, 24, 27, 0xffffff);
-  });
-  pixSprite(scene, 'minigerm', 26, 24, a => {
-    germ(a, 13, 13, 7.5, 10);
-    a.ell(10, 11, 2.6, 2.6, 0xffffff); a.ell(16, 11, 2.6, 2.6, 0xffffff); a.px(10, 12, OUTPX); a.px(16, 12, OUTPX);
-  });
-
   // rat-frog hybrid: green skin, rat ears and tail, big eyes. Faces right.
   // the rat-frog: a hunched, mottled brown-green body, a huge bulging yellow eye, rat snout + buck teeth, a curly pink
   // worm tail and long froggy legs. Several frames (idle / blink / crouch / leap / mouth open) swapped by its AI.
@@ -1623,25 +1612,7 @@ function makeRoadmapTextures(scene) {
   });
 
   // ---- enemies
-  pixSprite(scene, 'stinkfly', 34, 28, p => {                   // bloated blue-cheese swamp fly
-    const WING = [0xe8fff8, 0xb8e8f0, 0x7ab0c8], BODY = [0x9ad8b8, 0x4a9a80, 0x1e5a4a], VEIN = 0x2a6a8a;
-    p.ell(10, 7, 8, 5, WING); p.ell(23, 6, 8, 5, WING); p.line([[6, 7], [13, 8]], 0x9ac8d8); p.line([[20, 6], [27, 7]], 0x9ac8d8);
-    p.ell(17, 17, 10, 8, BODY);                                     // fat mouldy abdomen
-    for (const [x, y] of [[12, 15], [19, 20], [22, 14], [15, 21]]) { p.px(x, y, VEIN); p.px(x + 1, y, VEIN); }
-    p.ell(27, 15, 5, 5, [0x6ab89a, 0x3a7a64, 0x1a4a3a]);                 // head
-    p.ell(29, 13, 2.5, 2.5, [0xff9a8a, 0xe03030, 0x8a1010]); p.px(29, 12, 0xffffff);   // big red eye
-    p.line([[31, 17], [33, 20]], 0x1a2a20);                            // proboscis
-    p.line([[13, 24], [11, 27]], 0x1a2a20); p.line([[18, 25], [18, 27]], 0x1a2a20); p.line([[22, 24], [24, 27]], 0x1a2a20);   // dangly legs
-  });
-  pixSprite(scene, 'phantom', 36, 40, p => {                    // ghostly dairy-maid
-    const GH = [0xffffff, 0xd8ecff, 0x8ab0e0];
-    p.poly([[8, 18], [28, 18], [32, 34], [27, 30], [22, 38], [17, 31], [12, 38], [8, 31], [4, 35]], GH);   // wispy skirt
-    p.ell(18, 14, 9, 9, GH);
-    p.ell(18, 7, 12, 5, [0xffffff, 0xf0f4ff, 0xb8c8e8]); p.rect(7, 7, 29, 8, 0xe8b8d8);                   // frilly bonnet
-    p.ell(14, 14, 2, 2.5, 0x1a2a4a); p.ell(22, 14, 2, 2.5, 0x1a2a4a); p.ell(18, 19, 1.5, 2, 0x1a2a4a);      // hollow eyes, "oooh" mouth
-    p.line([[9, 20], [2, 24]], 0xd8ecff, 2); p.line([[27, 20], [34, 24]], 0xd8ecff, 2);                   // arms out to ram
-    p.rrect(29, 22, 35, 29, 1, STEEL);                                                                      // milk pail
-  });
+  // (the stink-fly and the phantom are drawn in toons.js)
   pixSprite(scene, 'paladin', 38, 32, p => {                    // armoured Rat-Paladin
     p.line([[3, 22], [0, 14], [3, 9]], 0xd9a5b3, 2);             // tail
     p.ell(17, 20, 12, 8, STEEL); p.rect(9, 18, 25, 19, 0x5a6272);
@@ -1666,7 +1637,8 @@ function makeRoadmapTextures(scene) {
   });
   makeMilkmaidTextures(scene);
   makeMozzTextures(scene);
-  makeFondueTextures(scene);                                    // L5.5: the Fondue Fountain, its rats and Le Grand Fromage (fondue.js)                                      // L4: the Magma-Golem, boulders, anchovies, the volcano (mozz.js)                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
+  makeFondueTextures(scene);
+  makeToonTextures(scene);                                      // the redrawn cartoon enemies (toons.js) - after everything they replace                                    // L5.5: the Fondue Fountain, its rats and Le Grand Fromage (fondue.js)                                      // L4: the Magma-Golem, boulders, anchovies, the volcano (mozz.js)                                  // L3: the Phantom Milkmaid, her parts and her ghost cows (milkmaid.js)
   pixSprite(scene, 'wheel', 96, 96, p => {                      // L6: the gargantuan Spicy Pepper Jack
     p.ell(48, 48, 46, 46, [0xf0d890, 0xd8b050, 0x9a7020]);
     p.ell(48, 48, 39, 39, [0xfff8d0, 0xf6e6a0, 0xd8c070]);
@@ -1927,16 +1899,6 @@ function makeBrieTextures(scene) {
     for (const x of [8, 116]) { p.ell(x, 6, 8, 6, BONE); p.ell(x, 16, 8, 6, BONE); }   // knobbly ends
     p.line([[18, 7], [106, 7]], 0xffffff); p.line([[30, 14], [90, 14]], 0xc8bca0);
     for (const [x, y] of [[40, 10], [64, 12], [86, 9]]) p.px(x, y, 0xb8ae96);       // pits
-  });
-  pixSprite(scene, 'ghostpirate', 44, 44, p => {                    // the ghost of a crashed space-rat pirate: tricorn, tattered coat, cutlass
-    p.poly([[10, 20], [30, 18], [36, 34], [32, 42], [27, 37], [22, 43], [17, 37], [12, 42], [8, 34]], GH);   // tattered ghostly coat
-    p.ell(24, 16, 10, 9, GH); p.poly([[30, 13], [40, 17], [38, 20], [30, 21]], GH);                          // head + snout
-    p.ell(16, 8, 3.5, 4, GH); p.ell(16, 8, 1.6, 2, 0xa0ffc0);                                               // ear
-    p.ell(26, 14, 3, 3, 0xffffff); p.ell(33, 14, 2.4, 2.6, 0xffffff); p.px(27, 14, 0x0a3a1a); p.px(33, 14, 0x0a3a1a);   // glowing eyes
-    p.poly([[11, 6], [24, 1], [37, 6], [33, 9], [24, 7], [15, 9]], [0x3a3a48, 0x24242e, 0x101016]);           // tricorn hat
-    p.px(24, 4, 0xffffff); p.px(23, 5, 0xffffff); p.px(25, 5, 0xffffff);                                    // skull badge
-    p.line([[30, 26], [42, 20]], 0xd8e4ec, 2); p.rect(29, 25, 31, 28, 0xffd23f);                            // cutlass
-    p.line([[14, 28], [10, 24]], GH[2], 2);
   });
   pixSprite(scene, 'polterwedge', 36, 30, p => {                    // a poltergeist wedge: a cheese wedge gone BAD - ghost-green and mouldy,
     const GHO = [0xd8ffec, 0x6ee0b0, 0x2a8a6a];                                                              // angry red eyes, fangs and a ghost tail

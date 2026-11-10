@@ -115,18 +115,14 @@ function makeTextures(scene) {
     a.rect(ox + 11, oy + 20, ox + 13, oy + 21, 0x4a4e62); a.rect(ox + 19, oy + 20, ox + 21, oy + 21, 0x4a4e62);   // feet
   };
   // Space-mouse: walks the surface. Faces right; feet at y=22 (origin oy 22/24).
-  pixSprite(scene, 'mouse', 34, 24, a => rat(a, 0, 0, false));
+  // (the space-mouse itself is drawn in toons.js now)
   // animated jet flame for the flying rats: 3 flickering frames (origin at the top)
   [[6, 2.6], [8, 3], [5, 2.2]].forEach(([len, wd], i) => pixSprite(scene, 'ratjet' + i, 9, 13, a => {
     a.poly([[4.5 - wd, 0], [4.5 + wd, 0], [4.5 + (i === 1 ? 1 : -1), len + 4]], [0xffb24a, 0xff7a1a, 0xd8401a]);
     a.poly([[4.5 - wd * 0.5, 0], [4.5 + wd * 0.5, 0], [4.5, len]], 0xffe27a);
     a.px(4, 0, 0xffffff);
   }));
-  // Jetpack space-mouse (flies). Faces right.
-  pixSprite(scene, 'flyer', 38, 36, a => {
-    a.rect(7, 13, 14, 25, 0x9a2a1a); a.rect(8, 13, 13, 24, 0xd9503a); a.rect(8, 14, 9, 22, 0xff8a6a); // jet tank
-    rat(a, 3, 1, true);
-  });
+  // (the jetpack space-mouse is drawn in toons.js)
 
   // Bessie, the zero-gravity cow. Faces right. Origin at her hooves.
   mk('bessie', 64, 46, g => {
@@ -153,19 +149,7 @@ function makeTextures(scene) {
     g.fillStyle(0xff8c1a, 1).fillCircle(20, 34, 3).fillCircle(42, 36, 3).fillCircle(64, 34, 3);   // lights
   });
 
-  // Gouda-Golem
-  // Gouda-Golem: a walking block of cheese with holes and a furious face
-  pixSprite(scene, 'golem', 60, 64, a => {
-    const CH = [0xffe896, 0xffc83d, 0xd9961a];
-    a.rect(10, 56, 23, 63, 0x9a6a0c); a.rect(36, 56, 49, 63, 0x9a6a0c); a.rect(10, 56, 23, 57, 0xc48a1a); a.rect(36, 56, 49, 57, 0xc48a1a);   // stubby feet
-    a.rrect(4, 5, 55, 59, 7, CH);
-    for (const [x, y, r] of [[14, 15, 5], [46, 13, 3.5], [48, 46, 6], [15, 49, 4.5], [32, 55, 2.5], [7, 32, 2.5]]) { a.ell(x, y, r, r, 0xb8800f); a.ell(x - 0.6, y - 0.8, r * 0.7, r * 0.6, 0x8a5a08); }
-    for (const [x, y] of [[26, 12], [38, 52], [52, 30], [9, 40]]) a.px(x, y, 0xfff4c4);
-    a.ell(22, 28, 7, 7, 0xffffff); a.ell(39, 28, 7, 7, 0xffffff);
-    a.rect(22, 27, 25, 31, OUTPX); a.rect(36, 27, 39, 31, OUTPX); a.px(23, 28, 0xffffff); a.px(37, 28, 0xffffff);
-    a.line([[13, 18], [27, 24]], 0x6a3a00, 3); a.line([[47, 18], [33, 24]], 0x6a3a00, 3);              // angry brows
-    a.rrect(19, 41, 42, 50, 3, 0x6a3a00); a.rect(22, 41, 25, 44, 0xffffff); a.rect(30, 41, 33, 44, 0xffffff); a.rect(36, 47, 39, 50, 0xffffff);   // jagged teeth
-  }, 1);
+  // (the Gouda-Golem is drawn in toons.js)
 
   mk('cube', 14, 14, g => {
     g.fillStyle(0xffd23f, 1).fillRoundedRect(0, 0, 14, 14, 3);

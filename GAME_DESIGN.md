@@ -1317,3 +1317,14 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.06 - Chris's strange outline
 - The bloom lit up plain WHITE as well as coloured light, so Chris's chef whites (and the HUD text) glowed: a milky halo all round him that also washed out the detail on his hat and face. The bloom now only takes bright AND colourful pixels (a saturation gate in the shader's `hot()`), so shots, lava, fondue and lights still bleed but whites stay crisp.
 - Chris no longer gets the rim-light copy (on a white suit it read as a second cream outline). Enemies keep theirs.
+
+## v2.07 - The cartoon pass (src/toons.js): 90s grotesque-slapstick enemies, levels 1-5
+- TOON MOTION (every enemy, not bosses): squash-and-stretch worked out from how each one is actually moving - walkers bounce along a gait cycle and lean into the run, jumpers stretch along the jump and tip nose-up / nose-down, landings squash and spring back, fliers wobble and bank into turns, anything hit judders like jelly. place() multiplies in spr.tqx / tqy and adds spr.trot. TOON_SKIP (frog, saw blades, oven, anchovies) keeps its own animation.
+- FRAMES: `ENEMY.<type>.frames` plays a 2-frame walk / flap cycle (in step with the gait for walkers, `fps` for fliers); left alone while an AI shows a different frame.
+- EYE POP: `ENEMY.<type>.eyes = [[x, y, r], ...]` - hit it and bloodshot eyeballs bulge out of its head for a moment (pooled `toon_eye` images).
+- REDRAWN, grotesque (bulging mismatched eyes with pin-prick pupils, crooked teeth, drool, scrawny limbs), all with 2 frames:
+  L1 space-mouse (run cycle), jetpack rat (flying cap, brass goggles), Gouda-Golem (stomp cycle, vast bloodshot eye, lolling tongue, gold tooth);
+  L2 germ and mini-germ (pulsing, waving cilia), stink-fly (wing flap, dribbling proboscis); L3 phantom dairy-maid (hollow sockets, wailing, billowing skirts), ghost pirate (eyepatch, hook, snaggle teeth);
+  L5.5 Fork Fanatic (run cycle + vault), Skimmer (wing flap, compound eyes), Kamikaze Crouton (screaming, flame flicker).
+- Still the old art (they get the toon motion only): L4 Magma-Golem enemy, rocket rat, oven drone, anchovies; L5 welder rat, drone, slicer; L3 poltergeist wedge; all bosses.
+- The old painters for the redrawn sprites were removed from textures.js / levels.js / fondue.js.
