@@ -1328,3 +1328,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   L5.5 Fork Fanatic (run cycle + vault), Skimmer (wing flap, compound eyes), Kamikaze Crouton (screaming, flame flicker).
 - Still the old art (they get the toon motion only): L4 Magma-Golem enemy, rocket rat, oven drone, anchovies; L5 welder rat, drone, slicer; L3 poltergeist wedge; all bosses.
 - The old painters for the redrawn sprites were removed from textures.js / levels.js / fondue.js.
+
+## v2.08 - No more highlighted outline on enemies
+- Dropped the rim-light copy behind enemies too (fx.js): at game size it read as a pale highlighted outline round every sprite. Enemies keep the gentle shadow-side shading and ground shadows; nothing now draws a copy behind any sprite.

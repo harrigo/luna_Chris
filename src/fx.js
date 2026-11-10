@@ -134,7 +134,7 @@ const FxMixin = {
       };
       for (const e of this.enemies) {
         const s = e.spr; if (!s || !s.visible || e.hp <= 0 || e.noRim) continue;
-        if (s.alpha > 0.9) copy(s, s.depth - 0.005, 0.8);
+        // (no rim-light copy any more: at game size it read as a highlighted outline round every enemy)
         // ...and the far side falls off into the level's shadow colour (unless something else is tinting it)
         if (s.tintFill || (s.isTinted && !(s.__fxT && s.tintTopLeft === s.__fxT[0] && s.tintTopRight === s.__fxT[1] && s.tintBottomLeft === s.__fxT[2] && s.tintBottomRight === s.__fxT[3]))) continue;
         const c = Math.cos(s.rotation), sn = Math.sin(s.rotation), fx = s.flipX ? -1 : 1, T = [];
