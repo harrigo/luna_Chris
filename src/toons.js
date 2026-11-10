@@ -35,11 +35,15 @@ function makeToonTextures(scene) {
   const toonRat = (a, ox, oy, o) => {
     const f = o.f || 0, P = (x, y) => [ox + x, oy + y], L = (pts, c, w) => a.line(pts.map(([x, y]) => P(x, y)), c, w);
     // the tail: a long naked whip with a kink in it
-    if (f === 1) { L([[10, 21], [5, 22], [2, 17], [5, 11], [2, 6]], PINK[1], 2); L([[5, 21], [3, 17], [5, 12]], PINK[0]); }
+    const tl = o.tail !== undefined ? o.tail : (f === 1 ? 1 : 0);
+    if (tl === 1) { L([[10, 21], [5, 22], [2, 17], [5, 11], [2, 6]], PINK[1], 2); L([[5, 21], [3, 17], [5, 12]], PINK[0]); }
+    else if (tl === 2) { L([[10, 21], [4, 21], [1, 16], [3, 10], [8, 6]], PINK[1], 2); L([[4, 20], [2, 16], [4, 11]], PINK[0]); }   // cracking like a whip
     else { L([[10, 21], [5, 19], [1, 14], [4, 8], [1, 3]], PINK[1], 2); L([[5, 18], [2, 14], [4, 9]], PINK[0]); }
     // far legs (in shadow)
     if (f === 0) { L([[14, 22], [18, 26], [22, 27]], FUR[2], 2); L([[24, 21], [22, 26]], FUR[2], 2); }
     else if (f === 1) { L([[14, 22], [10, 26], [6, 27]], FUR[2], 2); L([[25, 21], [30, 25]], FUR[2], 2); }
+    else if (f === 3) { L([[14, 22], [11, 26], [8, 29]], FUR[2], 2); L([[25, 21], [27, 26]], FUR[2], 2); }                      // (3, 4: pedalling the air)
+    else if (f === 4) { L([[14, 22], [15, 28]], FUR[2], 2); L([[25, 21], [24, 26]], FUR[2], 2); }
     else { L([[14, 22], [17, 25], [22, 24]], FUR[2], 2); L([[25, 21], [29, 23]], FUR[2], 2); }
     a.ell(ox + 17, oy + 18, 9, 6.5, FUR);                                                          // a scrawny pear of a body
     a.ell(ox + 20, oy + 22, 5, 2.5, [0xe8d8e0, 0xc8a8b8, 0x8a6a80]);                              // bald pink belly
@@ -48,6 +52,8 @@ function makeToonTextures(scene) {
     const foot = (x, y) => { a.line([P(x, y), P(x + 4, y)], PINK[1], 2); a.px(ox + x + 5, oy + y, TOOTH[0]); a.px(ox + x + 5, oy + y - 1, TOOTH[0]); };
     if (f === 0) { a.ell(ox + 13, oy + 21, 4, 3.5, FUR); L([[11, 23], [7, 26]], FUR[1], 2); foot(4, 27); L([[25, 21], [29, 25]], FUR[1], 2); foot(29, 26); }
     else if (f === 1) { a.ell(ox + 14, oy + 21, 4, 3.5, FUR); L([[15, 23], [19, 26]], FUR[1], 2); foot(18, 27); L([[24, 21], [22, 25]], FUR[1], 2); foot(21, 26); }
+    else if (f === 3) { a.ell(ox + 14, oy + 21, 4, 3.5, FUR); L([[14, 23], [18, 27]], FUR[1], 2); foot(17, 28); L([[25, 21], [23, 26]], FUR[1], 2); foot(22, 27); }
+    else if (f === 4) { a.ell(ox + 14, oy + 21, 4, 3.5, FUR); L([[13, 23], [11, 28]], FUR[1], 2); foot(9, 29); L([[25, 21], [29, 26]], FUR[1], 2); foot(29, 27); }
     else { a.ell(ox + 14, oy + 21, 4, 3.5, FUR); L([[13, 23], [9, 25], [6, 23]], FUR[1], 2); foot(2, 23); L([[25, 21], [31, 23]], FUR[1], 2); foot(31, 23); }
     // head: a long twitchy snout, huge torn ears
     a.ell(ox + 25, oy + 6, 4, 5, PINK); a.ell(ox + 25, oy + 6.5, 2, 3, PINK[2]); a.px(ox + 23, oy + 2, DARK);                       // ear, a bite out of it
@@ -57,22 +63,27 @@ function makeToonTextures(scene) {
     L([[38, 15], [43, 11]], 0xe8e0d0); L([[38, 16], [44, 18]], 0xe8e0d0);                                                           // whiskers
     L([[33, 18], [40, 17]], DARK);                                                                                                  // a sneer...
     a.rect(ox + 37, oy + 17, ox + 38, oy + 21, TOOTH[0]); a.rect(ox + 39, oy + 17, ox + 40, oy + 20, TOOTH[1]);                     // ...and buck teeth
-    a.px(ox + 35, oy + 19, 0xb8ffe8); a.px(ox + 35, oy + 20, 0xb8ffe8); if (f === 1) a.px(ox + 35, oy + 21, 0xe0fff4);              // drool
+    a.px(ox + 35, oy + 19, 0xb8ffe8); a.px(ox + 35, oy + 20, 0xb8ffe8); if (f === 1 || o.drool) { a.px(ox + 35, oy + 21, 0xb8ffe8); a.px(ox + 35, oy + 22, 0xe0fff4); }              // drool
     if (o.bandana) { a.poly([P(23, 8), P(34, 6), P(34, 9), P(23, 11)], o.bandana); L([[23, 9], [19, 7]], o.bandana[1], 2); L([[23, 10], [19, 11]], o.bandana[1]); }   // party bandana, knot flapping
-    else if (o.cap) { a.ell(ox + 28, oy + 8, 6.5, 3.4, o.cap); L([[22, 9], [20, 15]], o.cap[1], 2); L([[24, 11], [37, 9]], o.cap[2]); }                           // a leather flying cap, strap dangling
+    else if (o.cap) { a.ell(ox + 28, oy + 8, 6.5, 3.4, o.cap); L(o.flap ? [[22, 9], [18, 11], [15, 9]] : [[22, 9], [20, 15]], o.cap[1], 2); L([[24, 11], [37, 9]], o.cap[2]); }                           // a leather flying cap, strap dangling
     else { a.ell(ox + 28, oy + 7.5, 5.5, 2.6, STEEL); L([[27, 5], [27, 1]], STEEL[2]); a.px(ox + 27, oy + 0, 0xff3a3a); a.px(ox + 25, oy + 7, STEEL[2]); }       // a dented tin hat with a blinking aerial
     if (o.goggles) { a.ell(ox + 31, oy + 11, 5.6, 5.6, [0xffe08a, 0xd09a2a, 0x7a5210]); a.ell(ox + 36.5, oy + 11.5, 3.8, 3.8, [0xffe08a, 0xd09a2a, 0x7a5210]); }   // brass goggles, eyes swimming behind them
-    eye(a, ox + 31, oy + 11, 4.2, 0.8, 0.3); eye(a, ox + 36.5, oy + 11.5, 2.6, 0.6, 0.4);                                           // one enormous eye, one small
+    { const lk = o.look !== undefined ? o.look : 0.8, eo = o.blink ? { lid: 0.85, lidC: FUR[1] } : undefined; eye(a, ox + 31, oy + 11, 4.2, lk, o.lookY !== undefined ? o.lookY : 0.3, eo); eye(a, ox + 36.5, oy + 11.5, 2.6, lk * 0.75, 0.4, eo); }                                           // one enormous eye, one small
     L([[27, 7], [35, 9]], DARK, 1);                                                                                                // one long furious brow
   };
   pixSprite(scene, 'mouse', 46, 30, a => toonRat(a, 0, 0, { f: 0 }));
   pixSprite(scene, 'mouse_b', 46, 30, a => toonRat(a, 0, 0, { f: 1 }));
   // JETPACK RAT: flying cap and brass goggles, a dented red tank strapped on, legs dangling
-  pixSprite(scene, 'flyer', 50, 36, a => {
-    a.rrect(12, 10, 20, 26, 2, [0xff8a6a, 0xd9503a, 0x8a2414]); a.rect(13, 14, 19, 15, 0x5a1a10); a.rect(13, 21, 19, 22, 0x5a1a10); a.px(14, 12, 0xffd0c0); a.ell(16, 9, 2.5, 2, STEEL);
-    toonRat(a, 4, 2, { f: 2, shell: false, cap: [0xb07a4a, 0x7a4a24, 0x4a2a10], goggles: true });
-    a.line([[19, 13], [24, 20]], 0x5a3a1a, 1);                                                                                     // harness strap
-  });
+  // four frames: legs pedalling the air, tail cracking, the tank rattling on its straps, eyes rolling down at the drop, a blink
+  [{ f: 2, tail: 0, dy: 0, look: 0.8 }, { f: 3, tail: 1, dy: 1, look: 0.5, lookY: 0.8, drool: true }, { f: 4, tail: 2, dy: 0, look: -0.3, lookY: 0.8, flap: true }, { f: 3, tail: 0, dy: -1, blink: true, flap: true, drool: true }].forEach((o, i) =>
+    pixSprite(scene, 'flyer' + ['', '_b', '_c', '_d'][i], 50, 36, a => {
+      const y = o.dy;
+      a.rrect(12, 10 + y, 20, 26 + y, 2, [0xff8a6a, 0xd9503a, 0x8a2414]); a.rect(13, 14 + y, 19, 15 + y, 0x5a1a10); a.rect(13, 21 + y, 19, 22 + y, 0x5a1a10); a.px(14, 12 + y, 0xffd0c0); a.ell(16, 9 + y, 2.5, 2, STEEL);
+      if (i % 2) { a.px(10, 12 + y, 0xe8e8f0); a.px(9, 10 + y, 0xa8a8b8); }                                                          // a puff of steam off the valve
+      toonRat(a, 4, 2, Object.assign({ shell: false, cap: [0xb07a4a, 0x7a4a24, 0x4a2a10], goggles: true }, o));
+      a.line([[19, 13 + y], [24, 20]], 0x5a3a1a, 1);                                                                                // harness strap
+      if (i === 1 || i === 2) { a.px(45, 8 + i, 0x9ae8ff); a.px(46, 9 + i, 0x5ac8f0); }                                              // sweat
+    }));
   // FORK FANATIC: the same wretch in a party bandana, a two-pronged fondue fork under its arm
   const SIL = [0xf4f8ff, 0xb8c0cc, 0x6a7280], BAND = [0xd08aff, 0x9a3ae8, 0x5a1a9a];
   const fork = (a, x0, y0, x1, y1) => {

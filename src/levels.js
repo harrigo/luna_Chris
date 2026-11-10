@@ -7,7 +7,7 @@ const S = (type, t) => ({ type, t });     // spawn helper: S('mouse', 2.5) = a m
 // big = may drop the Parmesan Power-Up, oy = sprite origin Y.
 const ENEMY = {
   mouse:    { hp: 2,  r: 14, ch: 10, tex: 'mouse',    oy: 29 / 30, drop: 0.15, k: 1.1, frames: ['mouse', 'mouse_b'], eyes: [[31, 11, 4.2], [36.5, 11.5, 2.6]] },   // (frames / eyes: toons.js)
-  flyer:    { hp: 2,  r: 15, ch: 12, tex: 'flyer',    oy: 0.6,     drop: 0.28, eyes: [[35, 13, 4.2], [40.5, 13.5, 2.6]] },
+  flyer:    { hp: 2,  r: 15, ch: 12, tex: 'flyer',    oy: 0.6,     drop: 0.28, frames: ['flyer', 'flyer_b', 'flyer_c', 'flyer_d'], fps: 9, eyes: [[35, 13, 4.2], [40.5, 13.5, 2.6]] },
   golem:    { hp: 14, r: 26, ch: 28, tex: 'golem',    oy: 1,       drop: 0.65, big: true, frames: ['golem', 'golem_b'], eyes: [[21, 25, 9], [41, 24, 6]] },
   germ:     { hp: 3,  r: 17, ch: 15, tex: 'germ',     oy: 0.85,    drop: 0.18, frames: ['germ', 'germ_b'], eyes: [[16, 15, 7], [29, 14, 3.6]] },
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05, frames: ['minigerm', 'minigerm_b'], eyes: [[10, 10, 4], [17, 10, 2.2]] },

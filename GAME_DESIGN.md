@@ -1337,3 +1337,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - SIX frames (`ratship`, `ratship1`..`ratship5`, 84x64): rim lights chase round, the pilot bounces, his eyes dart left and right and blink, the lever waggles, his bandana knot and drool flap, the aerial sways and its bulb winks, the tail-pipe belches smoke, the thrusters gutter, the tractor lens pulses, slime drips off the rim.
 - `shipAnim(game)`: one game-wide ticker (game 'poststep', ~10 fps) flips every image showing a ratship frame to the next - so every scene's saucer animates with no per-scene code.
 - The pale baked-glow halo on the saucer is gone (it blurred the art).
+
+## v2.10 - Jetpack rat: four frames
+- `flyer`, `flyer_b`, `flyer_c`, `flyer_d` (9 fps): legs pedalling the air through three poses, the tail cracking like a whip, the tank rattling up and down on its straps with a puff of steam off the valve, the cap strap flapping, eyes rolling down at the drop, sweat, drool, and a blink. toonRat gained poses 3 / 4 and `tail`, `look`, `lookY`, `blink`, `flap`, `drool` options.
