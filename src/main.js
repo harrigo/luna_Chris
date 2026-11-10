@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.15';
+const BUILD = 'v2.16';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -33,14 +33,14 @@ const CFG = {
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
   jetRegen: 0.7,    // fuel per second while standing on the ground
   jetCeiling: 300,  // max height
-  ammoPerShot: 0.022, // Mac-Grinder gauge: full tank is about 45 shots
-  ammoRegen: 0.5,     // refill per second once you stop shooting
+  ammoPerShot: 0.014, // Mac-Grinder gauge: full tank is about 70 shots (v2.16: was 45)
+  ammoRegen: 0.6,     // refill per second once you stop shooting (v2.16: was 0.5)
   ammoDelay: 0.35,    // pause after the last shot before it refills
   bashTime: 0.3,      // melee: whole move (120-degree butt swing, a beat at the hit, snap back)
   bashCd: 0.45,        // melee: time between bashes
   bashRange: 64,      // melee: reach in front of Chris
   bashDmg: 4,         // melee: one-shots small fry, two hits for the bigger ones
-  ammoRestart: 0.3,   // after running dry the gun stays jammed until the gauge climbs back to this
+  ammoRestart: 0.25,  // after running dry the gun stays jammed until the gauge climbs back to this (v2.16: was 0.3)
   // Parmesan Power-Up (triple shot + unlimited pasta) lasts until Chris is hit: it soaks up that hit instead of a heart
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
   autoFire: false   // true = guns fire by themselves whenever an enemy is on screen; false = hold the FIRE button
@@ -50,13 +50,13 @@ const CFG = {
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
-    interval: 0.085, speed: 760, life: 0.75, ammo: 0.022, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
+    interval: 0.085, speed: 760, life: 0.75, ammo: 0.014, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.45, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~2.2s per tank; anything it touches is taken out (boss: 25/s)
+    beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
     blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
-    lob: true, aimed: true, plough: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.12, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    lob: true, aimed: true, plough: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.075, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;

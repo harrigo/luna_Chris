@@ -1365,3 +1365,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - HP 175 -> 166 (5% less).
 - SHOTS: his spores are now `bspore` - angry acid-yellow spiky puffballs with one bloodshot eye, pulsing over 3 frames, 1.15x, leaving a trail of sparks. His toxic cheese globes have a face in them that gurgles (3 frames: bubbles swell and pop, mouth opens and shuts), 1.4x, and drip teal bubbles behind them. FX_ANIM in main.js drives animated enemy shots (frames, fps, trail, scale); they skip the baked glow (the bloom lights them).
 - CLAW TELL: the wind-up before a punch now shakes hard and harder (3 -> 11 px), the claw wobbles, swells up to 25% and flashes red, and slobbers mould bubbles.
+
+## v2.16 - More pasta before the guns run dry
+- About 60% more firing per tank on every gun: Mac-Grinder ammo per shot 0.022 -> 0.014 (about 70 shots, was 45); Spaghetti Spinner drain 0.45 -> 0.29 per second (about 3.4 s of stream, was 2.2 s); Swiss-Shot 0.12 -> 0.075 per ball (13 lobs, was 8).
+- Refills a little quicker (0.5 -> 0.6 per second) and a dry gun un-jams sooner (0.3 -> 0.25 of the gauge).
