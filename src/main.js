@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.16';
+const BUILD = 'v2.17';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -53,8 +53,8 @@ const WEAPONS = [
     interval: 0.085, speed: 760, life: 0.75, ammo: 0.014, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
     blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
-    beam: true, range: 250, reachMin: 0.4, droop: 46, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
-    blurb: 'A non-stop stream of spaghetti that hits everything in line. Burns through pasta fast.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
+    beam: true, range: 320, reachMin: 0.3, droop: 50, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
+    blurb: 'A whip of spaghetti: push harder to reach further, swing it and the tip CRACKS. Cuts through everything it passes.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
     lob: true, aimed: true, plough: true, charge: true, chargeTime: 1.1, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.075, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. Bigger charge = bigger ball, further, bigger blast.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
@@ -1512,7 +1512,7 @@ class Level1 extends Phaser.Scene {
         if (vy < -0.88) d.jetNow = true;                                  // pushed right to the top: jetpack straight away
       } else {                                                           // AIM+FIRE stick: touching fires, dragging aims
         S.aim = { ox, oy, vx, vy };
-        d.fire = true; d.reach = Math.max(d.reach || 0, 0.5 + 0.5 * Math.min(1, Math.hypot(vx, vy) / 0.9));   // touch: drag further = longer spaghetti
+        d.fire = true; d.reach = Math.max(d.reach || 0, 0.12 + 0.88 * Math.min(1, Math.hypot(vx, vy) / 0.9));   // touch: push the stick further = the spaghetti goes further (a light push is a short lash)
         if (Math.hypot(vx, vy) > 0.35) d.aim = { x: vx, y: vy };
       }
     }
@@ -1773,8 +1773,9 @@ class Level1 extends Phaser.Scene {
           if (P.ammo <= 0) { P.overheat = true; P.beamOn = false; Sound.sfx('hiss'); }
         }
         P.beamT = (P.beamT || 0) - dt;
-        if (P.beamT <= 0) { P.beamT = W.tick * (this.buffOn('sauce') ? 0.6 : 1); this.beamHit(W); Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
-      }
+        if (P.beamT <= 0) { P.beamT = W.tick; Sound.sfx(W.sfx); if (Pad.state.connected) Pad.pulse(110, 0.15, 0.45); }
+        this.beamSim(W, dt); this.beamHit(W, dt);         // the whip, and whatever it's passing through (every frame)
+      } else P.whip = null;
     } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
       const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
       if (want && ok && P.fireCd <= 0) {
@@ -3272,36 +3273,75 @@ class Level1 extends Phaser.Scene {
     Sound.sfx('boom'); buzz([60, 30, 90]);
   }
 
-  // the spaghetti stream runs along the curve of the planet at gun height, from the nozzle forwards
-  beamGeom(W) {
-    const P = this.pl, dir = P.facing || 1, M = this.muzzle;
-    const gh = M ? M.h : P.h + (P.duck ? 29 : 40);
-    const aa = P.aimA || 0, t0 = M ? M.theta : wrap(P.theta + dir * (70 / R));
-    let rng = W.range * (P.beamReach || 1);
-    if (Math.sin(aa) < -0.05) rng = Math.min(rng, Math.max(12, gh - 2) / -Math.sin(aa));    // aimed down: the noodle stops at the ground
-    const span = rng * Math.cos(aa) / (R + gh);
-    return { dir, gh, t0, span, rise: rng * Math.sin(aa), band: P.power > 0 ? 20 : 11 };
+  // THE SPAGHETTI SPINNER is a WHIP. The stream is a chain of links: the first leaves the nozzle the way Chris is aiming,
+  // each one after it is sprung to the one before (a little under-damped), so when the aim swings the stream lags
+  // behind, bows, and the tip cracks round after it and overshoots. It droops under its own weight and drags along the
+  // ground. How far it reaches is how hard the fire control is pushed (trigger pressure / how far the stick is dragged).
+  //  P.whip = { a[], v[] link angles (in the flat frame at the nozzle: +x the way theta grows, +y up) and their speeds,
+  //             pts[] / prev[] the links' world positions {theta, h} this frame and last }
+  beamSim(W, dt) {
+    const P = this.pl, M = this.muzzle, N = 18;
+    const dir = P.facing || 1, aa = P.aimA || 0, A0 = Math.atan2(Math.sin(aa), dir * Math.cos(aa));
+    const gh = M ? M.h : P.h + (P.duck ? 29 : 40), t0 = M ? M.theta : wrap(P.theta + dir * (70 / R));
+    let Wp = P.whip;
+    if (!Wp) { Wp = P.whip = { a: new Array(N).fill(A0), v: new Array(N).fill(0), pts: [], prev: null, crackCd: 0, tipV: 0 }; }
+    const K = 3400, C = 46, sub = 3, h2 = Math.min(0.034, dt) / sub, turn = (x) => Math.atan2(Math.sin(x), Math.cos(x));
+    for (let s2 = 0; s2 < sub; s2++) {
+      Wp.a[0] = A0; Wp.v[0] = 0;
+      for (let i = 1; i < N; i++) {
+        const stiff = K * (1 - 0.45 * i / N);                                   // looser towards the tip: that's what cracks
+        Wp.v[i] += (stiff * turn(Wp.a[i - 1] - Wp.a[i]) - C * Wp.v[i]) * h2;
+        Wp.a[i] += Wp.v[i] * h2;
+      }
+    }
+    const rng = W.range * (P.beamReach || 1), L = rng / N, Rg = R + gh;
+    Wp.prev = Wp.pts.length ? Wp.pts : null;
+    const pts = [{ theta: t0, h: gh, x: 0 }];
+    let x = 0, y = gh;
+    for (let i = 0; i < N; i++) {
+      x += Math.cos(Wp.a[i]) * L; y += Math.sin(Wp.a[i]) * L;
+      const f = (i + 1) / N;
+      pts.push({ theta: wrap(t0 + x / Rg), h: Math.max(3, y - f * f * (W.droop || 0)), x });
+    }
+    Wp.pts = pts; Wp.rng = rng; Wp.band = P.power > 0 ? 20 : 12;
+    // the CRACK: the tip whipping round fast
+    const tip = pts[N], pt = Wp.prev && Wp.prev[N];
+    Wp.tipV = pt && dt > 0 ? Math.hypot(angDiff(tip.theta, pt.theta) * Rg, tip.h - pt.h) / dt : 0;
+    Wp.crackCd = Math.max(0, Wp.crackCd - dt); Wp.crack = Math.max(0, (Wp.crack || 0) - dt * 6);
+    if (Wp.tipV > 1500 && Wp.crackCd <= 0) { Wp.crackCd = 0.28; Wp.crack = 1; Sound.sfx('swish'); Sound.sfx('zap'); this.burst(tip.theta, tip.h, 'spark', 8, 0.9); this.cameras.main.shake(60, 0.003); }
   }
-  // how far a point is from the noodle (flattened locally; the droop is applied where along it the point sits)
-  beamMiss(B, W, theta, h) {
-    const x = angDiff(theta, B.t0) * B.dir * (R + B.gh), ex = B.span * (R + B.gh), ey = B.rise;
-    const f = Math.max(0, Math.min(1, (x * ex + (h - B.gh) * ey) / (ex * ex + ey * ey || 1)));
-    return Math.hypot(x - ex * f, h - (B.gh + ey * f - f * f * (W.droop || 0)));
-  }
-  beamHit(W) {
-    const B = this.beamGeom(W);
+  // Whatever the stream passes THROUGH gets hit - like a lightsabre: every frame each enemy is tested against the whole
+  // length of the stream AND against the path every link swept since the last frame, so a fast sweep can't skip over
+  // anything. Each thing it touches is hit at most once per `tick`.
+  beamHit(W, dt) {
+    const P = this.pl, Wp = P.whip; if (!Wp || !Wp.pts.length) return;
+    const pts = Wp.pts, prev = Wp.prev, N = pts.length - 1, tick = W.tick * (this.buffOn('sauce') ? 0.6 : 1);
+    const segD = (px, py, ax, ay, bx, by) => { const ex = bx - ax, ey = by - ay, q = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1))); return Math.hypot(px - ax - ex * q, py - ay - ey * q); };
+    const near = (theta, h, reach) => {                 // is (theta, h) within `reach` of the stream or of where it has just swept?
+      const Rh = R + h, lx = q => angDiff(q.theta, theta) * Rh;
+      for (let i = 0; i <= N; i++) {
+        const b = pts[i], bx = lx(b), by = b.h - h, tipK = i >= N - 2 && Wp.crack > 0 ? 1.8 : 1;
+        if (Math.abs(bx) > reach * tipK + 90 && Math.abs(by) > reach * tipK + 90) continue;
+        if (i < N) { const c = pts[i + 1]; if (segD(0, 0, bx, by, lx(c), c.h - h) < reach * tipK) return true; }
+        if (prev && prev[i]) { const c = prev[i]; if (segD(0, 0, bx, by, lx(c), c.h - h) < reach * tipK) return true; }
+      }
+      return false;
+    };
     let hitAny = false;
     for (const e of this.enemies) {
-      if (e.hp <= 0 || e.phased) continue;
-      if (this.beamMiss(B, W, e.theta, e.h + e.ch) > e.r + B.band) continue;
+      e.beamCd = Math.max(0, (e.beamCd || 0) - dt);
+      if (e.hp <= 0 || e.phased || e.beamCd > 0) continue;
+      if (!near(e.theta, e.h + e.ch, e.r + Wp.band)) continue;
+      e.beamCd = tick;
       if (this.hitK(e) === 0) { this.deflect(e, e.theta, e.h + e.ch); hitAny = true; continue; }
       e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = e; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
-      this.burst(e.theta, B.gh, 'spark', 2, 0.4);
+      this.burst(e.theta, e.h + e.ch, 'spark', 3, 0.5);
     }
     for (const r of this.relics) {
-      if (r.hp <= 0) continue;
-      if (this.beamMiss(B, W, r.theta, r.h) <= r.r + B.band) this.relicHit(r.theta, r.h, 1, W.dmg);
+      r.beamCd = Math.max(0, (r.beamCd || 0) - dt);
+      if (r.hp <= 0 || r.beamCd > 0) continue;
+      if (near(r.theta, r.h, r.r + Wp.band)) { r.beamCd = tick; this.relicHit(r.theta, r.h, 1, W.dmg); }
     }
     if (hitAny) { if (hitAny === true) Sound.sfx('hit'); else this.hitSfx(hitAny); }
     this.reapEnemies();
@@ -3311,25 +3351,35 @@ class Level1 extends Phaser.Scene {
     const g = this.beamG;
     g.clear();
     const P = this.pl;
-    if (!P.beamOn) return;
-    const W = this.weapon, B = this.beamGeom(W), z = this.zoom, pts = [];
-    const n = 36, thick = P.power > 0 ? 1.6 : 1, solid = Math.round(n * 0.62);
-    for (let i = 0; i <= n; i++) {
-      const f = i / n, th = wrap(B.t0 + B.dir * B.span * f);
-      const wv = (Math.sin(this.t * 34 - f * 22) * (2 + f * 4) + Math.sin(this.t * 11 + f * 7) * 1.5) * Math.min(1, f * 6);   // wobbly, pinned at the nozzle
-      pts.push(this.screenPos(th, B.gh + B.rise * f + wv - f * f * (W.droop || 0)));                                                        // droops under its own weight
+    if (!P.beamOn) { P.whip = null; return; }
+    const Wp = P.whip;
+    if (!Wp || Wp.pts.length < 3) return;
+    const z = this.zoom, src = Wp.pts, N = src.length - 1, pts = [];
+    const n = N * 2, thick = P.power > 0 ? 1.6 : 1, solid = Math.round(n * 0.7);
+    for (let i = 0; i <= n; i++) {                                              // two points per link, wobbling like wet pasta (pinned at the nozzle)
+      const f = i / n, k = Math.min(N - 1, Math.floor(i / 2)), u = i / 2 - k, a = src[k], b = src[k + 1];
+      const wv = (Math.sin(this.t * 34 - f * 22) * (1.5 + f * 3) + Math.sin(this.t * 11 + f * 7) * 1.2) * Math.min(1, f * 6);
+      pts.push(this.screenPos(wrap(a.theta + angDiff(b.theta, a.theta) * u), a.h + (b.h - a.h) * u + wv));
     }
     if (this.muzzle) { pts[0] = { x: this.muzzle.x, y: this.muzzle.y }; }
     const strand = (a, b, w, c) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, 1); g.beginPath(); g.moveTo(pts[a].x, pts[a].y); for (let i = a + 1; i <= b; i++) g.lineTo(pts[i].x, pts[i].y); g.strokePath(); };
     const seg = (a, b, sc) => { strand(a, b, 9 * sc, 0x1a1020); strand(a, b, 6 * sc, 0xffb52a); strand(a, b, 3 * sc, 0xffe27a); };
-    seg(0, solid, 1);                                                                                                  // the solid stream
+    // tapering like a whip: fat at the nozzle, thin at the tip
+    for (let i = 0; i < solid; i += 4) seg(i, Math.min(solid, i + 4), 1.15 - 0.45 * (i / solid));
     const flick = Math.floor(this.t * 20);
-    for (let i = solid + 1, k = 0; i < n; i += 2, k++) {                                                               // then it breaks up into bits
+    for (let i = solid, k = 0; i < n; i += 2, k++) {                                                                   // then it breaks up into bits
       if ((i + flick) % 5 === 0) continue;                                                                             // gaps flicker as it crumbles
-      seg(i, Math.min(n, i + 1), Math.max(0.45, 1 - k * 0.12));
+      seg(i, Math.min(n, i + 1), Math.max(0.4, 0.7 - k * 0.07));
     }
     for (let i = 3; i < solid; i += 6) { const p = pts[i]; g.fillStyle(0xfff4c4, 1).fillRect(Math.round(p.x) - 1, Math.round(p.y) - 1, 2, 2); }   // glints
     for (let k = 0; k < 2; k++) { const p = pts[solid + Math.floor(Math.random() * (n - solid))]; this.fxNoodle.emitParticleAt(p.x, p.y, 1); }   // crumbs falling off the end
+    const tip = pts[n];
+    if (Wp.tipV > 500) for (let k = 0; k < Math.min(4, Math.floor(Wp.tipV / 500)); k++) this.fxNoodle.emitParticleAt(tip.x, tip.y, 1);       // sauce flying off the tip as it swings
+    if (Wp.crack > 0) {                                                                                                 // CRACK: a flash at the tip
+      const r = (10 + 22 * (1 - Wp.crack)) * z;
+      g.lineStyle(Math.max(2, 3 * z), 0xffffff, Wp.crack).strokeCircle(tip.x, tip.y, r);
+      for (let k = 0; k < 6; k++) { const an = k * 1.047 + this.t * 3; g.lineBetween(tip.x + Math.cos(an) * r * 0.5, tip.y + Math.sin(an) * r * 0.5, tip.x + Math.cos(an) * r * 1.3, tip.y + Math.sin(an) * r * 1.3); }
+    }
   }
 
   jetFlames(n) {

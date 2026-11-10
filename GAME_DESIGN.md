@@ -1369,3 +1369,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.16 - More pasta before the guns run dry
 - About 60% more firing per tank on every gun: Mac-Grinder ammo per shot 0.022 -> 0.014 (about 70 shots, was 45); Spaghetti Spinner drain 0.45 -> 0.29 per second (about 3.4 s of stream, was 2.2 s); Swiss-Shot 0.12 -> 0.075 per ball (13 lobs, was 8).
 - Refills a little quicker (0.5 -> 0.6 per second) and a dry gun un-jams sooner (0.3 -> 0.25 of the gauge).
+
+## v2.17 - The Spaghetti Spinner is a whip
+- WHIP (beamSim): the stream is a chain of 18 links. The first leaves the nozzle along the aim; each one after is sprung to the one before, slightly under-damped and looser towards the tip - so swinging the aim makes the stream lag, bow and whip round after it, and the tip overshoots. It tapers from fat at the nozzle to thin at the tip, droops, and drags along the ground.
+- CRACK: when the tip is moving fast (> 1500 px/s) it cracks - a flash ring and sparks at the tip, a snap sound, a tiny shake, and the tip's hit radius is 1.8x for that moment. Sauce flies off the tip while it swings.
+- REACH follows how hard you push: range 250 -> 320 at full push, `reachMin` 0.4 -> 0.3; on touch the stick's drag now maps over the whole range (0.12..1, was 0.5..1), so a light push is a short lash (~105) and a full push the whole 320. Pad trigger pressure as before; keyboard / mouse is always full reach.
+- LIGHTSABRE HITS (beamHit, every frame, not every 0.1 s): each enemy is tested against the whole length of the stream AND the path every link swept since the last frame, so a fast sweep can't skip anything. Each enemy is hit at most once per tick (`e.beamCd`), so damage per second is unchanged (non-bosses die on contact, bosses 25/s). Tested: one half-circle sweep through nine hovering jetpack rats took out all nine.
