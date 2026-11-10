@@ -105,7 +105,7 @@ const LEVELS = {
     // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
     // like the mushrooms - still nothing like the yellow-green of the ground it's sunk into
     goopPal: { edge: 0x03141a, deep: 0x0a4250, mid: 0x1a9a96, top: 0x52e6cc, gloss: 0xe0fff6 }, goopGlow: 0x3ae8d0, goopBub: 'swampbub',
-    boss: { tex: 'baron', hp: 175, ai: 'baron', scale: 1.35 },
+    boss: { tex: 'baron', hp: 166, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog)
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
@@ -592,11 +592,27 @@ function makeLevelTextures(scene) {
     }
     a.ell(7, 11, 3, 2, 0x3d57a8); a.ell(12, 18, 2, 1.5, 0x3ac0a0); a.px(5, 16, 0x3d57a8);                // mould creeping over it
   });
-  // the globes he coughs up: big bubbling balls of toxic blue cheese
-  pixSprite(scene, 'cheeseglobe', 26, 26, a => {
-    a.ell(13, 13, 12, 12, [0x9affe8, 0x3ac0b8, 0x1a6a80]);
-    for (const [x, y, r] of [[8, 9, 3], [16, 16, 2.5], [17, 7, 2], [9, 17, 1.6]]) { a.ell(x, y, r, r, 0x2a5aa8); a.px(x - 1, y - 1, 0xc8fff0); }
-    a.px(7, 5, 0xffffff); a.px(8, 5, 0xffffff); a.px(7, 6, 0xffffff);
+  // the globes he coughs up: big bubbling balls of toxic blue cheese with a face in them, gurgling (3 frames: bubbles
+  // swell and pop, the mouth opens and shuts) - so they're easy to see coming and anything but boring
+  for (let f = 0; f < 3; f++) pixSprite(scene, 'cheeseglobe' + (f || ''), 30, 30, a => {
+    const sw = [0, 1, 0.5][f];
+    a.ell(15, 15, 13 + sw * 0.6, 13 - sw * 0.6, [0xc8fff0, 0x3ad8c0, 0x1a6a80]);
+    for (const [x, y, r] of [[7, 9, 3.4], [21, 20, 2.6], [22, 8, 2.2], [8, 21, 1.8]]) { a.ell(x, y, r, r, [0x6a9aff, 0x2a5ad0, 0x14307a]); a.px(Math.round(x - 1), Math.round(y - 1), 0xd8fff8); }
+    const by = [[17, 2], [24, 4], [11, 3]][f]; a.ell(by[0], by[1] + 1, f === 1 ? 3 : 2.2, f === 1 ? 3 : 2.2, [0xffffff, 0x9affe8, 0x3ac0b8]);       // a bubble rising off the top
+    if (f === 2) for (const [x, y] of [[9, 1], [13, 0], [15, 2]]) a.px(x, y, 0xe0fff8);                                                     // (popping)
+    a.ell(12, 13, 3.4, 3.8, 0xffffff); a.ell(19, 12, 2.6, 3, 0xffffff); a.px(13, 14, 0x0a1420); a.px(19, 13, 0x0a1420);                   // goggling eyes
+    a.ell(16, 20, 4, [1.2, 3, 2][f], [0x3a0a24, 0x2a0414, 0x14020a]); if (f) a.ell(16, 21 + f * 0.5, 2, 1, 0xff7aa0);                      // a gurgling mouth
+    a.line([[10, 9], [14, 11]], 0x0a2a3a); a.line([[22, 9], [18, 10]], 0x0a2a3a);
+    a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(6, 6, 0xffffff);
+  });
+  // his SPORES: angry little toxic puffballs, spiky, one bloodshot eye, glowing acid-yellow so they pop off the swamp (3 frames: they pulse)
+  for (let f = 0; f < 3; f++) pixSprite(scene, 'bspore' + (f || ''), 24, 24, a => {
+    const r = [7, 8, 7.5][f], spk = [0, 0.3, 0.15][f];
+    for (let k = 0; k < 10; k++) { const an = k * 0.628 + spk, l = r + (k % 2 ? 4 : 2.5); a.line([[12 + Math.cos(an) * r * 0.8, 12 + Math.sin(an) * r * 0.8], [12 + Math.cos(an) * l, 12 + Math.sin(an) * l]], k % 2 ? 0xe8ff6a : 0x7adf3a, 2); }
+    a.ell(12, 12, r, r, [0xf8ffa8, 0xb8f03a, 0x4a9a1a]);
+    for (const [x, y] of [[8, 15], [15, 16], [16, 8]]) a.px(x, y, 0x3a7a14);
+    a.ell(11, 11, 3.2, 3.2, 0xffffff); a.px(12, 11, 0x14080a); a.px(12, 12, 0x14080a); a.line([[8, 9], [10, 10]], 0xe0302a); a.line([[14, 13], [13, 12]], 0xe0302a);
+    a.line([[8, 7], [14, 8]], 0x1a3a0a);
   });
   // a wave of molten cheese rolling round the cave tunnel (Bessie's pump)
   pixSprite(scene, 'cwave', 30, 20, a => {

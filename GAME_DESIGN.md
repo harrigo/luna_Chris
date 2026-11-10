@@ -1360,3 +1360,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - DITHERED DEPTH: the three flat colour bands are now seven steps from bright at the surface to dark at the floor, each boundary broken up with a stipple of the lighter step (like the planet shading).
 - GLOW SPILL (graphics MEDIUM+): each pool washes the banks beside it with a soft, slowly pulsing light of its own colour and throws a faint shaft upward (additive `goopGl` layer under the goo).
 - Bubbles and splashes already used `goopBub`; level 2's are teal now, and the jetpack-in-goo bubbles follow it too.
+
+## v2.15 - Baron Von Blue (level 2 boss) tuned
+- HP 175 -> 166 (5% less).
+- SHOTS: his spores are now `bspore` - angry acid-yellow spiky puffballs with one bloodshot eye, pulsing over 3 frames, 1.15x, leaving a trail of sparks. His toxic cheese globes have a face in them that gurgles (3 frames: bubbles swell and pop, mouth opens and shuts), 1.4x, and drip teal bubbles behind them. FX_ANIM in main.js drives animated enemy shots (frames, fps, trail, scale); they skip the baked glow (the bloom lights them).
+- CLAW TELL: the wind-up before a punch now shakes hard and harder (3 -> 11 px), the claw wobbles, swells up to 25% and flashes red, and slobbers mould bubbles.

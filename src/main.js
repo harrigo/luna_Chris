@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.14';
+const BUILD = 'v2.15';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -65,6 +65,11 @@ CFG.powerT = 15;                 // seconds the Parmesan Power-Up lasts (a hit s
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 // Same look as glowFx for things that never change texture, but the halo is drawn once into a cached texture
 // instead of costing a shader pass every frame (lava pools, enemy shots, swiss balls, power-ups...).
+// animated enemy shots: frames, fps, and a trail of little particles behind them
+const FX_ANIM = {
+  bspore: { anim: ['bspore', 'bspore1', 'bspore2'], animFps: 12, trailTex: 'spark', trailEvery: 0.04, scale: 1.15 },
+  cheeseglobe: { anim: ['cheeseglobe', 'cheeseglobe1', 'cheeseglobe2'], animFps: 7, trailTex: 'swampbub', trailEvery: 0.05, scale: 1.4 }
+};
 const glowKey = (base, col, strength, d) => base + '_g' + col.toString(16) + '_' + strength + '_' + d;
 function makeGlowTexture(sc, base, col, strength, dist) {
   const d = Math.ceil(dist || 8), gk = glowKey(base, col, strength, d);
@@ -2162,8 +2167,8 @@ class Level1 extends Phaser.Scene {
           e.h = 58; SL.st = 'land'; SL.t = 0; M.f = 1;
           Sound.sfx('boom'); Sound.sfx('squelch'); buzz([60, 30, 90]); this.cameras.main.shake(260, 0.014); this.camPunch(0.04);
           this.burst(e.theta, 6, 'spark', 18, 1.4); this.bang(e.theta, 10, 36);
-          for (const sd of [-1, 1]) this.addEBullet('spore', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);   // spore wash skimming the floor both ways: jump it
-          for (let k = 0; k < (st >= 3 ? 6 : 4); k++) { const a = (k - (st >= 3 ? 2.5 : 1.5)) * 0.42; this.addEBullet('spore', e.theta, 70, 250 * Math.sin(a), 380 * Math.cos(a) * 0.8, 10, 3).grav = 480; }
+          for (const sd of [-1, 1]) this.addEBullet('bspore', wrap(e.theta + sd * 50 / R), 9, sd * 250, 0, 11, 2.4);   // spore wash skimming the floor both ways: jump it
+          for (let k = 0; k < (st >= 3 ? 6 : 4); k++) { const a = (k - (st >= 3 ? 2.5 : 1.5)) * 0.42; this.addEBullet('bspore', e.theta, 70, 250 * Math.sin(a), 380 * Math.cos(a) * 0.8, 10, 3).grav = 480; }
         }
       } else if (SL.st === 'land') {                          // DAZED in the muck, spore crown squashed flat: STOMP HIM NOW
         if (!SL.told && !this.baronDazeTip) { SL.told = this.baronDazeTip = true; this.banner('HE\'S DAZED - STOMP HIM!'); }
@@ -2197,12 +2202,14 @@ class Level1 extends Phaser.Scene {
       F.dx = F.side * 26 + Math.sin(F.t * 2.2) * 4; F.dy = -18 + Math.sin(F.t * 3.1) * 5; F.len = Math.hypot(F.dx, F.dy);
       if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.side = toP >= 0 ? 1 : -1; F.st = 'whirl'; F.t = 0; M.f = 1; Sound.sfx('growl'); }
     } else if (F.st === 'whirl') {                               // the tell: the claw pulls right back, trembling
-      const tell = phase2 ? 0.6 : 0.8, k2 = Math.min(1, F.t / tell);
-      F.dx = F.side * (26 - 30 * k2) + Math.sin(F.t * 60) * 2.5 * k2; F.dy = -18 + 14 * k2 + Math.cos(F.t * 55) * 2 * k2; F.len = Math.hypot(F.dx, F.dy);
+      const tell = phase2 ? 0.6 : 0.8, k2 = Math.min(1, F.t / tell), sh = 3 + 8 * k2;              // shaking HARD, harder as it winds up
+      F.dx = F.side * (26 - 30 * k2) + Math.sin(F.t * 47) * sh; F.dy = -18 + 14 * k2 + Math.cos(F.t * 61) * sh * 0.8; F.len = Math.hypot(F.dx, F.dy);
+      F.tell = k2;
+      if (Math.random() < dt * 16) this.burst(F.theta, F.h, 'swampbub', 1, 0.5);                                  // slobbering mould off it
       if (F.t > tell) {                                          // PUNCH at where Chris is heading
         const lead = (P.vx || 0) * 0.35, tx = angDiff(P.theta, anchor.theta) * R + lead, ty = (P.h + 20) - anchor.h;
         const d = Math.hypot(tx, ty) || 1, reach = Math.min(320, d + 30);
-        F.st = 'throw'; F.t = 0; F.ux = tx / d; F.uy = ty / d; F.reach = reach; F.ox = F.dx; F.oy = F.dy;
+        F.st = 'throw'; F.t = 0; F.ux = tx / d; F.uy = ty / d; F.reach = reach; F.ox = F.dx; F.oy = F.dy; F.tell = 0;
         Sound.sfx('whoosh'); Sound.sfx('stretch'); M.f = 2; M.t = 0.5;
       }
     } else if (F.st === 'throw') {
@@ -2589,7 +2596,9 @@ class Level1 extends Phaser.Scene {
     const sA = this.screenPos(F.ath, F.ah), cA = this.screenPos(F.theta, F.h);
     strand(sA, cA, F.st === 'throw');
     const ang = Math.atan2(cA.y - sA.y, cA.x - sA.x);
-    O.clawA.setPosition(cA.x, cA.y).setRotation(F.st === 'hang' ? (F.side > 0 ? 0.6 : Math.PI - 0.6) : ang).setFlipY(F.st === 'hang' ? F.side < 0 : Math.cos(ang) < 0).setScale(1.3 * k * z * 0.75);
+    const tl = F.st === 'whirl' ? (F.tell || 0) : 0;            // winding up: the claw swells and flashes red
+    O.clawA.setPosition(cA.x, cA.y).setRotation((F.st === 'hang' ? (F.side > 0 ? 0.6 : Math.PI - 0.6) : ang) + (tl ? Math.sin(t * 50) * 0.22 * tl : 0)).setFlipY(F.st === 'hang' ? F.side < 0 : Math.cos(ang) < 0).setScale(1.3 * k * z * 0.75 * (1 + 0.25 * tl));
+    if (tl && !(e.flash > 0)) O.clawA.setTint(Math.floor(t * 18) % 2 ? 0xff6a5a : 0xffffff);
     const oSide = -F.side, oth = wrap(e.theta + oSide * 46 * k / (R + e.h)), oh = e.h - 4 * k;
     const sB = this.screenPos(oth, oh), cB = this.screenPos(wrap(oth + (oSide * 26 + Math.sin(t * 2.4 + 1) * 4) / (R + oh)), oh - 18 + Math.cos(t * 3.3) * 5);
     strand(sB, cB, false);
@@ -3977,8 +3986,9 @@ class Level1 extends Phaser.Scene {
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
-      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); bakedGlow(im, glow, 2, 6); return im; })()
+      spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); if (!FX_ANIM[kind]) bakedGlow(im, glow, 2, 6); return im; })()
     };
+    if (FX_ANIM[kind]) { Object.assign(b, FX_ANIM[kind], { animPh: Math.floor(Math.random() * 3) }); if (b.scale) b.spr.bsx = b.spr.bsy = b.scale; }   // (animated: no baked glow, the bloom does that)
     this.eBullets.push(b);
     return b;
   }
@@ -4089,6 +4099,10 @@ class Level1 extends Phaser.Scene {
         if (dd < 110 && dd > 1) { b.vt += ex / dd * 420 * dt; b.vh += ey / dd * 420 * dt; }
       }
       b.spin += b.spinV * dt;
+      if (b.anim) {                                      // animated shots (the Baron's spores and globes): flip frames, leave a trail
+        const fr = b.anim[Math.floor(this.t * (b.animFps || 10) + b.animPh) % b.anim.length]; if (b.spr.texture.key !== fr) b.spr.setTexture(fr);
+        if ((b.trailT = (b.trailT || 0) - dt) <= 0) { b.trailT = b.trailEvery || 0.05; const im = this.add.image(0, 0, b.trailTex).setDepth(7.9); im.bsx = im.bsy = rnd(0.5, 0.9); this.parts.push({ theta: b.theta, h: b.h, vt: rnd(-15, 15), vh: rnd(-30, 10), life: rnd(0.25, 0.45), spr: im, noGrav: true, rot: 0, rv: 0 }); }
+      }
       if (b.tri) {                                       // triangular zig-zag: the sideways push flips every fraction of a second
         b.tri.t += dt; if (b.tri.t > b.tri.per) { b.tri.t = 0; b.tri.s = -b.tri.s; b.tri.per = rnd(0.25, 0.42); }
         const L = Math.hypot(b.tri.bx, b.tri.by) || 1, px = -b.tri.by / L, py = b.tri.bx / L;
