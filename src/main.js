@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.18';
+const BUILD = 'v2.19';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1779,9 +1779,10 @@ class Level1 extends Phaser.Scene {
     } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
       const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
       if (want && ok && P.fireCd <= 0) {
-        if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; P.chargeAim = null; }
+        if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; P.chargeAim = null; P.throwK = inp.reach || 1; }
+        P.throwK = Math.max(inp.reach || 1, (P.throwK || 1) - dt * 1.3);     // how hard the stick / trigger is pushed = how FAR it will be thrown (eases down, so letting go to fire doesn't kill the throw)
         if (inp.aim) P.chargeAim = { facing: P.facing, aimA: P.aimA || 0, t: this.time.now };   // remember where it was aimed (the stick may be let go to fire)
-        P.charge = Math.min(1, P.charge + dt / W.chargeTime * (0.55 + 0.45 * (inp.fireP || 1)));    // a harder trigger pull charges faster
+        P.charge = Math.min(1, P.charge + dt / W.chargeTime);    // charges with TIME alone; the push sets the distance
         P.chargeSnd -= dt;
         if (P.charge < 1 && P.chargeSnd <= 0) { P.chargeSnd = 0.13; Sound.sfx('charge', P.charge); if (Pad.state.connected) Pad.pulse(60, 0.1 + 0.5 * P.charge, 0.2 + 0.4 * P.charge); }
         if (P.charge >= 1 && !P.chargeFull) { P.chargeFull = true; Sound.sfx('charged'); buzz(40); this.addLight(this.muzzle ? this.muzzle.theta : P.theta, this.muzzle ? this.muzzle.h : P.h + 40, 80, 0xffe27a, 1, 0.3); }
@@ -1810,7 +1811,7 @@ class Level1 extends Phaser.Scene {
   // release a charged Swiss-Shot: everything scales with the charge (c = 0.2 .. 1)
   fireCharged(c, tgt) {
     const P = this.pl, W = this.weapon;
-    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: 0.65 + 0.75 * c, scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c,
+    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c,
       bounce: c > 0.55 ? 2 : 1, cluster: c >= 0.97 ? 6 : (c > 0.7 ? 4 : 0) });     // it skips along the ground bursting as it goes; big ones split into a cluster
     P.fireCd = W.interval * (this.buffOn('sauce') ? 0.5 : 1);
     if (P.power <= 0) {
@@ -4860,7 +4861,7 @@ class Level1 extends Phaser.Scene {
         const cg = this.chargeG; cg.clear();
         const bx = M.x + M.dx * r * 0.8, by = M.y + M.dy * r * 0.8;
         for (let k = 0; k < 7; k++) { const an = k * 0.898 + this.t * 2.2, ph = ((this.t * (2.2 + c * 2.5) + k * 0.37) % 1), d0 = r * (2.6 - 1.7 * ph), d1 = d0 - r * 0.55; cg.lineStyle(Math.max(1, 2 * z), ph > 0.6 ? 0xffffff : 0xffe27a, 0.35 + 0.6 * ph).lineBetween(bx + Math.cos(an) * d0, by + Math.sin(an) * d0, bx + Math.cos(an) * d1, by + Math.sin(an) * d1); }
-        { const spd = W.speed * (0.65 + 0.75 * c), dir = P.facing || 1, aa = P.aimA || 0, RR = R + M.h;
+        { const spd = W.speed * (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), dir = P.facing || 1, aa = P.aimA || 0, RR = R + M.h;
           let th = M.theta, hh = M.h, vt = dir * Math.cos(aa) * spd, vh = Math.sin(aa) * spd, bn = c > 0.55 ? 2 : 1, n = 0, land = null;
           for (let step = 0; step < 150; step++) {
             th = wrap(th + vt / RR * 0.03); vh -= (W.gravity || 420) * 0.03; hh += vh * 0.03;

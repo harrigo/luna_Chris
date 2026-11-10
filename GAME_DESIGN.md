@@ -1384,3 +1384,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - In flight the ball spins, stretches along its path, squashes on a bounce, and leaves fading ghost images and drips.
 - Blast effect: sagging strings of molten cheese fling out and snap back, Swiss holes pop open, steam rolls up, more chunks; a screen flash on charged shots. Bounce splats and bomblets use a lighter version.
 - Particles can now fade (`fade` on a part).
+
+## v2.19 Swiss-Shot: push = distance
+- How hard the aim stick / trigger is pushed sets how far the ball is thrown (42% to 100% of the throw speed), like the Spaghetti Spinner's reach. The aim arc shows it live.
+- Charge now builds with time alone (the trigger no longer changes the charge rate).
+- The push eases down slowly (`P.throwK`), so letting go of the stick to fire keeps the throw you had.
