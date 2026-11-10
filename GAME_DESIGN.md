@@ -1355,3 +1355,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - SHADING: two soft dark skirts round each hole, wider than the pool, so the ground reads as dipping into it.
 - DRIPS: goo slopped over the rim, running down the outside in four slow drips with a bead on the end.
 - Applies to level 2, Pizza Inferno's mozzarella pits and the Fondue Fountain's pools. Not done yet: dithered depth fade in place of the three flat bands; glow spilling onto the ground.
+
+## v2.14 - Goo pits, finished
+- DITHERED DEPTH: the three flat colour bands are now seven steps from bright at the surface to dark at the floor, each boundary broken up with a stipple of the lighter step (like the planet shading).
+- GLOW SPILL (graphics MEDIUM+): each pool washes the banks beside it with a soft, slowly pulsing light of its own colour and throws a faint shaft upward (additive `goopGl` layer under the goo).
+- Bubbles and splashes already used `goopBub`; level 2's are teal now, and the jetpack-in-goo bubbles follow it too.

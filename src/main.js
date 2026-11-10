@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.13';
+const BUILD = 'v2.14';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -388,6 +388,7 @@ class Level1 extends Phaser.Scene {
       return Object.assign({}, g, { spr, halo, bubT: rnd(0, 1), rip: [], inside: new Set() });
     });
     this.goopG = this.goops.length ? this.add.graphics().setDepth(7.6) : null;
+    this.goopGl = this.goops.length ? this.add.graphics().setDepth(7.59).setBlendMode(Phaser.BlendModes.ADD) : null;   // its light on the ground round it
     // L6: bottomless pits / speed-bump craters (drawn in front, flush with the ground) and razor tortilla chips
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
@@ -2724,6 +2725,9 @@ class Level1 extends Phaser.Scene {
       : { edge: 0x12061e, deep: 0x3e1470, mid: 0x7a32c0, top: 0xb468f0, gloss: 0xf0c8ff });
     const D = this.def.goopMode === 'string' ? 22 : 26;
     g.clear();
+    const gl = this.goopGl; if (gl) gl.clear();
+    const mixC = (a, b, k) => { const ar = a >> 16 & 255, ag = a >> 8 & 255, ab = a & 255; return (Math.round(ar + ((b >> 16 & 255) - ar) * k) << 16) | (Math.round(ag + ((b >> 8 & 255) - ag) * k) << 8) | Math.round(ab + ((b & 255) - ab) * k); };
+    const depthC = k => k < 0.3 ? mixC(PAL.top, PAL.mid, k / 0.3) : mixC(PAL.mid, PAL.deep, (k - 0.3) / 0.7);   // bright at the surface, dark at the bottom
     for (const G of this.goops) {
       if (Math.abs(angDiff(G.theta, P.theta)) > this.visHalf + G.half + 0.1) continue;
       const W = G.half * R;
@@ -2777,9 +2781,21 @@ class Level1 extends Phaser.Scene {
         pts.push(pt(wrap(top[top.length - 1].th + ex), 0));
         for (let i = top.length - 1; i >= 0; i--) { const T = top[i]; pts.push(pt(T.th, -T.dep - 2)); }
         g.fillStyle(PAL.edge, 1).fillPoints(pts, true); }
-      band(0, 1, PAL.deep);
-      band(0, 0.45, PAL.mid);
-      band(0, 0.14, PAL.top);
+      // a DITHERED fade down into the murk (it was three flat bands): seven steps of colour, each boundary broken up with a
+      // stipple of the lighter step, like the shading on the planets
+      const KS = [0, 0.09, 0.2, 0.33, 0.48, 0.66, 0.84, 1];
+      for (let j = KS.length - 2; j >= 0; j--) band(0, KS[j + 1], depthC((KS[j] + KS[j + 1]) / 2));
+      { const stepW = Math.max(3, 4 / z);
+        for (let j = 0; j < KS.length - 2; j++) {
+          g.fillStyle(depthC((KS[j] + KS[j + 1]) / 2), 1);
+          let odd = j % 2;
+          for (let x = -W * 0.94; x < W * 0.94; x += stepW) {
+            odd ^= 1; if (odd) continue;
+            const e = x / W, dep = D * Math.sqrt(Math.max(0, 1 - Math.pow(Math.abs(e), 5)));
+            const span = dep * (KS[j + 2] - KS[j + 1]), q = at(x, -dep * KS[j + 1] - Math.min(2.2, span * 0.45));
+            g.fillRect(q.x, q.y, Math.max(1, Math.round(2 * z)), Math.max(1, Math.round(2 * z)));
+          }
+        } }
       // murky swirls drifting in the depths
       for (let k = 0; k < 4; k++) {
         const fx = ((k * 0.31 + t * 0.05 * (k % 2 ? 1 : -1) + G.theta) % 1 + 1) % 1, x = -W * 0.8 + fx * W * 1.6, e = x / W, dep = D * Math.sqrt(Math.max(0, 1 - e * e));
@@ -2806,6 +2822,16 @@ class Level1 extends Phaser.Scene {
           const a0 = at(x - sz * 0.5, up), a1 = at(x + sz * 0.4, up * 0.7); g.lineStyle(Math.max(1, 1.5 * z), GR[2], 1).lineBetween(a0.x, a0.y, a1.x, a1.y);
         }
         for (let k = 0; k < 3; k++) { const q = (sd > 0 ? 100 : 80) + k, x = sd * (W + 1 + k * 4 + rnd2(q) * 3), hh = 4 + rnd2(q + 5) * 5, b0 = at(x - 1.5, 0), b1 = at(x + 1.5, 0), tp = at(x + sd * 1.5, hh); g.fillStyle(GR[k % 2 + 1], 1).fillTriangle(b0.x, b0.y, b1.x, b1.y, tp.x, tp.y); }
+      }
+      // ... it LIGHTS the ground round it (a soft pulsing wash of its own colour over the banks, a faint shaft above) ...
+      if (gl && Settings.lights) {
+        const pu = 0.75 + 0.25 * Math.sin(t * 2.1 + G.theta * 5), GC = this.def.goopGlow || PAL.top;
+        for (const [ex, up, dn, al] of [[34, 5, 12, 0.07], [18, 9, 18, 0.1], [6, 14, 6, 0.1]]) {
+          const pts = []; for (let i = 0; i <= 10; i++) pts.push(at(-W - ex + (2 * W + 2 * ex) * i / 10, up * Math.sin(i / 10 * Math.PI)));
+          for (let i = 10; i >= 0; i--) pts.push(at(-W - ex + (2 * W + 2 * ex) * i / 10, -dn * Math.sin(i / 10 * Math.PI)));
+          gl.fillStyle(GC, al * pu).fillPoints(pts, true);
+        }
+        gl.fillStyle(GC, 0.045 * pu).fillPoints([at(-W * 0.8, 0), at(W * 0.8, 0), at(W * 1.1, 46), at(-W * 1.1, 46)], true);
       }
       // ... and goo has slopped over the rim and is running down the outside
       for (let k = 0; k < 4; k++) {
