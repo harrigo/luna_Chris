@@ -1348,3 +1348,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - `p_shroom` was an old flat sprite with a dark border right round it, including along the bottom of the stem - it sat on the ground like a sticker. Redrawn (34x42, pixSprite): shaded blue cap with gills and glowing spots, a skirt, a stem that flares into the ground, moss and grass blades round the foot, and NO outline along the bottom (a post hook strips it and leaves the foot ragged). Prop `oy` 36/42.
 - The big mushrooms from v2.11 had a dark rectangular slab under each foot (the rows below the base showed in front of the planet): replaced with the same ragged, unoutlined mossy foot (shroomNoEdge).
 - Still old flat sprites with a bottom border: the reeds (`p_reed`) and crystal stalks (`p_stalk`).
+
+## v2.13 - Goo pits blended into the planet (drawGoop)
+- COLOUR: level 2's pits were the default purple; they now use the level's own palette - a murky bioluminescent teal like the mushrooms (`goopPal`, `goopGlow`, teal `swampbub` bubbles), still clearly different from the yellow-green ground.
+- RAGGED BANKS (all goo levels): clumps of the level's own ground colours (surface.rim) hang over both edges of each pool, a few blades stand up on the lip - seeded per pit so no two are alike.
+- SHADING: two soft dark skirts round each hole, wider than the pool, so the ground reads as dipping into it.
+- DRIPS: goo slopped over the rim, running down the outside in four slow drips with a bead on the end.
+- Applies to level 2, Pizza Inferno's mozzarella pits and the Fondue Fountain's pools. Not done yet: dithered depth fade in place of the three flat bands; glow spilling onto the ground.

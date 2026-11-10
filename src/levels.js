@@ -102,6 +102,9 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6), S('frog', 9.2), S('stinkfly', 9.6), S('frog', 10.2)] },
     ],
     goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
+    // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
+    // like the mushrooms - still nothing like the yellow-green of the ground it's sunk into
+    goopPal: { edge: 0x03141a, deep: 0x0a4250, mid: 0x1a9a96, top: 0x52e6cc, gloss: 0xe0fff6 }, goopGlow: 0x3ae8d0, goopBub: 'swampbub',
     boss: { tex: 'baron', hp: 175, ai: 'baron', scale: 1.35 },
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
@@ -1571,6 +1574,7 @@ function makeRoadmapTextures(scene) {
     for (const [bx, by] of [[14, 9], [38, 8], [26, 14], [48, 11], [22, 19], [40, 18]]) { put(bx, by, 0xf0d0ff); put(bx + 1, by, 0xc890f0); put(bx, by + 1, 0xc890f0); }
   });
   pixSprite(scene, 'goopbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xf4d8ff, 0xc070f0, 0x7a30c0]); p.px(3, 2, 0xffffff); });
+  pixSprite(scene, 'swampbub', 8, 8, p => { p.ell(4, 4, 3, 3, [0xe0fff6, 0x52e6cc, 0x1a8a86]); p.px(3, 2, 0xffffff); });   // L2's teal goo
   // dark basalt boulders with mossy tops
   pixSprite(scene, 'rock_dark', 44, 30, p => {
     p.poly([[2, 29], [4, 16], [12, 6], [24, 2], [34, 6], [41, 15], [43, 29]], [0x3a4652, 0x222a34, 0x10151c]);

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.12';
+const BUILD = 'v2.13';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1695,7 +1695,7 @@ class Level1 extends Phaser.Scene {
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     // goop suction: just above a pool the muck clings to the jet boots - weak thrust, slow climb, and it drags you back down
     const suck = (this.goops && this.goops.length && P.h < 46 && P.floor === 0 && !this.def.goopMode) ? this.goops.some(g => Math.abs(angDiff(P.theta, g.theta)) < g.half * 1.05) : false;
-    if (suck && P.thrusting && Math.random() < dt * 14) { const im = this.add.image(0, 0, 'goopbub').setDepth(7.7); this.parts.push({ theta: P.theta + rnd(-0.02, 0.02), h: P.h, vt: rnd(-40, 40), vh: rnd(-60, 20), life: 0.4, spr: im }); }
+    if (suck && P.thrusting && Math.random() < dt * 14) { const im = this.add.image(0, 0, this.def.goopBub || 'goopbub').setDepth(7.7); this.parts.push({ theta: P.theta + rnd(-0.02, 0.02), h: P.h, vt: rnd(-40, 40), vh: rnd(-60, 20), life: 0.4, spr: im }); }
     P.suck = suck;
     if (suck && !this.def.goopMode) P.vh -= 320 * dt;
     if (P.thrusting) {
@@ -2760,6 +2760,16 @@ class Level1 extends Phaser.Scene {
         for (let i = top.length - 1; i >= 0; i--) { const T = top[i]; pts.push(pt(T.th, -T.dep * toK)); }
         g.fillStyle(col, 1).fillPoints(pts, true);
       };
+      // BLENDING IT IN: the ground darkens as it dips towards the pit (two soft dark skirts, wider than the hole) ...
+      const GR = (this.def.surface && this.def.surface.rim) || [0x2a2a3a, 0x5a5a6a, 0x9a9aaa];
+      const rnd2 = k => { const v = Math.sin(G.theta * 91.7 + k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+      const at = (x, h) => pt(wrap(G.theta + x / R), h);
+      for (const [ex, dp, al] of [[20, 9, 0.16], [10, 5, 0.24]]) {
+        const pts = [at(-W - ex, 0), at(W + ex, 0), at(W + ex * 0.5, -D * 0.55)];
+        for (let i = top.length - 1; i >= 0; i--) { const T = top[i]; pts.push(pt(T.th, -T.dep - dp)); }
+        pts.push(at(-W - ex * 0.5, -D * 0.55));
+        g.fillStyle(0x000000, al).fillPoints(pts, true);
+      }
       // outline (a hair wider and deeper), then the murk in layers, then the glossy surface
       { const pts = [], ex = 3 / R;                      // the hole in the ground: dark banks, level with the ground at the top
         pts.push(pt(wrap(top[0].th - ex), 0));
@@ -2784,6 +2794,26 @@ class Level1 extends Phaser.Scene {
         const fx = ((t * 0.12 + k / 3 + G.theta) % 1 + 1) % 1, i = Math.round(fx * n), T = top[Math.min(n, Math.max(0, i))];
         const p = pt(T.th, T.y - 3);
         g.fillStyle(0xffffff, 0.8).fillRect(p.x - 2 * z, p.y, 4 * z, Math.max(1, z));
+      }
+      // ... the banks are RAGGED: clumps of the level's own ground hang over both edges of the pool (no two pits alike),
+      // with a few blades standing up on the lip ...
+      for (const sd of [-1, 1]) {
+        for (let k = 0; k < 4; k++) {
+          const q = (sd > 0 ? 10 : 0) + k, x = sd * (W * (1.02 - 0.075 * k) - rnd2(q) * 3), sz = (k === 0 ? 7 : 3.5) + rnd2(q + 20) * 4, up = 1.5 + rnd2(q + 40) * 2.5, dn = 4 + rnd2(q + 60) * (k === 0 ? 9 : 5);
+          const body = [at(x - sz, 0), at(x - sz * 0.5, up), at(x + sz * 0.4, up * 0.7), at(x + sz, 0), at(x + sz * 0.7, -dn * 0.7), at(x, -dn), at(x - sz * 0.7, -dn * 0.6)];
+          g.fillStyle(GR[0], 1).fillPoints(body, true);
+          g.fillStyle(GR[1], 1).fillPoints([at(x - sz, 0), at(x - sz * 0.5, up), at(x + sz * 0.4, up * 0.7), at(x + sz, 0), at(x + sz * 0.5, -dn * 0.3), at(x - sz * 0.5, -dn * 0.3)], true);
+          const a0 = at(x - sz * 0.5, up), a1 = at(x + sz * 0.4, up * 0.7); g.lineStyle(Math.max(1, 1.5 * z), GR[2], 1).lineBetween(a0.x, a0.y, a1.x, a1.y);
+        }
+        for (let k = 0; k < 3; k++) { const q = (sd > 0 ? 100 : 80) + k, x = sd * (W + 1 + k * 4 + rnd2(q) * 3), hh = 4 + rnd2(q + 5) * 5, b0 = at(x - 1.5, 0), b1 = at(x + 1.5, 0), tp = at(x + sd * 1.5, hh); g.fillStyle(GR[k % 2 + 1], 1).fillTriangle(b0.x, b0.y, b1.x, b1.y, tp.x, tp.y); }
+      }
+      // ... and goo has slopped over the rim and is running down the outside
+      for (let k = 0; k < 4; k++) {
+        const sd = k % 2 ? 1 : -1, x = sd * (W + 5 + rnd2(200 + k) * 12), len = 5 + rnd2(210 + k) * 11 + Math.sin(t * 1.3 + k * 2) * 1.5;
+        const a0 = at(x, 1), a1 = at(x, -len), sl = at(x - sd * 3, 1.5);
+        g.fillStyle(PAL.top, 1).fillEllipse((a0.x + sl.x) / 2, (a0.y + sl.y) / 2, 9 * z, 3 * z);
+        g.lineStyle(Math.max(2, 2.2 * z), PAL.mid, 1).lineBetween(a0.x, a0.y, a1.x, a1.y);
+        g.fillStyle(PAL.top, 1).fillCircle(a1.x, a1.y, 1.8 * z); g.fillStyle(PAL.gloss, 1).fillRect(a1.x - z, a1.y - z, Math.max(1, z), Math.max(1, z));
       }
     }
   }
