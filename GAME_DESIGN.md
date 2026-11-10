@@ -1340,3 +1340,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.10 - Jetpack rat: four frames
 - `flyer`, `flyer_b`, `flyer_c`, `flyer_d` (9 fps): legs pedalling the air through three poses, the tail cracking like a whip, the tank rattling up and down on its straps with a puff of steam off the valve, the cap strap flapping, eyes rolling down at the drop, sweat, drool, and a blink. toonRat gained poses 3 / 4 and `tail`, `look`, `lookY`, `blink`, `flap`, `drool` options.
+
+## v2.11 - Level 2's big mushrooms stand on the planet
+- `bg_shroom` / `bg_shroom2` used to sit see-through (alpha 0.7) behind the horizon with their stems fading into the haze, so they read as floating. Now they are solid, stand ON the surface behind everything else on it (depth 2.38 / 2.39, h -1), a little smaller, and each has a flared rooty foot in a mound of moss, with rows below the base row (prop `oy`) so the foot wraps the planet's curve. The small pair share one mound.

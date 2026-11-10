@@ -85,9 +85,9 @@ const LEVELS = {
     props: [
       // the skyline, composed by hand round the planet: [theta, scale, flipX]. Big and small pieces alternate so it reads
       // as a rhythm (tall mushroom, ribcage, little pair, skull...) rather than random clumps. They stand behind the horizon.
-      { tex: 'bg_shroom', at: [[0.35, 2.0], [2.75, 1.7, 1], [4.55, 2.1], [5.95, 1.5, 1]], depth: 0.96, tint: 0x6aa8b0, alpha: 0.7, h: -30, glow: 0x3ae8ff, glowA: 0.38 },
+      { tex: 'bg_shroom', at: [[0.35, 1.5], [2.75, 1.3, 1], [4.55, 1.6], [5.95, 1.2, 1]], depth: 2.38, tint: 0x8ac8cc, oy: 97 / 104, h: -1, glow: 0x3ae8ff, glowA: 0.38 },   // standing ON the planet, behind everything else on it
       { tex: 'bg_ribcage', at: [[1.2, 2.3], [3.55, 2.1, 1], [5.25, 2.0]], depth: 0.95, tint: 0x5a8c80, alpha: 0.7, h: -22 },
-      { tex: 'bg_shroom2', at: [[0.75, 1.5, 1], [1.85, 1.3], [3.05, 1.6], [4.2, 1.4, 1], [6.25, 1.3]], depth: 0.97, tint: 0x7ab8bc, alpha: 0.78, h: -18, glow: 0x3ae8ff, glowA: 0.4 },
+      { tex: 'bg_shroom2', at: [[0.75, 1.4, 1], [1.85, 1.2], [3.05, 1.5], [4.2, 1.3, 1], [6.25, 1.2]], depth: 2.39, tint: 0x9ad0d0, oy: 57 / 64, h: -1, glow: 0x3ae8ff, glowA: 0.4 },
       { tex: 'bg_skull', at: [[2.25, 1.6, 1], [4.95, 1.5]], depth: 0.95, tint: 0x6a9a8c, alpha: 0.72, h: -20 },
       // dark mossy boulders: a few behind Chris, a couple of small ones in front
       { tex: 'rock_dark', at: [[0.55, 1.6], [1.62, 1.9, 1], [2.6, 1.5], [3.35, 2.0, 1], [4.75, 1.7], [5.75, 1.8, 1]], depth: 2.45, h: -3 },
@@ -1595,20 +1595,33 @@ function makeRoadmapTextures(scene) {
     for (let x = 40; x < 72; x += 5) p.poly([[x, 40], [x + 3, 40], [x + 1.5, 45]], BONE);          // teeth
     p.line([[14, 32], [34, 34], [50, 36]], BONE[2]);
   });
-  pixSprite(scene, 'bg_shroom', 56, 92, p => {                     // a tall bioluminescent mushroom
+  // The big swamp mushrooms STAND ON the planet now (they used to float, see-through, behind the horizon): each has a
+  // flared, rooty foot in a mound of moss, with rows below the base so the foot wraps the planet's curve (prop `oy`).
+  const shroomFoot = (p, cx, base, w, STEM) => {
+    const MOSS = [0x7ae07a, 0x2a8a4a, 0x0e4a2a];
+    p.poly([[cx - w * 0.28, base - 10], [cx + w * 0.28, base - 10], [cx + w * 0.62, base + 1], [cx - w * 0.62, base + 1]], STEM);        // the stem flares out at the foot
+    for (const [dx, l] of [[-0.75, 5], [-0.45, 7], [0.5, 7], [0.8, 5]]) p.line([[cx + dx * w * 0.5, base - 3], [cx + dx * w, base + l - 4], [cx + dx * w * 1.25, base + l]], STEM[2], 2);   // roots clawing into the ground
+    p.ell(cx, base + 3, w * 1.15, 4.5, MOSS);                                                                                        // a mound of moss round it
+    for (let x = -w; x <= w; x += 3) p.px(Math.round(cx + x), Math.round(base - 1 - Math.abs(Math.sin(x * 1.7)) * 2), MOSS[0]);
+    for (let y = base + 5; y < base + 12; y++) for (let x = Math.round(cx - w * 1.1); x <= cx + w * 1.1; x++) p.px(x, y, MOSS[2]);    // (below the base row: hidden in the planet)
+  };
+  pixSprite(scene, 'bg_shroom', 56, 104, p => {                    // a tall bioluminescent mushroom
     const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
     p.poly([[25, 92], [24, 70], [22, 50], [24, 34], [30, 26], [34, 34], [33, 52], [34, 72], [36, 92]], STEM);   // a curvy stem
     p.line([[27, 88], [26, 60], [26, 40]], 0xf0fffa);
     p.poly([[22, 50], [16, 52], [22, 56]], STEM); p.poly([[34, 70], [42, 68], [36, 74]], STEM);   // little frills
+    shroomFoot(p, 30, 92, 14, STEM);
     p.ell(28, 22, 27, 16, CAP);                                     // the cap
     p.poly([[2, 24], [54, 24], [48, 30], [8, 30]], [0x6af0e0, 0x2aa8a8, 0x16686e]);               // underside rim
     for (let x = 8; x < 50; x += 4) p.line([[x, 25], [28 + (x - 28) * 0.4, 29]], 0x0e5a60);       // gills
     for (const [x, y, r] of [[14, 16, 3], [28, 10, 3.5], [40, 15, 2.6], [21, 22, 2], [36, 21, 2], [48, 20, 1.6]]) p.ell(x, y, r, r * 0.8, 0xd8fff8);   // glowing spots
   });
-  pixSprite(scene, 'bg_shroom2', 40, 52, p => {                    // a smaller pair
+  pixSprite(scene, 'bg_shroom2', 44, 64, p => {                    // a smaller pair, sharing one mossy mound
     const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
-    p.poly([[11, 52], [12, 30], [16, 30], [16, 52]], STEM); p.ell(14, 26, 12, 8, CAP); for (const [x, y] of [[9, 23], [17, 21], [20, 27]]) p.ell(x, y, 1.6, 1.3, 0xd8fff8);
-    p.poly([[28, 52], [28, 40], [31, 40], [32, 52]], STEM); p.ell(30, 37, 8, 5.5, CAP); p.px(28, 35, 0xd8fff8); p.px(33, 36, 0xd8fff8);
+    p.poly([[13, 52], [14, 30], [18, 30], [18, 52]], STEM); p.poly([[30, 52], [30, 40], [33, 40], [34, 52]], STEM);
+    shroomFoot(p, 23, 52, 13, STEM);
+    p.ell(16, 26, 12, 8, CAP); for (const [x, y] of [[11, 23], [19, 21], [22, 27]]) p.ell(x, y, 1.6, 1.3, 0xd8fff8);
+    p.ell(32, 37, 8, 5.5, CAP); p.px(30, 35, 0xd8fff8); p.px(35, 36, 0xd8fff8);
   });
 
   // ---- enemies
