@@ -1313,3 +1313,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.05 - Rat-frog jump legs
 - The rat-frog's leap frame had stick legs (single thin lines). Redrawn with proper frog limbs: a big thigh, a thick shin, long webbed feet with three clawed toes, a far leg and arm in shadow behind, a belly. Two air frames now: `frog_leap` going up (hind legs kicked out behind, arms reaching) and a new `frog_fall` coming down (legs swung forward under it, arms braced, tail whipping up), picked from its vertical speed.
+
+## v2.06 - Chris's strange outline
+- The bloom lit up plain WHITE as well as coloured light, so Chris's chef whites (and the HUD text) glowed: a milky halo all round him that also washed out the detail on his hat and face. The bloom now only takes bright AND colourful pixels (a saturation gate in the shader's `hot()`), so shots, lava, fondue and lights still bleed but whites stay crisp.
+- Chris no longer gets the rim-light copy (on a white suit it read as a second cream outline). Enemies keep theirs.

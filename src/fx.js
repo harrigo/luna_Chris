@@ -4,7 +4,8 @@
 //  VIGNETTE  (MEDIUM+) the corners of the screen fall away into the level's shadow colour, under the HUD.
 //  SHADOWS   (all) a soft blob of shadow on the ground under Chris and every enemy; it shrinks and fades as they
 //            climb, so heights read at a glance.
-//  RIM LIGHT (MEDIUM+) every level has a light (def.depth.light / .rim - the same one that shades the planet). Chris and
+//  RIM LIGHT (MEDIUM+) every level has a light (def.depth.light / .rim - the same one that shades the planet). NOT Chris (he
+//            stays clean: on his white suit it read as a strange second outline) - but
 //            the enemies get a thin edge of that light's colour on the side facing it: a copy of each sprite, filled
 //            with the light colour, tucked just behind it and nudged towards the light. Enemies also fall off into the
 //            level's shadow colour on the far side (a gradient tint, left alone while anything else tints them).
@@ -36,7 +37,8 @@ uniform sampler2D uMainSampler;
 uniform vec2 uTexel;
 uniform float uStr;
 varying vec2 outTexCoord;
-vec3 hot(vec2 uv) { vec3 c = texture2D(uMainSampler, uv).rgb; float l = max(c.r, max(c.g, c.b)); return c * smoothstep(0.74, 1.0, l); }
+// (only bright AND colourful pixels: plain white - Chris's chef whites, the HUD text - gave everything a milky halo)
+vec3 hot(vec2 uv) { vec3 c = texture2D(uMainSampler, uv).rgb; float l = max(c.r, max(c.g, c.b)), lo = min(c.r, min(c.g, c.b)); return c * smoothstep(0.74, 1.0, l) * smoothstep(0.18, 0.5, (l - lo) / max(l, 0.001)); }
 void main() {
   vec4 base = texture2D(uMainSampler, outTexCoord);
   vec3 g = vec3(0.0);
@@ -130,13 +132,6 @@ const FxMixin = {
           .setRotation(d.rotation).setScale(d.scaleX, d.scaleY).setFlip(o.flipX, o.flipY);
         r.setTintFill(X.rim).setAlpha(alpha).setDepth(depth).setVisible(true);
       };
-      const walk = (o, depth, alpha) => {
-        if (!o.visible || o.alpha <= 0) return;
-        const a = alpha * o.alpha;
-        if (o.list) { for (const c of o.list) walk(c, depth, a); return; }
-        if (a > 0.9) copy(o, depth, 0.8);
-      };
-      if (this.rig && this.rig.root && this.state !== 'intro') walk(this.rig.root, this.rig.root.depth - 0.005, 1);
       for (const e of this.enemies) {
         const s = e.spr; if (!s || !s.visible || e.hp <= 0 || e.noRim) continue;
         if (s.alpha > 0.9) copy(s, s.depth - 0.005, 0.8);
