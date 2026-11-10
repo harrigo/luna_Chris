@@ -85,16 +85,16 @@ const LEVELS = {
     props: [
       // the skyline, composed by hand round the planet: [theta, scale, flipX]. Big and small pieces alternate so it reads
       // as a rhythm (tall mushroom, ribcage, little pair, skull...) rather than random clumps. They stand behind the horizon.
-      { tex: 'bg_shroom', at: [[0.35, 1.5], [2.75, 1.3, 1], [4.55, 1.6], [5.95, 1.2, 1]], depth: 2.38, tint: 0x8ac8cc, oy: 97 / 104, h: -1, glow: 0x3ae8ff, glowA: 0.38 },   // standing ON the planet, behind everything else on it
+      { tex: 'bg_shroom', at: [[0.35, 1.5], [2.75, 1.3, 1], [4.55, 1.6], [5.95, 1.2, 1]], depth: 2.38, tint: 0x8ac8cc, oy: 98 / 104, h: -1, glow: 0x3ae8ff, glowA: 0.38 },   // standing ON the planet, behind everything else on it
       { tex: 'bg_ribcage', at: [[1.2, 2.3], [3.55, 2.1, 1], [5.25, 2.0]], depth: 0.95, tint: 0x5a8c80, alpha: 0.7, h: -22 },
-      { tex: 'bg_shroom2', at: [[0.75, 1.4, 1], [1.85, 1.2], [3.05, 1.5], [4.2, 1.3, 1], [6.25, 1.2]], depth: 2.39, tint: 0x9ad0d0, oy: 57 / 64, h: -1, glow: 0x3ae8ff, glowA: 0.4 },
+      { tex: 'bg_shroom2', at: [[0.75, 1.4, 1], [1.85, 1.2], [3.05, 1.5], [4.2, 1.3, 1], [6.25, 1.2]], depth: 2.39, tint: 0x9ad0d0, oy: 58 / 64, h: -1, glow: 0x3ae8ff, glowA: 0.4 },
       { tex: 'bg_skull', at: [[2.25, 1.6, 1], [4.95, 1.5]], depth: 0.95, tint: 0x6a9a8c, alpha: 0.72, h: -20 },
       // dark mossy boulders: a few behind Chris, a couple of small ones in front
       { tex: 'rock_dark', at: [[0.55, 1.6], [1.62, 1.9, 1], [2.6, 1.5], [3.35, 2.0, 1], [4.75, 1.7], [5.75, 1.8, 1]], depth: 2.45, h: -3 },
       { tex: 'rock_dark2', at: [[0.95, 1.4], [2.35, 1.3, 1], [3.85, 1.5], [5.35, 1.3, 1]], depth: 2.46, h: -2 },
       { tex: 'rock_dark2', at: [[1.4, 1.0, 1], [4.4, 1.1]], fg: true, h: -6 },
       { tex: 'pile_bones', n: 2, sc: [1.1, 1.5], tint: 0xc8d8c8, alpha: 0.85 },
-      { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0x9ff0ff, glow: 0x5ce1ff }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
+      { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0xc8f6ff, glow: 0x5ce1ff, oy: 36 / 42 }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
       { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
@@ -753,11 +753,22 @@ function makeLevelTextures(scene) {
     g.fillStyle(0xffd23f, 1).fillCircle(14, 11, 2);
   });
   mk('p_tuft1', 18, 10, g => { g.fillStyle(0xb5851c, 1).fillTriangle(0, 10, 3, 2, 6, 10).fillTriangle(5, 10, 9, 0, 13, 10).fillTriangle(12, 10, 15, 3, 18, 10); });
-  mk('p_shroom', 30, 34, g => {
-    g.fillStyle(OUT, 1).fillRect(11, 16, 9, 18).fillEllipse(15, 14, 30, 22);
-    g.fillStyle(0xdfe8d0, 1).fillRect(12, 17, 7, 16); g.fillStyle(0x3a7fd0, 1).fillEllipse(15, 14, 26, 18);
-    g.fillStyle(0xcfe8ff, 1).fillCircle(9, 12, 2).fillCircle(17, 9, 2).fillCircle(21, 15, 2);
-  });
+  // the little glowing swamp mushroom: shaded cap with gills and glowing spots, a stem that flares into the ground, and a
+  // tuft of moss round its foot. NO outline along the bottom (the old one had a border right round it, like a sticker):
+  // the foot rows are left unoutlined and ragged so it grows out of the ground. Base row y = 35 (prop `oy`).
+  pixSprite(scene, 'p_shroom', 34, 42, p => {
+    const CAP = [0x9adcff, 0x3a7fd0, 0x1a4690], STEM = [0xf4fff0, 0xc8dcc4, 0x86a890], MOSS = [0x9af08a, 0x3aa85a, 0x16683a];
+    p.poly([[13, 37], [15, 20], [20, 20], [22, 37]], STEM); p.line([[16, 22], [15, 33]], 0xffffff);
+    p.poly([[10, 38], [13, 31], [22, 31], [25, 38]], STEM);                                         // flaring into the ground
+    p.poly([[11, 22], [24, 22], [22, 25], [13, 25]], [0xe0f0e0, 0xa8c0b0, 0x6a8a80]);               // a little skirt under the cap
+    p.ell(17, 13, 15.5, 10.5, CAP);
+    p.poly([[3, 15], [31, 15], [26, 20], [8, 20]], [0x4a8ae0, 0x2458a8, 0x12306a]);                 // underside
+    for (let x = 7; x < 28; x += 3) p.line([[x, 16], [17 + (x - 17) * 0.55, 19]], 0x0e2a5a);        // gills
+    for (const [x, y, r] of [[9, 11, 2.4], [18, 7, 2.6], [25, 12, 2], [14, 14, 1.4]]) { p.ell(x, y, r, r * 0.85, 0xcff4ff); p.px(Math.round(x - 1), Math.round(y - 1), 0xffffff); }   // glowing spots
+    p.ell(17, 37, 12, 3.5, MOSS);                                                                    // moss round the foot
+    for (const [x, hgt] of [[6, 4], [9, 6], [12, 3], [23, 5], [26, 7], [29, 3]]) p.line([[x, 37], [x + (x < 17 ? -1 : 1), 37 - hgt]], MOSS[x % 2]);
+    for (let x = 5; x <= 29; x++) for (let y = 38; y < 38 + 2 + ((x * 7) % 3); y++) p.px(x, y, MOSS[2]);   // ragged, into the ground
+  }, 1, (g, w, h) => { for (let y = 34; y < h; y++) for (let x = 0; x < w; x++) if (g[y * w + x] === 0x1a1020) g[y * w + x] = y < 37 ? -1 : (x > 4 && x < 30 && y < 41 ? 0x16683a : -1); });
   mk('p_reed', 14, 52, g => {
     g.fillStyle(OUT, 1).fillRect(5, 12, 4, 40).fillRoundedRect(3, 0, 8, 20, 3);
     g.fillStyle(0x4a8f3a, 1).fillRect(6, 13, 2, 38); g.fillStyle(0x7a4a2a, 1).fillRoundedRect(4, 1, 6, 18, 2);
@@ -1596,14 +1607,16 @@ function makeRoadmapTextures(scene) {
     p.line([[14, 32], [34, 34], [50, 36]], BONE[2]);
   });
   // The big swamp mushrooms STAND ON the planet now (they used to float, see-through, behind the horizon): each has a
-  // flared, rooty foot in a mound of moss, with rows below the base so the foot wraps the planet's curve (prop `oy`).
+  // flared, rooty foot in a mound of moss; the bottom edge is left ragged with NO outline (shroomNoEdge) so it grows
+  // out of the ground instead of sitting on it like a sticker.
+  const shroomNoEdge = base => (g, w, h) => { for (let y = base + 4; y < h; y++) for (let x = 0; x < w; x++) if (g[y * w + x] === 0x1a1020) g[y * w + x] = -1; };
   const shroomFoot = (p, cx, base, w, STEM) => {
     const MOSS = [0x7ae07a, 0x2a8a4a, 0x0e4a2a];
     p.poly([[cx - w * 0.28, base - 10], [cx + w * 0.28, base - 10], [cx + w * 0.62, base + 1], [cx - w * 0.62, base + 1]], STEM);        // the stem flares out at the foot
     for (const [dx, l] of [[-0.75, 5], [-0.45, 7], [0.5, 7], [0.8, 5]]) p.line([[cx + dx * w * 0.5, base - 3], [cx + dx * w, base + l - 4], [cx + dx * w * 1.25, base + l]], STEM[2], 2);   // roots clawing into the ground
     p.ell(cx, base + 3, w * 1.15, 4.5, MOSS);                                                                                        // a mound of moss round it
     for (let x = -w; x <= w; x += 3) p.px(Math.round(cx + x), Math.round(base - 1 - Math.abs(Math.sin(x * 1.7)) * 2), MOSS[0]);
-    for (let y = base + 5; y < base + 12; y++) for (let x = Math.round(cx - w * 1.1); x <= cx + w * 1.1; x++) p.px(x, y, MOSS[2]);    // (below the base row: hidden in the planet)
+    for (let x = Math.round(cx - w * 1.05); x <= cx + w * 1.05; x++) for (let y = base + 6; y < base + 7 + ((x * 7) % 3); y++) p.px(x, y, MOSS[2]);   // ragged, into the ground
   };
   pixSprite(scene, 'bg_shroom', 56, 104, p => {                    // a tall bioluminescent mushroom
     const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
@@ -1615,14 +1628,14 @@ function makeRoadmapTextures(scene) {
     p.poly([[2, 24], [54, 24], [48, 30], [8, 30]], [0x6af0e0, 0x2aa8a8, 0x16686e]);               // underside rim
     for (let x = 8; x < 50; x += 4) p.line([[x, 25], [28 + (x - 28) * 0.4, 29]], 0x0e5a60);       // gills
     for (const [x, y, r] of [[14, 16, 3], [28, 10, 3.5], [40, 15, 2.6], [21, 22, 2], [36, 21, 2], [48, 20, 1.6]]) p.ell(x, y, r, r * 0.8, 0xd8fff8);   // glowing spots
-  });
+  }, 1, shroomNoEdge(92));
   pixSprite(scene, 'bg_shroom2', 44, 64, p => {                    // a smaller pair, sharing one mossy mound
     const CAP = [0x9afff0, 0x3ad0c8, 0x1a7a84], STEM = [0xe0fff6, 0x9ad8cc, 0x4a8a8c];
     p.poly([[13, 52], [14, 30], [18, 30], [18, 52]], STEM); p.poly([[30, 52], [30, 40], [33, 40], [34, 52]], STEM);
     shroomFoot(p, 23, 52, 13, STEM);
     p.ell(16, 26, 12, 8, CAP); for (const [x, y] of [[11, 23], [19, 21], [22, 27]]) p.ell(x, y, 1.6, 1.3, 0xd8fff8);
     p.ell(32, 37, 8, 5.5, CAP); p.px(30, 35, 0xd8fff8); p.px(35, 36, 0xd8fff8);
-  });
+  }, 1, shroomNoEdge(52));
 
   // ---- enemies
   // (the stink-fly and the phantom are drawn in toons.js)

@@ -1343,3 +1343,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.11 - Level 2's big mushrooms stand on the planet
 - `bg_shroom` / `bg_shroom2` used to sit see-through (alpha 0.7) behind the horizon with their stems fading into the haze, so they read as floating. Now they are solid, stand ON the surface behind everything else on it (depth 2.38 / 2.39, h -1), a little smaller, and each has a flared rooty foot in a mound of moss, with rows below the base row (prop `oy`) so the foot wraps the planet's curve. The small pair share one mound.
+
+## v2.12 - Level 2's blue mushrooms grow out of the ground
+- `p_shroom` was an old flat sprite with a dark border right round it, including along the bottom of the stem - it sat on the ground like a sticker. Redrawn (34x42, pixSprite): shaded blue cap with gills and glowing spots, a skirt, a stem that flares into the ground, moss and grass blades round the foot, and NO outline along the bottom (a post hook strips it and leaves the foot ragged). Prop `oy` 36/42.
+- The big mushrooms from v2.11 had a dark rectangular slab under each foot (the rows below the base showed in front of the planet): replaced with the same ragged, unoutlined mossy foot (shroomNoEdge).
+- Still old flat sprites with a bottom border: the reeds (`p_reed`) and crystal stalks (`p_stalk`).
