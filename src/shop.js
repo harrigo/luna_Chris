@@ -95,6 +95,31 @@ function makeShopTextures(scene) {
     a.rect(36, 54, 48, 56, 0x232838);
   }, true);
   for (let f = 0; f < 2; f++) pixSprite(scene, 'shopflame' + f, 14, 12, a => { a.poly([[1, 0], [13, 0], [7, f ? 11 : 8]], [0xfff6c0, 0xffb52a, 0xff6a1a]); a.poly([[4, 0], [10, 0], [7, f ? 6 : 4]], 0xffffff); }, false);
+  // prize pictures for the lucky wheel
+  { const CH = [0xfff09a, 0xffc83a, 0xd08a12], ST = [0xdfe6f0, 0x9aa4b4, 0x5a6272];
+    const wedge = (a, x, y) => { a.poly([[x, y + 6], [x + 9, y], [x + 13, y + 5], [x + 13, y + 11], [x, y + 11]], CH); a.poly([[x, y + 6], [x + 9, y], [x + 13, y + 5]], 0xfff6c0); a.px(x + 4, y + 8, 0xd08a12); a.px(x + 9, y + 9, 0xd08a12); a.px(x + 7, y + 7, 0xd08a12); };
+    pixSprite(scene, 'wi_30', 30, 26, a => { wedge(a, 2, 12); wedge(a, 14, 12); wedge(a, 8, 2); }, true);
+    pixSprite(scene, 'wi_60', 30, 26, a => { wedge(a, 0, 14); wedge(a, 9, 14); wedge(a, 17, 14); wedge(a, 4, 6); wedge(a, 13, 6); wedge(a, 9, 0); }, true);
+    pixSprite(scene, 'wi_500', 34, 30, a => { for (const [x, y] of [[0, 18], [10, 18], [20, 18], [5, 11], [15, 11], [10, 4]]) wedge(a, x, y); a.poly([[9, 4], [12, -1], [15, 3], [18, -1], [21, 3], [24, -1], [26, 4], [26, 7], [9, 7]], [0xffe27a, 0xffb52a, 0xb86a08]); a.px(12, 4, 0xff4a3a); a.px(18, 4, 0x5cffe0); a.px(23, 4, 0xff4a3a); }, true);
+    pixSprite(scene, 'wi_rat', 30, 28, a => {
+      a.ell(15, 14, 11, 11, [0xc8f0ff, 0x8ac8e8, 0x4a88b0]);                                             // space helmet
+      a.ell(8, 8, 4, 4, [0xc0b4c8, 0x8a7e96, 0x5a5066]); a.ell(22, 8, 4, 4, [0xc0b4c8, 0x8a7e96, 0x5a5066]); a.ell(8, 8, 2, 2, 0xff9db8); a.ell(22, 8, 2, 2, 0xff9db8);
+      a.ell(15, 15, 7, 7, [0xc0b4c8, 0x8a7e96, 0x5a5066]);
+      a.line([[9, 11], [13, 13]], 0x1a1020, 2); a.line([[21, 11], [17, 13]], 0x1a1020, 2); a.px(12, 14, 0xff3a2a); a.px(18, 14, 0xff3a2a);   // angry eyes
+      a.ell(15, 18, 2, 1.5, 0xff7a9a); a.rect(13, 20, 14, 22, 0xffffff); a.rect(16, 20, 17, 22, 0xffffff);
+      a.ell(11, 9, 2, 1, 0xffffff);
+    }, true);
+    pixSprite(scene, 'wi_plate', 28, 28, a => { a.poly([[14, 1], [27, 14], [14, 27], [1, 14]], ST); a.poly([[14, 5], [23, 14], [14, 23], [5, 14]], [0x9aa4b4, 0x7a8494, 0x5a6272]); a.line([[8, 14], [20, 14]], 0x5a6272, 1); a.line([[14, 8], [14, 20]], 0x5a6272, 1); for (const [x, y] of [[14, 4], [24, 14], [14, 24], [4, 14]]) a.ell(x, y, 1.5, 1.5, 0x3a4052); }, true);
+    pixSprite(scene, 'wi_gun', 32, 24, a => {
+      a.rrect(4, 8, 22, 16, 3, [0xffa040, 0xf07a1a, 0xa84a08]); a.rect(8, 16, 13, 22, 0x8a4a1a); a.rect(9, 17, 12, 21, 0xb86a2a);    // body and grip
+      a.rrect(10, 2, 20, 8, 2, [0xff6a5a, 0xd0302a, 0x8a1a1a]); a.rect(12, 4, 18, 7, 0xfff6c0);                                 // hopper
+      a.poly([[22, 8], [31, 12], [22, 16]], ST); a.line([[24, 10], [24, 14]], 0x5a6272, 1); a.line([[27, 11], [27, 13]], 0x5a6272, 1);   // drill
+      a.ell(6, 12, 2, 2, 0x5cffe0);
+    }, true);
+    pixSprite(scene, 'wi_life', 28, 28, a => {
+      a.ell(8, 9, 6, 6, [0xffffff, 0xdfe6f0, 0xaab4c8]); a.ell(14, 6, 7, 6, [0xffffff, 0xdfe6f0, 0xaab4c8]); a.ell(20, 9, 6, 6, [0xffffff, 0xdfe6f0, 0xaab4c8]);   // chef's hat
+      a.rect(7, 10, 21, 19, 0xffffff); a.rect(7, 19, 21, 23, 0xdfe6f0); a.rect(7, 22, 21, 23, 0xaab4c8); a.line([[11, 12], [11, 18]], 0xdfe6f0, 1); a.line([[17, 12], [17, 18]], 0xdfe6f0, 1);
+    }, true); }
   pixSprite(scene, 'cheddar', 12, 12, a => { a.ell(6, 6, 5, 5, [0xffe27a, 0xffb52a, 0xb86a08]); a.rect(5, 3, 6, 8, 0xfff6c0); a.px(8, 4, 0xfff6c0); }, true);
 }
 
@@ -123,7 +148,7 @@ class ShopScene extends Phaser.Scene {
     }
     const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (S.done) this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'up' || b === 'down') this.move(b === 'up' ? -1 : 1); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
     this.events.once('shutdown', padOff);
-    this.spin = null; this.spinG = this.add.graphics().setDepth(10); this.spinT = [];
+    this.spin = null; this.spinG = this.add.graphics().setDepth(10); this.spinT = []; this.spinI = []; this.spinB = [];
     if (kb) { kb.on('keydown-L', () => this.startSpin()); ['ONE', 'TWO', 'THREE'].forEach((k, i) => kb.on('keydown-' + k, () => { if (this.spin && this.spin.pick && this.spin.pick[i]) this.pickGun(this.spin.pick[i]); })); }
     this.input.on('pointerdown', p => {
       if (this.spin) {
@@ -200,40 +225,103 @@ class ShopScene extends Phaser.Scene {
     S.pick = null; S.msg = w.name + ' UP TO LEVEL ' + g[w.id] + '!'; S.dur = S.t; this.say(S.msg);
     Sound.sfx('power'); this.cameras.main.flash(160, 255, 230, 160);
   }
-  endSpin() { this.spinA = this.spin.a1 % (Math.PI * 2); this.spin = null; this.spinG.clear(); this.spinT.forEach(t => t.setVisible(false)); (this.spinB || []).forEach(t => t.setVisible(false)); this.build(); }
+  endSpin() { this.spinA = this.spin.a1 % (Math.PI * 2); this.spin = null; this.spinG.clear(); this.spinT.forEach(t => t.setVisible(false)); (this.spinB || []).forEach(t => t.setVisible(false)); (this.spinI || []).forEach(t => t.setVisible(false)); this.build(); }
+  // THE LUCKY WHEEL, fairground style: a rusty cog of a rim with chasing bulbs, a neon frame, prize pictures on the slices,
+  // sparks off the pointer, sirens while it spins, and the result up in lights on a marquee with confetti.
   drawSpin(dt, t) {
     const S = this.spin, g = this.spinG, W = this.scale.width, H = this.scale.height, n = SPIN.length, seg = Math.PI * 2 / n;
     S.t += dt;
     const u = Math.min(1, S.t / S.dur), e = 1 - Math.pow(1 - u, 3.2), ang = S.a0 + (S.a1 - S.a0) * e;
-    const sN = Math.floor((ang + Math.PI / 2) / seg); if (sN !== S.lastSeg && !S.done) { S.lastSeg = sN; Sound.sfx('blip'); }
-    if (u >= 1 && !S.done) { S.done = true; S.msg = this.prize(S.idx); this.say(S.msg); }
-    const cx = W / 2, cy = H / 2 + 6, R0 = Math.min(H * 0.36, W * 0.24);
-    g.clear(); g.fillStyle(0x05060f, 0.82).fillRect(0, 0, W, H);
-    g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, R0 + 9); g.fillStyle(0xffd23f, 1).fillCircle(cx, cy, R0 + 6); g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, R0 + 1);
-    for (let i = 0; i < n; i++) {
-      const a = ang + i * seg, win = S.done && i === S.idx && Math.floor(t * 8) % 2;
-      g.fillStyle(win ? 0xffffff : SPIN[i][2], 1).slice(cx, cy, R0, a, a + seg, false).fillPath();
-      g.lineStyle(2, 0x1a1020, 1).lineBetween(cx, cy, cx + Math.cos(a) * R0, cy + Math.sin(a) * R0);
-      g.fillStyle(0xfff6c0, 1).fillCircle(cx + Math.cos(a) * (R0 + 3.5), cy + Math.sin(a) * (R0 + 3.5), 2.5);            // pegs on the rim
-      let tx = this.spinT[i]; if (!tx) tx = this.spinT[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(10.1);
-      const am = a + seg / 2; tx.setText(SPIN[i][0]).setPosition(cx + Math.cos(am) * R0 * 0.64, cy + Math.sin(am) * R0 * 0.64).setRotation(am + Math.PI / 2).setVisible(true);
+    S.sparks = S.sparks || []; S.conf = S.conf || [];
+    const cx = W / 2, R0 = Math.min(H * 0.32, W * 0.2), cy = Math.max(R0 + 30, H * 0.45), RG = R0 + 13;
+    const sN = Math.floor((ang + Math.PI / 2) / seg);
+    if (sN !== S.lastSeg && !S.done) { S.lastSeg = sN; Sound.sfx('blip'); S.kick = 1;
+      for (let k = 0; k < 5; k++) S.sparks.push({ x: cx, y: cy - R0 - 2, vx: (Math.random() - 0.3) * 190, vy: -Math.random() * 170 - 20, l: 0.25 + Math.random() * 0.2 }); }
+    if (u >= 1 && !S.done) {
+      S.done = true; S.msg = this.prize(S.idx); this.say(S.msg);
+      if (SPIN[S.idx][0] !== 'RAT!') for (let k = 0; k < 70; k++) S.conf.push({ x: cx + (Math.random() - 0.5) * R0 * 2.4, y: cy + R0 * 0.6 + Math.random() * 30, vx: (Math.random() - 0.5) * 260, vy: -Math.random() * 330 - 60, c: [0xff5a9a, 0x5cffe0, 0xffd23f, 0x7dff8a, 0xff7a5a, 0xffffff][k % 6], r: Math.random() * 6, l: 1.6 + Math.random() * 1.2 });
     }
-    g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, R0 * 0.2); g.fillStyle(0xffd23f, 1).fillCircle(cx, cy, R0 * 0.16); g.fillStyle(0xb86a08, 1).fillCircle(cx + 3, cy - 2, R0 * 0.04); g.fillCircle(cx - 4, cy + 3, R0 * 0.03);
-    const wob = S.done ? 0 : Math.sin(S.t * 40) * 3 * (1 - u);                                                         // the pointer, twitching on the pegs
-    g.fillStyle(0x1a1020, 1).fillTriangle(cx - 11 + wob, cy - R0 - 16, cx + 11 + wob, cy - R0 - 16, cx, cy - R0 + 10);
-    g.fillStyle(0xff5a4a, 1).fillTriangle(cx - 8 + wob, cy - R0 - 14, cx + 8 + wob, cy - R0 - 14, cx, cy - R0 + 6);
+    S.kick = Math.max(0, (S.kick || 0) - dt * 9);
+    g.clear(); g.fillStyle(0x05060f, 0.86).fillRect(0, 0, W, H);
+    // cables looping up out of the top of the screen, and the two posts the marquee stands on
+    const cable = (x0, x1, sag, col) => { const pts = []; for (let i = 0; i <= 14; i++) { const q = i / 14; pts.push({ x: x0 + (x1 - x0) * q, y: -6 + (cy - RG * 0.2 + 6) * q * q + Math.sin(q * Math.PI) * sag }); } g.lineStyle(4, 0x05060f, 1).strokePoints(pts); g.lineStyle(2, col, 1).strokePoints(pts); };
+    cable(cx + RG * 1.6, cx + RG + 14, 26, 0xd0403a); cable(cx + RG * 1.25, cx + RG + 10, -14, 0x3a8ad0); cable(cx - RG * 1.5, cx - RG - 12, 22, 0x4ac06a); cable(cx + RG * 1.9, cx + RG + 16, 44, 0xe0b030);
+    g.fillStyle(0x2a2e3a, 1).fillRect(cx - R0 * 0.62 - 4, cy + R0 * 0.5, 8, H); g.fillRect(cx + R0 * 0.62 - 4, cy + R0 * 0.5, 8, H);
+    // the neon frame behind it (two tubes, the pink one flickers)
+    const fw = RG * 2 + 38, fh = RG * 2 + 22, fx = cx - fw / 2, fy = cy - fh / 2, flick = Math.sin(t * 31) > -0.86 ? 1 : 0.35;
+    g.fillStyle(0x0c1024, 1).fillRoundedRect(fx, fy, fw, fh, 14);
+    g.lineStyle(7, 0x5cffe0, 0.16).strokeRoundedRect(fx, fy, fw, fh, 14); g.lineStyle(3, 0x5cffe0, 0.95).strokeRoundedRect(fx, fy, fw, fh, 14);
+    g.lineStyle(7, 0xff5ad0, 0.14 * flick).strokeRoundedRect(fx + 6, fy + 6, fw - 12, fh - 12, 10); g.lineStyle(2, 0xff5ad0, 0.9 * flick).strokeRoundedRect(fx + 6, fy + 6, fw - 12, fh - 12, 10);
+    // the rim: a rusty cog (it turns with the wheel), riveted, with rust blooms
+    for (let k = 0; k < 20; k++) {
+      const a = ang * 0.5 + k * Math.PI / 10, c = Math.cos(a), sn = Math.sin(a), w2 = 0.085;
+      const P4 = [[RG - 2, -w2], [RG + 9, -w2 * 0.7], [RG + 9, w2 * 0.7], [RG - 2, w2]].map(([r, da]) => ({ x: cx + Math.cos(a + da) * r, y: cy + Math.sin(a + da) * r }));
+      g.fillStyle(0x1a1020, 1).fillPoints(P4.map(q => ({ x: q.x + c * 2, y: q.y + sn * 2 })), true); g.fillStyle(k % 3 ? 0x6a5a52 : 0x8a4a2a, 1).fillPoints(P4, true);
+    }
+    g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, RG + 2); g.fillStyle(0x5a4e4a, 1).fillCircle(cx, cy, RG); g.fillStyle(0x7a6a60, 1).fillCircle(cx - 1, cy - 1, RG - 3);
+    for (let k = 0; k < 9; k++) { const a = k * 2.4 + 0.5; g.fillStyle(k % 2 ? 0x9a4a22 : 0x7a3a1a, 0.9).fillCircle(cx + Math.cos(a) * (RG - 6), cy + Math.sin(a) * (RG - 6), 3 + (k % 3) * 1.6); }
+    g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, R0 + 2);
+    // the slices and their pictures
+    this.spinI = this.spinI || [];
+    for (let i = 0; i < n; i++) {
+      const a = ang + i * seg, win = S.done && i === S.idx && Math.floor(t * 8) % 2, am = a + seg / 2, key = SPIN[i][0];
+      g.fillStyle(win ? 0xffffff : SPIN[i][2], 1).slice(cx, cy, R0, a, a + seg, false).fillPath();
+      g.fillStyle(0x000000, 0.12).slice(cx, cy, R0, a, a + seg * 0.18, false).fillPath();                                   // a bit of shading down one edge
+      g.lineStyle(3, 0x1a1020, 1).lineBetween(cx, cy, cx + Math.cos(a) * R0, cy + Math.sin(a) * R0);
+      g.fillStyle(0xdfe6f0, 1).fillCircle(cx + Math.cos(a) * (R0 - 5), cy + Math.sin(a) * (R0 - 5), 2.5); g.fillStyle(0x5a6272, 1).fillCircle(cx + Math.cos(a) * (R0 - 5) + 1, cy + Math.sin(a) * (R0 - 5) + 1, 1.2);   // peg
+      let im = this.spinI[i]; if (!im) im = this.spinI[i] = this.add.image(0, 0, 'wi_30').setDepth(10.1);
+      const isNum = /^\d+$/.test(key), tex = isNum ? (key === '500' ? 'wi_500' : key === '60' ? 'wi_60' : 'wi_30') : key === 'RAT!' ? 'wi_rat' : key === 'PLATE' ? 'wi_plate' : key === 'GUN +1' ? 'wi_gun' : 'wi_life';
+      const isc = Math.max(1, R0 / 76) * (win ? 1.15 : 1);
+      im.setTexture(tex).setPosition(cx + Math.cos(am) * R0 * 0.62, cy + Math.sin(am) * R0 * 0.62).setRotation(am + Math.PI / 2).setScale(isc).setVisible(true);
+      let tx = this.spinT[i]; if (!tx) tx = this.spinT[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(10.15);
+      tx.setText(isNum ? key : key === 'GUN +1' ? '+1' : key === 'LIFE' ? '1-UP' : '').setPosition(cx + Math.cos(am) * R0 * 0.33, cy + Math.sin(am) * R0 * 0.33).setRotation(am + Math.PI / 2).setVisible(true);
+    }
+    // hub: a golden cheese wheel on a steel boss
+    g.fillStyle(0x1a1020, 1).fillCircle(cx, cy, R0 * 0.2); g.fillStyle(0x7a8494, 1).fillCircle(cx, cy, R0 * 0.18); g.fillStyle(0xffd23f, 1).fillCircle(cx, cy, R0 * 0.13); g.fillStyle(0xfff3a0, 1).fillCircle(cx - 2, cy - 2, R0 * 0.07);
+    g.fillStyle(0xb86a08, 1).fillCircle(cx + 3, cy - 2, R0 * 0.03); g.fillCircle(cx - 4, cy + 3, R0 * 0.025);
+    // bulbs round the rim: chasing while it spins, all flashing on a win
+    const NB = 18, chase = Math.floor(t * (S.done ? 5 : 14));
+    for (let k = 0; k < NB; k++) {
+      const a = k * Math.PI * 2 / NB - Math.PI / 2 + Math.PI / NB, on = S.done ? chase % 2 === 0 : (k + chase) % 3 === 0, bx = cx + Math.cos(a) * (RG - 6), by = cy + Math.sin(a) * (RG - 6);
+      if (on) g.fillStyle(0xffe27a, 0.22).fillCircle(bx, by, 8);
+      g.fillStyle(0x1a1020, 1).fillCircle(bx, by, 4.5); g.fillStyle(on ? 0xfff6c0 : 0x6a5a2a, 1).fillCircle(bx, by, 3.2); if (on) g.fillStyle(0xffffff, 1).fillCircle(bx - 1, by - 1, 1.2);
+    }
+    // the pointer on its bracket, kicked by every peg
+    { const py = cy - R0, kx = S.kick * 5;
+      g.fillStyle(0x1a1020, 1).fillRect(cx - 9, py - 30, 18, 16); g.fillStyle(0x7a8494, 1).fillRect(cx - 7, py - 28, 14, 12); g.fillStyle(0xdfe6f0, 1).fillRect(cx - 7, py - 28, 14, 2); g.fillStyle(0x3a4052, 1).fillCircle(cx, py - 22, 2.5);
+      g.fillStyle(0x1a1020, 1).fillTriangle(cx - 12 + kx, py - 18, cx + 12 + kx, py - 18, cx + kx * 0.3, py + 12);
+      g.fillStyle(0xff4a3a, 1).fillTriangle(cx - 9 + kx, py - 16, cx + 9 + kx, py - 16, cx + kx * 0.3, py + 8); g.fillStyle(0xff9a8a, 1).fillTriangle(cx - 9 + kx, py - 16, cx - 2 + kx, py - 16, cx + kx * 0.3, py + 8); }
+    for (let i = S.sparks.length - 1; i >= 0; i--) { const q = S.sparks[i]; q.l -= dt; if (q.l <= 0) { S.sparks.splice(i, 1); continue; } q.vy += 500 * dt; const x0 = q.x, y0 = q.y; q.x += q.vx * dt; q.y += q.vy * dt;
+      g.lineStyle(2, q.l > 0.2 ? 0xffffff : 0xffb52a, Math.min(1, q.l * 5)).lineBetween(x0, y0, q.x, q.y); }
+    // sirens in the corner: they whirl while it spins
+    for (let k = 0; k < 4; k++) {
+      const x = 22 + k * 26, y = 22, on = !S.done && Math.floor(t * 9 + k) % 2 === 0, col = k % 2 ? 0xff4a3a : 0xffb52a;
+      if (on) { g.fillStyle(col, 0.2).fillCircle(x, y - 3, 15); g.fillStyle(col, 0.5).fillTriangle(x, y - 4, x - 16, y - 16 + Math.sin(t * 20 + k) * 6, x - 16, y + 4 + Math.sin(t * 20 + k) * 6); }
+      g.fillStyle(0x1a1020, 1).fillRect(x - 9, y + 4, 18, 6); g.fillStyle(0x5a6272, 1).fillRect(x - 8, y + 5, 16, 4);
+      g.fillStyle(0x1a1020, 1).fillRoundedRect(x - 7, y - 11, 14, 16, 4); g.fillStyle(on ? col : 0x4a2a2a, 1).fillRoundedRect(x - 5.5, y - 9.5, 11, 14, 3); if (on) g.fillStyle(0xffffff, 0.9).fillRect(x - 3, y - 8, 2, 5);
+    }
+    // gun choice
     this.spinB = this.spinB || [];
     for (let i = 0; i < 3; i++) {
-      let bt = this.spinB[i]; if (!bt) bt = this.spinB[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '9px', color: '#1a1020', backgroundColor: '#5cffe0', padding: { x: 10, y: 9 }, align: 'center' }).setOrigin(0.5).setDepth(10.2);
+      let bt = this.spinB[i]; if (!bt) bt = this.spinB[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '9px', color: '#1a1020', backgroundColor: '#5cffe0', padding: { x: 10, y: 9 }, align: 'center' }).setOrigin(0.5).setDepth(10.3);
       const w = S.pick && S.pick[i];
       if (!w) { bt.setVisible(false); continue; }
       const bw = Math.min(190, W * 0.28), bx = cx + (i - (S.pick.length - 1) / 2) * (bw + 12);
       bt.setText(w.short + '  LV ' + this.gunLvOf(w) + ' > ' + (this.gunLvOf(w) + 1)).setPosition(bx, cy).setVisible(true).setScale(1 + 0.04 * Math.sin(t * 6 + i));
     }
     S.pickBoxes = S.pick ? S.pick.map((w, i) => { const bt = this.spinB[i]; return { gun: w, x: bt.x - bt.width / 2 - 6, y: bt.y - bt.height / 2 - 6, w: bt.width + 12, h: bt.height + 12 }; }) : null;
-    if (S.pick) g.fillStyle(0x05060f, 0.6).fillRect(0, cy - 34, W, 68);
-    let tt = this.spinT[n]; if (!tt) tt = this.spinT[n] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '10px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5, align: 'center' }).setOrigin(0.5).setDepth(10.1);
-    tt.setText(S.done ? S.msg + (!S.pick && S.t > S.dur + 0.5 ? '\n\nTAP TO CARRY ON' : '') : 'THE LUCKY WHEEL').setPosition(cx, S.done ? cy + R0 + 26 : cy - R0 - 30).setVisible(true).setRotation(0);
+    // the marquee: the result up in lights
+    let tt = this.spinT[n]; if (!tt) tt = this.spinT[n] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '12px', color: '#ffb52a', stroke: '#5a0a0a', strokeThickness: 5, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } }).setOrigin(0.5).setDepth(10.2);
+    tt.setText(S.done ? S.msg : 'THE LUCKY WHEEL').setVisible(true).setRotation(0).setColor(S.done && Math.floor(t * 6) % 2 ? '#fff6c0' : '#ffb52a');
+    const mw = Math.max(200, tt.width + 44), mh = tt.height + 22, my = Math.min(H - mh / 2 - 6, cy + RG + mh / 2 + 2), mx = cx - mw / 2;
+    tt.setPosition(cx, my);
+    g.fillStyle(0x1a1020, 1).fillRoundedRect(mx - 4, my - mh / 2 - 4, mw + 8, mh + 8, 8); g.fillStyle(0xd0403a, 1).fillRoundedRect(mx - 2, my - mh / 2 - 2, mw + 4, mh + 4, 7);
+    g.fillStyle(0x2a0a1a, 1).fillRoundedRect(mx + 3, my - mh / 2 + 3, mw - 6, mh - 6, 5); g.lineStyle(2, 0xffd23f, 1).strokeRoundedRect(mx + 3, my - mh / 2 + 3, mw - 6, mh - 6, 5);
+    for (let k = 0, nb = Math.floor(mw / 16); k <= nb; k++) for (const yy of [my - mh / 2, my + mh / 2]) { const on = (k + chase) % 2 === 0; g.fillStyle(on ? 0xfff6c0 : 0x7a5a1a, 1).fillCircle(mx + k * (mw / nb), yy, 2.4); }
+    let hint = this.spinT[n + 1]; if (!hint) hint = this.spinT[n + 1] = this.add.text(0, 0, 'TAP TO CARRY ON', { fontFamily: PIXEL, fontSize: '7px', color: '#9fa6c2', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(1, 1).setDepth(10.2);
+    hint.setPosition(W - 10, H - 8).setRotation(0).setVisible(S.done && !S.pick && S.t > S.dur + 0.5 && Math.floor(t * 3) % 2 === 0);
+    for (let i = S.conf.length - 1; i >= 0; i--) { const q = S.conf[i]; q.l -= dt; if (q.l <= 0 || q.y > H + 10) { S.conf.splice(i, 1); continue; } q.vy += 420 * dt; q.vx *= 1 - dt; q.x += q.vx * dt; q.y += q.vy * dt; q.r += dt * 9;
+      g.fillStyle(q.c, Math.min(1, q.l * 2)).fillRect(q.x, q.y, 2 + 3 * Math.abs(Math.cos(q.r)), 3); }
   }
   move(d) { const n = (this.rows || []).length; if (n) { this.sel = ((this.sel + d) % n + n) % n; Sound.sfx('jump'); } }
   say(m) { this.msg = m; this.msgT = 0; if (this.msgText) this.msgText.setText(m); }

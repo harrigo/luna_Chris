@@ -1442,3 +1442,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Lucky Wheel spins are one-off: each golden wheel found is one spin EVER (`lc_spins` in localStorage), not a per-game allowance.
 - Wheel: the 120 slice is now 500 (3% chance). GUN +1 lets you choose which unlocked gun goes up.
 - GOLDEN SET (all 3 wheels on a level): 100 cheddar spills out on the spot, and every new game starts with +75 cheddar per completed set (`Shop.goldenSets`, `SHOP.setBonus`).
+
+## v2.29 Lucky Wheel, fairground style
+- `drawSpin` redrawn: rusty cog rim that turns with the wheel, 18 chasing bulbs, cyan and flickering pink neon frame, cables, sirens that whirl while it spins, a bracketed pointer kicked by each peg with sparks, the result on a bulb-lit marquee on posts, confetti on a win.
+- Slices carry pictures (`wi_30`, `wi_60`, `wi_500`, `wi_rat`, `wi_plate`, `wi_gun`, `wi_life`) with a small value by the hub.
