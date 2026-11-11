@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.29';
+const BUILD = 'v2.30';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -546,7 +546,7 @@ class Level1 extends Phaser.Scene {
       if (type === 'mode') { this.cheatText.setVisible(Cheat.on); return; }
       if (type !== 'heart' || !Cheat.on || (this.state !== 'play' && this.state !== 'rescue')) return;
       const P = this.pl;
-      if (P.hp < this.maxHp) { P.hp++; this.updateHearts(); this.banner('+1 HEART'); }
+      if (P.hp < this.maxHp) { P.hp = Math.min(this.maxHp, P.hp + 1); this.updateHearts(); this.banner('+1 HEART'); }
       else if (!this.bonusHeart) { this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
       Sound.sfx('pickup'); buzz(25);
       this.burst(P.theta, P.h + 30, 'spark', 8, 0.6);
@@ -770,7 +770,7 @@ class Level1 extends Phaser.Scene {
 
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
-    this.cheeseIcons.forEach((c, i) => c.setTexture(i < hp ? 'hud_cheese' : 'hud_cheese_off').setVisible(i < this.maxHp));
+    this.cheeseIcons.forEach((c, i) => c.setTexture(hp >= i + 1 ? 'hud_cheese' : hp >= i + 0.5 ? 'hud_cheese_half' : 'hud_cheese_off').setVisible(i < this.maxHp));
     if (this.bonusHeart) {                 // the cheeseburger heart sits after the cheese wedges
       if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.55);
       this.burgerIcon.setPosition(66 + this.maxHp * 28 + 12, 30);
@@ -1291,7 +1291,8 @@ class Level1 extends Phaser.Scene {
     this.scene.restart({ autostart: true, level: this.levelId, cp: this.cp, deaths: this.deaths, runT: this.runT0 + this.t });
   }
 
-  hurt() {
+  // HEARTS are worth two hits: an ordinary hit costs HALF a heart, a HEAVY one (boss slams, claws, lances, being rammed by a boss) a whole one
+  hurt(heavy) {
     this.camKick((Math.random() < 0.5 ? -1 : 1) * 7, -4);
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
@@ -1324,16 +1325,17 @@ class Level1 extends Phaser.Scene {
       this.banner('POWER-UP LOST!');
       return;
     }
-    P.hp--; this.hurtCount++;
+    P.hp = Math.max(0, P.hp - (heavy ? 1 : 0.5)); this.hurtCount++;
+    if (heavy) { this.popup(P.theta, P.h + 70, 'CRUNCH!', '#ff5a3a', true); this.hitStop = Math.max(this.hitStop || 0, 0.06); }
     P.invuln = CFG.invuln;
     P.vh = Math.max(P.vh, 300);
     this.updateHearts();
     Sound.sfx('hurt');
     // Chris yelps: an abstract chiptune 'owch' (three flavours), a bigger falling one on his last heart
-    if (P.hp > 0) Sound.sfx(P.hp === 1 ? 'ouchBig' : ['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]);
+    if (P.hp > 0) Sound.sfx(P.hp <= 1 ? 'ouchBig' : ['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]);
     this.bang(P.theta, P.h + 24, 12);
     buzz(60);
-    this.cameras.main.shake(120, 0.006);
+    this.cameras.main.shake(heavy ? 220 : 120, heavy ? 0.012 : 0.006);
     if (P.hp <= 0) this.die();
   }
 
@@ -1437,7 +1439,7 @@ class Level1 extends Phaser.Scene {
       if (this.comboT <= 0) { if (this.combo >= 5) this.banner(this.combo + ' COMBO!'); this.combo = 0; if (this.comboText) this.tweens.add({ targets: this.comboText, alpha: 0, duration: 250 }); }
     }
     if (this.comboText) this.comboText.setPosition(this.W / 2, 40);
-    const low = this.state === 'play' && this.pl.hp === 1 && !this.bonusHeart;
+    const low = this.state === 'play' && this.pl.hp <= 1 && !this.bonusHeart;
     if (low && !this.vign) {
       const key = 'vign_red';
       if (!this.textures.exists(key)) {
@@ -2307,7 +2309,7 @@ class Level1 extends Phaser.Scene {
     }
     // the claw: where it is, and does it hit Chris? (only while it's punching: hovering at his sides it's harmless)
     F.theta = wrap(anchor.theta + F.dx / (R + anchor.h)); F.h = anchor.h + F.dy; F.ath = anchor.theta; F.ah = anchor.h;
-    if (F.st === 'throw' && P.invuln <= 0 && this.state === 'play' && dist2(F.theta, F.h, P.theta, P.h + (P.duck ? 10 : 22)) < (16 + (P.duck ? 9 : 12)) ** 2) { this.hurt(); M.f = 1; M.cackle = 1.0; }
+    if (F.st === 'throw' && P.invuln <= 0 && this.state === 'play' && dist2(F.theta, F.h, P.theta, P.h + (P.duck ? 10 : 22)) < (16 + (P.duck ? 9 : 12)) ** 2) { this.hurt(true); M.f = 1; M.cackle = 1.0; }
 
     // mouth: sneer by default; cackles now and then; roars wide before he spits
     M.t -= dt; M.cackleCd -= dt;
@@ -2733,7 +2735,7 @@ class Level1 extends Phaser.Scene {
         if (B.h <= 0) {
           B.h = 0; B.st = 'sit'; this.cameras.main.shake(160, 0.009); Sound.sfx('clunk'); buzz(30);
           this.burst(B.theta, 6, 'crumb', 16, 1.1); this.bang(B.theta, 10, 24);
-          if (Math.abs(angDiff(P.theta, B.theta)) * R < 30 && P.h < 44 && P.invuln <= 0) { this.hurt(); P.vh = 300; }
+          if (Math.abs(angDiff(P.theta, B.theta)) * R < 30 && P.h < 44 && P.invuln <= 0) { this.hurt(true); P.vh = 300; }
           for (const e of this.enemies) if (e.type !== 'boss' && e.h < 40 && Math.abs(angDiff(e.theta, B.theta)) * R < 28) e.hp = 0;   // squashes rats too
           B.ledge = { theta: B.theta, half: 22 / R, h: 44 }; this.dynLedges.push(B.ledge);
         }
@@ -4019,7 +4021,7 @@ class Level1 extends Phaser.Scene {
             continue;
           }
           if (e.ai === 'milkmaid' && e.mmS && e.mmS.p2) {                 // the MILKMAID with her HORNS out: land on those and you're gored
-            P.vh = 440; P.h = top + 1; P.jetArmed = false; this.hurt();
+            P.vh = 440; P.h = top + 1; P.jetArmed = false; this.hurt(true);
             P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 240;
             this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.cameras.main.shake(120, 0.008);
             if (!this.hornTip) { this.hornTip = true; this.banner('GORED! MIND THE HORNS\nSHOOT HER HEART INSTEAD'); }
@@ -4076,7 +4078,7 @@ class Level1 extends Phaser.Scene {
         }
       }
       if (!fooled && !e.phased && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
-        this.hurt();
+        this.hurt(e.type === 'boss');                       // a boss landing on him or ramming him is a HEAVY hit
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
     }
@@ -4356,7 +4358,7 @@ class Level1 extends Phaser.Scene {
           this.bang(P.theta, P.h + 24, 26);
           this.banner(up ? this.weapon.short + ' LEVEL ' + this.lv + '!\n' + this.weapon.lv[this.lv] : 'MAX LEVEL! +1500');
         } else {
-          if (P.hp < this.maxHp) { P.hp++; this.updateHearts(); }
+          if (P.hp < this.maxHp) { P.hp = Math.min(this.maxHp, P.hp + 1); this.updateHearts(); }
           this.addScore(50);
           Sound.sfx('pickup'); Sound.say('yum');
           buzz(20);
@@ -4599,7 +4601,7 @@ class Level1 extends Phaser.Scene {
           if (this.pinT > 0 && this.pinSide === -dir) {    // pinned between the wheel and a chip: SQUASHED
             this.banner('SQUASHED!'); P.hp = 0; this.updateHearts(); Sound.sfx('crash'); this.cameras.main.shake(400, 0.02); this.die();
           } else {                                       // run over: two hearts, flung up and ahead
-            this.hurt(); if (P.hp > 1) { P.hp--; this.updateHearts(); }
+            this.hurt(true); if (P.hp > 1) { P.hp--; this.updateHearts(); }
             P.vh = 560; P.theta = wrap(P.theta + dir * 0.08); this.banner('FLATTENED!');
           }
         }

@@ -1446,3 +1446,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.29 Lucky Wheel, fairground style
 - `drawSpin` redrawn: rusty cog rim that turns with the wheel, 18 chasing bulbs, cyan and flickering pink neon frame, cables, sirens that whirl while it spins, a bracketed pointer kicked by each peg with sparks, the result on a bulb-lit marquee on posts, confetti on a win.
 - Slices carry pictures (`wi_30`, `wi_60`, `wi_500`, `wi_rat`, `wi_plate`, `wi_gun`, `wi_life`) with a small value by the hub.
+
+## v2.30 Half hearts and heavy hits
+- Hearts take two ordinary hits: `hurt()` costs half a heart, `hurt(true)` (HEAVY) a whole one with a CRUNCH! pop, a stop-frame and a bigger shake. New icon `hud_cheese_half`.
+- Heavy: touching / being landed on by any boss, the Baron's claw, the Mandoline's blade slams, Le Grand Fromage's lance, falling slam blocks, the Milkmaid's horns, being squashed.
+- Everything else (shots, small enemies, hazards, goo, flames) is half a heart. Cheese wedges still heal a whole heart. An armour plate still soaks one hit of either kind.

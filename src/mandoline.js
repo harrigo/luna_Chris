@@ -130,7 +130,7 @@ const MandolineMixin = {
         if (B.u >= 1) {
           B.st = 'stuck'; B.t = 0.75; B.h = 0; this.cameras.main.shake(160, 0.009); Sound.sfx('clang'); buzz(30);
           this.burst(B.theta, 4, 'spark', 14, 1.2); this.bang(B.theta, 8, 20);
-          if (Math.abs(angDiff(P.theta, B.theta)) * R < 26 && P.h < 50 && P.invuln <= 0) { this.hurt(); P.vh = 300; }
+          if (Math.abs(angDiff(P.theta, B.theta)) * R < 26 && P.h < 50 && P.invuln <= 0) { this.hurt(true); P.vh = 300; }
           for (const e2 of this.enemies) if (e2.type !== 'boss' && e2.h < 40 && Math.abs(angDiff(e2.theta, B.theta)) * R < 24) e2.hp = 0;   // slices rats too
         }
       } else if (B.st === 'stuck') {
@@ -166,7 +166,7 @@ const MandolineMixin = {
           if (reached) {
             this.cameras.main.shake(220, 0.012); Sound.sfx('clunk'); Sound.sfx('clang'); buzz([40, 20, 60]);
             this.burst(A.tTh, 4, 'spark', 16, 1.3); this.bang(A.tTh, 6, 26);
-            if (Math.abs(angDiff(P.theta, A.tTh)) * R < 34 && P.h < 48 && P.invuln <= 0) { this.hurt(); P.vh = 320; }
+            if (Math.abs(angDiff(P.theta, A.tTh)) * R < 34 && P.h < 48 && P.invuln <= 0) { this.hurt(true); P.vh = 320; }
             for (const e2 of this.enemies) if (e2.type !== 'boss' && e2.h < 40 && Math.abs(angDiff(e2.theta, A.tTh)) * R < 30) e2.hp = 0;
           }
         }

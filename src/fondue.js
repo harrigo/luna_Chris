@@ -452,7 +452,7 @@ const FondueMixin = {
     else { S.glint = false; this.gfIdle(e); return; }
     if (S.thrust > 0.6 && P.invuln <= 0) {                               // the tip
       const tip = this.gfTip(e, S);
-      if (dist2(tip.theta, tip.h, P.theta, P.h + 30) < 30 * 30) { this.hurt(); P.vx = Math.cos(S.aim) * 300; }
+      if (dist2(tip.theta, tip.h, P.theta, P.h + 30) < 30 * 30) { this.hurt(true); P.vx = Math.cos(S.aim) * 300; }
     }
   },
   gfTip(e, S) {
