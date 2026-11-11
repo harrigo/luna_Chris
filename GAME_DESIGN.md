@@ -1401,3 +1401,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The three orbiting dots are replaced by `drawShield`: a wobbling bubble of molten cheese round Chris (far wall behind him, skin and rim in front), sheen arcs sliding round the rim, drips that swell and fall from the bottom, a soft glow.
 - The three charges are gobs on a tilted orbit that pass behind and in front of him, each with a tail.
 - A hit (`shieldHit`) wobbles the bubble hard, flashes the rim, throws a ripple ring and a ring of cheese drips, and pops one gob. It blinks for the last 2.5s and pops in when picked up.
+
+## v2.22 Gun levels (Space Megaforce style)
+- Each gun has its own level 1-4 (`registry.gunLv`, `this.lv`, `gunLvUp`). Parmesan no longer gives 15s of triple shot / free ammo / a free hit: it raises the HELD gun one level (and refills the gauge). At max it scores +1500.
+- Levels last across stages; losing a life (or a fresh game) puts every gun back to 1. Hits cost hearts as normal.
+- Mac-Grinder: 1 single stream (12% slower), 2 twin helix (0.75 dmg each), 3 triple spread (0.72 each), 4 triple that pierces one enemy (0.8 each).
+- Spaghetti Spinner: reach 82/92/100/106%; damage per tick 3/6/99/99 (boss 2/2.25/2.5/2.8); level 2+ the tip CRACK hurts (8, boss 4, radius 46); level 4 forks into two whips.
+- Swiss-Shot: blast 85/100/100/110%; second bounce from level 2; cluster of 4 at level 3; cluster of 6 whose bomblets bounce at level 4.
+- HOT SAUCE is now the shared one: every gun's gauge drains 2.5x slower and refills 2x faster for 10s, and everything hit burns (Swiss blasts included). It no longer doubles fire rate.
+- HUD: `LV n` under the gun icon, flashes on level-up.

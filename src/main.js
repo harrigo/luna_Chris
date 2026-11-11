@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.21';
+const BUILD = 'v2.22';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -51,12 +51,15 @@ const CFG = {
 const WEAPONS = [
   { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'mac0', mac: true, ballScale: 1.15, unlock: 1,
     interval: 0.085, speed: 760, life: 0.75, ammo: 0.014, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
+    lv: [null, 'SINGLE STREAM', 'TWIN HELIX', 'TRIPLE SPREAD', 'TRIPLE + PIERCING'],
     blurb: 'A fast stream of molten mac and cheese: dripping, stringy, and it splats.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
     beam: true, range: 320, reachMin: 0.3, droop: 50, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
+    lvRange: [0, 0.82, 0.92, 1, 1.06], lvDmg: [0, 3, 6, 99, 99], lvBoss: [0, 2, 2.25, 2.5, 2.8], lv: [null, 'SHORT WHIP', 'LONGER + CRACK HURTS', 'FULL REACH, CLEAN CUT', 'FORKED DOUBLE WHIP'],
     blurb: 'A whip of spaghetti: push harder to reach further, swing it and the tip CRACKS. Cuts through everything it passes.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
   { id: 'swiss', name: 'SWISS-SHOT', short: 'SWS', gunTex: 'c_gun3', tipTex: 'c_bell', shot: 'swissball', unlock: 3,
     lob: true, aimed: true, plough: true, charge: true, chargeTime: 0.8, interval: 0.3, speed: 447, angle: 0.8, gravity: 420, life: 3, ammo: 0.075, dmg: 0, blast: 130, blastDmg: 20, bossDmg: 12, ballScale: 2.2, wobble: 0, pierce: 0, sfxEvery: 1, sfx: 'jump',
+    lvBlast: [0, 0.85, 1, 1, 1.1], lv: [null, 'ONE BOUNCE', 'TWO BOUNCES, BIGGER BLAST', 'CLUSTER OF 4', 'CLUSTER OF 6 THAT BOUNCE'],
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. It BOUNCES, bursting each time; a full charge splits into a cluster of little ones.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = true;
@@ -198,7 +201,7 @@ class Level1 extends Phaser.Scene {
     this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
-    if (!(this.registry.get('lives') > 0)) this.registry.set('lives', CFG.startLives);   // a fresh game
+    if (!(this.registry.get('lives') > 0)) { this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); }   // a fresh game
     this.nextLife = (Math.floor(((this.cp && this.cp.score) || 0) / CFG.lifeEvery) + 1) * CFG.lifeEvery;
     this.gotPower = !!(this.cp && this.cp.power); this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -650,7 +653,7 @@ class Level1 extends Phaser.Scene {
     this.fpsText.setPosition(10, 66);
     this.cheatText.setPosition(10, 76);
     this.weaponIcon.setPosition(266, 56);
-    this.swapText.setPosition(266, 72);
+    this.swapText.setPosition(266, 72); this.lvText.setPosition(266, 83);
     if (this.weapon) { this.weaponIcon.setTexture(this.weapon.gunTex); this.macText.setText(this.weapon.short); }
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
@@ -674,6 +677,7 @@ class Level1 extends Phaser.Scene {
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
     this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
     this.swapText = this.add.text(0, 0, 'SWAP', f(8, '#9fa6c2', ink)).setOrigin(0.5, 0).setDepth(20);
+    this.lvText = this.add.text(0, 0, 'LV 1', f(8, '#ffe27a', ink)).setOrigin(0.5, 0).setDepth(20); this.lvShown = 0;
     this.cheatText = this.add.text(0, 0, 'CHEAT', f(8, '#ff4d8d', ink)).setDepth(20).setVisible(Cheat.on);
     this.livesText = this.add.text(0, 0, '', f(10, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 1).setDepth(20.7);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
@@ -726,6 +730,14 @@ class Level1 extends Phaser.Scene {
   }
 
   get lives() { return this.registry.get('lives') || 0; }
+  // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
+  gunLv(id) { const g = this.registry.get('gunLv'); return (g && g[id]) || 1; }
+  get lv() { return this.weapon ? this.gunLv(this.weapon.id) : 1; }
+  gunLvUp() {
+    const g = Object.assign({}, this.registry.get('gunLv') || {}), id = this.weapon.id, was = g[id] || 1;
+    if (was >= 4) return false;
+    g[id] = was + 1; this.registry.set('gunLv', g); return true;
+  }
   gainLife() {
     this.registry.set('lives', Math.min(CFG.maxLives, this.lives + 1));
     Sound.sfx('power'); buzz([20, 30, 20, 30, 60]); this.banner('1UP!');
@@ -1126,7 +1138,7 @@ class Level1 extends Phaser.Scene {
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
     this.deaths++;
-    this.registry.set('lives', this.lives - 1);
+    this.registry.set('lives', this.lives - 1); this.registry.set('gunLv', {});          // the guns go back to level 1
     if (this.lives <= 0) { this.hideOverlay(); this.gameOver(); return; }
     const quips = ['The rats got away with Bessie.', 'Chris has been grated.', 'That was cheesy.', 'Bessie is NOT impressed.', 'Squeak squeak. (The rats are laughing.)', 'Brie-lliant effort. Not really.', 'You got Camem-BURNT.'];
     this.showOverlay('CHRIS IS TOAST', quips[(this.deaths - 1) % quips.length] + '\n\nLIVES LEFT: ' + this.lives + '\n\n' + (this.cp ? 'Tap to retry from the checkpoint' : 'Tap to try again'));
@@ -1262,7 +1274,7 @@ class Level1 extends Phaser.Scene {
     if (this.leavingGO) return;
     this.leavingGO = true;
     for (const k of Object.keys(this.registry.getAll())) if (k.startsWith('oneup_')) this.registry.remove(k);   // a fresh game next time
-    this.registry.set('lives', CFG.startLives);
+    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {});
     this.cameras.main.fadeOut(900, 0, 0, 0);
     this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('menu'); });
   }
@@ -1763,13 +1775,14 @@ class Level1 extends Phaser.Scene {
       else { P.bashSpin = 0; P.bashX = 0; P.bashY = 0; P.bashA = 0; P.bashLean = 0; }
       if (!P.bashHit && k >= 0.33) { P.bashHit = true; this.bashHit(); }
     } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; }
+    const sauceK = this.buffOn('sauce') ? 0.4 : 1;        // HOT SAUCE: every gun's gauge lasts 2.5x as long and refills twice as fast (and what it hits burns)
     P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
       P.beamReach = (P.beamReach || 1) + ((W.reachMin + (1 - W.reachMin) * (inp.reach || 1)) - (P.beamReach || 1)) * Math.min(1, dt * 10);   // trigger pressure / drag = reach
       if (P.beamOn) {
         P.firing = 0.12;
         if (P.power <= 0) {
-          P.ammo = Math.max(0, P.ammo - W.drain * dt); P.ammoHold = CFG.ammoDelay;
+          P.ammo = Math.max(0, P.ammo - W.drain * dt * sauceK); P.ammoHold = CFG.ammoDelay;
           if (P.ammo <= 0) { P.overheat = true; P.beamOn = false; Sound.sfx('hiss'); }
         }
         P.beamT = (P.beamT || 0) - dt;
@@ -1798,24 +1811,24 @@ class Level1 extends Phaser.Scene {
     } else if (P.fireCd <= 0 && want && !P.overheat && P.bashT <= 0) {
       const pr = W.pressure ? (inp.fireP || 1) : 1;      // Mac-Grinder: light trigger = slower, shorter shots
       this.fire(tgt, W.pressure ? { speedK: 0.6 + 0.4 * pr, lifeK: 0.6 + 0.4 * pr } : null);
-      P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1) * (this.buffOn('sauce') ? 0.5 : 1);
+      P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1) * (this.lv <= 1 ? 1.12 : 1);
       if (P.power <= 0) {
-        P.ammo = Math.max(0, P.ammo - this.weapon.ammo);
+        P.ammo = Math.max(0, P.ammo - this.weapon.ammo * sauceK);
         P.ammoHold = CFG.ammoDelay;
         if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
       }
     }
-    if (P.ammoHold <= 0) P.ammo = Math.min(1, P.ammo + CFG.ammoRegen * dt);
+    if (P.ammoHold <= 0) P.ammo = Math.min(1, P.ammo + CFG.ammoRegen * dt * (this.buffOn('sauce') ? 2 : 1));
   }
 
   // release a charged Swiss-Shot: everything scales with the charge (c = 0.2 .. 1)
   fireCharged(c, tgt) {
-    const P = this.pl, W = this.weapon;
-    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c), blastDmg: W.blastDmg * (0.4 + 1.0 * c), bossDmg: W.bossDmg * (0.4 + 1.0 * c), angleK: 0.85 + 0.25 * c,
-      bounce: c > 0.55 ? 2 : 1, cluster: c >= 0.97 ? 6 : (c > 0.7 ? 4 : 0) });     // it skips along the ground bursting as it goes; big ones split into a cluster
-    P.fireCd = W.interval * (this.buffOn('sauce') ? 0.5 : 1);
+    const P = this.pl, W = this.weapon, lv = this.lv, LB = W.lvBlast[lv];
+    this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c) * LB, blastDmg: W.blastDmg * (0.4 + 1.0 * c) * LB, bossDmg: W.bossDmg * (0.4 + 1.0 * c) * LB, angleK: 0.85 + 0.25 * c,
+      bounce: lv >= 2 && c > 0.55 ? 2 : 1, cluster: c > 0.7 ? (lv >= 4 ? 6 : lv >= 3 ? 4 : 0) : 0, miniBounce: lv >= 4 ? 1 : 0 });     // it skips along the ground bursting as it goes; big ones split into a cluster
+    P.fireCd = W.interval;
     if (P.power <= 0) {
-      P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c)); P.ammoHold = CFG.ammoDelay;
+      P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c) * (this.buffOn('sauce') ? 0.4 : 1)); P.ammoHold = CFG.ammoDelay;
       if (P.ammo <= 0) { P.overheat = true; Sound.sfx('hiss'); }
     }
     if (c > 0.6) { this.camKick(-(P.facing || 1) * 6 * c, 0); P.vx -= (P.facing || 1) * 160 * c; buzz(Math.round(30 + 40 * c)); }   // a big one kicks back
@@ -3154,16 +3167,20 @@ class Level1 extends Phaser.Scene {
     { const sp = this.screenPos(P.theta, P.h), z = this.zoom; this.fxBang.emitParticleAt(sp.x + P.facing * 74 * z, sp.y - (P.duck ? 29 : 40) * z, 1); }                      // keeps the drill-bit spinning for a moment
     const bt = M ? M.theta : wrap(P.theta + (Math.sign(dx) || 1) * (70 / R));
     if (W.lob && !W.aimed) { const fc = dx >= 0 ? 1 : -1, la = Math.max(0.15, Math.min(1.3, W.angle * (o.angleK || 1) + (P.aimA || 0) * 0.6)); dx = fc * Math.cos(la); dy = Math.sin(la); }      // the Swiss-Shot lobs upwards (aim tilts the arc)
-    for (const a of (P.power > 0 ? [-0.2, 0, 0.2] : [0])) {      // Parmesan Power-Up = triple spread
+    // MAC-GRINDER by level: 1 a single stream, 2 a twin helix (two strands winding round each other), 3 a triple spread, 4 the spread PIERCES
+    const lv = W.mac ? this.lv : 1, ph0 = rnd(0, TAU);
+    const shots = !W.mac || lv <= 1 ? [[0, 0, 0]] : lv === 2 ? [[0, 0, 0], [0, 0, Math.PI]] : [[-0.2, 0, 0], [0, 0, 0], [0.2, 0, 0]];
+    const mdmg = W.mac ? [1, 1, 0.75, 0.72, 0.8][lv] : W.dmg, mpierce = W.mac && lv >= 4 ? 2 : W.pierce;
+    for (const [a, off, phs] of shots) {
       const c = Math.cos(a), s = Math.sin(a);
       const ux = dx * c - dy * s, uy = dx * s + dy * c;
       this.pBullets.push({
         bt, bh: gh, theta: bt, h: gh,
         vt: ux * W.speed * (o.speedK || 1), vh: uy * W.speed * (o.speedK || 1),
-        px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
-        life: W.life * (o.lifeK || 1), wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0,
+        px: -uy, py: ux, ph: lv === 2 ? ph0 + phs : rnd(0, TAU), age: 0,
+        life: W.life * (o.lifeK || 1), wob: W.wobble * (lv === 2 ? 1.6 : 1), dmg: mdmg, pierce: mpierce, hits: mpierce ? [] : null, grav: W.gravity || 0,
         blast: o.blast || W.blast || 0, blastDmg: o.blastDmg || W.blastDmg || 0, bossDmg: o.bossDmg, charged: (o.scaleK || 0) > 1.1,
-        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32, bounce: o.bounce || 0, cluster: o.cluster || 0, rot: 0, trailT: 0, mac: !!W.mac, dripT: rnd(0.03, 0.1), tr: W.mac ? [] : null,
+        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32, bounce: o.bounce || 0, cluster: o.cluster || 0, miniBounce: o.miniBounce || 0, rot: 0, trailT: 0, mac: !!W.mac, dripT: rnd(0.03, 0.1), tr: W.mac ? [] : null,
         spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = (W.ballScale || 1) * (o.scaleK || 1); if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
     }
@@ -3304,7 +3321,7 @@ class Level1 extends Phaser.Scene {
       const d = Math.sqrt(dist2(theta, h, e.theta, e.h + e.ch));
       if (d > rad + e.r) continue;
       const full = d < rad * 0.55 + e.r;
-      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e, theta, h);
+      e.hp -= (e.type === 'boss' ? (bossDmg || dmg) : dmg) * (full ? 1 : 0.6) * this.hitK(e, theta, h); if (this.buffOn('sauce')) e.burn = 2;
       if (e.ai === 'milkmaid') this.mmOnHit(e, theta, h);
       if (e.ai === 'magmagolem') this.mgOnHit(e, theta, h);
       this.knock(e, theta, full ? 240 : 130);
@@ -3353,32 +3370,41 @@ class Level1 extends Phaser.Scene {
         Wp.a[i] += Wp.v[i] * h2;
       }
     }
-    const rng = W.range * (P.beamReach || 1), L = rng / N, Rg = R + gh;
+    const lv = this.lv, rng = W.range * (P.beamReach || 1) * W.lvRange[lv], L = rng / N, Rg = R + gh, fork = lv >= 4;
     Wp.prev = Wp.pts.length ? Wp.pts : null;
-    const pts = [{ theta: t0, h: gh, x: 0 }];
-    let x = 0, y = gh;
-    for (let i = 0; i < N; i++) {
-      x += Math.cos(Wp.a[i]) * L; y += Math.sin(Wp.a[i]) * L;
-      const f = (i + 1) / N;
-      pts.push({ theta: wrap(t0 + x / Rg), h: Math.max(3, y - f * f * (W.droop || 0)), x });
-    }
-    Wp.pts = pts; Wp.rng = rng; Wp.band = P.power > 0 ? 20 : 12;
+    const build = spread => {                            // (level 4: the stream FORKS into two that peel apart towards the tips)
+      const q = [{ theta: t0, h: gh, x: 0 }];
+      let x = 0, y = gh;
+      for (let i = 0; i < N; i++) {
+        const f = (i + 1) / N, an = Wp.a[i] + spread * Math.min(1, f * 1.6);
+        x += Math.cos(an) * L; y += Math.sin(an) * L;
+        q.push({ theta: wrap(t0 + x / Rg), h: Math.max(3, y - f * f * (W.droop || 0)), x });
+      }
+      return q;
+    };
+    Wp.prev2 = Wp.pts2 || null;
+    const pts = build(fork ? -0.2 : 0); Wp.pts2 = fork ? build(0.2) : null;
+    Wp.pts = pts; Wp.rng = rng; Wp.band = lv >= 3 ? 14 : 11;
     // the CRACK: the tip whipping round fast
     const tip = pts[N], pt = Wp.prev && Wp.prev[N];
     Wp.tipV = pt && dt > 0 ? Math.hypot(angDiff(tip.theta, pt.theta) * Rg, tip.h - pt.h) / dt : 0;
     Wp.crackCd = Math.max(0, Wp.crackCd - dt); Wp.crack = Math.max(0, (Wp.crack || 0) - dt * 6);
-    if (Wp.tipV > 1500 && Wp.crackCd <= 0) { Wp.crackCd = 0.28; Wp.crack = 1; Sound.sfx('swish'); Sound.sfx('zap'); this.burst(tip.theta, tip.h, 'spark', 8, 0.9); this.cameras.main.shake(60, 0.003); }
+    if (Wp.tipV > 1500 && Wp.crackCd <= 0) { Wp.crackCd = 0.28; Wp.crack = 1; Sound.sfx('swish'); Sound.sfx('zap'); this.burst(tip.theta, tip.h, 'spark', 8, 0.9); this.cameras.main.shake(60, 0.003);
+      if (lv >= 2) for (const tp of (Wp.pts2 ? [tip, Wp.pts2[N]] : [tip])) for (const e of this.enemies) {     // level 2+: the CRACK itself hurts whatever is at the tip
+        if (e.hp <= 0 || e.phased || dist2(tp.theta, tp.h, e.theta, e.h + e.ch) > (46 + e.r) * (46 + e.r)) continue;
+        e.hp -= (e.type === 'boss' ? 4 : 8) * this.hitK(e); e.flash = 0.08; e.spr.setTintFill(0xffffff); this.knock(e, tp.theta, 120);
+      } }
   }
   // Whatever the stream passes THROUGH gets hit - like a lightsabre: every frame each enemy is tested against the whole
   // length of the stream AND against the path every link swept since the last frame, so a fast sweep can't skip over
   // anything. Each thing it touches is hit at most once per `tick`.
   beamHit(W, dt) {
     const P = this.pl, Wp = P.whip; if (!Wp || !Wp.pts.length) return;
-    const pts = Wp.pts, prev = Wp.prev, N = pts.length - 1, tick = W.tick * (this.buffOn('sauce') ? 0.6 : 1);
+    const N = Wp.pts.length - 1, tick = W.tick, lv = this.lv, sets = Wp.pts2 ? [[Wp.pts, Wp.prev], [Wp.pts2, Wp.prev2]] : [[Wp.pts, Wp.prev]];
     const segD = (px, py, ax, ay, bx, by) => { const ex = bx - ax, ey = by - ay, q = Math.max(0, Math.min(1, ((px - ax) * ex + (py - ay) * ey) / (ex * ex + ey * ey || 1))); return Math.hypot(px - ax - ex * q, py - ay - ey * q); };
     const near = (theta, h, reach) => {                 // is (theta, h) within `reach` of the stream or of where it has just swept?
       const Rh = R + h, lx = q => angDiff(q.theta, theta) * Rh;
-      for (let i = 0; i <= N; i++) {
+      for (const [pts, prev] of sets) for (let i = 0; i <= N; i++) {
         const b = pts[i], bx = lx(b), by = b.h - h, tipK = i >= N - 2 && Wp.crack > 0 ? 1.8 : 1;
         if (Math.abs(bx) > reach * tipK + 90 && Math.abs(by) > reach * tipK + 90) continue;
         if (i < N) { const c = pts[i + 1]; if (segD(0, 0, bx, by, lx(c), c.h - h) < reach * tipK) return true; }
@@ -3393,7 +3419,7 @@ class Level1 extends Phaser.Scene {
       if (!near(e.theta, e.h + e.ch, e.r + Wp.band)) continue;
       e.beamCd = tick;
       if (this.hitK(e) === 0) { this.deflect(e, e.theta, e.h + e.ch); hitAny = true; continue; }
-      e.hp -= (e.type === 'boss' ? (W.bossDmg || W.dmg) : W.dmg) * this.hitK(e); hitAny = e; if (this.buffOn('sauce')) e.burn = 2;
+      e.hp -= (e.type === 'boss' ? W.lvBoss[lv] : W.lvDmg[lv]) * this.hitK(e); hitAny = e; if (this.buffOn('sauce')) e.burn = 2;
       if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
       this.burst(e.theta, e.h + e.ch, 'spark', 3, 0.5);
     }
@@ -3413,8 +3439,10 @@ class Level1 extends Phaser.Scene {
     if (!P.beamOn) { P.whip = null; return; }
     const Wp = P.whip;
     if (!Wp || Wp.pts.length < 3) return;
-    const z = this.zoom, src = Wp.pts, N = src.length - 1, pts = [];
-    const n = N * 2, thick = P.power > 0 ? 1.6 : 1, solid = Math.round(n * 0.7);
+    const z = this.zoom, lvW = this.lv;
+    for (const src of (Wp.pts2 ? [Wp.pts, Wp.pts2] : [Wp.pts])) {
+    const N = src.length - 1, pts = [];
+    const n = N * 2, thick = [1, 0.85, 1, 1.2, 1.05][lvW], solid = Math.round(n * 0.7);
     for (let i = 0; i <= n; i++) {                                              // two points per link, wobbling like wet pasta (pinned at the nozzle)
       const f = i / n, k = Math.min(N - 1, Math.floor(i / 2)), u = i / 2 - k, a = src[k], b = src[k + 1];
       const wv = (Math.sin(this.t * 34 - f * 22) * (1.5 + f * 3) + Math.sin(this.t * 11 + f * 7) * 1.2) * Math.min(1, f * 6);
@@ -3438,6 +3466,7 @@ class Level1 extends Phaser.Scene {
       const r = (10 + 22 * (1 - Wp.crack)) * z;
       g.lineStyle(Math.max(2, 3 * z), 0xffffff, Wp.crack).strokeCircle(tip.x, tip.y, r);
       for (let k = 0; k < 6; k++) { const an = k * 1.047 + this.t * 3; g.lineBetween(tip.x + Math.cos(an) * r * 0.5, tip.y + Math.sin(an) * r * 0.5, tip.x + Math.cos(an) * r * 1.3, tip.y + Math.sin(an) * r * 1.3); }
+    }
     }
   }
 
@@ -4206,7 +4235,7 @@ class Level1 extends Phaser.Scene {
           const an = Math.PI * (0.18 + 0.64 * (k + 0.5) / b.cluster) + rnd(-0.12, 0.12), v = rnd(260, 380), th0 = b.theta, h0 = Math.max(6, b.h);
           const im = this.add.image(0, 0, 'swissball').setDepth(8); im.bsx = im.bsy = (this.weapon.ballScale || 2.2) * 0.42;
           this.pBullets.push({ bt: th0, bh: h0, theta: th0, h: h0, vt: Math.cos(an) * v, vh: Math.sin(an) * v, px: 0, py: 0, ph: 0, age: 0, life: 2.4, wob: 0, dmg: 0, pierce: 0, hits: null, grav: 620,
-            blast: b.blast * 0.42, blastDmg: b.blastDmg * 0.3, bossDmg: (b.bossDmg || this.weapon.bossDmg) * 0.3, charged: false, plough: false, ploughDmg: 0, minScale: 0, bounce: 0, cluster: 0, rot: 0, trailT: 0, mini: true, spr: im });
+            blast: b.blast * 0.42, blastDmg: b.blastDmg * 0.3, bossDmg: (b.bossDmg || this.weapon.bossDmg) * 0.3, charged: false, plough: false, ploughDmg: 0, minScale: 0, bounce: b.miniBounce || 0, cluster: 0, rot: 0, trailT: 0, mini: true, spr: im });
         }
       }
       if (dead && b.mac) this.macSplat(b, !(b.age > (b.life || CFG.bulletLife)));
@@ -4284,11 +4313,12 @@ class Level1 extends Phaser.Scene {
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (p.kind === 'buff') this.startBuff(p.bk);
         else if (p.kind === 'power') {
-          P.power = CFG.powerT; P.overheat = false; P.ammo = 1; this.addScore(500);
+          const up = this.gunLvUp(); P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
+          this.addLight(P.theta, P.h + 30, 150, 0xfff3a0, 1, 0.5);
           Sound.sfx('power');
           buzz([20, 30, 20, 30, 60]);
           this.bang(P.theta, P.h + 24, 26);
-          this.banner('PARMESAN POWER!');
+          this.banner(up ? this.weapon.short + ' LEVEL ' + this.lv + '!\n' + this.weapon.lv[this.lv] : 'MAX LEVEL! +1500');
         } else {
           if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
           this.addScore(50);
@@ -4948,7 +4978,7 @@ class Level1 extends Phaser.Scene {
         const bx = M.x + M.dx * r * 0.8, by = M.y + M.dy * r * 0.8;
         for (let k = 0; k < 7; k++) { const an = k * 0.898 + this.t * 2.2, ph = ((this.t * (2.2 + c * 2.5) + k * 0.37) % 1), d0 = r * (2.6 - 1.7 * ph), d1 = d0 - r * 0.55; cg.lineStyle(Math.max(1, 2 * z), ph > 0.6 ? 0xffffff : 0xffe27a, 0.35 + 0.6 * ph).lineBetween(bx + Math.cos(an) * d0, by + Math.sin(an) * d0, bx + Math.cos(an) * d1, by + Math.sin(an) * d1); }
         { const spd = W.speed * (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), dir = P.facing || 1, aa = P.aimA || 0, RR = R + M.h;
-          let th = M.theta, hh = M.h, vt = dir * Math.cos(aa) * spd, vh = Math.sin(aa) * spd, bn = c > 0.55 ? 2 : 1, n = 0, land = null;
+          let th = M.theta, hh = M.h, vt = dir * Math.cos(aa) * spd, vh = Math.sin(aa) * spd, bn = this.lv >= 2 && c > 0.55 ? 2 : 1, n = 0, land = null;
           for (let step = 0; step < 150; step++) {
             th = wrap(th + vt / RR * 0.03); vh -= (W.gravity || 420) * 0.03; hh += vh * 0.03;
             if (hh < 0) { if (!land) land = th; if (bn-- <= 0) break; hh = 2; vh = Math.max(190, -vh * 0.62); vt *= 0.86; }
@@ -5065,6 +5095,9 @@ class Level1 extends Phaser.Scene {
     const litB = Math.ceil(P.fuel * nb - 0.05);
     for (let i = 0; i < litB; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
     const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
+    { const lv = this.lv; P.lvFlash = Math.max(0, (P.lvFlash || 0) - 0.016);                  // gun level by the gun icon (flashes when it goes up)
+      if (lv !== this.lvShown) { this.lvShown = lv; this.lvText.setText(lv >= 4 ? 'LV MAX' : 'LV ' + lv); }
+      this.lvText.setColor(P.lvFlash > 0 && Math.floor(this.t * 12) % 2 ? '#ffffff' : '#ffe27a').setScale(1 + 0.5 * Math.min(1, P.lvFlash)); }
     this.macIcons.forEach((m, i) => m.setTexture(P.power > 0 ? (flash ? 'hud_mac_gold' : 'hud_mac') : P.overheat ? (flash ? 'hud_mac_hot' : 'hud_mac_off') : (i < lit ? 'hud_mac' : 'hud_mac_off')));
 
     // distance to the cow = progress through the level (waves, then the boss)
