@@ -1431,3 +1431,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.26 Route map status panel
 - The bottom-right panel is wider and shows Chris as he stands: hearts, lives, cheddar, wheels; each gun and its level (or LOCKED); armour mark and plates (or SHATTERED / NO ARMOUR) and boots. The cheddar count under the shop kiosk is gone.
+
+## v2.27 The Lucky Wheel
+- In the shop: one spin per game for every golden cheese wheel ever found (`Shop.spinsLeft`; spins used are stored in `registry.shop.spins` and come back after GAME OVER).
+- Eight slices, weighted (`SPIN`): 30 cheddar x2 (22% each), 60 (16%), armour plate (14%; 50 cheddar if nothing to mend), GUN +1 on a random gun (10%), RAT = nothing (10%), 120 (4%), extra life (2%).
+- Button in the shop's left panel (key L, pad X/Y).
