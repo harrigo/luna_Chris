@@ -1410,3 +1410,13 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Swiss-Shot: blast 85/100/100/110%; second bounce from level 2; cluster of 4 at level 3; cluster of 6 whose bomblets bounce at level 4.
 - HOT SAUCE is now the shared one: every gun's gauge drains 2.5x slower and refills 2x faster for 10s, and everything hit burns (Swiss blasts included). It no longer doubles fire rate.
 - HUD: `LV n` under the gun icon, flashes on level-up.
+
+## v2.23 The space shop (src/shop.js)
+- CHEDDAR: every kill pays (score/50, minimum 1; bosses 50). Shown under the score and on the route map.
+- FRIDGE-O-TRON'S SPACE SHOP: `ShopScene` ('shop'), opened from the SPACE SHOP button on the route map (left of the title; key S, pad Y). Tap a row to buy.
+- Everything bought lives in `registry.shop` ({coins, armMk, armHp, boots, chips}) and is wiped on GAME OVER along with the cheddar. Losing a life keeps it.
+- BLACK RIND armour Mk I-IV (60/100/150/220): 2/3/4/5 plates on its own HUD gauge (RIND, under MAC). Plates soak hits before hearts and don't regenerate. PATCH UP costs 10 a plate. At zero it SHATTERS (suit goes back to white) and must be RE-FORGED (30 + 10 per mark).
+- While worn, Chris's suit and hat are recoloured charcoal (`makeArmourTextures`, `ChrisRig.setArmour`): pale colourless pixels are remapped, colours and the helmet stay.
+- MOON BOOTS Lv 1-4 (50/90/140/200): +5% run, +3.5% jump, -8% jet fuel use per level.
+- START CHIPS per gun (70/120/180): the level that gun starts at and falls back to when a life is lost.
+- EXTRA LIFE: 120.

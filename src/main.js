@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.22';
+const BUILD = 'v2.23';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -201,7 +201,7 @@ class Level1 extends Phaser.Scene {
     this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
-    if (!(this.registry.get('lives') > 0)) { this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); }   // a fresh game
+    if (!(this.registry.get('lives') > 0)) { this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); Shop.reset(this.registry); }   // a fresh game
     this.nextLife = (Math.floor(((this.cp && this.cp.score) || 0) / CFG.lifeEvery) + 1) * CFG.lifeEvery;
     this.gotPower = !!(this.cp && this.cp.power); this.shootG = null; this.jetOn = false; this.shotN = 0; this.glintT = 0; this.lastDt = 0.016;
 
@@ -480,7 +480,7 @@ class Level1 extends Phaser.Scene {
 
     this.augerPhase = 0;
     this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
-    this.rig = new ChrisRig(this);
+    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
     this.fxInit();                                        // neo-retro lighting (fx.js)
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
@@ -635,7 +635,7 @@ class Level1 extends Phaser.Scene {
     this.btnLabels.bash.setPosition(this.btn.bash.x, this.btn.bash.y);
 
     this.waveText.setPosition(W / 2, 4);
-    this.scoreText.setPosition(W / 2, 26);
+    this.scoreText.setPosition(W / 2, 26); this.coinText.setPosition(W / 2, 38); this.armText.setPosition(66, 80); this.armShown = -1;
     if (this.portrait) this.portrait.setPosition(10, 10);
     this.livesText.setPosition(60, 60);
     this.nameText.setPosition(66, 8);
@@ -677,6 +677,8 @@ class Level1 extends Phaser.Scene {
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
     this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
     this.swapText = this.add.text(0, 0, 'SWAP', f(8, '#9fa6c2', ink)).setOrigin(0.5, 0).setDepth(20);
+    this.armText = this.add.text(0, 0, 'RIND', f(8, '#aab4d0', ink)).setDepth(20).setVisible(false); this.armG = this.add.graphics().setDepth(20.5); this.armShown = -1;
+    this.coinText = this.add.text(0, 0, '', f(8, '#ffe27a', ink)).setOrigin(0.5, 0).setDepth(20); this.coinShown = -1;
     this.lvText = this.add.text(0, 0, 'LV 1', f(8, '#ffe27a', ink)).setOrigin(0.5, 0).setDepth(20); this.lvShown = 0;
     this.cheatText = this.add.text(0, 0, 'CHEAT', f(8, '#ff4d8d', ink)).setDepth(20).setVisible(Cheat.on);
     this.livesText = this.add.text(0, 0, '', f(10, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 1).setDepth(20.7);
@@ -731,10 +733,10 @@ class Level1 extends Phaser.Scene {
 
   get lives() { return this.registry.get('lives') || 0; }
   // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
-  gunLv(id) { const g = this.registry.get('gunLv'); return (g && g[id]) || 1; }
+  gunLv(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }   // (a shop START CHIP is the floor)
   get lv() { return this.weapon ? this.gunLv(this.weapon.id) : 1; }
   gunLvUp() {
-    const g = Object.assign({}, this.registry.get('gunLv') || {}), id = this.weapon.id, was = g[id] || 1;
+    const g = Object.assign({}, this.registry.get('gunLv') || {}), id = this.weapon.id, was = this.gunLv(id);
     if (was >= 4) return false;
     g[id] = was + 1; this.registry.set('gunLv', g); return true;
   }
@@ -1274,7 +1276,7 @@ class Level1 extends Phaser.Scene {
     if (this.leavingGO) return;
     this.leavingGO = true;
     for (const k of Object.keys(this.registry.getAll())) if (k.startsWith('oneup_')) this.registry.remove(k);   // a fresh game next time
-    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {});
+    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); Shop.reset(this.registry);       // the shop's wares go with the game
     this.cameras.main.fadeOut(900, 0, 0, 0);
     this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('menu'); });
   }
@@ -1297,6 +1299,15 @@ class Level1 extends Phaser.Scene {
       if (P.buff.charges <= 0) this.endBuff();
       return;
     }
+    { const ar = Shop.hit(this.registry);                    // BLACK RIND armour: its plates go before the cheese does
+      if (ar !== 'none') {
+        P.invuln = CFG.invuln; Sound.sfx('clang'); buzz(40); this.cameras.main.shake(120, 0.006);
+        this.burst(P.theta, P.h + 28, 'spark', 8, 1);
+        for (let k = 0; k < (ar === 'broke' ? 16 : 5); k++) { const im = this.add.image(0, 0, 'crumb').setDepth(9).setTintFill(k % 3 ? 0x4a5268 : 0x9aa6c0); im.bsx = im.bsy = rnd(0.8, 1.7);
+          this.parts.push({ theta: P.theta, h: P.h + rnd(10, 50), vt: rnd(-260, 260), vh: rnd(120, 460), life: rnd(0.5, 0.9), spr: im, rot: 0, rv: rnd(-14, 14) }); }
+        if (ar === 'broke') { this.rig.setArmour(false); Sound.sfx('crash'); this.cameras.main.flash(160, 200, 210, 255); this.hitStop = Math.max(this.hitStop || 0, 0.1); this.banner('BLACK RIND SHATTERED!\nRE-FORGE IT AT THE SHOP'); }
+        return;
+      } }
     if (P.power > 0) {                     // the Parmesan Power-Up takes the hit instead of a heart
       P.power = 0;
       P.invuln = CFG.invuln;
@@ -1606,7 +1617,7 @@ class Level1 extends Phaser.Scene {
     if (P.duck && ax) P.facing = ax;
 
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
-    P.vx += (ax * CFG.runSpeed * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.3 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
+    P.vx += (ax * CFG.runSpeed * (1 + 0.05 * this.bootLv) * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.3 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.chips && this.chips.length) {               // tortilla chips are solid: you can't run (or be pushed) through them
       this.pinT = Math.max(0, this.pinT - dt);
@@ -1696,7 +1707,7 @@ class Level1 extends Phaser.Scene {
     P.jumpWas = !!inp.jump;
     if (P.jumpBufT > 0 && (grounded || P.coyT > 0) && P.vh <= 0) {
       if (P.goop && P.stuck > 0) { P.vh = CFG.jumpV * 0.42; P.stuck--; Sound.sfx('squelch'); this.goopSplash(P.theta); }   // glorp: only a little hop
-      else { P.vh = CFG.jumpV; Sound.sfx('jump'); if (P.goop) this.goopSplash(P.theta); }
+      else { P.vh = CFG.jumpV * (1 + 0.035 * this.bootLv); Sound.sfx('jump'); if (P.goop) this.goopSplash(P.theta); }
       P.jetArmed = false; P.holdT = 0; P.jumpBufT = 0; P.coyT = 0;
       if (P.goop) { P.jetArmed = true; P.holdT = CFG.jetHoldDelay + 1; }      // out of the goop, holding jump lights the boots at once (they just struggle)
       if (!grounded) P.h = Math.max(P.h, P.floor || 0);
@@ -1724,7 +1735,7 @@ class Level1 extends Phaser.Scene {
         for (const e of this.enemies) if (e.type !== 'boss' && Math.abs(angDiff(e.theta, P.theta)) * R < 34 && e.h + e.ch < P.h + 6 && e.h + e.ch > P.h - 80) { e.hp -= 4 * dt; e.burn = 1.5; }
       }
       P.vh = Math.max(P.vh, Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt));   // (never slows a bounce down)
-      P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * dt);
+      P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * (1 - 0.08 * this.bootLv) * dt);
       this.jetFlames(2);
     } else if (grounded) {
       P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
@@ -4072,6 +4083,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
+      Shop.earn(this.registry, e.type === 'boss' ? 50 : Math.max(1, Math.round(pts / 50)));       // CHEDDAR for the space shop
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
         const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
@@ -5095,6 +5107,15 @@ class Level1 extends Phaser.Scene {
     const litB = Math.ceil(P.fuel * nb - 0.05);
     for (let i = 0; i < litB; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
     const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
+    { const sh = Shop.get(this.registry);                    // cheddar, and the armour gauge (plates; dark ones are gone)
+      if (sh.coins !== this.coinShown) { this.coinShown = sh.coins; this.coinText.setText('CHEDDAR ' + sh.coins); }
+      const key = sh.armMk * 10 + sh.armHp;
+      if (key !== this.armShown) {
+        this.armShown = key; this.armG.clear(); this.armText.setVisible(sh.armHp > 0);
+        if (sh.armHp > 0) for (let i = 0; i < SHOP.armHp[sh.armMk]; i++) { const x = 104 + i * 21, y = 79, on = i < sh.armHp;
+          this.armG.fillStyle(0x1a1020, 1).fillRect(x - 2, y - 2, 20, 13); this.armG.fillStyle(on ? 0x4a5268 : 0x20222c, 1).fillRect(x, y, 16, 9);
+          if (on) { this.armG.fillStyle(0xa8b4d0, 1).fillRect(x, y, 16, 2); this.armG.fillStyle(0x30364a, 1).fillRect(x, y + 7, 16, 2); } }
+      } }
     { const lv = this.lv; P.lvFlash = Math.max(0, (P.lvFlash || 0) - 0.016);                  // gun level by the gun icon (flashes when it goes up)
       if (lv !== this.lvShown) { this.lvShown = lv; this.lvText.setText(lv >= 4 ? 'LV MAX' : 'LV ' + lv); }
       this.lvText.setColor(P.lvFlash > 0 && Math.floor(this.t * 12) % 2 ? '#ffffff' : '#ffe27a').setScale(1 + 0.5 * Math.min(1, P.lvFlash)); }
@@ -5239,7 +5260,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

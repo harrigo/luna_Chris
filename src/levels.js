@@ -908,17 +908,19 @@ class SelectScene extends Phaser.Scene {
     if (this.input.keyboard) ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'].forEach((k, i) => this.input.keyboard.on('keydown-' + k, () => { if (LEVELS[i + 1] && this.isOpen(i + 1)) this.go(i + 1); }));
     if (this.input.keyboard) ['LEFT', 'RIGHT', 'UP', 'DOWN'].forEach(k => this.input.keyboard.on('keydown-' + k, () => this.nav(k.toLowerCase())));
     if (this.input.keyboard) this.input.keyboard.on('keydown-ENTER', () => this.go(this.sel));
+    if (this.input.keyboard) this.input.keyboard.on('keydown-S', () => this.goShop());
     if (this.input.keyboard) this.input.keyboard.on('keydown-ESC', () => { if (!this.going) this.scene.start('menu'); });
     // controller: left/right picks a card, A or Start plays it
     this.sel = this.sel || 1;
     this.selG = this.add.graphics().setDepth(2);
     // Luna Chris himself, jetpacking along the route to whichever stop is picked
-    this.rig = new ChrisRig(this); this.rig.root.setDepth(3); this.rig.setWeapon(WEAPONS[0]);
+    this.rig = new ChrisRig(this); this.rig.root.setDepth(3); this.rig.setWeapon(WEAPONS[0]); this.rig.setArmour(Shop.get(this.registry).armHp > 0);
     this.rigP = { h: 60, floor: 0, vh: 0, vx: 0, thrusting: true, firing: 0, aimA: 0.1, power: 0, duck: false, facing: 1 };
     this.rigX = null; this.lastT = 0;
     const padOff = Pad.on(b => {
       if (b === 'left' || b === 'right' || b === 'up' || b === 'down') this.nav(b);
       else if (b === 'a' || b === 'start') this.go(this.sel);
+      else if (b === 'y') this.goShop();
       else if (b === 'b' || b === 'back') { if (!this.going) this.scene.start('menu'); }
       else this.showSel = true;
     });
@@ -985,6 +987,7 @@ class SelectScene extends Phaser.Scene {
     if (pick) this.travel(pick.id);
   }
 
+  goShop() { if (this.going) return; this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(180, 0, 0, 0); this.time.delayedCall(200, () => this.scene.start('shop')); }
   go(n) {
     if (this.going) return;
     if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
@@ -1034,6 +1037,16 @@ class SelectScene extends Phaser.Scene {
     this.ui.add(ban);
     this.ui.add(this.add.text(W / 2, ty + th / 2 + 1, 'ROUTE TO BESSIE', f(Math.round(Math.min(18, th * 0.55, tw / 17)), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 4 })).setOrigin(0.5));
     this.bannerBox = { tx, ty, tw, th };
+    { // the SPACE SHOP: a button beside the title, showing the cheddar in your pocket
+      const sw = Math.max(90, Math.min(150, tx - 76 - 10)), sx = 76, coins = Shop.get(this.registry).coins, sg = this.add.graphics();
+      sg.fillStyle(0x000000, 0.4).fillRect(sx + 3, ty + 3, sw, th); sg.fillStyle(0x2a1440, 1).fillRect(sx, ty, sw, th); sg.lineStyle(2, 0x5cffe0, 1).strokeRect(sx, ty, sw, th);
+      this.ui.add(sg);
+      this.ui.add(this.add.text(sx + sw / 2, ty + th / 2 - 6, 'SPACE SHOP', f(8, '#5cffe0', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
+      this.ui.add(this.add.text(sx + sw / 2, ty + th / 2 + 6, 'CHEDDAR ' + coins, f(7, '#ffe27a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
+      const sz = this.add.zone(sx, ty, sw, th).setOrigin(0).setInteractive({ useHandCursor: true });
+      sz.on('pointerup', () => this.goShop());
+      this.ui.add(sz);
+    }
     // the map: only the stops you can see (secret ones appear once they're found)
     this.nodes = this.mapNodes().filter(n => !n.kind || this.isOpen(n.id)); this.ids = this.nodes.map(n => n.id);
     const panelH = Math.min(H * 0.24, 96), y0p = H - 6 - panelH;            // (the info panels along the bottom)
