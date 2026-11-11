@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.19';
+const BUILD = 'v2.20';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -49,9 +49,9 @@ const CFG = {
 // ---- weapons. `unlock` = the level you must have reached to own it (the progression system).
 // For now CFG.allWeapons = true unlocks everything on every level.
 const WEAPONS = [
-  { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'macaroni', unlock: 1,
+  { id: 'grinder', name: 'MAC-GRINDER 3000', short: 'MAC', gunTex: 'c_gun', tipTex: 'auger', shot: 'mac0', mac: true, ballScale: 1.15, unlock: 1,
     interval: 0.085, speed: 760, life: 0.75, ammo: 0.014, dmg: 1, wobble: 5, pierce: 0, sfxEvery: 2, sfx: 'shoot', pressure: true,
-    blurb: 'A fast stream of wobbly macaroni. Spray and pray.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
+    blurb: 'A fast stream of molten mac and cheese: dripping, stringy, and it splats.', stats: { POWER: 2, RATE: 5, RANGE: 3, PIERCE: 1 } },
   { id: 'spinner', name: 'SPAGHETTI SPINNER', short: 'SPG', gunTex: 'c_gun2', tipTex: 'c_nozzle', shot: 'spaghetti', unlock: 2,
     beam: true, range: 320, reachMin: 0.3, droop: 50, drain: 0.29, tick: 0.1, dmg: 99, bossDmg: 2.5, sfx: 'shoot',   // a constant stream: ~3.4s per tank (was 2.2s); anything it touches is taken out (boss: 25/s)
     blurb: 'A whip of spaghetti: push harder to reach further, swing it and the tip CRACKS. Cuts through everything it passes.', stats: { POWER: 5, RATE: 5, RANGE: 4, PIERCE: 5 } },
@@ -195,7 +195,7 @@ class Level1 extends Phaser.Scene {
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
-    this.bashTipShown = false; this.chargeSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
+    this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
     if (!(this.registry.get('lives') > 0)) this.registry.set('lives', CFG.startLives);   // a fresh game
@@ -3116,9 +3116,13 @@ class Level1 extends Phaser.Scene {
         px: -uy, py: ux, ph: rnd(0, TAU), age: 0,
         life: W.life * (o.lifeK || 1), wob: W.wobble, dmg: W.dmg, pierce: W.pierce, hits: W.pierce ? [] : null, grav: W.gravity || 0,
         blast: o.blast || W.blast || 0, blastDmg: o.blastDmg || W.blastDmg || 0, bossDmg: o.bossDmg, charged: (o.scaleK || 0) > 1.1,
-        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32, bounce: o.bounce || 0, cluster: o.cluster || 0, rot: 0, trailT: 0,
+        plough: !!W.plough, ploughDmg: o.ploughDmg || 4, minScale: (W.ballScale || 1) * 0.32, bounce: o.bounce || 0, cluster: o.cluster || 0, rot: 0, trailT: 0, mac: !!W.mac, dripT: rnd(0.03, 0.1), tr: W.mac ? [] : null,
         spr: (() => { const im = this.add.image(0, 0, W.shot).setDepth(8); im.bsx = im.bsy = (W.ballScale || 1) * (o.scaleK || 1); if (W.lob) bakedGlow(im, 0xffe27a, 2, 6); return im; })()
       });
+    }
+    if (W.mac) {                                          // the Mac-Grinder spits: a flicker of hot light and a spatter of sauce off the muzzle
+      if (this.lights.length < 22) this.addLight(bt, gh, 58, 0xffa030, 0.7, 0.09);
+      if (Math.random() < 0.5) this.macDrip(bt, gh, dx * rnd(60, 160), dy * rnd(60, 160) + rnd(20, 90));
     }
   }
 
@@ -3272,7 +3276,7 @@ class Level1 extends Phaser.Scene {
     for (let k = 0; k < (lite ? 2 : 8); k++) { const im = this.add.image(0, 0, 'swissball').setDepth(9); im.bsx = im.bsy = rnd(0.5, 0.9);   // flying cheese chunks
       this.parts.push({ theta, h: h + 8, vt: rnd(-300, 300), vh: rnd(250, 560), life: rnd(0.6, 1), spr: im, rot: 0, rv: rnd(-12, 12) }); }
     for (let k = 0; k < (lite ? 2 : 5); k++) { const im = this.add.image(0, 0, 'puff').setDepth(8.4).setTint(0xfff0c0).setAlpha(0.6); im.bsx = im.bsy = rnd(0.3, 0.55) * (rad / 130 + 0.4);   // steam rolling up off it
-      this.parts.push({ theta: wrap(theta + rnd(-rad, rad) * 0.5 / R), h: h + rnd(4, 20), vt: rnd(-30, 30), vh: rnd(60, 130), life: rnd(0.6, 1), fade: 1, noGrav: true, grow: 0.9, spr: im, rot: 0, rv: 0 }); }
+      this.parts.push({ theta: wrap(theta + rnd(-rad, rad) * 0.5 / R), h: h + rnd(4, 20), vt: rnd(-30, 30), vh: rnd(60, 130), life: rnd(0.6, 1), fade: 1, a0: 0.6, noGrav: true, grow: 0.9, spr: im, rot: 0, rv: 0 }); }
     for (let k = 0; k < (lite ? 6 : 18); k++) this.fxBang.emitParticleAt(s.x + rnd(-10, 10) * z, s.y + rnd(-10, 10) * z, 1);
     if (h < 30) this.puddles.push({ theta, rad: lite ? rad * 0.8 : rad, t: 0, life: lite ? 1.6 : 2.6 });   // landed: a melted-cheese smear that hugs the curve of the ground, then fades
     this.cameras.main.shake(lite ? 70 : 160 + rad * 0.6, lite ? 0.003 : 0.006 + rad * 0.00005);       // bigger blast, bigger shake
@@ -4072,6 +4076,11 @@ class Level1 extends Phaser.Scene {
         b.bh = b.bh < 0 ? -b.bh : 2 * roofH - b.bh; b.vh = -b.vh; b.bnc = (b.bnc || 0) + 1; b.age = Math.max(0, b.age - 0.2);
         b.h = b.bh; this.burst(b.theta, Math.max(0, b.h), 'spark', 3, 0.5);
       }
+      if (b.mac) {                                        // MAC-GRINDER in flight: the elbow tumbles, strings a ribbon of sauce behind it and drips as it goes
+        b.spr.setTexture('mac' + (Math.floor(b.age * 20 + b.ph) % 3));
+        b.tr.unshift(b.theta, b.h); if (b.tr.length > 14) b.tr.length = 14;
+        if ((b.dripT -= dt) <= 0) { b.dripT = rnd(0.07, 0.16); this.macDrip(b.theta, b.h, b.vt * 0.12, b.vh * 0.12 - rnd(0, 40)); }
+      }
       if (b.blast) {                                      // SWISS-SHOT in flight: spinning, stretched along its path, shedding ghosts and molten drips
         b.rot += dt * 11 * Math.sign(b.vt || 1); b.sq = Math.max(0, (b.sq || 0) - dt * 5);
         const spd = Math.hypot(b.vt, b.vh), st = Math.min(0.28, spd / 2600), q = b.sq * Math.cos(b.sq * 9);
@@ -4079,7 +4088,7 @@ class Level1 extends Phaser.Scene {
         if ((b.trailT -= dt) <= 0) {
           b.trailT = 0.035;
           const gh2 = this.add.image(0, 0, 'swissball').setDepth(7.9).setTint(0xffc040).setAlpha(0.5); gh2.bsx = gh2.bsy = b.spr.bsx * 0.8;
-          this.parts.push({ theta: b.theta, h: b.h, vt: 0, vh: 0, life: 0.22, fade: 0.44, spr: gh2, noGrav: true, grow: -b.spr.bsx * 2.4, rot: b.rot, rv: 0 });
+          this.parts.push({ theta: b.theta, h: b.h, vt: 0, vh: 0, life: 0.22, fade: 0.22, a0: 0.5, spr: gh2, noGrav: true, grow: -b.spr.bsx * 2.4, rot: b.rot, rv: 0 });
           if (Math.random() < 0.6) this.burst(b.theta, b.h, 'crumb', 1, 0.35);
         }
         if (b.bounce > 0 && b.bh < 0 && b.vh < 0) {       // BOUNCE: it skips off the ground with a splat and a small burst, and carries on
@@ -4153,6 +4162,7 @@ class Level1 extends Phaser.Scene {
             blast: b.blast * 0.42, blastDmg: b.blastDmg * 0.3, bossDmg: (b.bossDmg || this.weapon.bossDmg) * 0.3, charged: false, plough: false, ploughDmg: 0, minScale: 0, bounce: 0, cluster: 0, rot: 0, trailT: 0, mini: true, spr: im });
         }
       }
+      if (dead && b.mac) this.macSplat(b, !(b.age > (b.life || CFG.bulletLife)));
       if (dead) { b.spr.destroy(); this.pBullets.splice(i, 1); }
     }
     this.reapEnemies();
@@ -4245,6 +4255,36 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // ---- Mac-Grinder sauce: drips, splats and the glowing ribbons behind the shots
+  macDrip(theta, h, vt, vh) {
+    if (this.parts.length > 170) return;
+    const im = this.add.image(0, 0, 'macdrip').setDepth(7.9); im.bsx = im.bsy = rnd(0.7, 1.15);
+    this.parts.push({ theta, h, vt, vh, life: rnd(0.35, 0.6), fade: 0.25, spr: im, rot: 0, rv: 0 });
+  }
+  macSplat(b, hit) {                                      // hit something: a star of cheese, flung drips and a pop of light. Ran out of puff: it just fizzles.
+    const h = Math.max(2, b.h), dir = Math.sign(b.vt) || 1;
+    const im = this.add.image(0, 0, 'macsplat').setDepth(9.1); im.bsx = im.bsy = hit ? 0.55 : 0.3;
+    this.parts.push({ theta: b.theta, h, vt: 0, vh: 0, life: hit ? 0.2 : 0.13, fade: hit ? 0.2 : 0.13, noGrav: true, grow: hit ? 5 : 2.5, spr: im, rot: rnd(0, TAU), rv: rnd(-3, 3) });
+    if (!hit) return;
+    for (let k = 0; k < 3; k++) this.macDrip(b.theta, h, -dir * rnd(20, 190), rnd(40, 260));
+    if (this.lights.length < 22) this.addLight(b.theta, h, 54, 0xffc040, 0.9, 0.14);
+  }
+  drawMacTrails() {
+    if (!this.macG) this.macG = this.add.graphics().setDepth(7.95).setBlendMode(Phaser.BlendModes.ADD);
+    const g = this.macG, z = this.zoom; g.clear();
+    for (const b of this.pBullets) {
+      const t = b.tr; if (!t || t.length < 4) continue;
+      const n = t.length / 2, fadeOut = Math.min(1, ((b.life || CFG.bulletLife) - b.age) * 6);
+      let p0 = this.screenPos(t[0], t[1]);
+      g.fillStyle(0xff8a1a, 0.16 * fadeOut).fillCircle(p0.x, p0.y, 11 * z); g.fillStyle(0xffd060, 0.2 * fadeOut).fillCircle(p0.x, p0.y, 6 * z);     // hot halo round the shot
+      for (let i = 1; i < n; i++) {                       // the ribbon: thick and bright at the shot, thinning to a thread
+        const p1 = this.screenPos(t[i * 2], t[i * 2 + 1]), k = 1 - i / n;
+        g.lineStyle(Math.max(1.5, 10 * k * z), 0xff6a08, 0.6 * k * fadeOut).lineBetween(p0.x, p0.y, p1.x, p1.y);
+        g.lineStyle(Math.max(1, 4.5 * k * z), 0xffc840, 0.8 * k * fadeOut).lineBetween(p0.x, p0.y, p1.x, p1.y);
+        p0 = p1;
+      }
+    }
+  }
   burst(theta, h, tex, n, spd) {
     for (let i = 0; i < n; i++) {
       this.parts.push({
@@ -4287,7 +4327,6 @@ class Level1 extends Phaser.Scene {
       p.h += p.vh * dt;
       p.life -= dt;
       if (p.rv) p.rot += p.rv * dt;
-      if (p.fade) p.spr.setAlpha(Math.max(0, p.life / p.fade));
       if (p.flashT > 0) { p.flashT -= dt; if (p.flashT <= 0) p.spr.setTint(0xff9d9d); }
       if (p.stay && p.h < 0) { p.h = 0; p.vh = Math.abs(p.vh) > 120 ? -p.vh * 0.35 : 0; p.vt *= 0.5; p.rv *= 0.5; if (!p.vh) { p.vt = 0; p.rv = 0; } if (Math.abs(p.vh) > 0) Sound.sfx('clang'); }
       if (p.corpse && p.h < 0 && p.vh < 0) { this.burst(p.theta, 4, 'spark', 3, 0.4); p.h = 0; p.life = 0; }    // a little poof as it lands
@@ -4631,7 +4670,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     this.updateCamera();
     const { cx, cy } = this;
-    this.drawBlastFx();
+    this.drawBlastFx(); this.drawMacTrails();
     this.drawHazards();
     this.drawTongues(); this.drawFactory(); this.drawCheeseStrings(); this.drawMando();
 
@@ -4912,7 +4951,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.cave) this.drawCave();
     if (this.acidPools.length || this.eBullets.some(b => b.shadow) || this.acidG) this.drawAcid();
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
-    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(Math.min(1, p.life * 3)); }
+    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(p.fade ? Math.max(0, Math.min(1, p.life / p.fade)) * (p.a0 || 1) : Math.min(1, p.life * 3)); }
     this.updatePopups(this.lastDt || 0.016);
 
     // controls

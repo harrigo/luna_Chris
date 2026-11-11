@@ -296,6 +296,21 @@ function makeToonTextures(scene) {
   shipAnim(scene.game);
 
   // the eyeball that bulges out when something is hit
+  // Mac-Grinder shots: a tumbling elbow of macaroni smothered in molten cheese (3 frames), a drip, and a splat
+  { const SH = [0xffd070, 0xf09a22, 0xb85a08], CH = [0xfff6b8, 0xffd23a, 0xf0a010];
+    const elbow = (key, bend, dr) => pixSprite(scene, key, 22, 16, a => {
+      const pts = []; for (let i = 0; i <= 8; i++) { const u = i / 8; pts.push([3 + 16 * u, 8 - bend * Math.sin(u * Math.PI)]); }
+      a.line(pts, SH[2], 7); a.line(pts, SH[1], 5); a.line(pts.map(q => [q[0], q[1] - 1]), SH[0], 2);                 // the pasta tube
+      a.ell(3, 8, 1.5, 2, 0x7a3a04); a.ell(19, 8, 1.5, 2, 0x7a3a04);                                                    // hollow ends
+      a.ell(11, 8 - bend * 0.9, 5, 2.6, CH); a.px(9, Math.round(7 - bend * 0.9), 0xffffff); a.px(10, Math.round(7 - bend * 0.9), 0xffffff);   // a slick of cheese over the top
+      for (const [x, l] of dr) { a.rect(x, 9, x + 1, 9 + l, CH[1]); a.ell(x + 0.5, 10 + l, 1.5, 1.6, CH); }              // ...running off underneath
+    }, true);
+    elbow('mac0', 3, [[7, 2], [14, 4]]); elbow('mac1', 0.5, [[9, 4], [15, 2]]); elbow('mac2', -2.5, [[6, 3], [12, 1]]);
+    pixSprite(scene, 'macdrip', 7, 10, a => { a.poly([[3.5, 0], [6, 6], [1, 6]], CH[1]); a.ell(3.5, 6.5, 2.6, 2.6, CH); a.px(2, 6, 0xffffff); }, true);
+    pixSprite(scene, 'macsplat', 26, 26, a => {
+      for (let k = 0; k < 9; k++) { const an = k * 0.698 + 0.2, l = k % 2 ? 11 : 7.5; a.line([[13, 13], [13 + Math.cos(an) * l, 13 + Math.sin(an) * l]], CH[1], k % 2 ? 2 : 3); a.ell(13 + Math.cos(an) * l, 13 + Math.sin(an) * l, 1.6, 1.6, CH[1]); }
+      a.ell(13, 13, 6, 6, CH); a.ell(12, 12, 3, 3, 0xfffbe0);
+    }, false); }
   pixSprite(scene, 'toon_eye', 18, 18, a => { a.ell(9, 9, 7, 7, WH); for (const [x0, y0, x1, y1] of [[2, 8, 5, 9], [15, 11, 12, 10], [9, 15, 9, 13]]) a.line([[x0, y0], [x1, y1]], 0xe0302a); a.ell(11, 9.5, 1.5, 1.5, DARK); a.px(6, 5, 0xffffff); });
 }
 

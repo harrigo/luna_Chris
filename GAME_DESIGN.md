@@ -1389,3 +1389,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - How hard the aim stick / trigger is pushed sets how far the ball is thrown (42% to 100% of the throw speed), like the Spaghetti Spinner's reach. The aim arc shows it live.
 - Charge now builds with time alone (the trigger no longer changes the charge rate).
 - The push eases down slowly (`P.throwK`), so letting go of the stick to fire keeps the throw you had.
+
+## v2.20 Mac-Grinder shots
+- New shot sprites `mac0..2` (toons.js): a tumbling elbow of macaroni under molten cheese, flipped at 20 fps. The old `macaroni` texture is still used by the cutscenes and bonus stages.
+- Each shot strings a glowing sauce ribbon behind it (`drawMacTrails`, additive layer `macG`) with a hot halo at the head, and sheds drips (`macDrip`) that fall and fade.
+- Hits splat (`macSplat`): a star of cheese, flung drips and a pop of light. Shots that run out of range fizzle with a small splat.
+- The muzzle flickers with warm light and spits sauce.
+- Parts with `fade` now fade over that time (optional `a0` start alpha); `chargeG` and `macG` are reset on scene restart.
