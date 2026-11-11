@@ -72,6 +72,22 @@ function makeShopTextures(scene) {
     a.line([[28, 8], [28, 2]], 0x5a6272, 2); a.ell(28, 2, 2.5, 2.5, 0xff5a4a);                  // aerial
     a.rect(2, 30, 6, 44, 0x9aa4b4); a.rect(50, 30, 54, 44, 0x9aa4b4);                           // arms
   }, true);
+  // the shop as seen from the route map: a tubby orbital kiosk with a striped awning, a sign board, crates and a dish
+  pixSprite(scene, 'shopship', 84, 62, a => {
+    const ST = [0xdfe6f0, 0x9aa4b4, 0x5a6272], DK = [0x5a6272, 0x3a4052, 0x232838], TL = [0x8affea, 0x2ad0b8, 0x148a80];
+    a.line([[16, 20], [10, 6]], 0x5a6272, 2); a.ell(9, 5, 5, 3, ST); a.px(9, 4, 0xff5a4a);                    // dish
+    a.line([[68, 20], [72, 8]], 0x5a6272, 2); a.ell(72, 7, 2.5, 2.5, 0xff5a4a);                               // beacon mast
+    a.rrect(8, 20, 76, 46, 8, ST);                                                                            // hull
+    a.rect(10, 40, 74, 43, 0x5a6272); a.rect(8, 30, 76, 31, 0xc8d0dc);
+    a.rrect(14, 8, 70, 22, 3, DK); a.rect(16, 10, 68, 20, 0x10202c);                                          // sign board (the word goes on top)
+    for (let k = 0; k < 7; k++) a.poly([[10 + k * 9.2, 24], [19.2 + k * 9.2, 24], [19.2 + k * 9.2, 30], [14.6 + k * 9.2, 33], [10 + k * 9.2, 30]], k % 2 ? [0xffffff, 0xdfe6f0, 0x9aa4b4] : [0xff7a6a, 0xe0403a, 0x9a1a1a]);   // awning
+    a.rrect(22, 34, 62, 44, 2, DK); a.rect(24, 35, 60, 43, 0x2a1a30);                                         // the hatch, lit and stocked
+    for (let k = 0; k < 4; k++) a.rect(26 + k * 9, 37, 31 + k * 9, 42, [0xffd23f, 0x7dff8a, 0xff7a5a, 0x5ce1ff][k]);
+    a.rrect(0, 28, 10, 40, 3, TL); a.rrect(74, 28, 84, 40, 3, TL);                                            // side pods
+    a.poly([[24, 46], [60, 46], [52, 54], [32, 54]], DK);                                                     // keel
+    a.rect(36, 54, 48, 56, 0x232838);
+  }, true);
+  for (let f = 0; f < 2; f++) pixSprite(scene, 'shopflame' + f, 14, 12, a => { a.poly([[1, 0], [13, 0], [7, f ? 11 : 8]], [0xfff6c0, 0xffb52a, 0xff6a1a]); a.poly([[4, 0], [10, 0], [7, f ? 6 : 4]], 0xffffff); }, false);
   pixSprite(scene, 'cheddar', 12, 12, a => { a.ell(6, 6, 5, 5, [0xffe27a, 0xffb52a, 0xb86a08]); a.rect(5, 3, 6, 8, 0xfff6c0); a.px(8, 4, 0xfff6c0); }, true);
 }
 

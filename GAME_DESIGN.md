@@ -1425,3 +1425,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Chris starts with 3 hearts (`CFG.maxHp` 3; `this.maxHp` adds shop hearts, up to 5). The health icons are yellow cheese HEARTS (`hud_cheese`, 13x11) instead of wedges.
 - Shop prices roughly 2.5x: armour 150/260/400/600, patch 25 a plate, re-forge 80 + 30 per mark, boots 120/220/350/500, start chips 180/320/500, life 300. New: EXTRA HEART 350 then 600.
 - The Milkmaid in act 2 (horns out, `mmS.p2`) can't be stomped: landing on her hurts Chris and throws him off.
+
+## v2.25 Shop on the route map
+- The SPACE SHOP button beside the title is replaced by a hovering orbital kiosk (`shopship`, with a SUPPLIES sign, striped awning, blinking beacon and thruster) over the start of the route. It bobs and tilts; tap it to go in. The cheddar total sits under it.

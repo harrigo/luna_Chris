@@ -1037,13 +1037,28 @@ class SelectScene extends Phaser.Scene {
     this.ui.add(ban);
     this.ui.add(this.add.text(W / 2, ty + th / 2 + 1, 'ROUTE TO BESSIE', f(Math.round(Math.min(18, th * 0.55, tw / 17)), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 4 })).setOrigin(0.5));
     this.bannerBox = { tx, ty, tw, th };
-    { // the SPACE SHOP: a button beside the title, showing the cheddar in your pocket
-      const sw = Math.max(90, Math.min(150, tx - 76 - 10)), sx = 76, coins = Shop.get(this.registry).coins, sg = this.add.graphics();
-      sg.fillStyle(0x000000, 0.4).fillRect(sx + 3, ty + 3, sw, th); sg.fillStyle(0x2a1440, 1).fillRect(sx, ty, sw, th); sg.lineStyle(2, 0x5cffe0, 1).strokeRect(sx, ty, sw, th);
-      this.ui.add(sg);
-      this.ui.add(this.add.text(sx + sw / 2, ty + th / 2 - 6, 'SPACE SHOP', f(8, '#5cffe0', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
-      this.ui.add(this.add.text(sx + sw / 2, ty + th / 2 + 6, 'CHEDDAR ' + coins, f(7, '#ffe27a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
-      const sz = this.add.zone(sx, ty, sw, th).setOrigin(0).setInteractive({ useHandCursor: true });
+    { // the SPACE SHOP hovers over the start of the route: a little orbital kiosk with SUPPLIES on its sign. Tap it to go in.
+      makeShopTextures(this);
+      if (this.shopTw) { this.shopTw.forEach(t => t.stop()); }
+      const sc = Math.max(1, Math.min(1.5, W / 760)), sx = W * 0.135, sy = ty + th + 26 * sc + 8, coins = Shop.get(this.registry).coins;
+      const box = this.add.container(sx, sy);
+      const glow = this.add.graphics(); glow.fillStyle(0x5cffe0, 0.1).fillEllipse(0, 2, 120 * sc, 76 * sc); glow.fillStyle(0x5cffe0, 0.08).fillEllipse(0, 2, 92 * sc, 58 * sc);
+      const flame = this.add.image(0, 25 * sc, 'shopflame0').setOrigin(0.5, 0).setScale(sc);
+      const ship = this.add.image(0, 0, 'shopship').setScale(sc);
+      const sign = this.add.text(0, -16 * sc, 'SUPPLIES', f(Math.round(6 * sc), '#5cffe0')).setOrigin(0.5);
+      const lamp = this.add.graphics(); lamp.fillStyle(0xff5a4a, 1).fillCircle(30 * sc, -24 * sc, 3 * sc); lamp.fillStyle(0xff5a4a, 0.3).fillCircle(30 * sc, -24 * sc, 7 * sc);
+      const lbl = this.add.text(0, 33 * sc + 6, 'SPACE SHOP', f(7, '#5cffe0', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0);
+      const ch = this.add.text(0, 33 * sc + 17, 'CHEDDAR ' + coins, f(6, '#ffe27a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0);
+      box.add([glow, flame, ship, sign, lamp, lbl, ch]);
+      this.ui.add(box);
+      this.shopTw = [
+        this.tweens.add({ targets: box, y: sy - 5, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }),
+        this.tweens.add({ targets: box, angle: { from: -2, to: 2 }, duration: 2100, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }),
+        this.tweens.add({ targets: lamp, alpha: 0.15, duration: 420, yoyo: true, repeat: -1 }),
+        this.tweens.add({ targets: sign, alpha: 0.55, duration: 90, yoyo: true, repeat: -1, repeatDelay: 1700 }),
+        this.tweens.addCounter({ from: 0, to: 1, duration: 160, repeat: -1, onRepeat: () => { if (flame.active) flame.setTexture(flame.texture.key === 'shopflame0' ? 'shopflame1' : 'shopflame0'); } })
+      ];
+      const sz = this.add.zone(sx - 46 * sc, sy - 34 * sc, 92 * sc, 68 * sc + 30).setOrigin(0).setInteractive({ useHandCursor: true });
       sz.on('pointerup', () => this.goShop());
       this.ui.add(sz);
     }
