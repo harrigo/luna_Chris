@@ -1396,3 +1396,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Hits splat (`macSplat`): a star of cheese, flung drips and a pop of light. Shots that run out of range fizzle with a small splat.
 - The muzzle flickers with warm light and spits sauce.
 - Parts with `fade` now fade over that time (optional `a0` start alpha); `chargeG` and `macG` are reset on scene restart.
+
+## v2.21 Fondue Shield
+- The three orbiting dots are replaced by `drawShield`: a wobbling bubble of molten cheese round Chris (far wall behind him, skin and rim in front), sheen arcs sliding round the rim, drips that swell and fall from the bottom, a soft glow.
+- The three charges are gobs on a tilted orbit that pass behind and in front of him, each with a tail.
+- A hit (`shieldHit`) wobbles the bubble hard, flashes the rim, throws a ripple ring and a ring of cheese drips, and pops one gob. It blinks for the last 2.5s and pops in when picked up.

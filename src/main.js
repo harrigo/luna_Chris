@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.20';
+const BUILD = 'v2.21';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1279,7 +1279,7 @@ class Level1 extends Phaser.Scene {
     if (this.bossDown) return;                                // the boss is beaten: nothing can hurt Chris on the way to the rescue
     if (this.buffOn('giant')) return;                        // too big to hurt
     if (this.buffOn('shield') && P.buff.charges > 0) {       // the Fondue Shield soaks it
-      P.buff.charges--; P.invuln = 0.8;
+      P.buff.charges--; P.invuln = 0.8; this.shieldHit();
       Sound.sfx('clang'); buzz(30); this.burst(P.theta, P.h + 30, 'fondue', 10, 1); this.bang(P.theta, P.h + 30, 16);
       this.banner(P.buff.charges > 0 ? 'SHIELD: ' + P.buff.charges + ' LEFT' : 'SHIELD GONE!');
       if (P.buff.charges <= 0) this.endBuff();
@@ -1900,14 +1900,7 @@ class Level1 extends Phaser.Scene {
       tx.setText(Math.ceil(c.t) + 's' + (c.n ? ' x' + c.n : '')).setPosition(x, y + r + 4).setVisible(true).setColor(frac < 0.25 ? '#ff7a5a' : '#ffffff');
     }
     if (!b) return;
-    if (b.kind === 'shield') {
-      if (!this.buffFx) this.buffFx = [0, 1, 2].map(() => this.add.image(0, 0, 'fondue').setDepth(7.4));
-      this.buffFx.forEach((o, i) => {
-        const a = this.t * 4 + i * TAU / 3, rr = 30 * this.giantK;
-        o.setVisible(i < b.charges); o.bsx = o.bsy = 1.3;
-        this.place(o, wrap(P.theta + Math.cos(a) * rr / R), P.h + 30 * this.giantK + Math.sin(a) * rr, 0);
-      });
-    }
+    if (b.kind === 'shield') this.drawShield(b);
     if (b.kind === 'disguise') {
       if (!this.buffFx) this.buffFx = [this.add.image(0, 0, 'pu_ears').setDepth(7.5)];
       const hd = this.rig.head.getWorldTransformMatrix();
@@ -1917,6 +1910,60 @@ class Level1 extends Phaser.Scene {
       if (!this.slowRect) this.slowRect = this.add.rectangle(0, 0, this.W, this.H, 0x7a6aff, 0.13).setOrigin(0).setDepth(19).setBlendMode(Phaser.BlendModes.ADD);
       this.slowRect.setSize(this.W, this.H).setVisible(true).setAlpha(0.2 + 0.05 * Math.sin(this.t * 6));
     }
+  }
+
+  // FONDUE SHIELD: a wobbling bubble of molten cheese round Chris. The rim runs and drips, a sheen slides over it, and the
+  // three charges orbit it as glowing gobs (passing behind him and in front). A hit ripples it, flings cheese and bursts a gob.
+  drawShield(b) {
+    const P = this.pl, z = this.zoom, gk = this.giantK || 1;
+    if (!this.buffFx) this.buffFx = [this.add.graphics().setDepth(6.6), this.add.graphics().setDepth(7.62), this.add.graphics().setDepth(7.63).setBlendMode(Phaser.BlendModes.ADD),
+      ...[0, 1, 2].map(() => this.add.image(0, 0, 'fondue'))];
+    const [gB, gF, gA] = this.buffFx, t = this.t, dtR = Math.min(0.05, this.game.loop.delta / 1000);
+    gB.clear(); gF.clear(); gA.clear();
+    const c = this.screenPos(P.theta, P.h + 35 * gk), ft = this.screenPos(P.theta, P.h - 60), dl = Math.hypot(ft.x - c.x, ft.y - c.y) || 1, dnx = (ft.x - c.x) / dl, dny = (ft.y - c.y) / dl;   // (dn: towards the ground)
+    const age = b.max - b.t, grow = Math.min(1, age / 0.35), pop = grow < 1 ? 1 + 0.35 * Math.sin(grow * Math.PI) : 1;
+    b.hitT = Math.max(0, (b.hitT || 0) - dtR); const hk = b.hitT / 0.45;                                     // the wobble after a hit
+    const dying = b.t < 2.5 && Math.floor(t * 9) % 2 === 0, al = dying ? 0.45 : 1;
+    const Rr = 54 * gk * z * grow * pop, wobA = 0.035 + 0.16 * hk, N = 40, pts = [];
+    const rad = a => Rr * (1 + wobA * Math.sin(a * 3 + t * 5.2) + wobA * 0.7 * Math.sin(a * 5 - t * 7.1) + 0.02 * Math.sin(a * 2 + t * 2));
+    const dnA = Math.atan2(dny, dnx);
+    for (let i = 0; i <= N; i++) { const a = TAU * i / N, r = rad(a) * (1 + 0.07 * Math.max(0, Math.cos(a - dnA)));   // it sags a little at the bottom
+      pts.push({ x: c.x + Math.cos(a) * r, y: c.y + Math.sin(a) * r }); }
+    // behind Chris: the far wall of the bubble
+    gB.fillStyle(0xe89a18, 0.13 * al).fillPoints(pts, true); gB.lineStyle(Math.max(2, 5 * z), 0xb86a08, 0.55 * al).strokePoints(pts, true);
+    // in front: a thin skin of cheese, the thick running rim, and the sheen
+    gF.fillStyle(0xf0b030, (0.05 + 0.2 * hk) * al).fillPoints(pts, true);
+    gF.lineStyle(Math.max(3, 6.5 * z), 0x8a4a08, 0.9 * al).strokePoints(pts, true);
+    gF.lineStyle(Math.max(2, 4 * z), hk > 0.5 ? 0xffffff : 0xeaa21e, al).strokePoints(pts, true);
+    gF.lineStyle(Math.max(1, 1.2 * z), 0xffe08a, 0.7 * al).strokePoints(pts.map(q => ({ x: c.x + (q.x - c.x) * 0.955, y: c.y + (q.y - c.y) * 0.955 })), true);
+    for (const [a0, w, o] of [[t * 0.9, 0.7, 0.86], [t * 0.9 + 0.95, 0.22, 0.86], [-t * 0.6 + 3.4, 0.4, 0.8]]) {      // sheen: bright arcs sliding round inside the rim
+      const hp = []; for (let i = 0; i <= 8; i++) { const a = a0 + w * i / 8; hp.push({ x: c.x + Math.cos(a) * rad(a) * o, y: c.y + Math.sin(a) * rad(a) * o }); }
+      gF.lineStyle(Math.max(1.5, 2.6 * z), 0xfff6d8, 0.6 * al).strokePoints(hp);
+    }
+    // cheese running off the bottom: drips that swell on the rim, stretch and let go
+    for (let k = 0; k < 4; k++) {
+      const ph = (t * 0.55 + k * 0.27) % 1, a = dnA + (k - 1.5) * 0.42, r = rad(a) * (1 + 0.07 * Math.max(0, Math.cos(a - dnA))), bx = c.x + Math.cos(a) * r, by = c.y + Math.sin(a) * r;
+      const len = (ph < 0.75 ? ph / 0.75 : 1) * 11 * z * gk, fall = ph > 0.75 ? (ph - 0.75) / 0.25 : 0, ex = bx + dnx * (len + fall * 26 * z), ey = by + dny * (len + fall * 26 * z);
+      if (!fall) { gF.lineStyle(Math.max(2, 3.4 * z), 0x8a4a08, al).lineBetween(bx, by, ex, ey); gF.lineStyle(Math.max(1, 2 * z), 0xffc23a, al).lineBetween(bx, by, ex, ey); }
+      gF.fillStyle(0x8a4a08, al * (1 - fall)).fillCircle(ex, ey, (2.2 + 1.6 * Math.min(1, ph / 0.75)) * z + 1); gF.fillStyle(0xffd23a, al * (1 - fall)).fillCircle(ex, ey, (2.2 + 1.6 * Math.min(1, ph / 0.75)) * z);
+    }
+    // warm glow, and the ripple ring thrown off by a hit
+    gA.fillStyle(0xffa020, (0.045 + 0.02 * Math.sin(t * 4)) * al).fillCircle(c.x, c.y, Rr * 1.3);
+    if (hk > 0) { gA.lineStyle(Math.max(2, 7 * hk * z), 0xfff3a0, hk).strokeCircle(c.x, c.y, Rr * (1.05 + 0.9 * (1 - hk))); gA.fillStyle(0xfff3a0, 0.16 * hk).fillCircle(c.x, c.y, Rr); }
+    // the charges: gobs of fondue on a tilted orbit, with a tail of smaller ones
+    for (let i = 0; i < 3; i++) {
+      const o = this.buffFx[3 + i], a = t * 3.2 + i * TAU / 3, front = Math.sin(a) > 0, on = i < b.charges;
+      const ox = Math.cos(a) * Rr * 1.08, oy = Math.sin(a) * Rr * 0.34 - ox * 0.25, k = (front ? 1.25 : 0.85) * gk * grow;
+      o.setVisible(on && !dying).setDepth(front ? 7.66 : 6.55).setPosition(c.x + ox, c.y + oy).setScale(1.5 * k * z).setRotation(0);
+      if (on) for (let j = 1; j <= 4; j++) { const a2 = a - j * 0.17, x2 = Math.cos(a2) * Rr * 1.08, y2 = Math.sin(a2) * Rr * 0.34 - x2 * 0.25; (Math.sin(a2) > 0 ? gF : gB).fillStyle(0xffc23a, 0.6 * (1 - j / 5) * al).fillCircle(c.x + x2, c.y + y2, (5 - j) * 0.9 * k * z); }
+    }
+    if (Math.random() < dtR * 5) this.macDrip(wrap(P.theta + rnd(-26, 26) * gk / R), P.h + rnd(0, 14), rnd(-20, 20), rnd(-10, 30));   // real drips falling from it
+  }
+  shieldHit() {                                           // (called when the shield soaks a hit)
+    const P = this.pl, b = P.buff; if (!b) return;
+    b.hitT = 0.45;
+    for (let k = 0; k < 12; k++) { const an = TAU * k / 12; this.macDrip(P.theta, P.h + 30, Math.cos(an) * rnd(120, 260), Math.sin(an) * rnd(120, 260) + 120); }
+    this.addLight(P.theta, P.h + 30, 130, 0xffd23f, 1, 0.3); this.camPunch(0.02);
   }
 
   // Bessie's Moo Bomb: a giant ghostly Bessie moos everything small off the screen
