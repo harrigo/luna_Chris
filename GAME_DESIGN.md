@@ -1436,3 +1436,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - In the shop: one spin per game for every golden cheese wheel ever found (`Shop.spinsLeft`; spins used are stored in `registry.shop.spins` and come back after GAME OVER).
 - Eight slices, weighted (`SPIN`): 30 cheddar x2 (22% each), 60 (16%), armour plate (14%; 50 cheddar if nothing to mend), GUN +1 on a random gun (10%), RAT = nothing (10%), 120 (4%), extra life (2%).
 - Button in the shop's left panel (key L, pad X/Y).
+
+## v2.28 Cheddar spills, one-off spins, golden sets
+- Cheddar is no longer banked on the kill: it spills out as coins (`spillCheddar`, pickups of kind 'cheddar') that scatter, bounce and roll. They last 10 seconds and blink for the last 3. The Magnet Fork pulls them in.
+- Lucky Wheel spins are one-off: each golden wheel found is one spin EVER (`lc_spins` in localStorage), not a per-game allowance.
+- Wheel: the 120 slice is now 500 (3% chance). GUN +1 lets you choose which unlocked gun goes up.
+- GOLDEN SET (all 3 wheels on a level): 100 cheddar spills out on the spot, and every new game starts with +75 cheddar per completed set (`Shop.goldenSets`, `SHOP.setBonus`).

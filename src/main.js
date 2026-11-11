@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.27';
+const BUILD = 'v2.28';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -168,7 +168,7 @@ class Level1 extends Phaser.Scene {
   // ------------------------------------------------------------------ setup
   create() {
     makeTextures(this);
-    makeLevelTextures(this);
+    makeLevelTextures(this); makeShopTextures(this);
     this.cameras.main.setBackgroundColor(this.def.bg);
     this.cameras.main.fadeIn(300, 0, 0, 0);
     this.skyG = this.add.graphics().setDepth(-1);
@@ -1093,6 +1093,10 @@ class Level1 extends Phaser.Scene {
         this.addScore(2500); this.popup(w.theta, w.h + 20, '+2500', '#ffd23f', true);
         Sound.sfx('reveal'); buzz([30, 30, 60]);
         this.burst(w.theta, w.h, 'crumb', 16, 1.2); this.bang(w.theta, w.h, 24); this.addLight(w.theta, w.h, 120, 0xffd23f, 1, 0.5);
+        if (Progress.wheelCount(this.levelId) >= 3) {      // the GOLDEN SET: a pile of cheddar now, and every new game starts with more in hand
+          this.spillCheddar(w.theta, w.h + 20, 100); this.cameras.main.flash(300, 255, 230, 140); Sound.sfx('power');
+          this.banner('GOLDEN SET! ALL 3 FOUND\n+' + SHOP.setBonus + ' CHEDDAR AT THE START OF EVERY GAME');
+        } else
         this.banner('GOLDEN CHEESE WHEEL!\n' + Progress.wheelCount(this.levelId) + ' / 3 FOUND');
       }
     }
@@ -4091,7 +4095,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
-      Shop.earn(this.registry, e.type === 'boss' ? 50 : Math.max(1, Math.round(pts / 50)));       // CHEDDAR for the space shop
+      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 50 : Math.max(1, Math.round(pts / 50)));       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
         const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
@@ -4316,6 +4320,15 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // an enemy's cheddar bursts out of it as coins: grab them within 10 seconds or they're gone (they blink for the last 3)
+  spillCheddar(theta, h, total) {
+    const n = Math.min(total, total >= 40 ? 10 : 5);
+    for (let k = 0; k < n; k++) {
+      const val = Math.floor(total / n) + (k < total % n ? 1 : 0), im = this.add.image(0, 0, 'cheddar').setDepth(6.1);
+      im.bsx = im.bsy = val >= 5 ? 1.5 : val >= 2 ? 1.15 : 0.9;
+      this.pickups.push({ kind: 'cheddar', val, theta, h: Math.max(4, h), vt: rnd(-150, 150), vh: rnd(200, 380), life: 10, spr: im });
+    }
+  }
   updatePickups(dt) {
     const P = this.pl;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
@@ -4326,12 +4339,15 @@ class Level1 extends Phaser.Scene {
       }
       p.vh -= this.gAt(p.theta) * 0.6 * dt;
       p.h += p.vh * dt;
+      if (p.vt) { p.theta = wrap(p.theta + p.vt / R * dt); if (p.h <= 0) { p.vt *= Math.exp(-5 * dt); if (p.vh < -90) { p.vh = -p.vh * 0.4; p.h = 0.5; } } }   // (coins scatter, bounce and roll to a stop)
+      if (p.kind === 'cheddar') p.spr.setAlpha(p.life < 3 && Math.floor(p.life * 8) % 2 ? 0.25 : 1);
       if (p.kind === 'buff') p.spr.setScale(p.spr.scaleX * (1 + 0.1 * Math.sin(this.t * 8)));
       if (p.h <= 0) { p.h = 0; p.vh = 0; }
       p.life -= dt;
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
         if (p.kind === 'buff') this.startBuff(p.bk);
+        else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; }
         else if (p.kind === 'power') {
           const up = this.gunLvUp(); P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
           this.addLight(P.theta, P.h + 30, 150, 0xfff3a0, 1, 0.5);
@@ -5033,7 +5049,7 @@ class Level1 extends Phaser.Scene {
     this.drawBeam();
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
-    for (const p of this.pickups) this.place(p.spr, p.theta, p.h, 0);
+    for (const p of this.pickups) this.place(p.spr, p.theta, p.h + (p.kind === "cheddar" ? 6 : 0), 0);
     if (this.chaser) {                                   // spinning rind, upright furious face (dizzy wobble when stunned)
       const C = this.chaser; this.place(C.spr, C.theta, C.r, C.roll);
       this.place(C.face, C.theta, C.r + 4, C.stun > 0 ? Math.sin(this.t * 20) * 0.3 : 0); C.face.setScale(C.face.scaleX * 1.25, C.face.scaleY * 1.25);
@@ -5117,6 +5133,7 @@ class Level1 extends Phaser.Scene {
     const lit = Math.ceil(P.ammo * this.macIcons.length - 0.001);
     { const sh = Shop.get(this.registry);                    // cheddar, and the armour gauge (plates; dark ones are gone)
       if (sh.coins !== this.coinShown) { this.coinShown = sh.coins; this.coinText.setText('CHEDDAR ' + sh.coins); }
+      P.coinPop = Math.max(0, (P.coinPop || 0) - 0.016); this.coinText.setScale(1 + P.coinPop * 1.2);
       const key = sh.armMk * 10 + sh.armHp;
       if (key !== this.armShown) {
         this.armShown = key; this.armG.clear(); this.armText.setVisible(sh.armHp > 0);
