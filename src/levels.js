@@ -2174,8 +2174,20 @@ function makeHudTextures(scene) {
     }
     if (holes) for (const [x, y] of [[3, 6], [6, 7], [2, 4], [7, 5]]) put(x, y, holes);
   });
-  wedge('hud_cheese', 0xfff09a, 0xffcf3a, 0xc9901a);
-  wedge('hud_cheese_off', 0x5a4a6a, 0x3a2e4a, 0x2a2036);
+  // the health icons: HEARTS of cheese (still yellow, still holey)
+  const heart = (key, light, mid, holes) => pixTex(scene, key, 13, 11, put => {
+    const rows = ['..XXX...XXX..', '.XXXXX.XXXXX.', 'XXXXXXXXXXXXX', 'XXXXXXXXXXXXX', 'XXXXXXXXXXXXX', '.XXXXXXXXXXX.', '..XXXXXXXXX..', '...XXXXXXX...', '....XXXXX....', '.....XXX.....', '......X......'];
+    const inside = (x, y) => y >= 0 && y < 11 && x >= 0 && x < 13 && rows[y][x] === 'X';
+    for (let y = 0; y < 11; y++) for (let x = 0; x < 13; x++) {
+      if (!inside(x, y)) continue;
+      const edge = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+      put(x, y, edge ? OUTC : (y < 4 ? light : mid));
+    }
+    put(3, 2, 0xffffff); put(2, 3, 0xffffff);
+    if (holes) for (const [x, y] of [[9, 3], [5, 5], [8, 6], [6, 8]]) put(x, y, holes);
+  });
+  heart('hud_cheese', 0xfff09a, 0xffcf3a, 0xc9901a);
+  heart('hud_cheese_off', 0x5a4a6a, 0x3a2e4a, 0x2a2036);
   const elbow = (key, c1, c2) => pixTex(scene, key, 9, 8, put => {
     const inR = (x, y) => { const d = Math.hypot(x + 0.5 - 1, y + 0.5 - 7.5); return x >= 1 && y <= 7 && d >= 3 && d <= 7; };
     for (let y = 0; y < 8; y++) for (let x = 0; x < 9; x++) {

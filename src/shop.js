@@ -8,13 +8,13 @@
 // Everything lives in the registry under 'shop' and is wiped with the lives on game over.
 const SHOP = {
   armHp: [0, 2, 3, 4, 5],                 // gauge size per mark
-  armCost: [0, 60, 100, 150, 220],        // forging / upgrading TO this mark
-  bootCost: [0, 50, 90, 140, 200],
-  chipCost: [0, 70, 120, 180],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4
-  lifeCost: 120, patchCost: 10
+  armCost: [0, 150, 260, 400, 600],        // forging / upgrading TO this mark
+  bootCost: [0, 120, 220, 350, 500],
+  chipCost: [0, 180, 320, 500],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4
+  lifeCost: 300, patchCost: 25, heartCost: [0, 350, 600]   // (v2.24: everything roughly 2.5x dearer)
 };
 const Shop = {
-  get(reg) { const s = reg.get('shop'); return s || { coins: 0, armMk: 0, armHp: 0, boots: 0, chips: {} }; },
+  get(reg) { const s = reg.get('shop'); return s || { coins: 0, armMk: 0, armHp: 0, boots: 0, hearts: 0, chips: {} }; },
   set(reg, s) { reg.set('shop', Object.assign({}, s)); },
   reset(reg) { reg.set('shop', null); },
   earn(reg, n) { const s = this.get(reg); s.coins += n; this.set(reg, s); },
@@ -111,7 +111,7 @@ class ShopScene extends Phaser.Scene {
     const reg = this.registry, s = Shop.get(reg), L = [], lives = reg.get('lives') || 0;
     const mk = ['', 'Mk I', 'Mk II', 'Mk III', 'Mk IV'];
     if (s.armMk > 0 && s.armHp <= 0) {
-      const c = Math.round(SHOP.armCost[1] * 0.5 + s.armMk * 10);
+      const c = 80 + s.armMk * 30;
       L.push({ name: 'RE-FORGE BLACK RIND ' + mk[s.armMk], desc: 'It shattered. Forge it again: ' + SHOP.armHp[s.armMk] + ' plates.', cost: c, act: q => { q.armHp = SHOP.armHp[q.armMk]; } });
     } else if (s.armMk < 4) {
       const n = s.armMk + 1;
@@ -126,6 +126,9 @@ class ShopScene extends Phaser.Scene {
       if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: SHOP.chipCost[c + 1], act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
       else L.push({ name: w.short + ' START CHIP 3', desc: 'Always starts at LEVEL 4.', cost: 0, max: true });
     }
+    { const hN = s.hearts || 0;
+      if (hN < 2) L.push({ name: 'EXTRA HEART ' + (hN + 1), desc: 'You start with ' + CFG.maxHp + '. This makes it ' + (CFG.maxHp + hN + 1) + '.', cost: SHOP.heartCost[hN + 1], act: q => { q.hearts = hN + 1; } });
+      else L.push({ name: 'EXTRA HEART 2', desc: 'Five hearts is your lot.', cost: 0, max: true }); }
     L.push({ name: 'EXTRA LIFE', desc: 'You have ' + lives + '. (' + CFG.maxLives + ' at most.)', cost: SHOP.lifeCost, max: lives >= CFG.maxLives, act: () => { reg.set('lives', Math.min(CFG.maxLives, (reg.get('lives') || 0) + 1)); } });
     return L;
   }

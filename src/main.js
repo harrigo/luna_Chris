@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.23';
+const BUILD = 'v2.24';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -17,7 +17,7 @@ const CFG = {
   gravity: 1500,
   jumpV: 560,
   runSpeed: 230,
-  maxHp: 5,
+  maxHp: 3,          // hearts to start with (the shop sells up to 2 more)
   startLives: 3,     // lives per game; GAME OVER when they run out
   maxLives: 9,
   lifeEvery: 40000,  // a bonus life for every this many points scored in a level
@@ -487,7 +487,7 @@ class Level1 extends Phaser.Scene {
       this.weaponIdx = wi; this.weapon = WEAPONS[wi]; this.rig.setWeapon(this.weapon); }        // the animated chef-astronaut (src/chris.js); P.spr below is just an invisible anchor
     this.pl = {
       theta: 0, h: 0, vh: 0, vx: 0, facing: 1,
-      hp: CFG.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, bashSpin: 0, bashLean: 0, charge: 0, charging: false, beamReach: 1, power: 0, fuel: 1, jetArmed: false, thrusting: false,
+      hp: this.maxHp, invuln: 0, fireCd: 0, ammo: 1, ammoHold: 0, overheat: false, bashT: 0, bashCd: 0, bashA: 0, bashX: 0, bashY: 0, bashSpin: 0, bashLean: 0, charge: 0, charging: false, beamReach: 1, power: 0, fuel: 1, jetArmed: false, thrusting: false,
       spr: this.add.image(0, 0, 'blank').setOrigin(0.5, 1).setDepth(7)
     };
 
@@ -546,7 +546,7 @@ class Level1 extends Phaser.Scene {
       if (type === 'mode') { this.cheatText.setVisible(Cheat.on); return; }
       if (type !== 'heart' || !Cheat.on || (this.state !== 'play' && this.state !== 'rescue')) return;
       const P = this.pl;
-      if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); this.banner('+1 CHEESE'); }
+      if (P.hp < this.maxHp) { P.hp++; this.updateHearts(); this.banner('+1 HEART'); }
       else if (!this.bonusHeart) { this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
       Sound.sfx('pickup'); buzz(25);
       this.burst(P.theta, P.h + 30, 'spark', 8, 0.6);
@@ -672,7 +672,7 @@ class Level1 extends Phaser.Scene {
     this.jetText = this.add.text(0, 0, 'JET', f(8, '#9fd8ff', ink)).setDepth(20);
     this.macText = this.add.text(0, 0, 'MAC', f(8, '#ffc36a', ink)).setDepth(20);
     this.portrait = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setOrigin(0).setScale(2).setDepth(20.5) : null;
-    this.cheeseIcons = []; for (let i = 0; i < CFG.maxHp; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
+    this.cheeseIcons = []; for (let i = 0; i < 5; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
     this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
     this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
@@ -732,6 +732,7 @@ class Level1 extends Phaser.Scene {
   }
 
   get lives() { return this.registry.get('lives') || 0; }
+  get maxHp() { return CFG.maxHp + (Shop.get(this.registry).hearts || 0); }
   // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
   gunLv(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }   // (a shop START CHIP is the floor)
   get lv() { return this.weapon ? this.gunLv(this.weapon.id) : 1; }
@@ -769,10 +770,10 @@ class Level1 extends Phaser.Scene {
 
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
-    this.cheeseIcons.forEach((c, i) => c.setTexture(i < hp ? 'hud_cheese' : 'hud_cheese_off'));
+    this.cheeseIcons.forEach((c, i) => c.setTexture(i < hp ? 'hud_cheese' : 'hud_cheese_off').setVisible(i < this.maxHp));
     if (this.bonusHeart) {                 // the cheeseburger heart sits after the cheese wedges
       if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.55);
-      this.burgerIcon.setPosition(66 + CFG.maxHp * 28 + 12, 30);
+      this.burgerIcon.setPosition(66 + this.maxHp * 28 + 12, 30);
     }
   }
 
@@ -1051,7 +1052,7 @@ class Level1 extends Phaser.Scene {
     }
     this.banner((this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed ? '\nCHECKPOINT!' : ''));
     if (this.waveIdx > 0 && this.waveIdx < this.waves.length - 1) Sound.sfx('wave');
-    if (this.waveIdx > 0 && this.pl.hp < CFG.maxHp && Settings.diff !== 'hard') {      // a breather: a cheese wedge drops in between waves when you're hurt
+    if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard') {      // a breather: a cheese wedge drops in between waves when you're hurt
       this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
     }
     this.waveText.setText(this.waveIdx < this.waves.length - 1 ? 'WAVE ' + (this.waveIdx + 1) + '/' + (this.waves.length - 1) : 'BOSS');
@@ -4013,6 +4014,13 @@ class Level1 extends Phaser.Scene {
             this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.banner('OUCH! NOT THE SAW!');
             continue;
           }
+          if (e.ai === 'milkmaid' && e.mmS && e.mmS.p2) {                 // the MILKMAID with her HORNS out: land on those and you're gored
+            P.vh = 440; P.h = top + 1; P.jetArmed = false; this.hurt();
+            P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 240;
+            this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.cameras.main.shake(120, 0.008);
+            if (!this.hornTip) { this.hornTip = true; this.banner('GORED! MIND THE HORNS\nSHOOT HER HEART INSTEAD'); }
+            continue;
+          }
           if (e.ai === 'baron' && !(e.slam && e.slam.st === 'land')) {     // BARON's SPORE CROWN: it bursts in your face and throws you off
             P.vh = 430; P.h = top + 1; P.jetArmed = false; this.hurt();
             P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 230;
@@ -4332,7 +4340,7 @@ class Level1 extends Phaser.Scene {
           this.bang(P.theta, P.h + 24, 26);
           this.banner(up ? this.weapon.short + ' LEVEL ' + this.lv + '!\n' + this.weapon.lv[this.lv] : 'MAX LEVEL! +1500');
         } else {
-          if (P.hp < CFG.maxHp) { P.hp++; this.updateHearts(); }
+          if (P.hp < this.maxHp) { P.hp++; this.updateHearts(); }
           this.addScore(50);
           Sound.sfx('pickup'); Sound.say('yum');
           buzz(20);
