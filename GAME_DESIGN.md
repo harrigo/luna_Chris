@@ -1428,3 +1428,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.25 Shop on the route map
 - The SPACE SHOP button beside the title is replaced by a hovering orbital kiosk (`shopship`, with a SUPPLIES sign, striped awning, blinking beacon and thruster) over the start of the route. It bobs and tilts; tap it to go in. The cheddar total sits under it.
+
+## v2.26 Route map status panel
+- The bottom-right panel is wider and shows Chris as he stands: hearts, lives, cheddar, wheels; each gun and its level (or LOCKED); armour mark and plates (or SHATTERED / NO ARMOUR) and boots. The cheddar count under the shop kiosk is gone.

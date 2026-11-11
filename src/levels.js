@@ -1048,8 +1048,7 @@ class SelectScene extends Phaser.Scene {
       const sign = this.add.text(0, -16 * sc, 'SUPPLIES', f(Math.round(6 * sc), '#5cffe0')).setOrigin(0.5);
       const lamp = this.add.graphics(); lamp.fillStyle(0xff5a4a, 1).fillCircle(30 * sc, -24 * sc, 3 * sc); lamp.fillStyle(0xff5a4a, 0.3).fillCircle(30 * sc, -24 * sc, 7 * sc);
       const lbl = this.add.text(0, 33 * sc + 6, 'SPACE SHOP', f(7, '#5cffe0', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0);
-      const ch = this.add.text(0, 33 * sc + 17, 'CHEDDAR ' + coins, f(6, '#ffe27a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0);
-      box.add([glow, flame, ship, sign, lamp, lbl, ch]);
+      box.add([glow, flame, ship, sign, lamp, lbl]);
       this.ui.add(box);
       this.shopTw = [
         this.tweens.add({ targets: box, y: sy - 5, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' }),
@@ -1176,7 +1175,7 @@ class SelectScene extends Phaser.Scene {
       this.clearBtn.setVisible(canClear).setText(canClear ? 'TEST: CLEAR ' + (id === 5.5 ? 'FONDUE FOUNTAIN' : 'LV ' + id) : '');
       let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
     }
-    const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(190, W * 0.26), lw = W - 24 - rw;
+    const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(330, W * 0.41), lw = W - 24 - rw;
     const panel = (x, y, w, h) => {
       const g = this.add.graphics();
       g.fillStyle(0x000000, 0.35).fillRect(x + 3, y + 3, w, h);
@@ -1202,11 +1201,23 @@ class SelectScene extends Phaser.Scene {
     // right: lives and how many golden cheese wheels you've found in total
     const lives = this.registry.get('lives') > 0 ? this.registry.get('lives') : CFG.startLives;
     let wheels = 0; for (let i = 1; i <= 9; i++) wheels += Progress.wheelCount(i);
-    const rx = W - rw + 2, half = ph / 2;
-    this.infoBox.add(this.add.text(rx, y0 + half * 0.5 + 2, 'LIVES: ' + lives, f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0, 0.5));
-    for (let k = 0; k < Math.min(3, lives); k++) this.infoBox.add(this.add.image(W - 30 - k * 18, y0 + half * 0.5 + 2, 'wedge').setScale(0.9));
-    this.infoBox.add(this.add.text(rx, y0 + half * 1.5 - 2, 'WHEELS: ' + wheels + '/27', f(9, '#ffffff', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0, 0.5));
-    this.wheelIcon = this.add.image(W - 30, y0 + half * 1.5 - 2, 'goldwheel').setScale(0.8); this.infoBox.add(this.wheelIcon);
+    // ...and Chris as he stands: hearts, lives, cheddar and wheels on the left; each gun's level, armour and boots on the right
+    const sh = Shop.get(this.registry), gl = this.registry.get('gunLv') || {}, ink3 = { stroke: '#1a1020', strokeThickness: 3 };
+    const rx = W - rw + 2, rows = 4, rh = (ph - 14) / rows, ry = k => y0 + 7 + rh * (k + 0.5), cx2 = rx + rw * 0.43, fs = rh < 15 ? 6 : 7;
+    const put = (x, k, txt, col) => this.infoBox.add(this.add.text(x, ry(k), txt, f(fs, col || '#ffffff', ink3)).setOrigin(0, 0.5));
+    const hearts = CFG.maxHp + (sh.hearts || 0);
+    for (let k = 0; k < hearts; k++) this.infoBox.add(this.add.image(rx + 6 + k * 15, ry(0), 'hud_cheese').setScale(1));
+    put(rx, 1, 'LIVES ' + lives);
+    this.infoBox.add(this.add.image(rx + 5, ry(2), 'cheddar').setScale(0.9)); put(rx + 14, 2, 'CHEDDAR ' + sh.coins, '#ffe27a');
+    this.wheelIcon = this.add.image(rx + 5, ry(3), 'goldwheel').setScale(0.5); this.infoBox.add(this.wheelIcon); put(rx + 14, 3, 'WHEELS ' + wheels + '/27');
+    const lvlFor = typeof this.sel === 'number' ? this.sel : Progress.best + 1;
+    WEAPONS.forEach((w, i) => {
+      const open = weaponUnlocked(w, lvlFor), lv = Math.max(gl[w.id] || 1, 1 + ((sh.chips || {})[w.id] || 0));
+      if (i < 3) put(cx2, i, w.short + (open ? ' LV ' + (lv >= 4 ? 'MAX' : lv) : ' LOCKED'), open ? '#ffc36a' : '#5a6488');
+    });
+    const mk = ['', 'Mk I', 'Mk II', 'Mk III', 'Mk IV'][sh.armMk || 0];
+    const armTxt = sh.armMk > 0 ? (sh.armHp > 0 ? 'RIND ' + mk + ' ' + sh.armHp + '/' + SHOP.armHp[sh.armMk] : 'RIND SHATTERED') : 'NO ARMOUR';
+    put(cx2, 3, armTxt + (sh.boots ? '  BOOTS ' + sh.boots : ''), sh.armHp > 0 ? '#aab4d0' : (sh.armMk > 0 ? '#ff7a5a' : '#5a6488'));
   }
 
   update(time) {
@@ -1258,7 +1269,7 @@ class SelectScene extends Phaser.Scene {
       if (F.kind === 'ufo') { const b = Math.sin(time / 500) * 3; F.ufo.setY(F.y - F.r - 34 + b).setRotation(Math.sin(time / 700) * 0.08); F.cow.setY(F.y - F.r - 14 + b * 0.5).setRotation(Math.sin(time / 300) * 0.2); F.beam.setY(F.y - F.r - 30 + b).setAlpha(0.5 + 0.25 * Math.sin(time / 120)); }
       if (F.kind === 'portal') for (let k = 0; k < 4; k++) { fx.lineStyle(3, [0xff7a2a, 0xffd23f, 0xff4a7a, 0xffffff][(k + Math.floor(time / 140)) % 4], 1).strokeCircle(F.x, F.y, F.r * (1 - k * 0.22) + Math.sin(time / 200 + k) * 1.5); }
     }
-    if (this.wheelIcon) this.wheelIcon.setScale(0.8 * Math.max(0.15, Math.abs(Math.cos(time / 500))), 0.8);
+    if (this.wheelIcon) this.wheelIcon.setScale(0.5 * Math.max(0.15, Math.abs(Math.cos(time / 500))), 0.5);
     if (this.pos && this.ids && this.ids.includes(this.sel)) {
       const p = this.pos(this.sel), r = this.nodeR + 8 + Math.sin(time / 150) * 2;
       fx.lineStyle(3, 0xffffff, 0.85).strokeCircle(p.x, p.y, r);
