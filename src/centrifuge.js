@@ -528,16 +528,18 @@ class CentrifugeScene extends Phaser.Scene {
       P.aimA = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, Math.atan2(aimDir.x * up.x + aimDir.y * up.y, aimDir.x * fx2 + aimDir.y * fy2)));
     } else P.aimA = (P.aimA || 0) * Math.max(0, 1 - dt * 8);
     if (fire && this.fireCd <= 0 && this.muz) {
-      this.fireCd = 0.11; P.firing = 0.12;
-      const im = this.add.image(this.muz.x, this.muz.y, 'macaroni').setScale(1.2); this.world.add(im);
-      this.shots.push({ x: this.muz.x, y: this.muz.y, vx: this.muz.dx * 720, vy: this.muz.dy * 720, im, life: 1 });
+      this.fireCd = bonusMacLv(this) <= 1 ? 0.12 : 0.11; P.firing = 0.12;     // (the same Mac-Grinder as on the planets: its level, its shots)
+      for (const sh of bonusMacVolley(this, this.muz.x, this.muz.y, this.muz.dx, this.muz.dy, 720, null, im => this.world.add(im))) { sh.life = 1; this.shots.push(sh); }
       Sound.sfx('shoot');
     }
     P.firing = Math.max(0, (P.firing || 0) - dt);
     for (let i = this.shots.length - 1; i >= 0; i--) {
-      const b = this.shots[i]; b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; b.im.setPosition(b.x, b.y).setRotation(b.im.rotation + dt * 12);
+      const b = this.shots[i]; bonusMacStep(b, dt); b.life -= dt;
       let dead = b.life <= 0 || Math.hypot(b.x, b.y) > RD;
-      for (const e of this.ens) if (!dead && Math.hypot(b.x - e.x, b.y - e.y) < (e.kind === 'ratship' ? 32 : 22)) { e.hp--; e.flash = 0.06; dead = true; Sound.sfx('tink'); }
+      for (const e of this.ens) if (!dead && !b.hit.includes(e) && Math.hypot(b.x - e.x, b.y - e.y) < (e.kind === 'ratship' ? 32 : 22)) {
+        e.hp--; e.flash = 0.06; Sound.sfx('tink'); this.puff(b.x, b.y, 6, 0xffc23a, 160, 0.25, 3);
+        b.hit.push(e); if (b.hit.length >= Math.max(1, b.pierce)) dead = true;      // (level 4: pierces one)
+      }
       if (dead) { b.im.destroy(); this.shots.splice(i, 1); }
     }
     // ---- cheese wheels (in the drum's frame)
@@ -637,6 +639,7 @@ class CentrifugeScene extends Phaser.Scene {
       const p1 = this.world.pointToContainer({ x: a1.x, y: a1.y }), p0 = this.world.pointToContainer({ x: a0.x, y: a0.y }), L = Math.hypot(p1.x - p0.x, p1.y - p0.y) || 1;
       this.muz = { x: p1.x, y: p1.y, dx: (p1.x - p0.x) / L, dy: (p1.y - p0.y) / L }; }
     const fg = this.fxG; fg.clear();
+    bonusMacDraw(fg, this.shots);
     if (!this.onWall && Math.random() < dt * 30) this.fx.push({ x: cp.x, y: cp.y, vx: 0, vy: 0, life: 0.4, max: 0.4, col: 0x9fd8ff });
     for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } q.x += (q.vx || 0) * dt; q.y += (q.vy || 0) * dt; fg.fillStyle(q.col || 0x9fd8ff, q.life / q.max * 0.6).fillCircle(q.x, q.y, 4); }
     for (const b of this.ebul) {                                             // robot laser bolts: a hot streak with a white core

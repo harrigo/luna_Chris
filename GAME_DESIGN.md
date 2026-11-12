@@ -1528,3 +1528,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Milkmaid TELEPORT: slower (0.7s, was 0.45) and she's harmless while she streaks across - it used to ram Chris for a whole heart with no way to dodge.
 - The warp is hidden: no lanterns and no dull rift in the sky any more. Beat the Milkmaid and, instead of the cheeseburger, her CHURN drops and hangs there glowing ('HER CHURN IS GLOWING...'). Shoot it (6 hits) and it bursts in a splash of milk and the Triangle opens where it was. Bessie's rescue waits up to 12s while it's open. Going in counts level 3 as beaten (`Progress.beat`) and takes you to the Centrifuge.
 - Cheeseburger heart: picking it up at the end of a level now really gives you an extra heart (shown as the burger after the cheese hearts) for the NEXT level, on top of your usual hearts. It used to be just an icon that disappeared. It's used up when you lose it or the level ends; game over clears it.
+
+## v2.48 — Bonus rooms use the real Mac-Grinder
+- The Centrifuge and the Zero-G rooms now fire the same Mac-Grinder as the planets: its level (shop start chips / Lucky Wheel), single → twin helix → triple spread → piercing triple, the animated `mac` shots and the sauce ribbons. Shared helpers `bonusMacLv/Volley/Step/Draw` in zerog.js. Parmesan's 15 s boost does not carry into a bonus room.

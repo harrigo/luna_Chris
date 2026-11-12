@@ -20,6 +20,42 @@ function makeMiniWheel(scene) {
     a.px(6, 6, 0xffffff); a.px(7, 5, 0xffffff); a.px(14, 9, 0xc9901a); a.px(8, 8, 0xc9901a);
   }, true);
 }
+// ---- the MAC-GRINDER in the bonus rooms (v2.48): the same gun as on the planets - its level from the shop / wheel,
+// the tumbling cheesy elbows, the glowing sauce ribbon - in flat x/y space. bonusMacLv(scene) = its level (1-4);
+// bonusMacVolley(...) the shots for one pull of the trigger; bonusMacStep / bonusMacDraw move and draw them.
+function bonusMacLv(scene) {
+  const g = scene.registry.get('gunLv') || {}, chip = typeof Shop !== 'undefined' ? Shop.chip(scene.registry, 'grinder') : 0;
+  return Math.max(1, Math.min(4, Math.max(g.grinder || 1, 1 + chip)));
+}
+function bonusMacVolley(scene, x, y, dx, dy, speed, extra, add) {   // add(img): put the sprite in the right container
+  const lv = bonusMacLv(scene), out = [], ph0 = Math.random() * 6;
+  const spec = lv <= 1 ? [[0, 0]] : lv === 2 ? [[0, 0], [0, Math.PI]] : [[-0.2, 0], [0, 0], [0.2, 0]];
+  for (const [a, ph] of spec) {
+    const c = Math.cos(a), s2 = Math.sin(a), ux = dx * c - dy * s2, uy = dx * s2 + dy * c;
+    const im = scene.add.image(x, y, 'mac0').setScale(1.15); if (add) add(im);
+    out.push({ x, y, bx: x, by: y, vx: ux * speed + (extra ? extra.x : 0), vy: uy * speed + (extra ? extra.y : 0), px: -uy, py: ux, ph: ph0 + ph, helix: lv === 2,
+      age: 0, im, tr: [], pierce: lv >= 4 ? 2 : 0, hit: [] });
+  }
+  return out;
+}
+function bonusMacStep(s, dt) {                                   // move one shot (the twin helix winds round its path)
+  s.age += dt; s.bx += s.vx * dt; s.by += s.vy * dt;
+  const w = s.helix ? Math.sin(s.age * 30 + s.ph) * 8 : Math.sin(s.age * 38 + s.ph) * 2.5;
+  s.x = s.bx + s.px * w; s.y = s.by + s.py * w;
+  s.im.setPosition(s.x, s.y).setTexture('mac' + (Math.floor(s.age * 20 + s.ph) % 3)).setRotation(Math.atan2(s.vy, s.vx));
+  s.tr.unshift(s.x, s.y); if (s.tr.length > 14) s.tr.length = 14;
+}
+function bonusMacDraw(g, shots) {                               // the sauce ribbons (on an additive graphics layer)
+  for (const s of shots) {
+    const t = s.tr; if (t.length < 4) continue;
+    g.fillStyle(0xff8a1a, 0.16).fillCircle(t[0], t[1], 11); g.fillStyle(0xffd060, 0.2).fillCircle(t[0], t[1], 6);
+    for (let i = 1, n = t.length / 2; i < n; i++) {
+      const k = 1 - i / n;
+      g.lineStyle(Math.max(1.5, 10 * k), 0xff6a08, 0.6 * k).lineBetween(t[i * 2 - 2], t[i * 2 - 1], t[i * 2], t[i * 2 + 1]);
+      g.lineStyle(Math.max(1, 4.5 * k), 0xffc840, 0.8 * k).lineBetween(t[i * 2 - 2], t[i * 2 - 1], t[i * 2], t[i * 2 + 1]);
+    }
+  }
+}
 class GoalHud {
   constructor(scene) { this.s = scene; this.g = scene.add.graphics().setScrollFactor(0).setDepth(20); this.rows = []; this.title = null; }
   update(goals, x, y) {
@@ -247,8 +283,7 @@ class ZeroGScene extends Phaser.Scene {
       // out of the barrel: last frame's muzzle (the rig's real gun tip), pointing the way the barrel points
       const m = this.muzzle, sx = m ? m.x : this.pos.x + this.aim.x * 46, sy = m ? m.y : this.pos.y - 26 + this.aim.y * 46;
       const dx = m ? m.dx : this.aim.x, dy = m ? m.dy : this.aim.y;
-      const im = this.add.image(sx, sy, 'macaroni').setDepth(4.8).setScale(1.4);
-      this.shots.push({ x: sx, y: sy, vx: dx * 620 + this.vel.x * 0.3, vy: dy * 620 + this.vel.y * 0.3, life: 1.2, im });
+      for (const sh of bonusMacVolley(this, sx, sy, dx, dy, 620, { x: this.vel.x * 0.3, y: this.vel.y * 0.3 }, im => im.setDepth(4.8))) { sh.life = 1.2; this.shots.push(sh); }
       this.flash = 0.06; this.puff(sx, sy, 3, 0xffd23f, 90, 0.18, 2);
       this.puff(this.pos.x - this.aim.x * 10, this.pos.y - 30 - this.aim.y * 10, 1, 0x9fd8ff, 40, 0.4, 3);
       Sound.sfx('shoot');
@@ -283,13 +318,14 @@ class ZeroGScene extends Phaser.Scene {
     this.updateHazards(dt);
     // ---- shots
     for (let i = this.shots.length - 1; i >= 0; i--) {
-      const s = this.shots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.im.setPosition(s.x, s.y).setRotation(s.im.rotation + dt * 12);
+      const s = this.shots[i]; bonusMacStep(s, dt); s.life -= dt;
       const hitB = this.bumpers.find(b => Math.hypot(s.x - b.x, s.y - b.y) < b.r);
       const out = s.x < 0 || s.y < 0 || s.x > this.RW || s.y > this.RH;
       if (hitB || out) this.puff(Math.max(0, Math.min(this.RW, s.x)), Math.max(0, Math.min(this.RH, s.y)), 4, hitB ? 0xffd23f : 0x9fd8ff, 120, 0.25, 2);
       if (hitB) { hitB.flash = Math.max(hitB.flash, 0.08); hitB.pop = Math.max(hitB.pop, 0.4); }
       const hitM = this.mines.find(m => m.dead <= 0 && Math.hypot(s.x - m.x, s.y - m.y) < m.r + 8);
       if (hitM) { this.mineBoom(hitM); this.pop(hitM.x, hitM.y - 30, 'POP!', '#ffd23f'); }
+      if (hitM && s.pierce > 1) { s.pierce--; continue; }
       if (s.life <= 0 || hitB || hitM || out) { s.im.destroy(); this.shots.splice(i, 1); }
     }
     // ---- cheese wheels (a quick chain of pickups is a combo, each one buys back a second)
@@ -356,6 +392,7 @@ class ZeroGScene extends Phaser.Scene {
     }
     // particles + muzzle flash
     const fg = this.fxG; fg.clear();
+    bonusMacDraw(fg, this.shots);
     for (let i = this.fx.length - 1; i >= 0; i--) {
       const p = this.fx[i]; p.life -= dt; if (p.life <= 0) { this.fx.splice(i, 1); continue; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 3; p.vy *= 1 - dt * 3;
