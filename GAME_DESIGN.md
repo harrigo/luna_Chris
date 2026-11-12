@@ -1512,3 +1512,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Clocks 20s shorter: 30 / 28 / 25 (was 50 / 48 / 45). Each cheese wheel still buys back a second.
 - Obstacles: ZAP-BARS (electrified spokes turning round a hub; room 1 has one, rooms 2 and 3 two) fling you off and cost 2s. RAT MINES (spiky floating rat heads, 3 / 4 / 5 per room) drift slowly after you; a shot pops one (it comes back 4s later), touching one goes BANG, throws you across the room and costs 2s. Room 3 also has GUSTS that blow across the whole room every few seconds, with flashing streaks as a warning.
 - Getting all 12 no longer wins outright: the clock STOPS, the crate bursts, the mines go off, and the gun hangs spinning in the middle in a green beacon. Shoot yourself into it to clear the room and win the gun.
+
+## v2.45 Slower scaling
+- Level 2 back near where it was: each wave only gets a copy of every 4th spawn (15/22/25, was 18/26/30 in v2.41 and 12/17/20 before), and no 4th wave. Level 3 keeps its v2.41 waves.
+- Cheddar about 30% less again: an enemy spills score x 0.022 (minimum 1; a mouse 2, a flyer 3, a golem 9), a boss 60.
+- Parmesan (gun level-ups) after the first: later big enemies drop one 1 time in 8 (was 3 in 10).

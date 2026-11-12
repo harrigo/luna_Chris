@@ -359,16 +359,16 @@ const LEVELS = {
   }
 };
 
-// v2.41: levels 2 and 3 were too easy once the guns levelled up - every wave gets about half as many again (a copy of
-// every other spawn, slipped in just after it) and a closing 4th wave that mixes the level's whole cast
+// v2.41: levels 2 and 3 were too easy once the guns levelled up. Level 3: every wave gets about half as many again (a
+// copy of every other spawn, slipped in just after it) and a closing 4th wave mixing the level's whole cast.
+// v2.45: level 2 had far too many like that - it just gets a copy of every 4th spawn, and no 4th wave.
 for (const id of [2, 3]) {
-  const L = LEVELS[id], cast = [...new Set(L.waves.flatMap(w => w.spawns.map(q => q.type)))];
+  const L = LEVELS[id], cast = [...new Set(L.waves.flatMap(w => w.spawns.map(q => q.type)))], every = id === 2 ? 4 : 2;
   for (const w of L.waves) {
-    const extra = w.spawns.filter((q, i) => i % 2 === 0).map(q => S(q.type, q.t + 0.35));
+    const extra = w.spawns.filter((q, i) => i % every === 0).map(q => S(q.type, q.t + 0.35));
     w.spawns = w.spawns.concat(extra).sort((a, b) => a.t - b.t);
   }
-  const fin = []; for (let i = 0; i < 18; i++) fin.push(S(cast[i % cast.length], i * 0.55));
-  L.waves.push({ name: 'WAVE 4', spawns: fin });
+  if (id === 3) { const fin = []; for (let i = 0; i < 18; i++) fin.push(S(cast[i % cast.length], i * 0.55)); L.waves.push({ name: 'WAVE 4', spawns: fin }); }
 }
 
 // the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
