@@ -1493,3 +1493,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Cheddar values cut by about 69%: an enemy spills score x 0.031 (minimum 2; a mouse 3, a golem 12), a boss 80, a Golden Set 100.
 - Warp road is now Triangle (level 3) -> CENTRIFUGE -> Fondue Fountain -> level 7. Breaking into the warp on level 3 drops you in the Centrifuge first (until it's been beaten, `lc_cbeat`); winning it carries straight on into the Fondue Fountain. Map: the Centrifuge opens once the warp is found, the Fondue Fountain once the Centrifuge is beaten.
 - Centrifuge: survive 30s (was 60), only 10 robots come in all told (`CF_TIME`, `CF_BOTS`). The end screen has no AGAIN: grabbing the gun gives ON THROUGH THE WARP; losing gives MAP (it can be played again from the map).
+
+## v2.41 Power-ups clearly temporary; more enemies on levels 2 and 3
+- Every timed power-up is shorter: Hot Sauce 7s (was 10), Rocket Boots 8, Magnet Fork 8, Fondue Shield 10, Gouda Gigantism 6, Slow-Mo 5, Rat Disguise 7, Jalapeno 6.
+- Showing it's temporary: the pick-up banner says how many seconds; a draining bar with the icon and seconds rides over Chris's head (red and flashing in the last 3s); a big 3, 2, 1 pops over him with a blip; '... WORN OFF' when it ends. The HUD ring timer stays too.
+- Fewer of them: after each wave's first power-up drop the chance of another is 1 in 12 (was 1 in 4), and none drops while one is running.
+- Levels 2 and 3: every wave has about half as many enemies again (a copy of every other spawn slipped in 0.35s after it) and a new 18-enemy WAVE 4 mixing the level's whole cast. Level 2: 18/26/30/18 (was 12/17/20), level 3: 12/17/21/18 (was 8/11/14).

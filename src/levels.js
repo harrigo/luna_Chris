@@ -359,6 +359,18 @@ const LEVELS = {
   }
 };
 
+// v2.41: levels 2 and 3 were too easy once the guns levelled up - every wave gets about half as many again (a copy of
+// every other spawn, slipped in just after it) and a closing 4th wave that mixes the level's whole cast
+for (const id of [2, 3]) {
+  const L = LEVELS[id], cast = [...new Set(L.waves.flatMap(w => w.spawns.map(q => q.type)))];
+  for (const w of L.waves) {
+    const extra = w.spawns.filter((q, i) => i % 2 === 0).map(q => S(q.type, q.t + 0.35));
+    w.spawns = w.spawns.concat(extra).sort((a, b) => a.t - b.t);
+  }
+  const fin = []; for (let i = 0; i < 18; i++) fin.push(S(cast[i % cast.length], i * 0.55));
+  L.waves.push({ name: 'WAVE 4', spawns: fin });
+}
+
 // the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
 function makeWarpTextures(scene) {
   makeBlackHolePix(scene, 'px_bhole');
@@ -1774,16 +1786,17 @@ function makeRoadmapTextures(scene) {
 // ---------------------------------------------------------------- timed power-ups
 // Dropped (randomly) by medium and big enemies. `from` = the first level they can turn up on, so the early levels get the
 // plain ones and the silly ones arrive later. t = seconds it lasts (0 = instant).
+// (v2.41: every one shorter - they made Chris too strong too quickly)
 const BUFFS = {
-  jalapeno: { name: 'JALAPENO BOOST!', tex: 'pu_jalapeno', t: 8, from: 6, col: 0x6aff4a },              // supercharged jet + a flame trail that stalls the wheel
-  sauce:   { name: 'HOT SAUCE!',        tex: 'pu_sauce',  t: 10, from: 1, col: 0xff4a2a },
-  boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 10, from: 1, col: 0x5ce1ff },
-  magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 12, from: 1, col: 0xff6a8a },
-  shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 14, from: 2, col: 0xffd23f },
-  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 6,  from: 3, col: 0xb8a8ff },
-  giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 8,  from: 2, col: 0xff3a3a },
+  jalapeno: { name: 'JALAPENO BOOST!', tex: 'pu_jalapeno', t: 6, from: 6, col: 0x6aff4a },              // supercharged jet + a flame trail that stalls the wheel
+  sauce:   { name: 'HOT SAUCE!',        tex: 'pu_sauce',  t: 7, from: 1, col: 0xff4a2a },
+  boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 8, from: 1, col: 0x5ce1ff },
+  magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 8, from: 1, col: 0xff6a8a },
+  shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 10, from: 2, col: 0xffd23f },
+  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 5,  from: 3, col: 0xb8a8ff },
+  giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 6,  from: 2, col: 0xff3a3a },
   moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 4, col: 0xffffff },
-  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 10, from: 3, col: 0xff9db8 }
+  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 7, from: 3, col: 0xff9db8 }
 };
 function makePowerupTextures(scene) {
   if (madeTex(scene, 'pu_sauce')) return;

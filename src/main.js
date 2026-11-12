@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.40';
+const BUILD = 'v2.41';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -209,7 +209,7 @@ class Level1 extends Phaser.Scene {
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
-    this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
+    this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.buffHead = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
     this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.magG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
@@ -1186,7 +1186,7 @@ class Level1 extends Phaser.Scene {
     this.state = 'gameover'; this.cp = null;
     this.registry.set('lives', 0);
     Sound.jet(false); Sound.music(null);
-    if (P.buff) this.endBuff();
+    if (P.buff) this.endBuff(true);
     this.time.delayedCall(0, () => this.clearEBullets());       // not right now: we may be inside the bullet loop
     P.invuln = 0; P.thrusting = false; P.vx = 0; P.duck = false; P.firing = 0;
     this.slowT = 1.2; this.hitStop = 0.25;
@@ -1883,18 +1883,19 @@ class Level1 extends Phaser.Scene {
 
   startBuff(k) {
     const P = this.pl, B = BUFFS[k];
-    if (P.buff) this.endBuff();
+    if (P.buff) this.endBuff(true);
     Sound.sfx('power'); buzz([20, 30, 20, 30, 60]); this.bang(P.theta, P.h + 24, 26);
-    this.banner(B.name); this.addScore(300);
+    this.banner(B.name + (B.t ? '\n' + B.t + ' SECONDS!' : '')); this.addScore(300);
     this.addLight(P.theta, P.h + 30, 140, B.col, 1, 0.5);
     if (k === 'moo') { this.mooBomb(); return; }
     P.buff = { kind: k, t: B.t, max: B.t, charges: k === 'shield' ? 3 : 0 };
     if (k === 'giant') this.cameras.main.shake(300, 0.01);
   }
 
-  endBuff() {
+  endBuff(quiet) {
     const P = this.pl; if (!P.buff) return;
     const k = P.buff.kind; P.buff = null;
+    if (!quiet && BUFFS[k] && BUFFS[k].t) this.banner(BUFFS[k].name.replace('!', '') + ' WORN OFF');
     if (this.buffFx) { this.buffFx.forEach(o => o.destroy()); this.buffFx = null; }
     if (this.slowRect) this.slowRect.setVisible(false);
     if (k === 'giant') P.invuln = Math.max(P.invuln, 1);           // a moment's grace as he shrinks back
@@ -1908,7 +1909,8 @@ class Level1 extends Phaser.Scene {
       if (P.power <= 0) { P.power = 0; Sound.sfx('flap'); this.banner('PARMESAN POWER WORN OFF'); }
     }
     if (!b) return;
-    b.t -= dt;
+    const was = Math.ceil(b.t); b.t -= dt;
+    if (b.t > 0 && b.t <= 3 && Math.ceil(b.t) !== was) { Sound.sfx('blip'); this.popup(P.theta, P.h + 116, String(Math.ceil(b.t)), '#ff7a5a', true); }   // 3, 2, 1...
     if (b.kind === 'giant') {                                    // stomp stomp: flattens anything small he walks into
       for (const e of this.enemies) if (e.type !== 'boss' && e.hp > 0 && Math.abs(angDiff(e.theta, P.theta)) * R < 46 && e.h < 100) { e.hp = 0; this.burst(e.theta, e.h + 10, 'spark', 8, 1); }
       this.stepT -= dt;
@@ -1943,6 +1945,22 @@ class Level1 extends Phaser.Scene {
       const fr = this.textures.getFrame(c.tex), sz = fr ? Math.max(fr.width, fr.height) : 20;
       im.setTexture(c.tex).setPosition(x, y).setScale(24 / sz).setVisible(!flash || frac > 0.1);
       tx.setText(Math.ceil(c.t) + 's' + (c.n ? ' x' + c.n : '')).setPosition(x, y + r + 4).setVisible(true).setColor(frac < 0.25 ? '#ff7a5a' : '#ffffff');
+    }
+    // ...and over Chris's head: a bar that drains, with the icon and the seconds, so it's obvious it won't last
+    if (!this.buffHead) { this.buffHead = this.add.graphics().setDepth(9.5); this.buffHeadIm = this.add.image(0, 0, 'power').setDepth(9.6); this.buffHeadTx = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0, 0.5).setDepth(9.6); }
+    this.buffHead.clear();
+    const showHead = b && b.max && this.state === 'play';
+    this.buffHeadIm.setVisible(!!showHead); this.buffHeadTx.setVisible(!!showHead);
+    if (showHead) {
+      const q = this.screenPos(P.theta, P.h + 100 * this.giantK), fr = Math.max(0, b.t / b.max), low = b.t < 3, fl = low && Math.floor(this.t * 8) % 2, col = BUFFS[b.kind].col;
+      const bw = 46, bh = 6, bx = q.x - bw / 2 + 8, by = q.y - bh / 2;
+      this.buffHead.fillStyle(0x1a1020, 0.85).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+      this.buffHead.fillStyle(0x3a2f5a, 1).fillRect(bx, by, bw, bh);
+      this.buffHead.fillStyle(fl ? 0xffffff : low ? 0xff5a3a : col, 1).fillRect(bx, by, bw * fr, bh);
+      this.buffHead.fillStyle(0xffffff, 0.35).fillRect(bx, by, bw * fr, 2);
+      const fr2 = this.textures.getFrame(BUFFS[b.kind].tex), sz = fr2 ? Math.max(fr2.width, fr2.height) : 20;
+      this.buffHeadIm.setTexture(BUFFS[b.kind].tex).setPosition(bx - 11, q.y).setScale(16 / sz * (low ? 1 + 0.15 * Math.sin(this.t * 20) : 1));
+      this.buffHeadTx.setText(Math.ceil(b.t) + 's').setPosition(bx + bw + 5, q.y).setColor(low ? '#ff7a5a' : '#ffffff');
     }
     if (!b) return;
     if (b.kind === 'shield') this.drawShield(b);
@@ -4140,7 +4158,7 @@ class Level1 extends Phaser.Scene {
       if (e.big && !this.gotPower) {                     // the first big enemy always drops the Parmesan Power-Up
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
-      } else if (midSize && (this.waveBuff !== this.waveIdx || Math.random() < 0.25) && !this.pickups.some(p => p.kind === 'buff') && pool.length) {
+      } else if (midSize && (this.waveBuff !== this.waveIdx || Math.random() < 0.08) && !this.pickups.some(p => p.kind === 'buff') && !this.pl.buff && pool.length) {   // (v2.41: 1 in 12 after the first, and never while one's running)
         // every wave's first medium/big kill drops a timed power-up, then 1 in 4 after that; ones not yet had this level come first
         this.waveBuff = this.waveIdx;
         const from = fresh.length ? fresh : pool, bk = from[Math.floor(Math.random() * from.length)], B = BUFFS[bk];
