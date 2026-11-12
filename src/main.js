@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.36';
+const BUILD = 'v2.37';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4021,11 +4021,12 @@ class Level1 extends Phaser.Scene {
             this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.banner('OUCH! NOT THE SAW!');
             continue;
           }
-          if (e.ai === 'milkmaid' && e.mmS && e.mmS.p2) {                 // the MILKMAID with her HORNS out: land on those and you're gored
-            P.vh = 440; P.h = top + 1; P.jetArmed = false; this.hurt(true);
+          if (e.ai === 'milkmaid') {                                       // the MILKMAID can't be stomped. Bonnet on: his boots go straight through the ghost and he's shrugged off. HORNS out: gored.
+            const horns = e.mmS && e.mmS.p2;
+            P.vh = horns ? 440 : 360; P.h = top + 1; P.jetArmed = false;
             P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 240;
-            this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.cameras.main.shake(120, 0.008);
-            if (!this.hornTip) { this.hornTip = true; this.banner('GORED! MIND THE HORNS\nSHOOT HER HEART INSTEAD'); }
+            if (horns) { this.hurt(true); this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.cameras.main.shake(120, 0.008); if (!this.hornTip) { this.hornTip = true; this.banner('GORED! MIND THE HORNS\nSHOOT HER HEART INSTEAD'); } }
+            else { this.burst(P.theta, top, 'spark', 6, 0.8); Sound.sfx('whoosh'); if (!this.ghostTip) { this.ghostTip = true; this.banner("YOU CAN'T STOMP A GHOST\nSHOOT HER"); } }
             continue;
           }
           if (e.ai === 'baron' && !(e.slam && e.slam.st === 'land')) {     // BARON's SPORE CROWN: it bursts in your face and throws you off

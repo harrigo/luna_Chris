@@ -1471,3 +1471,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.36 Jam: shake then a slow double thump
 - The jam routine is now half a second of shaking, then two deliberate thumps of half a second each, a breath, and round again (1.9s cycle).
 - The gun stays jammed for at least 1.6s so the shake and both thumps always play (it used to clear as soon as the gauge reached the restart point, roughly a second sooner).
+
+## v2.37 Milkmaid: white milk, no stomping, a cage you can shoot down
+- Her milk (the pour, the flood, the drips and the whey on the churn) is white with a faint cream glow, not cyan.
+- She can't be stomped at all: in act 1 Chris's boots go through the ghost and he is shrugged off unharmed (one-off banner); in act 2 the horns still gore him.
+- The laser cage is a little bigger (half-width 0.54 shrinking to 0.37, lid at 335) and has 8 hit points: each Mac shot or whip lash on a wall or the lid takes 1 (a Swiss ball 4) and makes it flash white; it flickers when nearly through and shatters at zero. It still falls after 8 seconds.

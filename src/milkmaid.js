@@ -26,7 +26,7 @@ const MM = {
   churn: [19, 20],
   mouth: [0, -17],      // the churn's mouth, from the churn's centre
   heart: [0, -25],
-  top: 300,             // the cage lid height
+  top: 335,             // the cage lid height
   idleH: 140
 };
 
@@ -108,8 +108,8 @@ function makeMilkmaidTextures(scene) {
     for (const [x, y] of [[12, 24], [24, 28], [16, 39], [27, 21], [9, 36]]) { p.px(x, y, 0xc07a4a); p.px(x + 1, y, 0x5a3a2a); }   // rust
     p.line([[4, 20], [0, 26], [4, 32]], 0x8aa0b8, 2); p.line([[32, 20], [35, 26], [32, 32]], 0x8aa0b8, 2);   // handles
     p.ell(18, 9, 11, 3, [0xd8e2ee, 0x8aa0b8, 0x52648c]);                                    // rim
-    p.ell(18, 9, 8, 2, [0xd8ffff, 0x7dfcff, 0x2ab8d8]);                                     // glowing whey
-    for (const [x, l] of [[11, 7], [22, 4], [26, 9]]) p.line([[x, 10], [x, 10 + l]], 0x7dfcff);   // dribbling down the side
+    p.ell(18, 9, 8, 2, [0xffffff, 0xf6f1e4, 0xcfc8b8]);                                     // glowing whey
+    for (const [x, l] of [[11, 7], [22, 4], [26, 9]]) p.line([[x, 10], [x, 10 + l]], 0xffffff);   // dribbling down the side
   }, 1);
 
   pixSprite(scene, 'mm_heart', 16, 15, p => {                                               // act 2's weak spot
@@ -145,7 +145,7 @@ const MilkmaidMixin = {
     S.head = this.add.image(0, 0, 'mm_head0').setDepth(6.02);
     S.churn = this.add.image(0, 0, 'mm_churn').setDepth(6.03);
     S.heart = this.add.image(0, 0, 'mm_heart').setDepth(6.015).setAlpha(0);
-    bakedGlow(S.heart, 0xff3a4a, 3, 8); bakedGlow(S.churn, 0x7dfcff, 1, 4);
+    bakedGlow(S.heart, 0xff3a4a, 3, 8); bakedGlow(S.churn, 0xfff6e0, 1, 4);
     e.spr.setAlpha(0.9); bakedGlow(e.spr, 0x9fd8ff, 2, 8);           // a cold spectral glow
     if (!this.mm) this.mmScene();
     this.mm.boss = e;
@@ -213,7 +213,7 @@ const MilkmaidMixin = {
       }
       case 'triangle': {                               // the cage: neon triangles lock into laser walls round Chris
         e.mmLock = false; S.wide = 0.2;
-        if (!M.arena) { M.arena = { st: 'lock', t: 0, c: P.theta, half: 0.46, from: { theta: e.theta, h: e.h } }; Sound.sfx('alarm'); }
+        if (!M.arena) { M.arena = { st: 'lock', t: 0, c: P.theta, half: 0.54, hp: 8, flash: 0, beamCd: 0, from: { theta: e.theta, h: e.h } }; Sound.sfx('alarm'); }
         if (S.t > 1.3) this.mmIdle(e, 0.6);
         break;
       }
@@ -336,11 +336,26 @@ const MilkmaidMixin = {
       A.t += dt;
       if (A.st === 'lock' && A.t > 1.2) { A.st = 'on'; A.t = 0; Sound.sfx('zap'); this.cameras.main.shake(120, 0.006); }
       else if (A.st === 'on') {
-        A.half = 0.46 - 0.16 * Math.min(1, A.t / 8);
+        A.half = 0.54 - 0.17 * Math.min(1, A.t / 8);
+        // the cage can be SHOT DOWN: every hit on a wall or the lid makes it flash, and a few of them shatter it
+        A.flash = Math.max(0, A.flash - dt); A.beamCd -= dt;
+        const zap = (th, h, n) => { A.hp -= n; A.flash = 0.16; Sound.sfx('zing'); this.burst(th, h, 'spark', 5, 0.9); };
+        for (const b of this.pBullets) {
+          if (b.cageHit) continue;
+          const bd = angDiff(b.theta, A.c), side = Math.abs(bd) > A.half - 8 / R && Math.abs(bd) < A.half + 30 / R && b.h < MM.top + 10, lid = b.h > MM.top - 10 && b.h < MM.top + 40 && Math.abs(bd) < A.half;
+          if (side || lid) { b.cageHit = true; b.age = 99; zap(side ? wrap(A.c + Math.sign(bd) * A.half) : b.theta, side ? b.h : MM.top, b.blast ? 4 : 1); }
+        }
+        if (P.whip && P.whip.pts && P.beamOn && A.beamCd <= 0) for (const q of P.whip.pts.concat(P.whip.pts2 || [])) {      // the Spaghetti Spinner lashing a wall
+          const qd = angDiff(q.theta, A.c);
+          if (Math.abs(qd) > A.half - 6 / R || q.h > MM.top - 8) { A.beamCd = 0.12; zap(Math.abs(qd) > A.half - 6 / R ? wrap(A.c + Math.sign(qd) * A.half) : q.theta, Math.min(q.h, MM.top), 1); break; }
+        }
+        if (A.hp <= 0) { A.st = 'break'; A.t = 0; Sound.sfx('crash'); this.cameras.main.flash(140, 230, 200, 255); this.cameras.main.shake(160, 0.008);
+          for (const th of [wrap(A.c - A.half), A.c, wrap(A.c + A.half)]) this.burst(th, 170, 'spark', 16, 1.6);
+          if (!this.cageTip) { this.cageTip = true; this.banner('CAGE SMASHED!'); } }
         const d = angDiff(P.theta, A.c), lim = A.half - 14 / R;
         if (Math.abs(d) > lim) { if (P.invuln <= 0 && Math.abs(d) > A.half - 8 / R) this.hurt(); P.theta = wrap(A.c + Math.sign(d) * lim); P.vx = -Math.sign(d) * 160; }
         if (P.h > MM.top - 26) { if (P.invuln <= 0) this.hurt(); P.h = MM.top - 30; P.vh = Math.min(P.vh, -120); }
-        if (A.t > 8) { A.st = 'break'; A.t = 0; Sound.sfx('crash'); this.burst(A.c, 150, 'spark', 20, 1.6); }
+        if (A.st === 'on' && A.t > 8) { A.st = 'break'; A.t = 0; Sound.sfx('crash'); this.burst(A.c, 150, 'spark', 20, 1.6); }
       } else if (A.st === 'break' && A.t > 0.5) M.arena = null;
     }
     // ghost cows: rise out of the ground, then gallop
@@ -402,7 +417,7 @@ const MilkmaidMixin = {
     const g = M.g, gl = M.glow, S = e.mmS, z = this.zoom, vt = this.viewT();
     g.clear(); gl.clear();
     // whey drips
-    for (const d of S.drips) { const p = this.screenPos(d.theta, d.h); if (p.vis) gl.fillStyle(0x7dfcff, Math.min(1, d.life)).fillRect(p.x - 1.5 * z, p.y - 2 * z, 3 * z, 4 * z); }
+    for (const d of S.drips) { const p = this.screenPos(d.theta, d.h); if (p.vis) g.fillStyle(0xffffff, Math.min(1, d.life)).fillRect(p.x - 1.5 * z, p.y - 2 * z, 3 * z, 4 * z); }
     // the pour: a wobbling column of curdled ghost-milk from the churn's mouth to the ground
     if (M.stream) {
       const st = M.stream, n = 14, w0 = 10 * z, reach = Math.min(1, st.t / 0.35);
@@ -412,8 +427,8 @@ const MilkmaidMixin = {
         const p = this.screenPos(th, hh), ang = angDiff(th, vt), wd = w0 * (0.7 + f * 0.6);
         left.push({ x: p.x - Math.cos(ang) * wd, y: p.y - Math.sin(ang) * wd }); right.push({ x: p.x + Math.cos(ang) * wd, y: p.y + Math.sin(ang) * wd });
       }
-      g.fillStyle(0xeaf6ff, 0.9).fillPoints(left.concat(right.reverse()), true);
-      gl.fillStyle(0x7dfcff, 0.25).fillPoints(left.concat(right), true);
+      g.fillStyle(0xffffff, 0.95).fillPoints(left.concat(right.reverse()), true);          // MILK is white (v2.37: it used to glow blue)
+      gl.fillStyle(0xfff4dc, 0.1).fillPoints(left.concat(right), true);
     }
     // the flood: milk lying on the planet, foaming along the crest
     if (M.flood) {
@@ -424,9 +439,9 @@ const MilkmaidMixin = {
         if (L > 1.5) {
           const b0 = this.screenPos(th, -4), t0 = this.screenPos(th, L);
           if (prev) {
-            g.fillStyle(0xe4f2ff, 0.86).fillPoints([prev.b, prev.t, t0, b0], true);
+            g.fillStyle(0xfdfbf4, 0.92).fillPoints([prev.b, prev.t, t0, b0], true);
             g.lineStyle(2 * z, 0xffffff, 1).lineBetween(prev.t.x, prev.t.y, t0.x, t0.y);
-            if (L > 30) gl.lineStyle(5 * z, 0x7dfcff, 0.3).lineBetween(prev.t.x, prev.t.y, t0.x, t0.y);
+            if (L > 30) gl.lineStyle(5 * z, 0xfff4dc, 0.12).lineBetween(prev.t.x, prev.t.y, t0.x, t0.y);
           }
           prev = { b: b0, t: t0 };
         } else prev = null;
@@ -450,7 +465,8 @@ const MilkmaidMixin = {
       if (A.st === 'lock') {                         // targeting lines flickering between them
         if (Math.random() < 0.6) for (let i = 0; i < pts.length - 1; i++) gl.lineStyle(1 * z, 0xe0a0ff, 0.6).lineBetween(pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y);
       } else {
-        const beam = (pa, pb) => { gl.lineStyle(12 * z, 0xa020ff, 0.35 * fade).lineBetween(pa.x, pa.y, pb.x, pb.y); gl.lineStyle(4 * z, 0xf0d0ff, 0.95 * fade).lineBetween(pa.x, pa.y, pb.x, pb.y); };
+        const hitF = A.flash > 0, weak = A.hp <= 3 && A.st === 'on' && Math.random() < 0.3;          // flashes white when shot; flickers when nearly through
+        const beam = (pa, pb) => { if (weak) return; gl.lineStyle((hitF ? 20 : 12) * z, hitF ? 0xffffff : 0xa020ff, (hitF ? 0.6 : 0.35) * fade).lineBetween(pa.x, pa.y, pb.x, pb.y); gl.lineStyle((hitF ? 7 : 4) * z, hitF ? 0xffffff : 0xf0d0ff, 0.95 * fade).lineBetween(pa.x, pa.y, pb.x, pb.y); };
         beam(pts[0], pts[1]); beam(pts[4], pts[3]);
         let last = pts[1];                                     // the lid follows the curve of the sky
         for (let i = 1; i <= 12; i++) { const q = this.screenPos(wrap(thL + 2 * A.half * i / 12), TOP); beam(last, q); last = q; }
