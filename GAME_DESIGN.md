@@ -1503,3 +1503,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.42 Zero-G controls like the main game; cheese wheels
 - Zero-G rooms on touch: the main game's AIM+FIRE thumbstick. A ghost stick rests bottom right; a thumb down anywhere (below the HUD, not on MAP) becomes the stick's centre, and pushing it past the deadzone fires that way (a resting thumb doesn't fire, since every shot kicks you). Mouse, keys and controller unchanged.
 - 'Ingredients' are gone: the Zero-G rooms' 12 and the Centrifuge's 14 collectables are all CHEESE WHEELS (`miniwheel_c`: a small red-waxed truckle with a wedge cut out, so they don't look like the golden wheels). Text, goal panels and map blurbs updated.
+
+## v2.43 Continue / New Game
+- Title menu: CONTINUE and NEW GAME when this device has a save (any level beaten, warp found, gun won, rank, golden wheel or spin used); just NEW GAME when it doesn't.
+- NEW GAME (after a 'this wipes all progress' check) clears levels, secret routes, the Centrifuge, won guns, ranks, golden wheels, Lucky Wheel spins, the remembered gun and test mode, and resets the run in hand (lives, gun levels, the shop and its cheddar). Settings, volume and cheat mode are kept.

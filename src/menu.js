@@ -169,11 +169,22 @@ class MenuScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', this.fit, this));
     this.going = false;
     const toMain = () => { this.logo.setVisible(true); this.sub.setVisible(true); this.menu.setItems(main(), ''); };
-    const main = () => [
-      { label: () => 'PLAY', act: () => this.go() },
+    // CONTINUE (when there's a game on this device) and NEW GAME, which wipes every bit of progress after a check
+    const hasSave = () => { try { return Object.keys(localStorage).some(k => /^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins)/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== '0'); } catch (e) { return false; } };
+    const confirmNew = () => [
+      { info: true, text: 'THIS WIPES ALL PROGRESS:', color: '#ff7a5a' },
+      { info: true, text: 'LEVELS, GUNS, WHEELS, RANKS', color: '#ffffff' },
+      { label: () => 'YES, START AGAIN', act: () => this.newGame() },
+      { label: () => 'NO, GO BACK', act: toMain }];
+    const main = () => (hasSave() ? [
+      { label: () => 'CONTINUE', act: () => this.go() },
+      { label: () => 'NEW GAME', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(confirmNew(), 'NEW GAME?'); } }
+    ] : [
+      { label: () => 'NEW GAME', act: () => this.newGame() }
+    ]).concat([
       { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
-    ].concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
+    ]).concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
     const opts = () => optionItems().concat([{ label: () => 'BACK', act: toMain }]);
     const I = (text, color) => ({ info: true, text, color });
     let dev = inputDevice();
@@ -190,6 +201,12 @@ class MenuScene extends Phaser.Scene {
     const fs = Math.max(26, Math.min(48, W / 16));
     this.logo.setFontSize(fs).setPosition(W / 2, H * 0.2);
     this.sub.setPosition(W / 2, H * 0.2 + fs * 0.85);
+  }
+  newGame() {                                       // wipe the save (settings, volume and cheat mode stay) and the run in hand, then off to the map
+    if (this.going) return;
+    try { for (const k of Object.keys(localStorage)) if (/^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins|weapon|testmode)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); if (typeof Shop !== 'undefined') Shop.reset(this.registry);
+    Sound.sfx('power'); this.go();
   }
   go() {
     if (this.going) return; this.going = true;
