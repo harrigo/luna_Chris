@@ -1517,3 +1517,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Level 2 back near where it was: each wave only gets a copy of every 4th spawn (15/22/25, was 18/26/30 in v2.41 and 12/17/20 before), and no 4th wave. Level 3 keeps its v2.41 waves.
 - Cheddar about 30% less again: an enemy spills score x 0.022 (minimum 1; a mouse 2, a flyer 3, a golem 9), a boss 60.
 - Parmesan (gun level-ups) after the first: later big enemies drop one 1 time in 8 (was 3 in 10).
+
+## v2.46 Parmesan is temporary; fewer frogs
+- PARMESAN POWER now gives +1 gun level for 15 seconds (`P.power`, `gunLvBase` + 1), not for good. Banner 'MAC LEVEL 2 FOR 15s!', the timer bar over Chris and the HUD ring, a 3-2-1 countdown, then 'GUN BACK TO LEVEL n'. It no longer gives free ammo or soaks a hit. At max level it's 1500 points.
+- Lasting gun levels only come from the shop's START CHIPS (and the Lucky Wheel's GUN +1).
+- Level 2: half the rat-frogs taken out of every wave (waves 14/17/20; frogs 1/4/4).

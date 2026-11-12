@@ -368,6 +368,7 @@ for (const id of [2, 3]) {
     const extra = w.spawns.filter((q, i) => i % every === 0).map(q => S(q.type, q.t + 0.35));
     w.spawns = w.spawns.concat(extra).sort((a, b) => a.t - b.t);
   }
+  if (id === 2) for (const w of L.waves) { let n = 0; w.spawns = w.spawns.filter(q => q.type !== 'frog' || n++ % 2 === 1); }   // (v2.46: and half the rat-frogs)
   if (id === 3) { const fin = []; for (let i = 0; i < 18; i++) fin.push(S(cast[i % cast.length], i * 0.55)); L.waves.push({ name: 'WAVE 4', spawns: fin }); }
 }
 

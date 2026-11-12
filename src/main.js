@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.45';
+const BUILD = 'v2.46';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -746,7 +746,9 @@ class Level1 extends Phaser.Scene {
   get lives() { return this.registry.get('lives') || 0; }
   get maxHp() { return CFG.maxHp + (Shop.get(this.registry).hearts || 0); }
   // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
-  gunLv(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }   // (a shop START CHIP is the floor)
+  // a gun's level: what the shop (START CHIPS) and the Lucky Wheel have given it for good, +1 while PARMESAN POWER runs (15 s)
+  gunLvBase(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }
+  gunLv(id) { return Math.min(4, this.gunLvBase(id) + (this.pl && this.pl.power > 0 ? 1 : 0)); }
   get lv() { return this.weapon ? this.gunLv(this.weapon.id) : 1; }
   gunLvUp() {
     const g = Object.assign({}, this.registry.get('gunLv') || {}), id = this.weapon.id, was = this.gunLv(id);
@@ -1327,7 +1329,7 @@ class Level1 extends Phaser.Scene {
         if (ar === 'broke') { this.rig.setArmour(false); Sound.sfx('crash'); this.cameras.main.flash(160, 200, 210, 255); this.hitStop = Math.max(this.hitStop || 0, 0.1); this.banner('BLACK RIND SHATTERED!\nRE-FORGE IT AT THE SHOP'); }
         return;
       } }
-    if (P.power > 0) {                     // the Parmesan Power-Up takes the hit instead of a heart
+    if (false) {                           // (v2.46: Parmesan no longer soaks a hit - it's just the gun level now)
       P.power = 0;
       P.invuln = CFG.invuln;
       Sound.sfx('clunk');
@@ -1813,7 +1815,7 @@ class Level1 extends Phaser.Scene {
       P.beamReach = (P.beamReach || 1) + ((W.reachMin + (1 - W.reachMin) * (inp.reach || 1)) - (P.beamReach || 1)) * Math.min(1, dt * 10);   // trigger pressure / drag = reach
       if (P.beamOn) {
         P.firing = 0.12;
-        if (P.power <= 0) {
+        {
           P.ammo = Math.max(0, P.ammo - W.drain * dt * sauceK); P.ammoHold = CFG.ammoDelay;
           if (P.ammo <= 0) { P.overheat = true; P.beamOn = false; this.gunJam(); }
         }
@@ -1844,7 +1846,7 @@ class Level1 extends Phaser.Scene {
       const pr = W.pressure ? (inp.fireP || 1) : 1;      // Mac-Grinder: light trigger = slower, shorter shots
       this.fire(tgt, W.pressure ? { speedK: 0.6 + 0.4 * pr, lifeK: 0.6 + 0.4 * pr } : null);
       P.fireCd = this.weapon.interval / (W.pressure ? 0.45 + 0.55 * pr : 1) * (this.lv <= 1 ? 1.12 : 1);
-      if (P.power <= 0) {
+      {
         P.ammo = Math.max(0, P.ammo - this.weapon.ammo * sauceK);
         P.ammoHold = CFG.ammoDelay;
         if (P.ammo <= 0) { P.overheat = true; this.gunJam(); }
@@ -1859,7 +1861,7 @@ class Level1 extends Phaser.Scene {
     this.fire(tgt, { ploughDmg: 3 + 6 * c, speedK: (0.65 + 0.75 * c) * (0.42 + 0.58 * Math.min(1, P.throwK || 1)), scaleK: 0.45 + 0.95 * c, blast: W.blast * (0.45 + 0.85 * c) * LB, blastDmg: W.blastDmg * (0.4 + 1.0 * c) * LB, bossDmg: W.bossDmg * (0.4 + 1.0 * c) * LB, angleK: 0.85 + 0.25 * c,
       bounce: lv >= 2 && c > 0.55 ? 2 : 1, cluster: c > 0.7 ? (lv >= 4 ? 6 : lv >= 3 ? 4 : 0) : 0, miniBounce: lv >= 4 ? 1 : 0 });     // it skips along the ground bursting as it goes; big ones split into a cluster
     P.fireCd = W.interval;
-    if (P.power <= 0) {
+    {
       P.ammo = Math.max(0, P.ammo - W.ammo * (0.5 + 0.9 * c) * (this.buffOn('sauce') ? 0.4 : 1)); P.ammoHold = CFG.ammoDelay;
       if (P.ammo <= 0) { P.overheat = true; this.gunJam(); }
     }
@@ -1906,7 +1908,8 @@ class Level1 extends Phaser.Scene {
     const P = this.pl, b = P.buff;
     if (P.power > 0) {                                           // the Parmesan Power-Up runs down too
       P.power -= dt;
-      if (P.power <= 0) { P.power = 0; Sound.sfx('flap'); this.banner('PARMESAN POWER WORN OFF'); }
+      if (P.power <= 0) { P.power = 0; Sound.sfx('flap'); this.banner('GUN BACK TO LEVEL ' + this.lv); P.lvFlash = 1.2; }
+      else if (P.power <= 3 && Math.ceil(P.power) !== Math.ceil(P.power + dt)) { Sound.sfx('blip'); this.popup(P.theta, P.h + 116, String(Math.ceil(P.power)), '#fff3a0', true); }
     }
     if (!b) return;
     const was = Math.ceil(b.t); b.t -= dt;
@@ -1949,18 +1952,19 @@ class Level1 extends Phaser.Scene {
     // ...and over Chris's head: a bar that drains, with the icon and the seconds, so it's obvious it won't last
     if (!this.buffHead) { this.buffHead = this.add.graphics().setDepth(9.5); this.buffHeadIm = this.add.image(0, 0, 'power').setDepth(9.6); this.buffHeadTx = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0, 0.5).setDepth(9.6); }
     this.buffHead.clear();
-    const showHead = b && b.max && this.state === 'play';
+    const hb = b && b.max ? { kind: b.kind, t: b.t, max: b.max, tex: BUFFS[b.kind].tex, col: BUFFS[b.kind].col } : P.power > 0 ? { t: P.power, max: CFG.powerT, tex: 'power', col: 0xfff3a0 } : null;
+    const showHead = hb && this.state === 'play';
     this.buffHeadIm.setVisible(!!showHead); this.buffHeadTx.setVisible(!!showHead);
     if (showHead) {
-      const q = this.screenPos(P.theta, P.h + 100 * this.giantK), fr = Math.max(0, b.t / b.max), low = b.t < 3, fl = low && Math.floor(this.t * 8) % 2, col = BUFFS[b.kind].col;
+      const q = this.screenPos(P.theta, P.h + 100 * this.giantK), fr = Math.max(0, hb.t / hb.max), low = hb.t < 3, fl = low && Math.floor(this.t * 8) % 2, col = hb.col;
       const bw = 46, bh = 6, bx = q.x - bw / 2 + 8, by = q.y - bh / 2;
       this.buffHead.fillStyle(0x1a1020, 0.85).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
       this.buffHead.fillStyle(0x3a2f5a, 1).fillRect(bx, by, bw, bh);
       this.buffHead.fillStyle(fl ? 0xffffff : low ? 0xff5a3a : col, 1).fillRect(bx, by, bw * fr, bh);
       this.buffHead.fillStyle(0xffffff, 0.35).fillRect(bx, by, bw * fr, 2);
-      const fr2 = this.textures.getFrame(BUFFS[b.kind].tex), sz = fr2 ? Math.max(fr2.width, fr2.height) : 20;
-      this.buffHeadIm.setTexture(BUFFS[b.kind].tex).setPosition(bx - 11, q.y).setScale(16 / sz * (low ? 1 + 0.15 * Math.sin(this.t * 20) : 1));
-      this.buffHeadTx.setText(Math.ceil(b.t) + 's').setPosition(bx + bw + 5, q.y).setColor(low ? '#ff7a5a' : '#ffffff');
+      const fr2 = this.textures.getFrame(hb.tex), sz = fr2 ? Math.max(fr2.width, fr2.height) : 20;
+      this.buffHeadIm.setTexture(hb.tex).setPosition(bx - 11, q.y).setScale(16 / sz * (low ? 1 + 0.15 * Math.sin(this.t * 20) : 1));
+      this.buffHeadTx.setText(Math.ceil(hb.t) + 's').setPosition(bx + bw + 5, q.y).setColor(low ? '#ff7a5a' : '#ffffff');
     }
     if (!b) return;
     if (b.kind === 'shield') this.drawShield(b);
@@ -4401,12 +4405,13 @@ class Level1 extends Phaser.Scene {
         if (p.kind === 'buff') this.startBuff(p.bk);
         else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; this.coinAcc = (this.coinAcc || 0) + p.val; this.coinAccT = 0.22; }
         else if (p.kind === 'power') {
-          const up = this.gunLvUp(); P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
+          // PARMESAN POWER (v2.46): +1 gun level for 15 seconds, not for good (the shop's START CHIPS are the lasting kind)
+          const up = this.gunLvBase(this.weapon.id) < 4; P.power = up ? CFG.powerT : 0; P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
           this.addLight(P.theta, P.h + 30, 150, 0xfff3a0, 1, 0.5);
           Sound.sfx('power');
           buzz([20, 30, 20, 30, 60]);
           this.bang(P.theta, P.h + 24, 26);
-          this.banner(up ? this.weapon.short + ' LEVEL ' + this.lv + '!\n' + this.weapon.lv[this.lv] : 'MAX LEVEL! +1500');
+          this.banner(up ? this.weapon.short + ' LEVEL ' + this.lv + ' FOR ' + CFG.powerT + 's!\n' + this.weapon.lv[this.lv] : 'MAX LEVEL! +1500');
         } else {
           if (P.hp < this.maxHp) { P.hp = Math.min(this.maxHp, P.hp + 1); this.updateHearts(); }
           this.addScore(50);
