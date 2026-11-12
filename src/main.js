@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.37';
+const BUILD = 'v2.38';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1094,7 +1094,7 @@ class Level1 extends Phaser.Scene {
         Sound.sfx('reveal'); buzz([30, 30, 60]);
         this.burst(w.theta, w.h, 'crumb', 16, 1.2); this.bang(w.theta, w.h, 24); this.addLight(w.theta, w.h, 120, 0xffd23f, 1, 0.5);
         if (Progress.wheelCount(this.levelId) >= 3) {      // the GOLDEN SET: a pile of cheddar now, and every new game starts with more in hand
-          this.spillCheddar(w.theta, w.h + 20, 100); this.cameras.main.flash(300, 255, 230, 140); Sound.sfx('power');
+          this.spillCheddar(w.theta, w.h + 20, 300); this.cameras.main.flash(300, 255, 230, 140); Sound.sfx('power');
           this.banner('GOLDEN SET! ALL 3 FOUND\n+' + SHOP.setBonus + ' CHEDDAR AT THE START OF EVERY GAME');
         } else
         this.banner('GOLDEN CHEESE WHEEL!\n' + Progress.wheelCount(this.levelId) + ' / 3 FOUND');
@@ -4099,7 +4099,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
-      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 50 : Math.max(1, Math.round(pts / 50)));       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
+      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 250 : Math.max(5, Math.round(pts / 10)));       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
         const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
@@ -4329,24 +4329,34 @@ class Level1 extends Phaser.Scene {
     const n = Math.min(total, total >= 40 ? 10 : 5);
     for (let k = 0; k < n; k++) {
       const val = Math.floor(total / n) + (k < total % n ? 1 : 0), im = this.add.image(0, 0, 'cheddar').setDepth(6.1);
-      im.bsx = im.bsy = val >= 5 ? 1.5 : val >= 2 ? 1.15 : 0.9;
-      this.pickups.push({ kind: 'cheddar', val, theta, h: Math.max(4, h), vt: rnd(-150, 150), vh: rnd(200, 380), life: 10, spr: im });
+      im.bsx = im.bsy = val >= 20 ? 1.5 : val >= 6 ? 1.2 : 0.95;
+      this.pickups.push({ kind: 'cheddar', val, theta, h: Math.max(4, h), vt: rnd(-150, 150), vh: rnd(200, 380), life: 29, spr: im });
     }
   }
   updatePickups(dt) {
     const P = this.pl;
+    if (this.coinAcc && (this.coinAccT -= dt) <= 0) { this.popup(P.theta, P.h + 62, '+' + this.coinAcc + ' CHEDDAR', '#ffd23f', this.coinAcc >= 50); this.coinAcc = 0; }
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
       const magB = this.buffOn('magnet');               // Magnet Fork (the power-up, or the shop's permanent one with a shorter reach): everything comes to Chris
       p.pull = (magB || this.magOwned) && Math.abs(angDiff(p.theta, P.theta)) * R < (magB ? 420 : 250) && this.state === 'play';
-      if (p.pull) {
+      if (p.kind === 'cheddar' && this.state === 'play') {   // CHEDDAR sucks in by itself once you're close: within ~140px, or anywhere in a column above / below you
+        const cx = angDiff(p.theta, P.theta) * R, cy = p.h - (P.h + 24), cd = Math.hypot(cx, cy);
+        if (p.suck || cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300) || p.pull) {
+          p.suck = true; p.pull = true; p.pullT = (p.pullT || 0) + dt;
+          const sp = Math.min(cd, (260 + 1100 * p.pullT) * dt) / (cd || 1);                  // homes straight in, faster and faster
+          p.theta = wrap(p.theta - cx * sp / R); p.h -= cy * sp; p.vh = 0; p.vt = 0;
+          p.spr.setAlpha(1);
+        }
+      }
+      if (p.pull && !p.suck) {
         p.theta = wrap(p.theta + Math.sign(angDiff(P.theta, p.theta)) * Math.min(Math.abs(angDiff(P.theta, p.theta)), 360 / R * dt));
         p.h += (P.h + 14 - p.h) * Math.min(1, dt * 4); p.vh = 0; p.vt = 0; p.pullT = (p.pullT || 0) + dt;
       }
       p.vh -= this.gAt(p.theta) * 0.6 * dt;
       p.h += p.vh * dt;
       if (p.vt) { p.theta = wrap(p.theta + p.vt / R * dt); if (p.h <= 0) { p.vt *= Math.exp(-5 * dt); if (p.vh < -90) { p.vh = -p.vh * 0.4; p.h = 0.5; } } }   // (coins scatter, bounce and roll to a stop)
-      if (p.kind === 'cheddar') p.spr.setAlpha(p.life < 3 && Math.floor(p.life * 8) % 2 ? 0.25 : 1);
+      if (p.kind === 'cheddar' && !p.suck) p.spr.setAlpha(p.life < 5 && Math.floor(p.life * (p.life < 2 ? 12 : 6)) % 2 ? 0.25 : 1);
       if (p.kind === 'buff') p.spr.setScale(p.spr.scaleX * (1 + 0.1 * Math.sin(this.t * 8)));
       if (p.h <= 0) { p.h = 0; p.vh = 0; }
       p.life -= dt;
@@ -4357,7 +4367,7 @@ class Level1 extends Phaser.Scene {
           Shop.earn(this.registry, 40); P.coinPop = 0.4; Sound.sfx('power'); this.addScore(300); this.banner('SPARE MAGNET FORK!\n+40 CHEDDAR');
         } else
         if (p.kind === 'buff') this.startBuff(p.bk);
-        else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; }
+        else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; this.coinAcc = (this.coinAcc || 0) + p.val; this.coinAccT = 0.22; }
         else if (p.kind === 'power') {
           const up = this.gunLvUp(); P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
           this.addLight(P.theta, P.h + 30, 150, 0xfff3a0, 1, 0.5);

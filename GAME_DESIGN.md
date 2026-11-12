@@ -1476,3 +1476,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Her milk (the pour, the flood, the drips and the whey on the churn) is white with a faint cream glow, not cyan.
 - She can't be stomped at all: in act 1 Chris's boots go through the ghost and he is shrugged off unharmed (one-off banner); in act 2 the horns still gore him.
 - The laser cage is a little bigger (half-width 0.54 shrinking to 0.37, lid at 335) and has 8 hit points: each Mac shot or whip lash on a wall or the lid takes 1 (a Swiss ball 4) and makes it flash white; it flickers when nearly through and shatters at zero. It still falls after 8 seconds.
+
+## v2.38 Cheddar: sucks in, lasts longer, worth more
+- Cheddar coins home in on Chris by themselves (no magnet needed) once he's within ~140px, or anywhere in a column 80px either side of him up to 300px above or below, so coins under a jetpacking Chris come up to him. Once one starts coming it keeps coming, faster and faster, with the magnet's light thread.
+- Coins last 29s (was 10), blinking for the last 5.
+- Worth 5x: an enemy spills score/10 (minimum 5; a mouse 10, a golem 40), a boss 250, a golden set 300.
+- Collecting shows one yellow '+N CHEDDAR' over Chris for each burst of coins picked up together.
