@@ -69,11 +69,14 @@
     (function () {
       var box = document.getElementById('err');
       function show(msg) { box.style.display = 'block'; box.textContent += msg + '\n'; }
-      window.addEventListener('error', function (e) { show('ERROR: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')'); });
+      window.addEventListener('error', function (e) {
+        var st = e.error && e.error.stack ? '\n' + String(e.error.stack).split('\n').slice(0, 5).map(function (l) { return l.replace(/https?:\/\/[^ )]*\//g, ''); }).join('\n') : '';
+        show('ERROR: ' + e.message + ' (' + (e.filename || '').split('/').pop() + ':' + e.lineno + ')' + st);
+      });
       window.addEventListener('unhandledrejection', function (e) { show('PROMISE: ' + (e.reason && e.reason.message || e.reason)); });
     })();
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js" onload="LCBoot.set(0.2, 'UNPACKING THE SHOPPING')"></script>
+  <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js" onload="LCBoot.set(0.2, 'UNPACKING THE SHOPPING')"></script>
   <script>
     // Tapping the rotate prompt is a user gesture, so the title tune can start before the phone is even turned.
     document.getElementById('rotate').addEventListener('pointerup', function () {
