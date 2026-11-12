@@ -1507,3 +1507,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.43 Continue / New Game
 - Title menu: CONTINUE and NEW GAME when this device has a save (any level beaten, warp found, gun won, rank, golden wheel or spin used); just NEW GAME when it doesn't.
 - NEW GAME (after a 'this wipes all progress' check) clears levels, secret routes, the Centrifuge, won guns, ranks, golden wheels, Lucky Wheel spins, the remembered gun and test mode, and resets the run in hand (lives, gun levels, the shop and its cheddar). Settings, volume and cheat mode are kept.
+
+## v2.44 Zero-G rooms: shorter, obstacles, fly into the gun
+- Clocks 20s shorter: 30 / 28 / 25 (was 50 / 48 / 45). Each cheese wheel still buys back a second.
+- Obstacles: ZAP-BARS (electrified spokes turning round a hub; room 1 has one, rooms 2 and 3 two) fling you off and cost 2s. RAT MINES (spiky floating rat heads, 3 / 4 / 5 per room) drift slowly after you; a shot pops one (it comes back 4s later), touching one goes BANG, throws you across the room and costs 2s. Room 3 also has GUSTS that blow across the whole room every few seconds, with flashing streaks as a warning.
+- Getting all 12 no longer wins outright: the clock STOPS, the crate bursts, the mines go off, and the gun hangs spinning in the middle in a green beacon. Shoot yourself into it to clear the room and win the gun.

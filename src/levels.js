@@ -945,7 +945,7 @@ class SelectScene extends Phaser.Scene {
   //    skipping 4, 5 and 6.
   // Only level 1 starts open; beating a stop opens the next. Secret stops (bonus rooms, the warp) stay hidden until open.
   mapNodes() {
-    const bonus = 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 cheese wheels to open the gun crate.';
+    const bonus = 'BONUS: no gravity. You fly AWAY from where you shoot.\nGrab all 12 cheese wheels, then fly into the gun.';
     return [
       { id: 1, x: 0.05, y: 0.62 }, { id: 2, x: 0.15, y: 0.47 }, { id: 3, x: 0.255, y: 0.6 },
       { id: 4, x: 0.37, y: 0.42 }, { id: 5, x: 0.48, y: 0.35 }, { id: 6, x: 0.59, y: 0.42 },

@@ -68,11 +68,11 @@ class ZeroGScene extends Phaser.Scene {
     // three rooms share this scene: after level 3, after level 6, and on the warp route (each its own layout and colours)
     this.room = (data && data.room) || this.room || 'zerog';
     const V = this.V = ({
-      zerog: { title: 'ZERO-G RECOIL ROOM', time: 50, bg: '#05061a', music: 'level6',
+      zerog: { title: 'ZERO-G RECOIL ROOM', time: 30, bg: '#05061a', music: 'level6', zap: [[430, 450, 130, 0.9]], mines: 3,
         bumpers: [[300, 260, 46], [760, 420, 62, 0, 0], [1200, 250, 46], [420, 680, 40, 90, 0.5], [1120, 660, 50, 70, 0.7], [760, 130, 30], [760, 780, 30]] },
-      zerog2: { title: 'ZERO-G ROOM II', time: 48, bg: '#0a0516', music: 'level9',
+      zerog2: { title: 'ZERO-G ROOM II', time: 28, bg: '#0a0516', music: 'level9', zap: [[420, 450, 130, -1.1], [1100, 450, 130, 1.1]], mines: 4,
         bumpers: [[250, 450, 50, 120, 0.6], [560, 220, 40], [560, 680, 40], [960, 220, 40], [960, 680, 40], [1260, 450, 50, 120, 0.7], [760, 450, 36, 160, 0.9]] },
-      zerog3: { title: 'WARP BONUS ROOM', time: 45, bg: '#160608', music: 'level55',
+      zerog3: { title: 'WARP BONUS ROOM', time: 25, bg: '#160608', music: 'level55', zap: [[560, 450, 120, 0.9], [960, 450, 120, -0.9]], mines: 5, wind: true,
         bumpers: [[380, 300, 44, 110, 0.8], [1120, 300, 44, 110, 0.9], [380, 640, 44, 110, 0.7], [1120, 640, 44, 110, 0.85], [760, 160, 30, 200, 1.1], [760, 760, 30, 200, 1.2]] }
     })[this.room] || {};
     const RW = this.RW = 1500, RH = this.RH = 900;
@@ -95,12 +95,20 @@ class ZeroGScene extends Phaser.Scene {
     const kinds = ['miniwheel_c'], glow = [0xffc23a], spots = [];     // (all cheese wheels now)
     while (spots.length < 12) {
       const x = 80 + Math.random() * (RW - 160), y = 80 + Math.random() * (RH - 160);
-      if (this.bumpers.some(b => Math.hypot(x - b.hx, y - b.hy) < b.r + b.roam + 50) || Math.hypot(x - RW / 2, y - RH / 2) < 160 || spots.some(s => Math.hypot(x - s.x, y - s.y) < 110)) continue;
+      if ((V.zap || []).some(z => Math.hypot(x - z[0], y - z[1]) < 60) || this.bumpers.some(b => Math.hypot(x - b.hx, y - b.hy) < b.r + b.roam + 50) || Math.hypot(x - RW / 2, y - RH / 2) < 160 || spots.some(s => Math.hypot(x - s.x, y - s.y) < 110)) continue;
       spots.push({ x, y });
     }
     this.items = spots.map((s, i) => { const k = i % kinds.length; const im = this.add.image(s.x, s.y, kinds[k]).setDepth(2).setScale(1.7); return { x: s.x, y: s.y, im, ph: Math.random() * 6, got: false, col: glow[k] }; });
     this.got = 0;
     this.shots = [];
+    // OBSTACLES (v2.44: it was all very samey). ZAP-BARS: electrified spokes turning round a hub; touch one and you're
+    // flung off with 2 s off the clock. RAT MINES: spiky floating rat-heads that drift after you; pop them with a shot
+    // (they come back a few seconds later), touch one and BANG: thrown across the room, 2 s off. Room 3 has gusts too.
+    this.zaps = (V.zap || []).map(([x, y, len, spd]) => ({ x, y, len, spd, a: Math.random() * 6, hit: 0 }));
+    this.mines = [];
+    for (let i = 0; i < (V.mines || 0); i++) this.mines.push(this.newMine(i));
+    this.gust = { t: 4, on: 0, dx: 0, dy: 0 }; this.cleared = false;
+    this.penT = 0;
 
     // the prize: a crate in the middle of the room, chained shut until the last cheese wheel is in
     this.prize = this.pickPrize();
@@ -125,7 +133,7 @@ class ZeroGScene extends Phaser.Scene {
     this.f = f;
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 CHEESE WHEELS TO OPEN THE CRATE' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
+    this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 CHEESE WHEELS, THEN FLY INTO THE GUN\nMIND THE ZAP-BARS AND RAT MINES' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
       Object.assign(f(11, '#9fd8ff'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3600, duration: 600 });
     // an always-there way out: tapping it never fires the gun
@@ -272,6 +280,7 @@ class ZeroGScene extends Phaser.Scene {
       }
       b.flash = Math.max(0, b.flash - dt); b.pop = Math.max(0, b.pop - dt * 4);
     }
+    this.updateHazards(dt);
     // ---- shots
     for (let i = this.shots.length - 1; i >= 0; i--) {
       const s = this.shots[i]; s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt; s.im.setPosition(s.x, s.y).setRotation(s.im.rotation + dt * 12);
@@ -279,7 +288,9 @@ class ZeroGScene extends Phaser.Scene {
       const out = s.x < 0 || s.y < 0 || s.x > this.RW || s.y > this.RH;
       if (hitB || out) this.puff(Math.max(0, Math.min(this.RW, s.x)), Math.max(0, Math.min(this.RH, s.y)), 4, hitB ? 0xffd23f : 0x9fd8ff, 120, 0.25, 2);
       if (hitB) { hitB.flash = Math.max(hitB.flash, 0.08); hitB.pop = Math.max(hitB.pop, 0.4); }
-      if (s.life <= 0 || hitB || out) { s.im.destroy(); this.shots.splice(i, 1); }
+      const hitM = this.mines.find(m => m.dead <= 0 && Math.hypot(s.x - m.x, s.y - m.y) < m.r + 8);
+      if (hitM) { this.mineBoom(hitM); this.pop(hitM.x, hitM.y - 30, 'POP!', '#ffd23f'); }
+      if (s.life <= 0 || hitB || hitM || out) { s.im.destroy(); this.shots.splice(i, 1); }
     }
     // ---- cheese wheels (a quick chain of pickups is a combo, each one buys back a second)
     this.comboT -= dt; if (this.comboT <= 0) this.combo = 0;
@@ -294,17 +305,19 @@ class ZeroGScene extends Phaser.Scene {
         this.pop(it.x, it.im.y - 24, this.combo > 1 ? 'COMBO x' + this.combo + '!' : '+1s', this.combo > 1 ? '#ff9db8' : '#7dff8a');
         this.tweens.add({ targets: it.im, scale: 0, angle: 360, duration: 250, onComplete: () => it.im.destroy() });
         this.crateGun.setAlpha(0.35 + 0.65 * this.got / this.items.length);
-        if (this.got >= this.items.length) this.finish(true);
+        if (this.got >= this.items.length) this.openCrate();
       }
     }
     // ---- the clock
-    if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
-    this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
+    if (!this.done && !this.cleared) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
+    if (this.cleared && !this.done && Math.hypot(this.pos.x - this.crate.x, this.pos.y - 24 - (this.crate.y - 40)) < 56) this.finish(true);   // flew into the gun: got it
+    if (this.cleared) this.timeTxt.setText('GRAB THE GUN!').setColor(Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
+    else this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
     this.gotTxt.setText('CHEESE WHEELS ' + this.got + ' / ' + this.items.length);
     (this.goalHud || (this.goalHud = new GoalHud(this))).update([
       { label: 'CHEESE WHEELS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: this.got >= this.items.length },
-      { label: 'BEFORE THE CLOCK', frac: this.timeLeft / 60, right: Math.ceil(this.timeLeft) + 's', hot: this.timeLeft < 10 },
-      { label: 'OPEN THE CRATE', done: this.done && this.got >= this.items.length, locked: this.got < this.items.length }]);
+      { label: 'BEFORE THE CLOCK', frac: this.timeLeft / (this.V.time || 30), right: this.cleared ? 'STOPPED' : Math.ceil(this.timeLeft) + 's', hot: this.timeLeft < 10 && !this.cleared, done: this.cleared },
+      { label: 'FLY INTO THE GUN', done: this.done && this.cleared, locked: !this.cleared, hot: this.cleared && !this.done }]);
 
     // ---- draw
     const sc = this.scanG; sc.clear();
@@ -336,6 +349,11 @@ class ZeroGScene extends Phaser.Scene {
       gl.fillStyle(it.col, 0.10 + p * 0.1).fillCircle(it.x, it.im.y, 30); gl.fillStyle(it.col, 0.12).fillCircle(it.x, it.im.y, 18);
     }
     gl.fillStyle(this.got >= this.items.length ? 0x7dff8a : 0x9fd8ff, 0.08 + 0.05 * Math.sin(this.t * 2)).fillCircle(this.crate.x, this.crate.y - 10, 60);
+    this.drawHazards(g, gl);
+    if (this.cleared && !this.done) {                      // the open crate: a beacon pulling you in
+      const r = 56 + 6 * Math.sin(this.t * 6);
+      gl.fillStyle(0x7dff8a, 0.18).fillCircle(this.crate.x, this.crate.y - 40, r); g.lineStyle(3, 0x7dff8a, 0.6 + 0.4 * Math.sin(this.t * 8)).strokeCircle(this.crate.x, this.crate.y - 40, r);
+    }
     // particles + muzzle flash
     const fg = this.fxG; fg.clear();
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -358,8 +376,89 @@ class ZeroGScene extends Phaser.Scene {
     const tg = this.trailG; tg.clear();
     if (sp > 60) { const a = Math.min(0.5, sp / 900); tg.fillStyle(0x4a9aff, a * 0.5).fillCircle(this.pos.x, this.pos.y - 28, 30); }
   }
+  newMine(i) {
+    const RW = this.RW, RH = this.RH, side = i % 4;
+    const x = side === 0 ? 60 : side === 1 ? RW - 60 : 200 + Math.random() * (RW - 400), y = side < 2 ? 120 + Math.random() * (RH - 240) : side === 2 ? 70 : RH - 70;
+    return { x, y, vx: 0, vy: 0, r: 17, dead: 0, ph: Math.random() * 6 };
+  }
+  hazardHit(nx, ny, why, kick) {                           // flung away from the thing, and (while the clock's running) 2 seconds lost
+    if (this.penT > 0 || this.done) return;
+    this.penT = 0.7;
+    this.vel.x = nx * kick; this.vel.y = ny * kick;
+    if (!this.cleared) { this.timeLeft = Math.max(0.5, this.timeLeft - 2); this.pop(this.pos.x, this.pos.y - 70, why + ' -2s', '#ff5a3a'); }
+    else this.pop(this.pos.x, this.pos.y - 70, why, '#ff5a3a');
+    Sound.sfx(['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]); this.cameras.main.shake(160, 0.009); buzz(60);
+    this.puff(this.pos.x, this.pos.y - 26, 14, 0xff5a3a, 260, 0.4, 3);
+  }
+  updateHazards(dt) {
+    const cx = this.pos.x, cy = this.pos.y - 24;
+    this.penT = Math.max(0, this.penT - dt);
+    for (const z of this.zaps) {                           // the zap-bars: two spokes through the hub
+      z.a += z.spd * dt; z.hit = Math.max(0, z.hit - dt * 3);
+      for (const off of [0, Math.PI]) {
+        const ex = Math.cos(z.a + off), ey = Math.sin(z.a + off), t = Math.max(0, Math.min(z.len, (cx - z.x) * ex + (cy - z.y) * ey));
+        const px = z.x + ex * t, py = z.y + ey * t, d = Math.hypot(cx - px, cy - py);
+        if (d < 24 && t > 18) { z.hit = 1; const nx = (cx - px) / (d || 1), ny = (cy - py) / (d || 1); this.hazardHit(nx, ny, 'ZAPPED!', 420); }
+      }
+      if (Math.hypot(cx - z.x, cy - z.y) < 40) { const d = Math.hypot(cx - z.x, cy - z.y) || 1; this.hazardHit((cx - z.x) / d, (cy - z.y) / d, 'ZAPPED!', 380); }
+    }
+    for (let i = 0; i < this.mines.length; i++) {          // the rat mines drift after you, slowly
+      const m = this.mines[i];
+      if (m.dead > 0) { m.dead -= dt; if (m.dead <= 0) { this.mines[i] = this.newMine(i); this.puff(this.mines[i].x, this.mines[i].y, 10, 0xff4a8a, 120, 0.4, 3); } continue; }
+      const dx = cx - m.x, dy = cy - m.y, d = Math.hypot(dx, dy) || 1;
+      m.vx += dx / d * 60 * dt; m.vy += dy / d * 60 * dt;
+      const ms = Math.hypot(m.vx, m.vy); if (ms > 95) { m.vx *= 95 / ms; m.vy *= 95 / ms; }
+      m.x = Math.max(30, Math.min(this.RW - 30, m.x + m.vx * dt)); m.y = Math.max(40, Math.min(this.RH - 30, m.y + m.vy * dt));
+      for (const b of this.bumpers) { const bx = m.x - b.x, by = m.y - b.y, bd = Math.hypot(bx, by) || 1; if (bd < b.r + m.r) { m.x = b.x + bx / bd * (b.r + m.r); m.y = b.y + by / bd * (b.r + m.r); m.vx *= -0.5; m.vy *= -0.5; } }
+      if (d < m.r + 24) { this.mineBoom(m); this.hazardHit(dx / d, dy / d, 'BOOM!', 520); }
+    }
+    if (this.V.wind) {                                     // room 3: GUSTS blow across the room every few seconds (the arrows warn you first)
+      const G = this.gust; G.t -= dt;
+      if (G.t <= 0 && !G.on) { G.on = 2.2; const a = Math.random() * Math.PI * 2; G.dx = Math.cos(a); G.dy = Math.sin(a); G.warn = 0.9; Sound.sfx('whoosh'); }
+      if (G.on) { if (G.warn > 0) G.warn -= dt; else { this.vel.x += G.dx * 260 * dt; this.vel.y += G.dy * 260 * dt; } G.on = Math.max(0, G.on - dt); if (!G.on) G.t = 3 + Math.random() * 2; }
+    }
+  }
+  mineBoom(m) { m.dead = 4; this.puff(m.x, m.y, 26, 0xff6a3a, 300, 0.6, 4); this.puff(m.x, m.y, 12, 0xffd23f, 200, 0.4, 3); Sound.sfx('boom'); }
+  drawHazards(g, gl) {
+    for (const z of this.zaps) {
+      for (const off of [0, Math.PI]) {
+        const ex = Math.cos(z.a + off), ey = Math.sin(z.a + off), x1 = z.x + ex * z.len, y1 = z.y + ey * z.len, fl = Math.random() < 0.15;
+        gl.lineStyle(16, 0x4ae0ff, 0.14 + z.hit * 0.3).lineBetween(z.x, z.y, x1, y1);
+        g.lineStyle(7, 0x1a1020, 1).lineBetween(z.x, z.y, x1, y1);
+        g.lineStyle(4, fl || z.hit > 0.5 ? 0xffffff : 0x9af0ff, 1).lineBetween(z.x, z.y, x1, y1);
+        let px = z.x, py = z.y;                            // crackle along it
+        for (let k = 1; k <= 6; k++) { const t = k / 6, jx = (Math.random() - 0.5) * 10, jy = (Math.random() - 0.5) * 10, qx = z.x + ex * z.len * t + jx, qy = z.y + ey * z.len * t + jy; gl.lineStyle(2, 0xffffff, 0.7).lineBetween(px, py, qx, qy); px = qx; py = qy; }
+        g.fillStyle(0x1a1020, 1).fillCircle(x1, y1, 8); g.fillStyle(0x4ae0ff, 1).fillCircle(x1, y1, 5);
+      }
+      g.fillStyle(0x1a1020, 1).fillCircle(z.x, z.y, 22); g.fillStyle(0x5a6272, 1).fillCircle(z.x, z.y, 19); g.fillStyle(0x9aa4b4, 1).fillCircle(z.x - 4, z.y - 4, 9);
+      g.fillStyle(0xff4a3a, 0.6 + 0.4 * Math.sin(this.t * 10)).fillCircle(z.x, z.y, 5);
+    }
+    for (const m of this.mines) {
+      if (m.dead > 0) continue;
+      const pul = 0.5 + 0.5 * Math.sin(this.t * 6 + m.ph), near = Math.hypot(this.pos.x - m.x, this.pos.y - 24 - m.y) < 160;
+      gl.fillStyle(0xff3a5a, (near ? 0.25 : 0.12) + pul * 0.1).fillCircle(m.x, m.y, m.r + 12);
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 + this.t * 0.8; g.lineStyle(4, 0x1a1020, 1).lineBetween(m.x, m.y, m.x + Math.cos(a) * (m.r + 8), m.y + Math.sin(a) * (m.r + 8)); g.lineStyle(2, 0xc0c8d8, 1).lineBetween(m.x, m.y, m.x + Math.cos(a) * (m.r + 7), m.y + Math.sin(a) * (m.r + 7)); }
+      g.fillStyle(0x1a1020, 1).fillCircle(m.x, m.y, m.r + 2); g.fillStyle(0x8a7e96, 1).fillCircle(m.x, m.y, m.r); g.fillStyle(0xb0a4bc, 1).fillCircle(m.x - 4, m.y - 5, m.r * 0.5);
+      g.fillStyle(0x8a7e96, 1).fillCircle(m.x - 11, m.y - 13, 6).fillCircle(m.x + 11, m.y - 13, 6); g.fillStyle(0xff9db8, 1).fillCircle(m.x - 11, m.y - 13, 3).fillCircle(m.x + 11, m.y - 13, 3);   // ears
+      g.fillStyle(near && pul > 0.5 ? 0xffffff : 0xff3a2a, 1).fillCircle(m.x - 5, m.y - 2, 2.5).fillCircle(m.x + 5, m.y - 2, 2.5);                                  // glowing eyes
+    }
+    const G = this.gust;
+    if (this.V.wind && G.on) {                             // the gust: streaks blowing across the whole room
+      const a = G.warn > 0 ? 0.25 * (Math.floor(this.t * 10) % 2) : 0.35;
+      for (let k = 0; k < 26; k++) { const sx = ((k * 211 + this.t * 900 * G.dx) % this.RW + this.RW) % this.RW, sy = ((k * 137 + this.t * 900 * G.dy) % this.RH + this.RH) % this.RH; gl.lineStyle(2, 0xffffff, a).lineBetween(sx, sy, sx - G.dx * 40, sy - G.dy * 40); }
+    }
+  }
   bonk(x, y) { if (this.vel.length() > 120) { Sound.sfx('clunk'); this.cameras.main.shake(50, 0.003); this.wallHit = { x, y, k: 1 }; this.puff(x, y, 6, 0x4ae0ff, 160, 0.3, 2); } }
 
+  openCrate() {                                         // every cheese wheel in: the clock stops, the crate bursts, the gun hangs in the middle
+    if (this.cleared) return; this.cleared = true;
+    this.crate.list[0].setVisible(false);
+    this.puff(this.crate.x, this.crate.y, 40, 0x7dff8a, 320, 0.8, 4); Sound.sfx('power'); this.cameras.main.flash(200, 200, 255, 200);
+    this.tweens.add({ targets: this.crateGun.setAlpha(1), scale: (this.prize ? 1.6 : 1.4) * 1.5, duration: 500, ease: 'Back.out' });
+    this.tweens.add({ targets: this.crateGun, angle: 360, duration: 2400, repeat: -1 });
+    this.pop(this.scale.width / 2, this.scale.height * 0.3, 'CLOCK STOPPED! SHOOT YOURSELF INTO THE GUN!', '#7dff8a');
+    for (const m of this.mines) if (m.dead <= 0) this.mineBoom(m);
+  }
   finish(won) {
     if (this.done) return;
     this.done = true; this.doneT = this.t;
@@ -369,12 +468,7 @@ class ZeroGScene extends Phaser.Scene {
       if (this.prize) { Progress.giveGun(this.prize.id); body = 'THE CRATE IS OPEN!\n\nNEW GUN: ' + this.prize.name; }
       else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 CHEESE WHEELS!\n\n+1 LIFE'; }
       body += '\n(' + Math.ceil(this.timeLeft) + 's TO SPARE)';
-      // the crate bursts and the prize floats up
-      this.tweens.killTweensOf(this.crate);
-      this.puff(this.crate.x, this.crate.y, 40, 0x7dff8a, 320, 0.8, 4);
-      this.crate.list[0].setVisible(false);
-      this.tweens.add({ targets: this.crateGun.setAlpha(1), y: -70, scale: 2.4, duration: 700, ease: 'Back.out' });
-      this.tweens.add({ targets: this.crateGun, angle: 360, duration: 1800, repeat: -1 });
+      this.crateGun.setVisible(false); this.puff(this.crate.x, this.crate.y - 40, 30, 0xffd23f, 300, 0.7, 4);
     } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' CHEESE WHEELS'; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
