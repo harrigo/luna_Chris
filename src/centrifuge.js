@@ -9,7 +9,7 @@
 // axle. HATCHES in the wall open now and then onto space: the air roars out and drags you towards them (get sucked
 // out and you're thrown back in, 3 s down), and rats fly in through them on rocket packs and take pot-shots. Shoot
 // them with the Mac-Grinder, or land on them feet first (touching them any other way hurts). Gaps tear open at random places and sizes (bigger = more robots, harder pull). SURVIVE
-// 60 SECONDS and collect the ingredient in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
+// 30 SECONDS (v2.40) and collect the ingredient in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
 // have to jump (or jetpack) right through the middle to grab it. 6 hits of armour; ingredients patch you up.
 //
 // Controls are the main game's: left/right run (his own left/right, like on a planet), jump (Space/Up/W, controller A;
@@ -18,6 +18,7 @@
 // fly; right: drag to aim, touching fires; with no aim it picks the nearest rat).
 // ---- the spin programme: fast, slow-downs, dead stops (gravity takes over: off the top you fall) and reverses.
 // w = target spin (rad/s, + is clockwise on screen), t = how long it holds, msg = the shout when it starts
+const CF_TIME = 30, CF_BOTS = 10;     // v2.40: 30 seconds (was 60), and only 10 robots come in all told
 const CF_SPIN = [
   { w: 1.35, t: 7 },
   { w: 0.5, t: 4, msg: 'SLOWING DOWN: JUMP ACROSS!', col: '#9fd8ff' },
@@ -96,8 +97,8 @@ class CentrifugeScene extends Phaser.Scene {
     const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level7');
-    this.goalHud = null; this.jetLbl = null; this.jetArmed = false; this.holdT = 0; this.airRegenT = 0; this.fuelFlash = 0; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = 60; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
-    this.intro = 3.0; this.count = -1;
+    this.goalHud = null; this.jetLbl = null; this.jetArmed = false; this.holdT = 0; this.airRegenT = 0; this.fuelFlash = 0; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = CF_TIME; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
+    this.intro = 3.0; this.count = -1; this.botsIn = 0;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
     this.D = 0; this.w = 1.3; this.spinIdx = 0; this.segT = CF_SPIN[0].t; this.slide = 0;
     // Chris: on the wall (a = his angle IN THE DRUM, run = his running speed along it) or flying (pos/vel, inertial)
@@ -171,7 +172,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20);
-    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 60 SECONDS AND GRAB EVERY INGREDIENT\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY INGREDIENT\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -187,12 +188,12 @@ class CentrifugeScene extends Phaser.Scene {
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', x: 'X', j: 'J', space: 'SPACE', shift: 'SHIFT' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
-      if (this.done && this.t - this.doneT > 0.8) { if (b === 'x' || b === 'y') this.again(); else if (b === 'a' || b === 'b' || b === 'start') this.leave(); }
+      if (this.done && this.t - this.doneT > 0.8) { if (b === 'a' || b === 'start') (this.wonIt ? this.onward() : this.leave()); else if (b === 'b') this.leave(); }
     });
     this.events.once('shutdown', padOff); this.events.once('shutdown', () => Sound.jet(false));
     if (this.input.keyboard) {
       this.input.keyboard.on('keydown-ESC', () => this.leave());
-      this.input.keyboard.on('keydown', e => { if (!this.done || this.t - this.doneT < 0.8) return; if (e.key === 'r' || e.key === 'R') this.again(); else if (e.key === 'Enter') this.leave(); });
+      this.input.keyboard.on('keydown', e => { if (!this.done || this.t - this.doneT < 0.8) return; if (e.key === 'Enter' || e.key === ' ') (this.wonIt ? this.onward() : this.leave()); });
     }
   }
 
@@ -559,7 +560,7 @@ class CentrifugeScene extends Phaser.Scene {
     else this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
     this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'ARMOUR');
     (this.goalHud || (this.goalHud = new GoalHud(this))).update([
-      { label: 'SURVIVE 60s', frac: 1 - this.timeLeft / 60, right: this.timeLeft > 0 ? Math.ceil(this.timeLeft) + 's' : 'OK', done: this.timeLeft <= 0 },
+      { label: 'SURVIVE ' + CF_TIME + 's', frac: 1 - this.timeLeft / CF_TIME, right: this.timeLeft > 0 ? Math.ceil(this.timeLeft) + 's' : 'OK', done: this.timeLeft <= 0 },
       { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
       { label: 'GRAB THE GUN', locked: !this.survived, done: this.done && this.survived, hot: this.survived && !this.done }]);
     { const hg = this.hudG; hg.clear(); const n = this.hpMax, w = 14, x0 = W / 2 - n * (w + 4) / 2, y0 = 46;     // armour pips
@@ -650,6 +651,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.world.setScale(sc).setRotation(0).setPosition(W / 2 + (Math.random() - 0.5) * jud, H * 0.53 + (Math.random() - 0.5) * jud);
   }
   spawnBot(h) {                                                   // a robot flies in through the hatch: mostly drones, some saucers
+    if ((this.botsIn = (this.botsIn || 0) + 1) > CF_BOTS) return;
     const kind = Math.random() < 0.3 ? 'ratship' : 'drone', ang = h.a + this.D;
     const im = this.add.image(Math.cos(ang) * this.RD, Math.sin(ang) * this.RD, kind).setScale(kind === 'ratship' ? 0.85 : 1.4); this.world.add(im);
     this.ens.push({ kind, x: Math.cos(ang) * this.RD, y: Math.sin(ang) * this.RD, ha: ang, dir: Math.random() < 0.5 ? -1 : 1, hr: kind === 'ratship' ? 70 + Math.random() * 50 : 90 + Math.random() * 80, hp: kind === 'ratship' ? 6 : 3, cd: 1.5, t: 0, flash: 0, im });
@@ -697,9 +699,10 @@ class CentrifugeScene extends Phaser.Scene {
     if (won) {
       Sound.sfx('power'); Sound.music('win'); Sound.say('woohoo', { force: true });
       if (this.prizeIm) this.tweens.add({ targets: this.prizeIm, scale: 0, angle: 360, duration: 300 });
+      if (!Progress.testMode) try { localStorage.setItem('lc_cbeat', '1'); } catch (e) { /* ignore */ }     // the warp road onwards: the Fondue Fountain
       if (this.prize) { Progress.giveGun(this.prize.id); body = 'SURVIVED THE SPIN!\n\nNEW GUN: ' + this.prize.name; }
       else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'SURVIVED THE SPIN!\n\n+1 LIFE'; }
-    } else { Sound.music('lose'); body = 'WRECKED!\n\nYOU LASTED ' + Math.floor(60 - this.timeLeft) + 's OF 60'; }
+    } else { Sound.music('lose'); body = 'WRECKED!\n\nYOU LASTED ' + Math.floor(CF_TIME - this.timeLeft) + 's OF ' + CF_TIME; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setDepth(D);
     this.add.text(W / 2, H * 0.24, won ? 'BONUS CLEAR!' : 'KNOCKED OUT', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setDepth(D + 1);
@@ -709,10 +712,12 @@ class CentrifugeScene extends Phaser.Scene {
       const b = this.add.text(x, H * 0.78, label, { fontFamily: PIXEL, fontSize: '11px', color: '#1a1020', backgroundColor: col, padding: { x: 12, y: 10 } }).setOrigin(0.5).setDepth(D + 2).setInteractive({ useHandCursor: true });
       b.on('pointerup', () => { if (this.t - this.doneT > 0.5) fn(); });
     };
-    btn(W / 2 - 80, pad ? 'A: MAP' : 'MAP', () => this.leave(), '#ffd23f');
-    btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#ffb07a');
+    // (no AGAIN: win and the warp carries on into the Fondue Fountain; lose and it's back to the map)
+    this.wonIt = won;
+    btn(W / 2, won ? (pad ? 'A: ON THROUGH THE WARP' : 'ON THROUGH THE WARP') : (pad ? 'A: MAP' : 'MAP'), () => won ? this.onward() : this.leave(), '#ffd23f');
     this.exitBtn.setVisible(false);
   }
+  onward() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(400, 255, 255, 255); this.time.delayedCall(430, () => this.scene.start('level1', { level: 5.5, warped: true, autostart: true })); }
   again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
   leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }

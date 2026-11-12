@@ -1487,3 +1487,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Only the Mac-Grinder to start (`CFG.allWeapons` false). The Spaghetti Spinner and Swiss-Shot come only from the bonus rooms' crates (Zero-G after level 3, Grill Freefall after 6, Centrifuge after the Fondue Fountain); they are no longer unlocked by reaching a level.
 - One-off fresh start on every device (`lc_fresh_239`): level progress, secret routes and won guns are wiped once. Golden wheels, Lucky Wheel spins and ranks are kept.
 - UNLOCK ALL (TEST MODE) switch top right of the route map (`Progress.testMode`, `lc_testmode`): opens every level, bonus room and gun while on. Progress isn't recorded while it's on (beating levels, finding warps and winning guns are ignored), so switching it off puts things back as they were. The old green TEST buttons only show in cheat mode.
+
+## v2.40 Cheddar tamed, Centrifuge moved onto the warp road
+- Cheddar: without a magnet it only gets a small tug along the ground (within 55px, both on or near the ground). The big pull (140px, and the column above / below) now comes with the shop's MAGNET FORK, FOR KEEPS (or the timed Magnet Fork power-up).
+- Cheddar values cut by about 69%: an enemy spills score x 0.031 (minimum 2; a mouse 3, a golem 12), a boss 80, a Golden Set 100.
+- Warp road is now Triangle (level 3) -> CENTRIFUGE -> Fondue Fountain -> level 7. Breaking into the warp on level 3 drops you in the Centrifuge first (until it's been beaten, `lc_cbeat`); winning it carries straight on into the Fondue Fountain. Map: the Centrifuge opens once the warp is found, the Fondue Fountain once the Centrifuge is beaten.
+- Centrifuge: survive 30s (was 60), only 10 robots come in all told (`CF_TIME`, `CF_BOTS`). The end screen has no AGAIN: grabbing the gun gives ON THROUGH THE WARP; losing gives MAP (it can be played again from the map).

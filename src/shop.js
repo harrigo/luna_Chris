@@ -176,7 +176,7 @@ class ShopScene extends Phaser.Scene {
     L.push({ name: 'PATCH UP ARMOUR', desc: miss > 0 ? 'Weld on the ' + miss + ' missing plate' + (miss > 1 ? 's' : '') + '.' : (s.armHp > 0 ? 'Not a scratch on it.' : 'Nothing to patch.'), cost: miss * SHOP.patchCost, max: miss <= 0, act: q => { q.armHp = SHOP.armHp[q.armMk]; } });
     if (s.boots < 4) L.push({ name: 'MOON BOOTS LV ' + (s.boots + 1), desc: 'Run faster, jump higher, and the jetpack sips less fuel.', cost: SHOP.bootCost[s.boots + 1], act: q => { q.boots++; } });
     else L.push({ name: 'MOON BOOTS LV 4', desc: 'Fully sprung.', cost: 0, max: true });
-    if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Cheddar and pick-ups fly to you. Spare forks you find pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
+    if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {
       const c = (s.chips || {})[w.id] || 0;

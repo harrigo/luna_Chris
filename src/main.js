@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.39';
+const BUILD = 'v2.40';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -113,7 +113,7 @@ const bakedGlow = (obj, col, strength, dist) => {
 // (golden wheels, Lucky Wheel spins and best ranks are kept)
 try {
   if (localStorage.getItem('lc_fresh_239') !== '1') {
-    for (const k of Object.keys(localStorage)) if (k === 'lc_best' || /^lc_(found|sbeat_|gun_)/.test(k)) localStorage.removeItem(k);
+    for (const k of Object.keys(localStorage)) if (k === 'lc_best' || k === 'lc_cbeat' || /^lc_(found|sbeat_|gun_)/.test(k)) localStorage.removeItem(k);
     localStorage.setItem('lc_fresh_239', '1');
   }
 } catch (e) { /* ignore */ }
@@ -123,6 +123,7 @@ const Progress = {           // remembered on the device: highest level beaten
   setTestMode(on) { try { localStorage.setItem('lc_testmode', on ? '1' : '0'); } catch (e) { /* ignore */ } },
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
   beat(n) { if (this.testMode) return; try { if (LEVELS[n] && LEVELS[n].secret) localStorage.setItem('lc_sbeat_' + n, '1'); else if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
+  get centBeat() { try { return localStorage.getItem('lc_cbeat') === '1'; } catch (e) { return false; } },
   secretBeat(n) { try { return localStorage.getItem('lc_sbeat_' + n) === '1'; } catch (e) { return false; } },
   setBest(n) { try { localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
   found(n) { try { if (n === 5.5 && localStorage.getItem('lc_found6') === '1') return true; return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels (5.5 was briefly numbered 6)
@@ -1041,7 +1042,8 @@ class Level1 extends Phaser.Scene {
     this.banner('WARP ZONE!');
     this.cameras.main.shake(1400, 0.006);
     this.time.delayedCall(1300, () => this.cameras.main.fadeOut(450, 255, 255, 255));
-    this.time.delayedCall(1800, () => this.scene.restart({ level: W.def.to, warped: true, autostart: true }));
+    const viaDrum = W.def.to === 5.5 && !Progress.centBeat;          // (v2.40) the warp drops you in the CENTRIFUGE first; beat it and it carries on to the Fondue Fountain
+    this.time.delayedCall(1800, () => viaDrum ? this.scene.start('centrifuge', { warp: true }) : this.scene.restart({ level: W.def.to, warped: true, autostart: true }));
   }
 
   nextWave() {
@@ -1105,7 +1107,7 @@ class Level1 extends Phaser.Scene {
         Sound.sfx('reveal'); buzz([30, 30, 60]);
         this.burst(w.theta, w.h, 'crumb', 16, 1.2); this.bang(w.theta, w.h, 24); this.addLight(w.theta, w.h, 120, 0xffd23f, 1, 0.5);
         if (Progress.wheelCount(this.levelId) >= 3) {      // the GOLDEN SET: a pile of cheddar now, and every new game starts with more in hand
-          this.spillCheddar(w.theta, w.h + 20, 300); this.cameras.main.flash(300, 255, 230, 140); Sound.sfx('power');
+          this.spillCheddar(w.theta, w.h + 20, 100); this.cameras.main.flash(300, 255, 230, 140); Sound.sfx('power');
           this.banner('GOLDEN SET! ALL 3 FOUND\n+' + SHOP.setBonus + ' CHEDDAR AT THE START OF EVERY GAME');
         } else
         this.banner('GOLDEN CHEESE WHEEL!\n' + Progress.wheelCount(this.levelId) + ' / 3 FOUND');
@@ -4110,7 +4112,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
-      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 250 : Math.max(5, Math.round(pts / 10)));       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
+      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 80 : Math.max(2, Math.round(pts * 0.031)));     // (v2.40: cut by ~69%)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
         const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
@@ -4352,8 +4354,9 @@ class Level1 extends Phaser.Scene {
       const magB = this.buffOn('magnet');               // Magnet Fork (the power-up, or the shop's permanent one with a shorter reach): everything comes to Chris
       p.pull = (magB || this.magOwned) && Math.abs(angDiff(p.theta, P.theta)) * R < (magB ? 420 : 250) && this.state === 'play';
       if (p.kind === 'cheddar' && this.state === 'play') {   // CHEDDAR sucks in by itself once you're close: within ~140px, or anywhere in a column above / below you
-        const cx = angDiff(p.theta, P.theta) * R, cy = p.h - (P.h + 24), cd = Math.hypot(cx, cy);
-        if (p.suck || cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300) || p.pull) {
+        const cx = angDiff(p.theta, P.theta) * R, cy = p.h - (P.h + 24), cd = Math.hypot(cx, cy), big = this.magOwned || magB;
+        const near = big ? (cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300)) : (Math.abs(cx) < 55 && p.h < 40 && P.h < 50);   // (no magnet: just a little tug along the ground)
+        if (p.suck || near || p.pull) {
           p.suck = true; p.pull = true; p.pullT = (p.pullT || 0) + dt;
           const sp = Math.min(cd, (260 + 1100 * p.pullT) * dt) / (cd || 1);                  // homes straight in, faster and faster
           p.theta = wrap(p.theta - cx * sp / R); p.h -= cy * sp; p.vh = 0; p.vt = 0;

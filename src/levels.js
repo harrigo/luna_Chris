@@ -940,11 +940,11 @@ class SelectScene extends Phaser.Scene {
       { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 },
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
       { id: 'freefall', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: CERAMIC GRILL FREEFALL', blurb: 'BONUS: drop down a giant kamado grill to the coals.\nFind the gaps in the grates, dodge the flare-ups, hold JUMP to brake.' },
-      { id: 5.5, x: 0.4, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nFound through the Triangle on level 3. Comes out at level 7.' },
-      { id: 'centrifuge', x: 0.56, y: 0.99, kind: 'bonus', name: 'WARP BONUS: CENTRIFUGE FERMENTER', blurb: 'BONUS: inside a spinning drum. The spin holds you to the wall,\nsurvive 60s, grab every ingredient, then jump for the gun.' }
+      { id: 5.5, x: 0.56, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nReached through the Centrifuge. Comes out at level 7.' },
+      { id: 'centrifuge', x: 0.4, y: 0.99, kind: 'bonus', name: 'WARP: CENTRIFUGE FERMENTER', blurb: 'The warp from the Triangle drops you in a spinning drum.\nSurvive 30s, grab every ingredient, then jump for the gun.' }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 5.5], [5.5, 'centrifuge'], ['centrifuge', 7]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 'centrifuge'], ['centrifuge', 5.5], [5.5, 7]]; }
   // pick a stop: Chris boosts there along the route (straight across if they aren't joined)
   travel(id) {
     const from = this.sel; if (from === id) return;
@@ -963,8 +963,8 @@ class SelectScene extends Phaser.Scene {
     if (id === 1 || Progress.testMode) return true;
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
-    if (id === 5.5) return Progress.found(5.5);
-    if (id === 'centrifuge') return Progress.secretBeat(5.5);
+    if (id === 'centrifuge') return Progress.found(5.5);          // (v2.40) the warp road: Triangle -> CENTRIFUGE -> Fondue Fountain -> level 7
+    if (id === 5.5) return Progress.centBeat;
     if (id === 7 && Progress.secretBeat(5.5)) return true;
     return typeof id === 'number' && best >= id - 1;
   }
