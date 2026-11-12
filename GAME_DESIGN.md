@@ -1451,3 +1451,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Hearts take two ordinary hits: `hurt()` costs half a heart, `hurt(true)` (HEAVY) a whole one with a CRUNCH! pop, a stop-frame and a bigger shake. New icon `hud_cheese_half`.
 - Heavy: touching / being landed on by any boss, the Baron's claw, the Mandoline's blade slams, Le Grand Fromage's lance, falling slam blocks, the Milkmaid's horns, being squashed.
 - Everything else (shots, small enemies, hazards, goo, flames) is half a heart. Cheese wedges still heal a whole heart. An armour plate still soaks one hit of either kind.
+
+## v2.31 Magnet light and the permanent Magnet Fork
+- Anything the magnet has hold of is joined to Chris by a crackling blue-white thread with a halo and motes streaming in (`drawMagnet`, additive layer `magG`); a spark and a small flash as each one lands.
+- Shop: MAGNET FORK, FOR KEEPS (450 cheddar, until game over; `shop.magnet`, `this.magOwned`). It pulls pick-ups from 250px (the timed power-up reaches 420px and also bends shots away). With it owned, a Magnet Fork power-up pays 40 cheddar instead.
+- Shop rows keep their descriptions down to 26px tall (nine rows now).

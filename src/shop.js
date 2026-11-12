@@ -11,7 +11,7 @@ const SHOP = {
   armCost: [0, 150, 260, 400, 600],        // forging / upgrading TO this mark
   bootCost: [0, 120, 220, 350, 500],
   chipCost: [0, 180, 320, 500],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4
-  setBonus: 75, lifeCost: 300, patchCost: 25, heartCost: [0, 350, 600]   // (v2.24: everything roughly 2.5x dearer)
+  magnetCost: 450, setBonus: 75, lifeCost: 300, patchCost: 25, heartCost: [0, 350, 600]   // (v2.24: everything roughly 2.5x dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
 const SPIN = [['30', 22, 0xffb52a], ['PLATE', 14, 0x6c7690], ['60', 16, 0xff7a5a], ['RAT!', 10, 0x4a3a5a], ['30', 22, 0xffb52a], ['GUN +1', 10, 0x2ad0b8], ['500', 3, 0xff5a9a], ['LIFE', 2, 0x7dff8a]];
@@ -176,6 +176,8 @@ class ShopScene extends Phaser.Scene {
     L.push({ name: 'PATCH UP ARMOUR', desc: miss > 0 ? 'Weld on the ' + miss + ' missing plate' + (miss > 1 ? 's' : '') + '.' : (s.armHp > 0 ? 'Not a scratch on it.' : 'Nothing to patch.'), cost: miss * SHOP.patchCost, max: miss <= 0, act: q => { q.armHp = SHOP.armHp[q.armMk]; } });
     if (s.boots < 4) L.push({ name: 'MOON BOOTS LV ' + (s.boots + 1), desc: 'Run faster, jump higher, and the jetpack sips less fuel.', cost: SHOP.bootCost[s.boots + 1], act: q => { q.boots++; } });
     else L.push({ name: 'MOON BOOTS LV 4', desc: 'Fully sprung.', cost: 0, max: true });
+    if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Cheddar and pick-ups fly to you. Spare forks you find pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
+    else L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {
       const c = (s.chips || {})[w.id] || 0;
       if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: SHOP.chipCost[c + 1], act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
@@ -373,9 +375,9 @@ class ShopScene extends Phaser.Scene {
       const y = top + i * (rh + gap), afford = !it.max && s.coins >= it.cost, gg = this.add.graphics();
       gg.fillStyle(0x1a1020, 1).fillRect(x0 - 2, y - 2, rw + 4, rh + 4); gg.fillStyle(it.max ? 0x14141c : 0x151b40, 1).fillRect(x0, y, rw, rh);
       this.ui.add(gg);
-      const one = rh < 30;
-      this.ui.add(this.add.text(x0 + 8, y + (one ? rh / 2 - 4 : 6), it.name, f(8, it.max ? '#6b7390' : '#ffffff', ink)));
-      if (!one) this.ui.add(this.add.text(x0 + 8, y + rh - 14, it.desc, f(7, it.max ? '#4a5070' : '#9fa6c2')).setScale(Math.min(1, (rw - 110) / Math.max(1, it.desc.length * 7))));
+      const one = rh < 26;
+      this.ui.add(this.add.text(x0 + 8, y + (one ? rh / 2 - 4 : Math.min(6, rh * 0.14)), it.name, f(8, it.max ? '#6b7390' : '#ffffff', ink)));
+      if (!one) this.ui.add(this.add.text(x0 + 8, y + rh - Math.min(14, rh * 0.4), it.desc, f(7, it.max ? '#4a5070' : '#9fa6c2')).setScale(Math.min(1, (rw - 110) / Math.max(1, it.desc.length * 7))));
       const pt = this.add.text(x0 + rw - 8, y + rh / 2, it.max ? 'SOLD OUT' : String(it.cost), f(10, it.max ? '#6b7390' : afford ? '#ffe27a' : '#ff7a5a', ink)).setOrigin(1, 0.5);
       this.ui.add(pt);
       if (!it.max) this.ui.add(this.add.image(pt.x - pt.width - 10, y + rh / 2, 'cheddar').setScale(1.5));

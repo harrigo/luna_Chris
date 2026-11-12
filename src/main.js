@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.30';
+const BUILD = 'v2.31';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -198,7 +198,7 @@ class Level1 extends Phaser.Scene {
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
-    this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
+    this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.magG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
     if (!(this.registry.get('lives') > 0)) { this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); Shop.reset(this.registry); }   // a fresh game
@@ -480,7 +480,7 @@ class Level1 extends Phaser.Scene {
 
     this.augerPhase = 0;
     this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
-    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
+    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.magOwned = !!Shop.get(this.registry).magnet; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
     this.fxInit();                                        // neo-retro lighting (fx.js)
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
@@ -4335,9 +4335,11 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     for (let i = this.pickups.length - 1; i >= 0; i--) {
       const p = this.pickups[i];
-      if (this.buffOn('magnet') && Math.abs(angDiff(p.theta, P.theta)) * R < 420) {     // Magnet Fork: everything comes to Chris
+      const magB = this.buffOn('magnet');               // Magnet Fork (the power-up, or the shop's permanent one with a shorter reach): everything comes to Chris
+      p.pull = (magB || this.magOwned) && Math.abs(angDiff(p.theta, P.theta)) * R < (magB ? 420 : 250) && this.state === 'play';
+      if (p.pull) {
         p.theta = wrap(p.theta + Math.sign(angDiff(P.theta, p.theta)) * Math.min(Math.abs(angDiff(P.theta, p.theta)), 360 / R * dt));
-        p.h += (P.h + 14 - p.h) * Math.min(1, dt * 4); p.vh = 0;
+        p.h += (P.h + 14 - p.h) * Math.min(1, dt * 4); p.vh = 0; p.vt = 0; p.pullT = (p.pullT || 0) + dt;
       }
       p.vh -= this.gAt(p.theta) * 0.6 * dt;
       p.h += p.vh * dt;
@@ -4348,6 +4350,10 @@ class Level1 extends Phaser.Scene {
       p.life -= dt;
       let dead = p.life <= 0;
       if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
+        if (p.pull) { this.burst(P.theta, P.h + 26, 'spark', 3, 0.6); if (this.t - (this.magLT || 0) > 0.25) { this.magLT = this.t; this.addLight(P.theta, P.h + 26, 46, 0x8ad8ff, 0.5, 0.12); } }   // snapped onto the fork
+        if (p.kind === 'buff' && p.bk === 'magnet' && this.magOwned) {       // already own the fork for good: it's worth cheddar instead
+          Shop.earn(this.registry, 40); P.coinPop = 0.4; Sound.sfx('power'); this.addScore(300); this.banner('SPARE MAGNET FORK!\n+40 CHEDDAR');
+        } else
         if (p.kind === 'buff') this.startBuff(p.bk);
         else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; }
         else if (p.kind === 'power') {
@@ -4383,6 +4389,24 @@ class Level1 extends Phaser.Scene {
     if (!hit) return;
     for (let k = 0; k < 3; k++) this.macDrip(b.theta, h, -dir * rnd(20, 190), rnd(40, 260));
     if (this.lights.length < 22) this.addLight(b.theta, h, 54, 0xffc040, 0.9, 0.14);
+  }
+  // the Magnet Fork's pull, made visible: a crackling thread of blue-white light from the fork to each thing it has hold of,
+  // a halo round the thing, and motes streaming down the thread into Chris's hand
+  drawMagnet() {
+    if (!this.magG) this.magG = this.add.graphics().setDepth(6.05).setBlendMode(Phaser.BlendModes.ADD);
+    const g = this.magG, z = this.zoom, P = this.pl, t = this.t; g.clear();
+    let any = false;
+    const c = this.screenPos(P.theta, P.h + 26);
+    for (const p of this.pickups) {
+      if (!p.pull) continue; any = true;
+      const q = this.screenPos(p.theta, p.h + (p.kind === 'cheddar' ? 6 : 0)), dx = c.x - q.x, dy = c.y - q.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+      const k = Math.min(1, (p.pullT || 0) * 5), N = 7, pts = [], seed = p.theta * 977;
+      for (let i = 0; i <= N; i++) { const u = i / N, w = Math.sin(u * Math.PI) * (5 + L * 0.035) * Math.sin(t * 23 + i * 2.1 + seed); pts.push({ x: q.x + dx * u + nx * w, y: q.y + dy * u + ny * w }); }
+      g.lineStyle(Math.max(2, 5 * z), 0x3a8aff, 0.22 * k).strokePoints(pts); g.lineStyle(Math.max(1, 2 * z), 0x9ad8ff, 0.7 * k).strokePoints(pts); g.lineStyle(1, 0xffffff, 0.8 * k).strokePoints(pts);
+      g.fillStyle(0x6ab8ff, 0.2 * k).fillCircle(q.x, q.y, 13 * z); g.fillStyle(0xcfeeff, 0.3 * k).fillCircle(q.x, q.y, 7 * z);                 // halo
+      for (let m = 0; m < 3; m++) { const u = (t * 2.4 + m / 3 + seed) % 1; g.fillStyle(0xffffff, 0.9 * k * (1 - u * 0.4)).fillCircle(q.x + dx * u, q.y + dy * u, Math.max(1, 2.2 * z)); }   // motes
+    }
+    if (any) { g.fillStyle(0x6ab8ff, 0.16 + 0.06 * Math.sin(t * 18)).fillCircle(c.x, c.y, 20 * z); g.fillStyle(0xffffff, 0.25).fillCircle(c.x, c.y, 6 * z); }   // the fork hums
   }
   drawMacTrails() {
     if (!this.macG) this.macG = this.add.graphics().setDepth(7.95).setBlendMode(Phaser.BlendModes.ADD);
@@ -4785,7 +4809,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     this.updateCamera();
     const { cx, cy } = this;
-    this.drawBlastFx(); this.drawMacTrails();
+    this.drawBlastFx(); this.drawMacTrails(); this.drawMagnet();
     this.drawHazards();
     this.drawTongues(); this.drawFactory(); this.drawCheeseStrings(); this.drawMando();
 
