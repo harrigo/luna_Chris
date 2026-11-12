@@ -1499,3 +1499,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Showing it's temporary: the pick-up banner says how many seconds; a draining bar with the icon and seconds rides over Chris's head (red and flashing in the last 3s); a big 3, 2, 1 pops over him with a blip; '... WORN OFF' when it ends. The HUD ring timer stays too.
 - Fewer of them: after each wave's first power-up drop the chance of another is 1 in 12 (was 1 in 4), and none drops while one is running.
 - Levels 2 and 3: every wave has about half as many enemies again (a copy of every other spawn slipped in 0.35s after it) and a new 18-enemy WAVE 4 mixing the level's whole cast. Level 2: 18/26/30/18 (was 12/17/20), level 3: 12/17/21/18 (was 8/11/14).
+
+## v2.42 Zero-G controls like the main game; cheese wheels
+- Zero-G rooms on touch: the main game's AIM+FIRE thumbstick. A ghost stick rests bottom right; a thumb down anywhere (below the HUD, not on MAP) becomes the stick's centre, and pushing it past the deadzone fires that way (a resting thumb doesn't fire, since every shot kicks you). Mouse, keys and controller unchanged.
+- 'Ingredients' are gone: the Zero-G rooms' 12 and the Centrifuge's 14 collectables are all CHEESE WHEELS (`miniwheel_c`: a small red-waxed truckle with a wedge cut out, so they don't look like the golden wheels). Text, goal panels and map blurbs updated.

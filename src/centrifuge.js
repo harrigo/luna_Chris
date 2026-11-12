@@ -5,12 +5,12 @@
 // The fun is the real physics: in the air he flies in a STRAIGHT LINE (nothing pulls him) while the drum turns under
 // him, so a jump lands further round than you'd think. Running WITH the spin makes you "heavier" and throws you
 // forward; running AGAINST it cancels the spin out, so a jump goes straight across. The spin also rises and falls:
-// when it slows, jumps sail right across the middle, which is the only way to reach the ingredients floating near the
+// when it slows, jumps sail right across the middle, which is the only way to reach the cheese wheels floating near the
 // axle. HATCHES in the wall open now and then onto space: the air roars out and drags you towards them (get sucked
 // out and you're thrown back in, 3 s down), and rats fly in through them on rocket packs and take pot-shots. Shoot
 // them with the Mac-Grinder, or land on them feet first (touching them any other way hurts). Gaps tear open at random places and sizes (bigger = more robots, harder pull). SURVIVE
-// 30 SECONDS (v2.40) and collect the ingredient in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
-// have to jump (or jetpack) right through the middle to grab it. 6 hits of armour; ingredients patch you up.
+// 30 SECONDS (v2.40) and collect the cheese wheel in every porthole (14): then the prize gun pops out in the very middle of the drum, and you
+// have to jump (or jetpack) right through the middle to grab it. 6 hits of armour; cheese wheels patch you up.
 //
 // Controls are the main game's: left/right run (his own left/right, like on a planet), jump (Space/Up/W, controller A;
 // hold it in the air for the jetpack, which pushes you in towards the middle), fire (Z/X/J or the mouse, which aims;
@@ -93,7 +93,7 @@ class CentrifugeScene extends Phaser.Scene {
   constructor() { super('centrifuge'); }
 
   create() {
-    buildAllTextures(this);
+    buildAllTextures(this); makeMiniWheel(this);
     const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level7');
@@ -147,12 +147,12 @@ class CentrifugeScene extends Phaser.Scene {
     this.hatches = []; this.gapT = 2.5;
     this.padG = this.add.graphics(); this.drum.add(this.padG);
     this.ens = []; this.ebul = []; this.shots = []; this.fuel = 1; this.fireCd = 0; this.out = null;
-    // ingredients, fixed in the drum: most near the wall-ish, a few floating near the axle (slow spin needed)
-    const kinds = ['wedge', 'goldwheel', 'meatball', 'ix_pancake', 'pepper', 'chili'], glow = [0xffd23f, 0xffc23a, 0xff8a5a, 0xffb36a, 0x7dff8a, 0xff4a3a];
+    // cheese wheels, fixed in the drum: most near the wall-ish, a few floating near the axle (slow spin needed)
+    const kinds = ['miniwheel_c'], glow = [0xffc23a];     // (v2.42: cheese wheels, not cheese wheels)
     this.items = [];
     for (let i = 0; i < this.HOLES.length; i++) {                   // one in the middle of every porthole in the drum
       const H0 = this.HOLES[i], x = H0.x, y = H0.y, ang = Math.atan2(y, x), r = Math.hypot(x, y), k = i % kinds.length;
-      const im = this.add.image(x, y, kinds[k]).setScale(k === 3 ? 2.3 : 1.5);
+      const im = this.add.image(x, y, kinds[k]).setScale(1.6);
       this.drum.add(im);
       this.items.push({ x, y, ang, r, im, got: false, col: glow[k], ph: rnd(0, 6) });
     }
@@ -172,7 +172,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20);
-    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY INGREDIENT\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -540,7 +540,7 @@ class CentrifugeScene extends Phaser.Scene {
       for (const e of this.ens) if (!dead && Math.hypot(b.x - e.x, b.y - e.y) < (e.kind === 'ratship' ? 32 : 22)) { e.hp--; e.flash = 0.06; dead = true; Sound.sfx('tink'); }
       if (dead) { b.im.destroy(); this.shots.splice(i, 1); }
     }
-    // ---- ingredients (in the drum's frame)
+    // ---- cheese wheels (in the drum's frame)
     const cp = this.chrisPos(), ca = Math.cos(-this.D), sa = Math.sin(-this.D);
     const lx = cp.x * ca - cp.y * sa, ly = cp.x * sa + cp.y * ca;          // Chris in drum coordinates
     for (const it of this.items) {
@@ -561,7 +561,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'ARMOUR');
     (this.goalHud || (this.goalHud = new GoalHud(this))).update([
       { label: 'SURVIVE ' + CF_TIME + 's', frac: 1 - this.timeLeft / CF_TIME, right: this.timeLeft > 0 ? Math.ceil(this.timeLeft) + 's' : 'OK', done: this.timeLeft <= 0 },
-      { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
+      { label: 'CHEESE WHEELS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
       { label: 'GRAB THE GUN', locked: !this.survived, done: this.done && this.survived, hot: this.survived && !this.done }]);
     { const hg = this.hudG; hg.clear(); const n = this.hpMax, w = 14, x0 = W / 2 - n * (w + 4) / 2, y0 = 46;     // armour pips
       { const gw = 136, gx = W / 2 - gw / 2, gy = 60, gh = 8, nb = 17, bw = gw / nb, fl = Math.floor(this.t * 8) % 2;   // the JET bar (as in the main game)

@@ -1,13 +1,25 @@
 // BONUS: the Zero-G Recoil Room. No gravity, no running, no jetpack: the only way to move is the kick of the gun.
 // Fire one way and Chris drifts the other, like a pinball, bouncing off the walls and the cheese bumpers. Scoop up
-// all the scattered ingredients before the clock runs out and the GUN CRATE in the middle opens: a new weapon to
+// all the scattered cheese wheels before the clock runs out and the GUN CRATE in the middle opens: a new weapon to
 // keep (Progress.gun), or an extra life once every gun is owned.
 //
-// Controls: aim + fire as usual (touch: drag/hold anywhere = fire that way; mouse: point + click; keys: arrows/WASD
-// fire in that direction; controller: right stick). Remember: you FLY AWAY from where you shoot.
+// Controls (v2.42: the main game's): touch = the AIM+FIRE thumbstick (put a thumb down anywhere and push: it fires the
+// way you push, harder = straight away); mouse: point + click; keys: arrows/WASD fire that way; controller: right stick. Remember: you FLY AWAY from where you shoot.
 // The < MAP button (top left), ESC or the controller's BACK leave at any time.
 // ---- GOAL panel for the bonus levels (top left, under the MAP button): what you have to do, ticked off as you go.
 // update(goals) with [{ label, frac 0..1, right: 'text', done, locked, hot }]. (No coloured edge stripes: a plain panel.)
+// the bonus rooms' collectables (v2.42: CHEESE WHEELS, not 'cheese wheels'): a little truckle of cheese side-on, red wax
+// rind, a wedge cut out of it so the pale paste shows (different enough from the GOLDEN wheels hidden in the levels)
+function makeMiniWheel(scene) {
+  if (scene.textures.exists('miniwheel_c')) return;
+  pixSprite(scene, 'miniwheel_c', 22, 18, a => {
+    a.ell(11, 12, 10, 5, [0xd04030, 0xa02818, 0x681008]);                      // the side of the truckle (red wax)
+    a.rect(1, 7, 21, 12, [0xd04030, 0xa02818, 0x681008][1]);
+    a.ell(11, 7, 10, 5, [0xfff09a, 0xffcf3a, 0xc9901a]);                       // the top: cheese
+    a.poly([[11, 7], [21, 6], [19, 10]], 0xfff6c8); a.rect(17, 8, 21, 13, 0xfff09a);   // the cut wedge: pale paste
+    a.px(6, 6, 0xffffff); a.px(7, 5, 0xffffff); a.px(14, 9, 0xc9901a); a.px(8, 8, 0xc9901a);
+  }, true);
+}
 class GoalHud {
   constructor(scene) { this.s = scene; this.g = scene.add.graphics().setScrollFactor(0).setDepth(20); this.rows = []; this.title = null; }
   update(goals, x, y) {
@@ -38,8 +50,21 @@ class GoalHud {
 class ZeroGScene extends Phaser.Scene {
   constructor() { super('zerog'); }
 
+  drawStick() {                                           // the AIM+FIRE stick, as in the main game: a ghost at rest bottom right, live where the thumb is
+    if (!this.stickG) { this.stickG = this.add.graphics().setScrollFactor(0).setDepth(22); this.stickLbl = this.add.text(0, 0, 'AIM + FIRE', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23); }
+    const g = this.stickG; g.clear();
+    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
+    this.stickLbl.setVisible(show); if (!show) return;
+    const W = this.scale.width, H = this.scale.height, r = 52, live = this.aimS, bx = live ? live.ox : W - 120, by = live ? live.oy : H - 86;
+    this.stickLbl.setPosition(W - 120, H - 86 + 64).setAlpha(live ? 0.3 : 1);
+    g.fillStyle(0xffffff, live ? 0.12 : 0.06).fillCircle(bx, by, r);
+    g.lineStyle(3, 0xffffff, live ? 0.6 : 0.25).strokeCircle(bx, by, r);
+    const kx = bx + (live ? live.vx * r * 0.75 : 0), ky = by + (live ? live.vy * r * 0.75 : 0);
+    g.fillStyle(0xffffff, live ? 0.5 : 0.18).fillCircle(kx, ky, r * 0.42);
+    g.lineStyle(2, 0x1a1020, live ? 0.6 : 0.2).strokeCircle(kx, ky, r * 0.42);
+  }
   create(data) {
-    buildAllTextures(this);
+    buildAllTextures(this); makeMiniWheel(this);
     // three rooms share this scene: after level 3, after level 6, and on the warp route (each its own layout and colours)
     this.room = (data && data.room) || this.room || 'zerog';
     const V = this.V = ({
@@ -66,18 +91,18 @@ class ZeroGScene extends Phaser.Scene {
     this.bumpG = this.add.graphics().setDepth(1);
     this.glowG = this.add.graphics().setDepth(0.9).setBlendMode(Phaser.BlendModes.ADD);
 
-    // the ingredients, floating about, each in its own little glow
-    const kinds = ['wedge', 'goldwheel', 'meatball', 'ix_pancake', 'pepper', 'chili'], glow = [0xffd23f, 0xffc23a, 0xff8a5a, 0xffb36a, 0x7dff8a, 0xff4a3a], spots = [];
+    // the cheese wheels, floating about, each in its own little glow
+    const kinds = ['miniwheel_c'], glow = [0xffc23a], spots = [];     // (all cheese wheels now)
     while (spots.length < 12) {
       const x = 80 + Math.random() * (RW - 160), y = 80 + Math.random() * (RH - 160);
       if (this.bumpers.some(b => Math.hypot(x - b.hx, y - b.hy) < b.r + b.roam + 50) || Math.hypot(x - RW / 2, y - RH / 2) < 160 || spots.some(s => Math.hypot(x - s.x, y - s.y) < 110)) continue;
       spots.push({ x, y });
     }
-    this.items = spots.map((s, i) => { const k = i % kinds.length; const im = this.add.image(s.x, s.y, kinds[k]).setDepth(2).setScale(k === 3 ? 2.6 : 1.6); return { x: s.x, y: s.y, im, ph: Math.random() * 6, got: false, col: glow[k] }; });
+    this.items = spots.map((s, i) => { const k = i % kinds.length; const im = this.add.image(s.x, s.y, kinds[k]).setDepth(2).setScale(1.7); return { x: s.x, y: s.y, im, ph: Math.random() * 6, got: false, col: glow[k] }; });
     this.got = 0;
     this.shots = [];
 
-    // the prize: a crate in the middle of the room, chained shut until the last ingredient is in
+    // the prize: a crate in the middle of the room, chained shut until the last cheese wheel is in
     this.prize = this.pickPrize();
     this.crate = this.add.container(RW / 2, RH / 2).setDepth(2);
     const box = this.add.graphics();
@@ -100,7 +125,7 @@ class ZeroGScene extends Phaser.Scene {
     this.f = f;
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
-    this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 TO OPEN THE CRATE' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
+    this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 CHEESE WHEELS TO OPEN THE CRATE' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
       Object.assign(f(11, '#9fd8ff'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3600, duration: 600 });
     // an always-there way out: tapping it never fires the gun
@@ -109,6 +134,8 @@ class ZeroGScene extends Phaser.Scene {
     this.layout(); this.scale.on('resize', this.layout, this); this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
 
     // input
+    this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window); this.stickG = null; this.stickLbl = null;
+    this.input.on('pointerdown', p => { if (p.wasTouch) this.isTouch = true; });
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN', a: 'A', d: 'D', w: 'W', s: 'S', r: 'R', enter: 'ENTER', space: 'SPACE' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
@@ -188,7 +215,18 @@ class ZeroGScene extends Phaser.Scene {
     let fire = false, ax = 0, ay = 0;
     const ptr = this.input.activePointer, eb = this.exitBtn.getBounds();
     const onBtn = eb.contains(ptr.downX, ptr.downY) || eb.contains(ptr.x, ptr.y);
-    if (ptr.isDown && !this.done && !onBtn && !this.leaving) { const wp = cam.getWorldPoint(ptr.x, ptr.y); ax = wp.x - this.pos.x; ay = wp.y - (this.pos.y - 24); fire = true; }
+    this.aimS = null;
+    if (this.isTouch) {                                   // the AIM+FIRE stick: wherever a thumb lands it's the centre; push to fire that way
+      for (const p of this.input.manager.pointers) {
+        if (!p || !p.isDown || (p === this.input.manager.mousePointer && !p.wasTouch) || this.done || this.leaving) continue;
+        if (eb.contains(p.downX, p.downY) || p.downY < this.scale.height * 0.18) continue;
+        const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - p.downX) / rad)), vy = Math.max(-1, Math.min(1, (p.y - p.downY) / rad));
+        this.aimS = { ox: p.downX, oy: p.downY, vx, vy };
+        if (Math.hypot(vx, vy) > 0.35) { ax = vx; ay = vy; fire = true; }       // (a thumb just resting doesn't fire: every shot kicks you)
+        break;
+      }
+    } else if (ptr.isDown && !this.done && !onBtn && !this.leaving) { const wp = cam.getWorldPoint(ptr.x, ptr.y); ax = wp.x - this.pos.x; ay = wp.y - (this.pos.y - 24); fire = true; }
+    this.drawStick();
     const k = this.keys;
     if (k) { const kx = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0), ky = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0); if (kx || ky) { ax = kx; ay = ky; fire = true; } }
     if (Pad.state.connected && Pad.state.aimOn) { ax = Pad.state.aimX; ay = Pad.state.aimY; fire = true; }
@@ -243,7 +281,7 @@ class ZeroGScene extends Phaser.Scene {
       if (hitB) { hitB.flash = Math.max(hitB.flash, 0.08); hitB.pop = Math.max(hitB.pop, 0.4); }
       if (s.life <= 0 || hitB || out) { s.im.destroy(); this.shots.splice(i, 1); }
     }
-    // ---- ingredients (a quick chain of pickups is a combo, each one buys back a second)
+    // ---- cheese wheels (a quick chain of pickups is a combo, each one buys back a second)
     this.comboT -= dt; if (this.comboT <= 0) this.combo = 0;
     for (const it of this.items) {
       if (it.got) continue;
@@ -262,9 +300,9 @@ class ZeroGScene extends Phaser.Scene {
     // ---- the clock
     if (!this.done) { this.timeLeft -= dt; if (this.timeLeft <= 0) { this.timeLeft = 0; this.finish(false); } }
     this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#ff5a3a' : '#ffd23f');
-    this.gotTxt.setText('INGREDIENTS ' + this.got + ' / ' + this.items.length);
+    this.gotTxt.setText('CHEESE WHEELS ' + this.got + ' / ' + this.items.length);
     (this.goalHud || (this.goalHud = new GoalHud(this))).update([
-      { label: 'INGREDIENTS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: this.got >= this.items.length },
+      { label: 'CHEESE WHEELS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: this.got >= this.items.length },
       { label: 'BEFORE THE CLOCK', frac: this.timeLeft / 60, right: Math.ceil(this.timeLeft) + 's', hot: this.timeLeft < 10 },
       { label: 'OPEN THE CRATE', done: this.done && this.got >= this.items.length, locked: this.got < this.items.length }]);
 
@@ -329,7 +367,7 @@ class ZeroGScene extends Phaser.Scene {
     if (won) {
       Sound.sfx('power'); Sound.music('win');
       if (this.prize) { Progress.giveGun(this.prize.id); body = 'THE CRATE IS OPEN!\n\nNEW GUN: ' + this.prize.name; }
-      else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 INGREDIENTS!\n\n+1 LIFE'; }
+      else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 CHEESE WHEELS!\n\n+1 LIFE'; }
       body += '\n(' + Math.ceil(this.timeLeft) + 's TO SPARE)';
       // the crate bursts and the prize floats up
       this.tweens.killTweensOf(this.crate);
@@ -337,7 +375,7 @@ class ZeroGScene extends Phaser.Scene {
       this.crate.list[0].setVisible(false);
       this.tweens.add({ targets: this.crateGun.setAlpha(1), y: -70, scale: 2.4, duration: 700, ease: 'Back.out' });
       this.tweens.add({ targets: this.crateGun, angle: 360, duration: 1800, repeat: -1 });
-    } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' INGREDIENTS'; }
+    } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' CHEESE WHEELS'; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
     this.add.text(W / 2, H * 0.24, won ? 'BONUS CLEAR!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
