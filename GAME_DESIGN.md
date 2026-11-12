@@ -1482,3 +1482,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Coins last 29s (was 10), blinking for the last 5.
 - Worth 5x: an enemy spills score/10 (minimum 5; a mouse 10, a golem 40), a boss 250, a golden set 300.
 - Collecting shows one yellow '+N CHEDDAR' over Chris for each burst of coins picked up together.
+
+## v2.39 Playtest setup
+- Only the Mac-Grinder to start (`CFG.allWeapons` false). The Spaghetti Spinner and Swiss-Shot come only from the bonus rooms' crates (Zero-G after level 3, Grill Freefall after 6, Centrifuge after the Fondue Fountain); they are no longer unlocked by reaching a level.
+- One-off fresh start on every device (`lc_fresh_239`): level progress, secret routes and won guns are wiped once. Golden wheels, Lucky Wheel spins and ranks are kept.
+- UNLOCK ALL (TEST MODE) switch top right of the route map (`Progress.testMode`, `lc_testmode`): opens every level, bonus room and gun while on. Progress isn't recorded while it's on (beating levels, finding warps and winning guns are ignored), so switching it off puts things back as they were. The old green TEST buttons only show in cheat mode.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.38';
+const BUILD = 'v2.39';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -62,7 +62,7 @@ const WEAPONS = [
     lvBlast: [0, 0.85, 1, 1, 1.1], lv: [null, 'ONE BOUNCE', 'TWO BOUNCES, BIGGER BLAST', 'CLUSTER OF 4', 'CLUSTER OF 6 THAT BOUNCE'],
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. It BOUNCES, bursting each time; a full charge splits into a cluster of little ones.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
-CFG.allWeapons = true;
+CFG.allWeapons = false;          // (v2.39 playtest) only the Mac-Grinder to start; the others are won in the bonus rooms
 CFG.powerT = 15;                 // seconds the Parmesan Power-Up lasts (a hit still knocks it off sooner)
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
@@ -109,13 +109,24 @@ const bakedGlow = (obj, col, strength, dist) => {
     obj.setTexture(gk); obj.setDisplayOrigin(dox + d, doy + d);
   } catch (e) { /* ignore */ }
 };
+// v2.39 PLAYTEST: a one-off fresh start on every device - levels, secret routes and won guns locked again
+// (golden wheels, Lucky Wheel spins and best ranks are kept)
+try {
+  if (localStorage.getItem('lc_fresh_239') !== '1') {
+    for (const k of Object.keys(localStorage)) if (k === 'lc_best' || /^lc_(found|sbeat_|gun_)/.test(k)) localStorage.removeItem(k);
+    localStorage.setItem('lc_fresh_239', '1');
+  }
+} catch (e) { /* ignore */ }
 const Progress = {           // remembered on the device: highest level beaten
+  // TEST MODE (the switch top right of the route map): every level and gun open, real progress left untouched underneath
+  get testMode() { try { return localStorage.getItem('lc_testmode') === '1'; } catch (e) { return false; } },
+  setTestMode(on) { try { localStorage.setItem('lc_testmode', on ? '1' : '0'); } catch (e) { /* ignore */ } },
   get best() { try { return +(localStorage.getItem('lc_best') || 0); } catch (e) { return 0; } },
-  beat(n) { try { if (LEVELS[n] && LEVELS[n].secret) localStorage.setItem('lc_sbeat_' + n, '1'); else if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
+  beat(n) { if (this.testMode) return; try { if (LEVELS[n] && LEVELS[n].secret) localStorage.setItem('lc_sbeat_' + n, '1'); else if (n > this.best) localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
   secretBeat(n) { try { return localStorage.getItem('lc_sbeat_' + n) === '1'; } catch (e) { return false; } },
   setBest(n) { try { localStorage.setItem('lc_best', String(n)); } catch (e) { /* ignore */ } },
   found(n) { try { if (n === 5.5 && localStorage.getItem('lc_found6') === '1') return true; return localStorage.getItem('lc_found' + n) === '1'; } catch (e) { return false; } },    // secret warp levels (5.5 was briefly numbered 6)
-  find(n) { try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } },
+  find(n) { if (this.testMode) return; try { localStorage.setItem('lc_found' + n, '1'); } catch (e) { /* ignore */ } },
   // best rank per level (S A B C D) and which of its 3 golden cheese wheels have been found (bitmask)
   rank(n) { try { return localStorage.getItem('lc_rank_' + n) || ''; } catch (e) { return ''; } },
   setRank(n, r) { const o = 'SABCD'; try { const old = this.rank(n); if (!old || o.indexOf(r) < o.indexOf(old)) localStorage.setItem('lc_rank_' + n, r); } catch (e) { /* ignore */ } },
@@ -124,9 +135,9 @@ const Progress = {           // remembered on the device: highest level beaten
   wheelCount(n) { const m = this.wheels(n); return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); },
   // guns won from the bonus rooms' crates (the Zero-G Recoil Room): owned for good, on every level
   hasGun(id) { try { return localStorage.getItem('lc_gun_' + id) === '1'; } catch (e) { return false; } },
-  giveGun(id) { try { localStorage.setItem('lc_gun_' + id, '1'); } catch (e) { /* ignore */ } }
+  giveGun(id) { if (this.testMode) return; try { localStorage.setItem('lc_gun_' + id, '1'); } catch (e) { /* ignore */ } }
 };
-const weaponUnlocked = (w, levelId) => CFG.allWeapons || levelId >= w.unlock || Progress.best + 1 >= w.unlock || Progress.hasGun(w.id);
+const weaponUnlocked = (w, levelId) => CFG.allWeapons || Progress.testMode || w.unlock <= 1 || Progress.hasGun(w.id);     // the Spinner and the Swiss-Shot come out of the bonus rooms' crates
 
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble

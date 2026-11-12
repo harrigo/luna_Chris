@@ -960,7 +960,7 @@ class SelectScene extends Phaser.Scene {
   }
   isOpen(id) {
     const best = Progress.best;
-    if (id === 1) return true;
+    if (id === 1 || Progress.testMode) return true;
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
     if (id === 5.5) return Progress.found(5.5);
@@ -1160,6 +1160,12 @@ class SelectScene extends Phaser.Scene {
     });
     this.secretBtn = tb(28, '', () => { const w = LEVELS[this.sel] && LEVELS[this.sel].warp; if (w) { Progress.find(w.to); Sound.sfx('power'); this.build(); } });
     if (Progress.best > 0 || Progress.found(5.5) || Progress.secretBeat(5.5)) tb(0, 'TEST: LOCK ALL', () => { Progress.setBest(0); try { localStorage.removeItem('lc_found5.5'); localStorage.removeItem('lc_found6'); localStorage.removeItem('lc_sbeat_5.5'); } catch (e) { /* ignore */ } this.sel = 1; Sound.sfx('clunk'); this.build(); });
+    { // PLAY TEST switch, top right: unlocks every level and gun while it's on (and puts things back as they were when it's off)
+      const on = Progress.testMode;
+      this.modeBtn = this.add.text(W - 8, 8, on ? 'TEST MODE: ON  (ALL UNLOCKED)' : 'UNLOCK ALL (TEST MODE)', f(7, on ? '#1a1020' : '#ffffff', { backgroundColor: on ? '#7dff8a' : '#3a2a5a', padding: { x: 7, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }).setDepth(5);
+      this.modeBtn.on('pointerup', () => { Progress.setTestMode(!Progress.testMode); Sound.sfx(Progress.testMode ? 'power' : 'clunk'); this.build(); });
+      this.ui.add(this.modeBtn); this.testBtns.unshift(this.modeBtn);
+    }
     this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
     this.buildInfo();
   }
@@ -1173,6 +1179,7 @@ class SelectScene extends Phaser.Scene {
       this.secretBtn.setVisible(show).setText(show ? 'TEST: OPEN SECRET ' + (LEVELS[w.to].short || w.to) : '');
       const id = this.sel, canClear = id === 5.5 ? !Progress.secretBeat(5.5) : (typeof id === 'number' && Progress.best < id && id < 9);
       this.clearBtn.setVisible(canClear).setText(canClear ? 'TEST: CLEAR ' + (id === 5.5 ? 'FONDUE FOUNTAIN' : 'LV ' + id) : '');
+      if (!(typeof Cheat !== 'undefined' && Cheat.on)) for (const b of this.testBtns) if (b !== this.modeBtn) b.setVisible(false);     // (the old TEST buttons only show in cheat mode)
       let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
     }
     const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(330, W * 0.41), lw = W - 24 - rw;
