@@ -1456,3 +1456,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Anything the magnet has hold of is joined to Chris by a crackling blue-white thread with a halo and motes streaming in (`drawMagnet`, additive layer `magG`); a spark and a small flash as each one lands.
 - Shop: MAGNET FORK, FOR KEEPS (450 cheddar, until game over; `shop.magnet`, `this.magOwned`). It pulls pick-ups from 250px (the timed power-up reaches 420px and also bends shots away). With it owned, a Magnet Fork power-up pays 40 cheddar instead.
 - Shop rows keep their descriptions down to 26px tall (nine rows now).
+
+## v2.32 Cheese jam
+- When a gun's gauge runs dry it JAMS (show only: the gun stopped anyway). `gunJam`: the motor chokes (sfx `jam`), a JAMMED! pop, a splat, sparks and drips. While jammed (`jamUpdate`, `drawJam`): a plug of cheese (`jamblob`) wobbles on the muzzle, steam and drips come off it, a warning triangle blinks, pulling the trigger makes it cough and judder (`jamclick`), and a ring round the plug fills red to green as the gauge recovers to the restart point.
+- When it clears: the plug pops off the end with a flash, CLEAR! and sfx `unjam`.

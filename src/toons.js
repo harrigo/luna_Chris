@@ -306,6 +306,12 @@ function makeToonTextures(scene) {
       for (const [x, l] of dr) { a.rect(x, 9, x + 1, 9 + l, CH[1]); a.ell(x + 0.5, 10 + l, 1.5, 1.6, CH); }              // ...running off underneath
     }, true);
     elbow('mac0', 3, [[7, 2], [14, 4]]); elbow('mac1', 0.5, [[9, 4], [15, 2]]); elbow('mac2', -2.5, [[6, 3], [12, 1]]);
+    pixSprite(scene, 'jamblob', 24, 24, a => {                          // the plug of cheese that clogs a gun: a fat gob with holes, a shine and two runs
+      a.ell(12, 10, 10, 9, CH); a.ell(7, 13, 6, 6, CH); a.ell(17, 13, 6, 6, CH);
+      a.rect(6, 15, 8, 20, CH[1]); a.ell(7, 20.5, 2, 2, CH); a.rect(16, 15, 17, 18, CH[1]); a.ell(16.5, 18.5, 1.6, 1.6, CH);
+      a.ell(9, 7, 3, 2, 0xfffbe0); a.px(13, 5, 0xffffff);
+      a.ell(15, 10, 2, 2, 0xd08a12); a.ell(10, 13, 1.5, 1.5, 0xd08a12); a.px(18, 14, 0xd08a12);
+    }, true);
     pixSprite(scene, 'macdrip', 7, 10, a => { a.poly([[3.5, 0], [6, 6], [1, 6]], CH[1]); a.ell(3.5, 6.5, 2.6, 2.6, CH); a.px(2, 6, 0xffffff); }, true);
     pixSprite(scene, 'macsplat', 26, 26, a => {
       for (let k = 0; k < 9; k++) { const an = k * 0.698 + 0.2, l = k % 2 ? 11 : 7.5; a.line([[13, 13], [13 + Math.cos(an) * l, 13 + Math.sin(an) * l]], CH[1], k % 2 ? 2 : 3); a.ell(13 + Math.cos(an) * l, 13 + Math.sin(an) * l, 1.6, 1.6, CH[1]); }
