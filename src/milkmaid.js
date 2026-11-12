@@ -219,7 +219,7 @@ const MilkmaidMixin = {
       }
       case 'teleport': {                               // streak across the sky to his far side, leaving after-images
         e.mmLock = true;
-        const k = Math.min(1, S.t / 0.45), ease = k * k * (3 - 2 * k);
+        const k = Math.min(1, S.t / 0.7), ease = k * k * (3 - 2 * k);     // (v2.47: slower, 0.45 -> 0.7 s, and she's a harmless blur while she streaks: no contact hit)
         e.theta = wrap(S.from + angDiff(S.tgt, S.from) * ease); e.h = S.h0 + (MM.idleH - S.h0) * ease + Math.sin(k * Math.PI) * 40;
         e.spr.setAlpha(0.35 + 0.55 * Math.abs(1 - 2 * k));
         if ((S.gT = (S.gT || 0) - dt) <= 0) { S.gT = 0.035; this.mmGhost(e); }

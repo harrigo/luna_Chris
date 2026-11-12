@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.46';
+const BUILD = 'v2.47';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -471,6 +471,7 @@ class Level1 extends Phaser.Scene {
       const glow = this.add.image(0, 0, 'puff').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
       const tri = wd.style === 'triangle';                          // L3: the Brie-muda Triangle (lanterns + a triangular rift)
       const hole = this.add.image(0, 0, tri ? 'w_tri' : 'px_bhole').setDepth(0.3).setTint(0x6a6268).setAlpha(0.6);
+      if (wd.afterBoss) { hole.setVisible(false); glow.setVisible(false); }       // (L3: nothing to see until the churn is smashed)
       this.warp = { def: wd, theta: wd.theta, h: wd.h, hole, glow, stage: 0, size: 0.8, tgt: 0.8, pulse: 0, spin: 0, open: false, entering: false, t: 0 };
       for (const r of wd.relics) {
         const spr = this.add.image(0, 0, tri ? 'w_lantern' : 'w_relic').setDepth(2.9);
@@ -559,7 +560,7 @@ class Level1 extends Phaser.Scene {
       if (type !== 'heart' || !Cheat.on || (this.state !== 'play' && this.state !== 'rescue')) return;
       const P = this.pl;
       if (P.hp < this.maxHp) { P.hp = Math.min(this.maxHp, P.hp + 1); this.updateHearts(); this.banner('+1 HEART'); }
-      else if (!this.bonusHeart) { this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
+      else if (P.hp < this.maxHp + 1) { P.hp = this.maxHp + 1; this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
       Sound.sfx('pickup'); buzz(25);
       this.burst(P.theta, P.h + 30, 'spark', 8, 0.6);
     });
@@ -597,6 +598,9 @@ class Level1 extends Phaser.Scene {
     });
 
     this.layout();
+    if (this.registry.get('bonusHeart')) {          // (v2.47) the CHEESEBURGER from the end of the last level: one extra heart, on top of the usual ones, for this level
+      this.registry.set('bonusHeart', false); this.bonusHeart = true; this.pl.hp = this.maxHp + 1;
+    }
     this.updateHearts();
     if (this.autostart || this.direct) {
       this.startGame();                       // retry after dying / picked from the level select: straight in
@@ -785,10 +789,11 @@ class Level1 extends Phaser.Scene {
   updateHearts() {
     const hp = Math.max(0, this.pl.hp);
     this.cheeseIcons.forEach((c, i) => c.setTexture(hp >= i + 1 ? 'hud_cheese' : hp >= i + 0.5 ? 'hud_cheese_half' : 'hud_cheese_off').setVisible(i < this.maxHp));
-    if (this.bonusHeart) {                 // the cheeseburger heart sits after the cheese wedges
-      if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.55);
-      this.burgerIcon.setPosition(66 + this.maxHp * 28 + 12, 30);
-    }
+    // the cheeseburger heart sits after the cheese ones: it's the extra heart above the usual (half gone = see-through)
+    if (!this.burgerIcon) this.burgerIcon = this.add.image(0, 0, 'burger').setDepth(20).setScale(0.55).setVisible(false);
+    const over = hp - this.maxHp;
+    this.burgerIcon.setPosition(66 + this.maxHp * 28 + 12, 30).setVisible(over > 0).setAlpha(over >= 1 ? 1 : 0.45);
+    if (over <= 0) this.bonusHeart = false;
   }
 
   // ------------------------------------------------------------- game flow
@@ -845,6 +850,14 @@ class Level1 extends Phaser.Scene {
     const ham = { spr: this.add.image(0, 0, 'ham').setDepth(8), theta: wrap(T0 - 0.02), h: 640, rot: 0 };
     this.actors.push(cow, ham);
     this.rescue = { cow, ham, T0, t: 0, landed: false, smashed: false, burger: null, got: false };
+    if (this.warp && this.warp.def.afterBoss && !this.warp.open) {     // L3: the Milkmaid's CHURN tumbles down and hangs there, shining. Smash it (6 hits) and the Triangle opens
+      const th = wrap(P.theta - 0.32), W = this.warp;
+      const spr = this.add.image(0, 0, 'mm_churn').setDepth(2.9); spr.bsx = spr.bsy = 1.6; bakedGlow(spr, 0xfff6e0, 3, 8);
+      const light = this.add.image(0, 0, 'puff').setDepth(2.85).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0c0); light.bsx = light.bsy = 1.4;
+      this.relics.push({ theta: th, h: 120, hp: 6, r: 24, spr, light, ph: 0, flash: 0, churn: true });
+      W.theta = th; W.h = 150;
+      this.time.delayedCall(1200, () => { if (this.state === 'rescue') this.banner('HER CHURN IS GLOWING...'); });
+    }
     this.state = 'rescue';
     this.clearEBullets();
     Sound.jet(false); Sound.music(null);
@@ -855,6 +868,7 @@ class Level1 extends Phaser.Scene {
   updateRescue(dt) {
     const r = this.rescue;
     r.t += dt;
+    if (this.warp && this.warp.open && !this.warp.entering && r.t > 4.6 && this.t - this.warp.openT < 12) r.t = 4.6;   // (the warp's open: Bessie can wait while you decide)
     const t = r.t, k = Math.min(1, t / 2.4);
     r.cow.h = 330 * (1 - k * k);                                     // floats down, zero-g style
     r.cow.theta = wrap(r.T0 + 0.1 * Math.min(1, Math.max(0, (t - 1.0) / 1.4)));   // sidesteps at the last moment
@@ -875,7 +889,7 @@ class Level1 extends Phaser.Scene {
       Sound.sfx('moo');
       this.banner('MOO! ...Bessie is safe!');
     }
-    if (r.landed && !r.burger && t > 2.8) {           // the end-of-level treat: a cheeseburger falls from the sky
+    if (r.landed && !r.burger && t > 2.8 && !(this.def.warp && this.def.warp.afterBoss)) {           // the end-of-level treat: a cheeseburger falls from the sky (not on L3: the churn's there instead)
       r.burger = { spr: this.add.image(0, 0, 'burger').setDepth(8), theta: wrap(this.pl.theta + 0.05), h: 330, rot: 0 };
       this.actors.push(r.burger);
       Sound.sfx('whoosh');
@@ -889,13 +903,13 @@ class Level1 extends Phaser.Scene {
         r.got = true;
         this.actors.splice(this.actors.indexOf(b), 1); b.spr.destroy();
         this.burst(P.theta, P.h + 30, 'spark', 14, 1);
-        this.bonusHeart = true; this.addScore(1000);
+        this.addScore(1000);
         buzz([25, 40, 25, 40, 90]);
         this.bang(P.theta, P.h + 30, 40);
-        this.registry.set('bonusHeart', true);             // carried forward for Level 2
+        this.registry.set('bonusHeart', true);             // carried into the NEXT level: one extra heart there
         this.updateHearts();
         Sound.sfx('power');
-        this.banner('EXTRA HEART! CHEESEBURGER!');
+        this.banner('CHEESEBURGER!\nAN EXTRA HEART NEXT LEVEL');
       }
     }
     if (this.levelId < CFG.finalLevel) {            // Bessie is never really safe until the last level: the rats swoop back in
@@ -979,15 +993,16 @@ class Level1 extends Phaser.Scene {
     r.spr.destroy(); r.light.destroy();
     W.stage++; W.pulse = 1;
     const left = this.relics.filter(x => x.hp > 0).length;
-    if (left === 0) this.time.delayedCall(500, () => this.openWarp());
+    if (r.churn) { this.burst(r.theta, r.h, 'mm_splat', 18, 1.4); Sound.sfx('bigsplat'); Sound.sfx('churnclang'); this.cameras.main.shake(300, 0.012); }   // it bursts: milk everywhere
+    if (left === 0) this.time.delayedCall(r.churn ? 300 : 500, () => this.openWarp());
     else { W.tgt = 0.8 + W.stage * 0.35; this.time.delayedCall(250, () => Sound.sfx('beam')); }      // the "background" black hole thrums and swells
   }
 
   openWarp() {
     const W = this.warp;
     if (!W || W.open) return;
-    W.open = true; W.tgt = 2.6; W.pulse = 1;
-    W.hole.clearTint().setAlpha(1);
+    W.open = true; W.tgt = 2.6; W.pulse = 1; W.openT = this.t;
+    W.hole.clearTint().setAlpha(1).setVisible(true); W.glow.setVisible(true);
     Sound.sfx('reveal'); this.cameras.main.shake(400, 0.01); this.camPunch(0.04);
     this.addLight(W.theta, W.h, 260, 0xb04aff, 1, 1.2);
     this.banner(W.def.style === 'triangle' ? 'THE TRIANGLE HAS OPENED!' : 'A WARP HOLE HAS OPENED!');
@@ -1015,12 +1030,12 @@ class Level1 extends Phaser.Scene {
       r.ph += dt;
       const bob = Math.sin(r.ph * 1.6) * 4;
       this.place(r.spr, r.theta, r.h + bob, Math.sin(r.ph * 0.9) * 0.25);
-      this.place(r.light, r.theta, r.h + bob + 13);
-      r.light.setAlpha(Math.sin(this.t * 4 + r.ph) > 0.5 ? 1 : 0.15);
+      if (r.churn) { this.place(r.light, r.theta, r.h + bob); r.light.setAlpha(0.45 + 0.3 * Math.sin(this.t * 5)); }
+      else { this.place(r.light, r.theta, r.h + bob + 13); r.light.setAlpha(Math.sin(this.t * 4 + r.ph) > 0.5 ? 1 : 0.15); }
       r.spr.hsq = Math.max(0, (r.spr.hsq || 0) - dt * 7);
       if (r.flash > 0) { r.flash -= dt; if (r.flash <= 0) r.spr.clearTint(); }
     }
-    if (W.open && !W.entering && this.state === 'play') {
+    if (W.open && !W.entering && (this.state === 'play' || this.state === 'rescue')) {
       const rr = 24 * W.size;
       if (dist2(P.theta, P.h + 30, W.theta, W.h) < rr * rr) this.enterWarp();
     }
@@ -1036,6 +1051,7 @@ class Level1 extends Phaser.Scene {
 
   enterWarp() {
     const W = this.warp;
+    if (this.state === 'rescue') { Progress.beat(this.levelId); this.rescue = null; }     // (the boss is beaten: the level counts as cleared)
     W.entering = true; W.t = 0;
     this.state = 'warp';
     Progress.find(W.def.to);
@@ -1296,7 +1312,7 @@ class Level1 extends Phaser.Scene {
     if (this.leavingGO) return;
     this.leavingGO = true;
     for (const k of Object.keys(this.registry.getAll())) if (k.startsWith('oneup_')) this.registry.remove(k);   // a fresh game next time
-    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); Shop.reset(this.registry);       // the shop's wares go with the game
+    this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); this.registry.set('bonusHeart', false); Shop.reset(this.registry);       // the shop's wares go with the game
     this.cameras.main.fadeOut(900, 0, 0, 0);
     this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('menu'); });
   }
@@ -1434,6 +1450,7 @@ class Level1 extends Phaser.Scene {
     }
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
+      if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
       this.updateRescue(dt);
     }
     if (this.nap) this.updateNap(dt);
@@ -1810,7 +1827,8 @@ class Level1 extends Phaser.Scene {
       if (!P.bashHit && k >= 0.33) { P.bashHit = true; this.bashHit(); }
     } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; }
     const sauceK = this.buffOn('sauce') ? 0.4 : 1;        // HOT SAUCE: every gun's gauge lasts 2.5x as long and refills twice as fast (and what it hits burns)
-    P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && this.state === 'play');
+    const canShoot = this.state === 'play' || (this.state === 'rescue' && this.relics.some(q => q.hp > 0));     // (after a boss, only while there's a churn to smash)
+    P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && canShoot);
     if (W.beam) {                                       // Spaghetti Spinner: a continuous stream instead of shots
       P.beamReach = (P.beamReach || 1) + ((W.reachMin + (1 - W.reachMin) * (inp.reach || 1)) - (P.beamReach || 1)) * Math.min(1, dt * 10);   // trigger pressure / drag = reach
       if (P.beamOn) {
@@ -1824,7 +1842,7 @@ class Level1 extends Phaser.Scene {
         this.beamSim(W, dt); this.beamHit(W, dt);         // the whip, and whatever it's passing through (every frame)
       } else P.whip = null;
     } else if (W.charge) {                              // Swiss-Shot: HOLD to charge (ball grows, Chris slows), RELEASE to fire
-      const ok = this.state === 'play' && !P.overheat && P.bashT <= 0;
+      const ok = canShoot && !P.overheat && P.bashT <= 0;
       if (want && ok && P.fireCd <= 0) {
         if (!P.charging) { P.charging = true; P.charge = 0; P.chargeSnd = 0; P.chargeFull = false; P.chargeAim = null; P.throwK = inp.reach || 1; }
         P.throwK = Math.max(inp.reach || 1, (P.throwK || 1) - dt * 1.3);     // how hard the stick / trigger is pushed = how FAR it will be thrown (eases down, so letting go to fire doesn't kill the throw)
@@ -4114,7 +4132,7 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (!fooled && !e.phased && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (!fooled && !e.phased && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt(e.type === 'boss');                       // a boss landing on him or ramming him is a HEAVY hit
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }

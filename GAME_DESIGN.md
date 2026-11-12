@@ -1522,3 +1522,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - PARMESAN POWER now gives +1 gun level for 15 seconds (`P.power`, `gunLvBase` + 1), not for good. Banner 'MAC LEVEL 2 FOR 15s!', the timer bar over Chris and the HUD ring, a 3-2-1 countdown, then 'GUN BACK TO LEVEL n'. It no longer gives free ammo or soaks a hit. At max level it's 1500 points.
 - Lasting gun levels only come from the shop's START CHIPS (and the Lucky Wheel's GUN +1).
 - Level 2: half the rat-frogs taken out of every wave (waves 14/17/20; frogs 1/4/4).
+
+## v2.47 Brie-muda: easier padding, a hidden warp, a fairer Milkmaid; the cheeseburger heart carries over
+- Level 3 is back to 3 waves (12/17/21): one EASY enemy (alternately a ghost pirate and a phantom) slipped in after every other spawn, instead of copies and a 4th wave.
+- Milkmaid TELEPORT: slower (0.7s, was 0.45) and she's harmless while she streaks across - it used to ram Chris for a whole heart with no way to dodge.
+- The warp is hidden: no lanterns and no dull rift in the sky any more. Beat the Milkmaid and, instead of the cheeseburger, her CHURN drops and hangs there glowing ('HER CHURN IS GLOWING...'). Shoot it (6 hits) and it bursts in a splash of milk and the Triangle opens where it was. Bessie's rescue waits up to 12s while it's open. Going in counts level 3 as beaten (`Progress.beat`) and takes you to the Centrifuge.
+- Cheeseburger heart: picking it up at the end of a level now really gives you an extra heart (shown as the burger after the cheese hearts) for the NEXT level, on top of your usual hearts. It used to be just an icon that disappeared. It's used up when you lose it or the level ends; game over clears it.

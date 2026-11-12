@@ -136,7 +136,8 @@ const LEVELS = {
       { tex: 'p_tuft2', n: 12, sc: [0.8, 1.3], fg: true, tint: 0xd8d0f0 }],
     // SECRET: the Brie-muda Triangle itself. Three ghostly ship's lanterns drift high over the wreckage; shoot them out and a
     // triangular rift tears open in the sky: a warp to the Fondue Fountain (5.5), which comes out at level 7.
-    warp: { to: 5.5, style: 'triangle', theta: 2.6, h: 222, relics: [{ theta: 1.2, h: 226 }, { theta: 3.7, h: 230 }, { theta: 5.3, h: 224 }] },
+    // (v2.47) no lanterns any more: beat the Milkmaid and she drops her shining CHURN; smash it and the Triangle opens where it was
+    warp: { to: 5.5, style: 'triangle', afterBoss: true, theta: 2.6, h: 160, relics: [] },
     waves: [
       { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
       { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
@@ -359,17 +360,18 @@ const LEVELS = {
   }
 };
 
-// v2.41: levels 2 and 3 were too easy once the guns levelled up. Level 3: every wave gets about half as many again (a
-// copy of every other spawn, slipped in just after it) and a closing 4th wave mixing the level's whole cast.
-// v2.45: level 2 had far too many like that - it just gets a copy of every 4th spawn, and no 4th wave.
+// v2.41: levels 2 and 3 were too easy once the guns levelled up.
+// v2.45 / v2.46: level 2 gets just a copy of every 4th spawn, and half its rat-frogs.
+// v2.47: level 3 stays at 3 waves, padded out with the EASY ones (ghost pirates and phantoms, 3 hp, no tricks):
+// one slipped in after every other spawn.
 for (const id of [2, 3]) {
-  const L = LEVELS[id], cast = [...new Set(L.waves.flatMap(w => w.spawns.map(q => q.type)))], every = id === 2 ? 4 : 2;
+  const L = LEVELS[id];
   for (const w of L.waves) {
-    const extra = w.spawns.filter((q, i) => i % every === 0).map(q => S(q.type, q.t + 0.35));
+    const extra = id === 2 ? w.spawns.filter((q, i) => i % 4 === 0).map(q => S(q.type, q.t + 0.35))
+                           : w.spawns.filter((q, i) => i % 2 === 0).map((q, i) => S(i % 2 ? 'phantom' : 'ghostpirate', q.t + 0.35));
     w.spawns = w.spawns.concat(extra).sort((a, b) => a.t - b.t);
   }
   if (id === 2) for (const w of L.waves) { let n = 0; w.spawns = w.spawns.filter(q => q.type !== 'frog' || n++ % 2 === 1); }   // (v2.46: and half the rat-frogs)
-  if (id === 3) { const fin = []; for (let i = 0; i < 18; i++) fin.push(S(cast[i % cast.length], i * 0.55)); L.waves.push({ name: 'WAVE 4', spawns: fin }); }
 }
 
 // the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
