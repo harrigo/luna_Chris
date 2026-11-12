@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.48';
+const BUILD = 'v2.49';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -17,7 +17,7 @@ const CFG = {
   gravity: 1500,
   jumpV: 560,
   runSpeed: 230,
-  maxHp: 3,          // hearts to start with (the shop sells up to 2 more)
+  maxHp: 3, heartCap: 8,          // hearts to start with (the shop sells up to 2 more)
   startLives: 3,     // lives per game; GAME OVER when they run out
   maxLives: 9,
   lifeEvery: 40000,  // a bonus life for every this many points scored in a level
@@ -560,7 +560,6 @@ class Level1 extends Phaser.Scene {
       if (type !== 'heart' || !Cheat.on || (this.state !== 'play' && this.state !== 'rescue')) return;
       const P = this.pl;
       if (P.hp < this.maxHp) { P.hp = Math.min(this.maxHp, P.hp + 1); this.updateHearts(); this.banner('+1 HEART'); }
-      else if (P.hp < this.maxHp + 1) { P.hp = this.maxHp + 1; this.bonusHeart = true; this.updateHearts(); this.banner('BONUS BURGER'); }
       Sound.sfx('pickup'); buzz(25);
       this.burst(P.theta, P.h + 30, 'spark', 8, 0.6);
     });
@@ -598,9 +597,6 @@ class Level1 extends Phaser.Scene {
     });
 
     this.layout();
-    if (this.registry.get('bonusHeart')) {          // (v2.47) the CHEESEBURGER from the end of the last level: one extra heart, on top of the usual ones, for this level
-      this.registry.set('bonusHeart', false); this.bonusHeart = true; this.pl.hp = this.maxHp + 1;
-    }
     this.updateHearts();
     if (this.autostart || this.direct) {
       this.startGame();                       // retry after dying / picked from the level select: straight in
@@ -688,7 +684,7 @@ class Level1 extends Phaser.Scene {
     this.jetText = this.add.text(0, 0, 'JET', f(8, '#9fd8ff', ink)).setDepth(20);
     this.macText = this.add.text(0, 0, 'MAC', f(8, '#ffc36a', ink)).setDepth(20);
     this.portrait = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setOrigin(0).setScale(2).setDepth(20.5) : null;
-    this.cheeseIcons = []; for (let i = 0; i < 5; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
+    this.cheeseIcons = []; for (let i = 0; i < CFG.heartCap; i++) this.cheeseIcons.push(this.add.image(0, 0, 'hud_cheese').setOrigin(0).setScale(2).setDepth(20.5));
     this.macIcons = []; for (let i = 0; i < 7; i++) this.macIcons.push(this.add.image(0, 0, 'hud_mac').setOrigin(0).setScale(2).setDepth(20.5));
     this.distText = this.add.text(0, 0, 'DISTANCE TO COW', f(8, '#ffffff', ink)).setDepth(20);
     this.weaponIcon = this.add.image(0, 0, 'c_gun').setOrigin(0.5).setScale(1).setDepth(20.6);
@@ -748,7 +744,7 @@ class Level1 extends Phaser.Scene {
   }
 
   get lives() { return this.registry.get('lives') || 0; }
-  get maxHp() { return CFG.maxHp + (Shop.get(this.registry).hearts || 0); }
+  get maxHp() { const q = Shop.get(this.registry); return Math.min(CFG.heartCap, CFG.maxHp + (q.hearts || 0) + (q.burgers || 0)); }   // (v2.49: + a heart for every level's cheeseburger eaten this game)
   // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
   // a gun's level: what the shop (START CHIPS) and the Lucky Wheel have given it for good, +1 while PARMESAN POWER runs (15 s)
   gunLvBase(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }
@@ -851,12 +847,11 @@ class Level1 extends Phaser.Scene {
     this.actors.push(cow, ham);
     this.rescue = { cow, ham, T0, t: 0, landed: false, smashed: false, burger: null, got: false };
     if (this.warp && this.warp.def.afterBoss && !this.warp.open) {     // L3: the Milkmaid's CHURN tumbles down and hangs there, shining. Smash it (6 hits) and the Triangle opens
-      const th = wrap(P.theta - 0.32), W = this.warp;
-      const spr = this.add.image(0, 0, 'mm_churn').setDepth(2.9); spr.bsx = spr.bsy = 1.6; bakedGlow(spr, 0xfff6e0, 3, 8);
-      const light = this.add.image(0, 0, 'puff').setDepth(2.85).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0c0); light.bsx = light.bsy = 1.4;
-      this.relics.push({ theta: th, h: 120, hp: 6, r: 24, spr, light, ph: 0, flash: 0, churn: true });
-      W.theta = th; W.h = 150;
-      this.time.delayedCall(1200, () => { if (this.state === 'rescue') this.banner('HER CHURN IS GLOWING...'); });
+      const th = wrap(P.theta - 0.5), W = this.warp;      // (v2.49: no glow, no banner: it's tossed up high behind you, with only the odd glint to give it away)
+      const spr = this.add.image(0, 0, 'mm_churn').setDepth(2.9); spr.bsx = spr.bsy = 1.1;
+      const light = this.add.image(0, 0, 'spark').setDepth(2.95).setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff6d0); light.bsx = light.bsy = 1.2;
+      this.relics.push({ theta: th, h: 250, hp: 6, r: 20, spr, light, ph: 0, flash: 0, churn: true });
+      W.theta = th; W.h = 270;
     }
     this.state = 'rescue';
     this.clearEBullets();
@@ -889,7 +884,7 @@ class Level1 extends Phaser.Scene {
       Sound.sfx('moo');
       this.banner('MOO! ...Bessie is safe!');
     }
-    if (r.landed && !r.burger && t > 2.8 && !(this.def.warp && this.def.warp.afterBoss)) {           // the end-of-level treat: a cheeseburger falls from the sky (not on L3: the churn's there instead)
+    if (r.landed && !r.burger && t > 2.8) {           // the end-of-level treat: a cheeseburger falls from the sky
       r.burger = { spr: this.add.image(0, 0, 'burger').setDepth(8), theta: wrap(this.pl.theta + 0.05), h: 330, rot: 0 };
       this.actors.push(r.burger);
       Sound.sfx('whoosh');
@@ -906,14 +901,17 @@ class Level1 extends Phaser.Scene {
         this.addScore(1000);
         buzz([25, 40, 25, 40, 90]);
         this.bang(P.theta, P.h + 30, 40);
-        this.registry.set('bonusHeart', true);             // carried into the NEXT level: one extra heart there
+        const q = Shop.get(this.registry); q.burgerLv = Object.assign({}, q.burgerLv);    // (v2.49) a heart for keeps (till game over): one per level per game
+        const fresh = !q.burgerLv[this.levelId] && this.maxHp < CFG.heartCap;
+        if (fresh) { q.burgerLv[this.levelId] = true; q.burgers = (q.burgers || 0) + 1; Shop.set(this.registry, q); }
+        P.hp = this.maxHp;                                 // ...and it fills you right up
         this.updateHearts();
         Sound.sfx('power');
-        this.banner('CHEESEBURGER!\nAN EXTRA HEART NEXT LEVEL');
+        this.banner(fresh ? 'CHEESEBURGER!\n+1 HEART FOR GOOD' : 'CHEESEBURGER!\nHEARTS FILLED');
       }
     }
     if (this.levelId < CFG.finalLevel) {            // Bessie is never really safe until the last level: the rats swoop back in
-      if (!r.snatch && t > 5.2) this.startSnatch();
+      if (!r.snatch && t > (this.relics.some(q => q.churn && q.hp > 0) ? 8.5 : 5.2)) this.startSnatch();   // (a little longer to spot the churn)
       if (r.snatch) { if (this.updateSnatch(dt)) { this.rescue = null; this.finishWin(); } return; }
     }
     if (t > 7.4) {
@@ -1030,7 +1028,7 @@ class Level1 extends Phaser.Scene {
       r.ph += dt;
       const bob = Math.sin(r.ph * 1.6) * 4;
       this.place(r.spr, r.theta, r.h + bob, Math.sin(r.ph * 0.9) * 0.25);
-      if (r.churn) { this.place(r.light, r.theta, r.h + bob); r.light.setAlpha(0.45 + 0.3 * Math.sin(this.t * 5)); }
+      if (r.churn) { const g = (this.t % 2.6) / 2.6; this.place(r.light, r.theta + 0.012, r.h + bob + 8, g * 6); r.light.setAlpha(g > 0.88 ? Math.sin((g - 0.88) / 0.12 * Math.PI) : 0); }   // a quick glint now and then
       else { this.place(r.light, r.theta, r.h + bob + 13); r.light.setAlpha(Math.sin(this.t * 4 + r.ph) > 0.5 ? 1 : 0.15); }
       r.spr.hsq = Math.max(0, (r.spr.hsq || 0) - dt * 7);
       if (r.flash > 0) { r.flash -= dt; if (r.flash <= 0) r.spr.clearTint(); }

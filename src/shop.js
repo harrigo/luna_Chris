@@ -179,13 +179,13 @@ class ShopScene extends Phaser.Scene {
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {
-      const c = (s.chips || {})[w.id] || 0;
+      const c = Math.max((s.chips || {})[w.id] || 0, this.gunLvOf(w) - 1);   // (v2.49: a level won on the Lucky Wheel counts too, so you can't buy it again)
       if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: SHOP.chipCost[c + 1], act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
       else L.push({ name: w.short + ' START CHIP 3', desc: 'Always starts at LEVEL 4.', cost: 0, max: true });
     }
     { const hN = s.hearts || 0;
-      if (hN < 2) L.push({ name: 'EXTRA HEART ' + (hN + 1), desc: 'You start with ' + CFG.maxHp + '. This makes it ' + (CFG.maxHp + hN + 1) + '.', cost: SHOP.heartCost[hN + 1], act: q => { q.hearts = hN + 1; } });
-      else L.push({ name: 'EXTRA HEART 2', desc: 'Five hearts is your lot.', cost: 0, max: true }); }
+      if (hN < 2) L.push({ name: 'EXTRA HEART ' + (hN + 1), desc: 'You have ' + (CFG.maxHp + hN + (s.burgers || 0)) + '. This makes it ' + (CFG.maxHp + hN + (s.burgers || 0) + 1) + '. (Cheeseburgers add more.)', cost: SHOP.heartCost[hN + 1], act: q => { q.hearts = hN + 1; } });
+      else L.push({ name: 'EXTRA HEART 2', desc: 'Sold out. Eat cheeseburgers for more.', cost: 0, max: true }); }
     L.push({ name: 'EXTRA LIFE', desc: 'You have ' + lives + '. (' + CFG.maxLives + ' at most.)', cost: SHOP.lifeCost, max: lives >= CFG.maxLives, act: () => { reg.set('lives', Math.min(CFG.maxLives, (reg.get('lives') || 0) + 1)); } });
     return L;
   }
@@ -224,6 +224,7 @@ class ShopScene extends Phaser.Scene {
   pickGun(w) {
     const S = this.spin; if (!S || !S.pick || !S.pick.includes(w)) return;
     const g = Object.assign({}, this.registry.get('gunLv') || {}); g[w.id] = this.gunLvOf(w) + 1; this.registry.set('gunLv', g);
+    { const q = Shop.get(this.registry); q.chips = Object.assign({}, q.chips); q.chips[w.id] = Math.max(q.chips[w.id] || 0, g[w.id] - 1); Shop.set(this.registry, q); }   // (it's a start chip: the shop moves on to the next one)
     S.pick = null; S.msg = w.name + ' UP TO LEVEL ' + g[w.id] + '!'; S.dur = S.t; this.say(S.msg);
     Sound.sfx('power'); this.cameras.main.flash(160, 255, 230, 160);
   }

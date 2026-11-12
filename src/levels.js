@@ -372,6 +372,13 @@ for (const id of [2, 3]) {
     w.spawns = w.spawns.concat(extra).sort((a, b) => a.t - b.t);
   }
   if (id === 2) for (const w of L.waves) { let n = 0; w.spawns = w.spawns.filter(q => q.type !== 'frog' || n++ % 2 === 1); }   // (v2.46: and half the rat-frogs)
+  if (id === 2) for (const w of L.waves) {          // (v2.49: and 20% fewer per wave, all of them the little germs)
+    let cut = Math.round(w.spawns.length * 0.2);
+    const germs = w.spawns.filter(q => q.type === 'germ');
+    const drop = new Set(germs.filter((q, i) => i % 2 === 1).slice(0, cut)); cut -= drop.size;
+    for (const q of germs) if (cut > 0 && !drop.has(q)) { drop.add(q); cut--; }
+    w.spawns = w.spawns.filter(q => !drop.has(q));
+  }
 }
 
 // the floating junk you smash to open the warp: a rusty sieve-satellite with a blinking light
@@ -1227,7 +1234,7 @@ class SelectScene extends Phaser.Scene {
     const sh = Shop.get(this.registry), gl = this.registry.get('gunLv') || {}, ink3 = { stroke: '#1a1020', strokeThickness: 3 };
     const rx = W - rw + 2, rows = 4, rh = (ph - 14) / rows, ry = k => y0 + 7 + rh * (k + 0.5), cx2 = rx + rw * 0.43, fs = rh < 15 ? 6 : 7;
     const put = (x, k, txt, col) => this.infoBox.add(this.add.text(x, ry(k), txt, f(fs, col || '#ffffff', ink3)).setOrigin(0, 0.5));
-    const hearts = CFG.maxHp + (sh.hearts || 0);
+    const hearts = Math.min(CFG.heartCap, CFG.maxHp + (sh.hearts || 0) + (sh.burgers || 0));
     for (let k = 0; k < hearts; k++) this.infoBox.add(this.add.image(rx + 6 + k * 15, ry(0), 'hud_cheese').setScale(1));
     put(rx, 1, 'LIVES ' + lives);
     this.infoBox.add(this.add.image(rx + 5, ry(2), 'cheddar').setScale(0.9)); put(rx + 14, 2, 'CHEDDAR ' + sh.coins, '#ffe27a');

@@ -1531,3 +1531,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.48 — Bonus rooms use the real Mac-Grinder
 - The Centrifuge and the Zero-G rooms now fire the same Mac-Grinder as the planets: its level (shop start chips / Lucky Wheel), single → twin helix → triple spread → piercing triple, the animated `mac` shots and the sauce ribbons. Shared helpers `bonusMacLv/Volley/Step/Draw` in zerog.js. Parmesan's 15 s boost does not carry into a bonus room.
+
+## v2.49 — Burgers for keeps, quieter churn, wheel chips, thinner Gorgonzola
+- Level 2: each wave is 20% shorter, all the cut ones being little germs.
+- Lucky Wheel GUN +1 now counts as that gun's start chip, so the shop moves on to the next chip instead of selling the same level again.
+- The end-of-level cheeseburger falls on every level (L3 too) and gives +1 max heart for the rest of the game (one per level per game, cap 8 hearts, lost at game over). It also refills your hearts. The old carry-over "bonus heart" is gone.
+- L3's churn no longer glows or gets a banner: it's small, tossed up high behind you, with a quick glint every few seconds. The rat-ship waits until 8.5 s while it's still there.
