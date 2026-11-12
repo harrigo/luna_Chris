@@ -1464,3 +1464,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.33 Cheese jam, simplified
 - The jam is now just smoke, recoil and dripping cheese: no JAMMED / CLEAR text, plug, pressure ring, warning triangle, trigger click or clear sound.
 - On the jam the gun arm bucks back and up (`P.jamKick` in the rig) with a belch of smoke, a gob of cheese and sparks, and the one choking sound (`jam`). While it recovers it smokes, drips and gives a smaller cough every half second or so; one last cough as it clears.
+
+## v2.34 Chris loses his temper with a jammed gun
+- While the gun is clogged Chris alternates a furious shake (gun arm, head and hat rattle; `P.jamShake`) with a THUMP (`P.jamBang`): a big gloved fist (`c_fist`, made on demand in the rig) goes up and comes down on the hopper. The gun dips, smoke, sparks, crumbs and drips fly, with a clunk and a tiny shake. About 0.85s a cycle until the gauge recovers. No gameplay change.

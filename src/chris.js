@@ -492,16 +492,40 @@ class ChrisRig {
     this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
     this.hat.setRotation(-sw * (0.16 * run + 0.1 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
-    this.head.setPosition(2 + sw * 0.6 * run, -44 + vyLag * 0.2); this.crack.setPosition(this.head.x, this.head.y);
+    const jS = P.jamShake || 0, jB = P.jamBang || 0;            // a clogged gun: he shakes it furiously, then thumps it
+    this.head.setPosition(2 + sw * 0.6 * run + Math.sin(t * 37) * 1.3 * jS, -44 + vyLag * 0.2 + (jB > 0.55 && jB < 0.8 ? 1.5 : 0)); this.crack.setPosition(this.head.x, this.head.y);
+    if (jS) { this.hat.x += Math.sin(t * 37 - 0.9) * 2.2 * jS; this.hat.rotation += Math.sin(t * 37 - 0.9) * 0.1 * jS; }
 
     // ---- arms
     this.armB.setRotation(-sw * 0.8 * run + 0.35 + Math.sin(t * 2.2) * 0.07 * idle - air * 1.2 + (P.grabbed ? Math.sin(t * 23 + 1) * 1.2 - 1 : 0));   // (and flapping the other arm)
+    if (jB > 0) {                                               // the thump: fist up over his head, then down hard on the gun
+      const up = jB < 0.5 ? jB / 0.5 : 0, dn = jB >= 0.5 ? Math.min(1, (jB - 0.5) / 0.12) : 0;
+      this.armB.setRotation(jB < 0.5 ? 0.35 - 1.6 * (1 - (1 - up) * (1 - up)) : -1.25 + 1.45 * dn * dn);
+      const fw = Math.min(1, jB * 5);                                                              // the shoulder comes round to the front, and the fist is cartoon-big
+      this.armB.setPosition(-3 + 13 * fw, -22 - 5 * fw).setScale(1 + 0.45 * fw);
+    }
+    else if (this.armUp) this.armB.setPosition(-3, -22).setScale(1);
+    if (jB > 0) {                                               // ...and the FIST itself, big and gloved, in front of everything
+      if (!this.fist) {
+        const sc = this.root.scene;
+        if (!sc.textures.exists('c_fist')) pixSprite(sc, 'c_fist', 16, 15, a => {
+          a.rrect(1, 2, 13, 13, 4, [0xffffff, 0xdfe6f0, 0xaab4c8]); a.rrect(9, 6, 15, 12, 2, [0xffffff, 0xdfe6f0, 0xaab4c8]);       // glove and thumb
+          a.line([[4, 4], [4, 8]], 0xaab4c8, 1); a.line([[7, 4], [7, 8]], 0xaab4c8, 1); a.line([[10, 4], [10, 7]], 0xaab4c8, 1);       // knuckles
+          a.rect(3, 0, 11, 2, 0xe0403a);                                                                                              // red cuff
+        }, true);
+        this.fist = sc.add.image(0, 0, 'c_fist'); this.root.add(this.fist);
+      }
+      const gx = this.gunArm.x + 13, gy = this.gunArm.y - 13, hit = jB >= 0.5 ? Math.min(1, (jB - 0.5) / 0.12) : 0, up2 = jB < 0.5 ? 1 - Math.pow(1 - jB / 0.5, 2) : 1;
+      const fy = jB < 0.5 ? gy - 6 - 26 * up2 : gy - 32 + 32 * hit * hit, sq = hit >= 1 && jB < 0.72;
+      this.fist.setVisible(true).setPosition(gx + 9 * up2 * (1 - hit), fy + (sq ? 2 : 0)).setRotation(jB < 0.5 ? -0.5 * up2 : -0.5 + 0.5 * hit).setScale(sq ? 1.6 : 1.3, sq ? 1.0 : 1.3);
+    } else if (this.fist) this.fist.setVisible(false);
+    if ((jB > 0) !== !!this.armUp) { this.armUp = jB > 0; if (this.armUp) this.torso.bringToTop(this.armB); else this.torso.moveTo(this.armB, 1); }   // (his far arm comes round in front to do it)
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     const jk = P.jamKick || 0;                                  // a jammed gun bucks back and up
-    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 - jk * 8 + (P.bashX || 0), this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0));
+    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0));
     const flail = P.grabbed ? Math.sin(this.t * 26) * 1.1 + Math.sin(this.t * 41) * 0.35 - 0.6 : 0;      // grabbed: waving the useless gun about hysterically
-    this.gunArm.setRotation(-this.recoil * 0.07 - jk * 0.42 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
+    this.gunArm.setRotation(-this.recoil * 0.07 - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);

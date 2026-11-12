@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.33';
+const BUILD = 'v2.34';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4415,13 +4415,20 @@ class Level1 extends Phaser.Scene {
     P.jamKick = Math.max(0, (P.jamKick || 0) - dt * 4.5);
     if (!J) return;
     const th = M ? M.theta : P.theta, h = M ? M.h : P.h + 36;
-    if (!P.overheat) { P.jam = null; P.jamKick = Math.max(P.jamKick, 0.45); this.jamSmoke(th, h, 3); for (let k = 0; k < 3; k++) this.macDrip(th, h, P.facing * rnd(60, 200), rnd(40, 160)); return; }   // sorted: one last cough clears the barrel
+    if (!P.overheat) { P.jam = null; P.jamShake = 0; P.jamBang = 0; P.jamKick = Math.max(P.jamKick, 0.45); this.jamSmoke(th, h, 3); for (let k = 0; k < 3; k++) this.macDrip(th, h, P.facing * rnd(60, 200), rnd(40, 160)); return; }   // sorted: one last cough clears the barrel
     J.t += dt;
     if ((J.steam -= dt) <= 0) { J.steam = rnd(0.05, 0.1); this.jamSmoke(th, h, 2); }                 // smoke curling off the muzzle
     if ((J.drip -= dt) <= 0) { J.drip = rnd(0.12, 0.28); this.macDrip(th, h - 3, rnd(-15, 15), rnd(-10, 20)); }   // cheese running out of it
-    if ((J.cough -= dt) <= 0) {                           // a cough: a smaller buck, a puff and a spit of cheese
-      J.cough = rnd(0.45, 0.8); P.jamKick = Math.max(P.jamKick, 0.55);
-      this.jamSmoke(th, h, 3); this.macDrip(th, h, P.facing * rnd(40, 140), rnd(60, 160)); if (Math.random() < 0.5) this.burst(th, h, 'spark', 2, 0.6);
+    // CHRIS LOSES HIS TEMPER WITH IT: a furious shake, then a thump with his fist, over and over until it clears
+    if (P.bashT > 0 || P.grabbed || this.state !== 'play') { P.jamShake = 0; P.jamBang = 0; return; }
+    J.cyc = (J.cyc || 0) + dt; const c = J.cyc % 0.85;
+    P.jamShake = c < 0.42 ? 1 : 0.12; P.jamBang = c >= 0.42 ? (c - 0.42) / 0.43 : 0;
+    if (c < 0.42) J.hit = false;
+    else if (!J.hit && P.jamBang >= 0.62) {               // THUMP
+      J.hit = true; P.jamKick = Math.max(P.jamKick, 0.35); Sound.sfx('clunk'); buzz(20);
+      this.jamSmoke(th, h, 4, true); this.burst(th, h, 'spark', 5, 0.9); this.burst(th, h, 'crumb', 3, 0.6);
+      for (let k = 0; k < 3; k++) this.macDrip(th, h, P.facing * rnd(30, 160), rnd(40, 180));
+      this.cameras.main.shake(60, 0.003);
     }
   }
   // the Magnet Fork's pull, made visible: a crackling thread of blue-white light from the fork to each thing it has hold of,
