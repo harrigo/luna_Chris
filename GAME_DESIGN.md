@@ -1537,3 +1537,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Lucky Wheel GUN +1 now counts as that gun's start chip, so the shop moves on to the next chip instead of selling the same level again.
 - The end-of-level cheeseburger falls on every level (L3 too) and gives +1 max heart for the rest of the game (one per level per game, cap 8 hearts, lost at game over). It also refills your hearts. The old carry-over "bonus heart" is gone.
 - L3's churn no longer glows or gets a banner: it's small, tossed up high behind you, with a quick glint every few seconds. The rat-ship waits until 8.5 s while it's still there.
+
+## v2.50 — Mouse + keyboard everywhere
+- The Centrifuge and Zero-G rooms now work like the planets on PC: as soon as a real mouse moves, the gun follows the pixel crosshair (no click needed to aim), left click fires, the system cursor is hidden and the right-click menu is off. A touch-screen laptop no longer locks the mouse out (touch sticks hide while the mouse is in use; a touch switches back).
+- Planets: the crosshair also shows during the after-boss rescue (for the churn), and the touch buttons hide while the mouse is in use.

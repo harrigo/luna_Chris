@@ -171,7 +171,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.timeTxt = this.add.text(0, 0, '', f(16, '#ffd23f')).setOrigin(0.5, 0).setDepth(20);
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
-    this.hudG = this.add.graphics().setDepth(20);
+    this.hudG = this.add.graphics().setDepth(20); this.curs = new MouseCursor(this);
     this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
@@ -307,7 +307,7 @@ class CentrifugeScene extends Phaser.Scene {
   }
   drawTouch(st) {
     const g = this.touchG || (this.touchG = this.add.graphics().setDepth(22)); g.clear();
-    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
+    const show = this.isTouch && !(this.curs && this.curs.on) && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
     if (!this.touchLbl) { const lab = t => this.add.text(0, 0, t, { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(23); this.touchLbl = this.add.container(0, 0).setDepth(23); this.touchLbl.add([lab('MOVE'), lab('AIM + FIRE')]); }
     this.touchLbl.setVisible(show);
     if (!show) return;
@@ -367,7 +367,11 @@ class CentrifugeScene extends Phaser.Scene {
     if (ts.jetNow) jetNow = true;
     if (ts.ax) ax = ts.ax; if (ts.jump) jump = true; if (ts.fire) fire = true; if (ts.aim) aimAt = ts.aim;
     const mp = this.input.mousePointer;
-    if (!this.isTouch && mp && mp.leftButtonDown() && !this.exitBtn.getBounds().contains(mp.x, mp.y)) { fire = true; const q = this.world.pointToContainer({ x: mp.x, y: mp.y }); aimAt = { wx: q.x, wy: q.y }; }
+    if (mp && this.curs.on) {                       // mouse: the gun follows the crosshair, left click fires
+      const q = this.world.pointToContainer({ x: mp.x, y: mp.y }); aimAt = { wx: q.x, wy: q.y };
+      if (mp.leftButtonDown() && !this.exitBtn.getBounds().contains(mp.x, mp.y)) fire = true;
+    }
+    this.curs.draw(!this.done && !this.out, fire);
     this.drawTouch(ts);
     if (this.intro > 0) {
       this.intro -= dt; ax = 0; jump = false;

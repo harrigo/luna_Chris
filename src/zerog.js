@@ -56,6 +56,27 @@ function bonusMacDraw(g, shots) {                               // the sauce rib
     }
   }
 }
+// v2.50: PC mouse in the bonus rooms, like the planets: a real mouse switches on aim-at-cursor with the chunky pixel crosshair
+class MouseCursor {
+  constructor(scene) {
+    this.s = scene; this.on = false; this.g = scene.add.graphics().setScrollFactor(0).setDepth(40);
+    if (scene.input.mouse) scene.input.mouse.disableContextMenu();
+    scene.input.on('pointermove', p => { if (!p.wasTouch && p === scene.input.manager.mousePointer) this.on = true; });
+    scene.input.on('pointerdown', p => { if (p.wasTouch) this.on = false; });
+    scene.events.once('shutdown', () => { if (scene.game.canvas) scene.game.canvas.style.cursor = ''; });
+  }
+  get ptr() { return this.s.input.manager.mousePointer; }
+  draw(show, firing) {
+    const g = this.g, vis = this.on && show; g.clear();
+    if (this.s.game.canvas) this.s.game.canvas.style.cursor = vis ? 'none' : '';
+    if (!vis) return;
+    const m = this.ptr, x = Math.round(m.x), y = Math.round(m.y);
+    g.fillStyle(0x1a1020, 1);
+    for (const [rx, ry, rw, rh] of [[-10, -2, 6, 4], [5, -2, 6, 4], [-2, -10, 4, 6], [-2, 5, 4, 6]]) g.fillRect(x + rx, y + ry, rw, rh);
+    g.fillStyle(firing ? 0xffd23f : 0xffffff, 1);
+    for (const [rx, ry, rw, rh] of [[-9, -1, 4, 2], [6, -1, 4, 2], [-1, -9, 2, 4], [-1, 6, 2, 4], [-1, -1, 2, 2]]) g.fillRect(x + rx, y + ry, rw, rh);
+  }
+}
 class GoalHud {
   constructor(scene) { this.s = scene; this.g = scene.add.graphics().setScrollFactor(0).setDepth(20); this.rows = []; this.title = null; }
   update(goals, x, y) {
@@ -89,7 +110,7 @@ class ZeroGScene extends Phaser.Scene {
   drawStick() {                                           // the AIM+FIRE stick, as in the main game: a ghost at rest bottom right, live where the thumb is
     if (!this.stickG) { this.stickG = this.add.graphics().setScrollFactor(0).setDepth(22); this.stickLbl = this.add.text(0, 0, 'AIM + FIRE', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23); }
     const g = this.stickG; g.clear();
-    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
+    const show = this.isTouch && !(this.curs && this.curs.on) && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
     this.stickLbl.setVisible(show); if (!show) return;
     const W = this.scale.width, H = this.scale.height, r = 52, live = this.aimS, bx = live ? live.ox : W - 120, by = live ? live.oy : H - 86;
     this.stickLbl.setPosition(W - 120, H - 86 + 64).setAlpha(live ? 0.3 : 1);
@@ -179,7 +200,7 @@ class ZeroGScene extends Phaser.Scene {
 
     // input
     this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window); this.stickG = null; this.stickLbl = null;
-    this.input.on('pointerdown', p => { if (p.wasTouch) this.isTouch = true; });
+    this.input.on('pointerdown', p => { if (p.wasTouch) this.isTouch = true; }); this.curs = new MouseCursor(this);
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN', a: 'A', d: 'D', w: 'W', s: 'S', r: 'R', enter: 'ENTER', space: 'SPACE' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
@@ -260,7 +281,7 @@ class ZeroGScene extends Phaser.Scene {
     const ptr = this.input.activePointer, eb = this.exitBtn.getBounds();
     const onBtn = eb.contains(ptr.downX, ptr.downY) || eb.contains(ptr.x, ptr.y);
     this.aimS = null;
-    if (this.isTouch) {                                   // the AIM+FIRE stick: wherever a thumb lands it's the centre; push to fire that way
+    if (this.isTouch && !this.curs.on) {                  // the AIM+FIRE stick: wherever a thumb lands it's the centre; push to fire that way
       for (const p of this.input.manager.pointers) {
         if (!p || !p.isDown || (p === this.input.manager.mousePointer && !p.wasTouch) || this.done || this.leaving) continue;
         if (eb.contains(p.downX, p.downY) || p.downY < this.scale.height * 0.18) continue;
@@ -269,8 +290,12 @@ class ZeroGScene extends Phaser.Scene {
         if (Math.hypot(vx, vy) > 0.35) { ax = vx; ay = vy; fire = true; }       // (a thumb just resting doesn't fire: every shot kicks you)
         break;
       }
-    } else if (ptr.isDown && !this.done && !onBtn && !this.leaving) { const wp = cam.getWorldPoint(ptr.x, ptr.y); ax = wp.x - this.pos.x; ay = wp.y - (this.pos.y - 24); fire = true; }
-    this.drawStick();
+    } else if (this.curs.on && !this.done && !this.leaving) {          // mouse: the gun follows the crosshair, left click fires
+      const m = this.curs.ptr, wp = cam.getWorldPoint(m.x, m.y), mx = wp.x - this.pos.x, my = wp.y - (this.pos.y - 24);
+      if (Math.hypot(mx, my) > 12) this.aim.set(mx, my).normalize();
+      if (m.leftButtonDown() && !onBtn) { ax = this.aim.x; ay = this.aim.y; fire = true; }
+    }
+    this.drawStick(); this.curs.draw(!this.done && !this.leaving, fire);
     const k = this.keys;
     if (k) { const kx = (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0), ky = (k.down.isDown || k.s.isDown ? 1 : 0) - (k.up.isDown || k.w.isDown ? 1 : 0); if (kx || ky) { ax = kx; ay = ky; fire = true; } }
     if (Pad.state.connected && Pad.state.aimOn) { ax = Pad.state.aimX; ay = Pad.state.aimY; fire = true; }

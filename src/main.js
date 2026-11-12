@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.49';
+const BUILD = 'v2.50';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -5204,7 +5204,7 @@ class Level1 extends Phaser.Scene {
     cg.clear();
     // a controller plugged into a phone: hide the on-screen sticks and buttons while it's the thing being used
     // (they come straight back the moment the screen is touched)
-    const showTouch = this.touchUI && !(typeof Pad !== 'undefined' && Pad.state.connected && LAST_INPUT !== 'touch');
+    const showTouch = this.touchUI && !this.mouseAim && !(typeof Pad !== 'undefined' && Pad.state.connected && LAST_INPUT !== 'touch');
     for (const k in this.btnLabels) this.btnLabels[k].setVisible(showTouch);
     if (showTouch && this.btn) {
       const stick = (rest, live) => {                       // base ring where the thumb landed (or a ghost at rest) + the knob
@@ -5222,7 +5222,7 @@ class Level1 extends Phaser.Scene {
       cg.lineStyle(3, 0xffffff, bOn ? 0.9 : 0.45).strokeCircle(Bb.x, Bb.y, Bb.r);
     }
     // PC mouse aim: a chunky pixel crosshair instead of the system cursor
-    const mouseOn = this.mouseAim && this.state === 'play' && !this.paused;
+    const mouseOn = this.mouseAim && (this.state === 'play' || this.state === 'rescue') && !this.paused;
     if (this.game.canvas) this.game.canvas.style.cursor = mouseOn ? 'none' : '';
     if (mouseOn) {
       const m = this.input.manager.mousePointer, x = Math.round(m.x), y = Math.round(m.y), firing = inp.fire;
