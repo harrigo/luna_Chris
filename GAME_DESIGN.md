@@ -1460,3 +1460,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.32 Cheese jam
 - When a gun's gauge runs dry it JAMS (show only: the gun stopped anyway). `gunJam`: the motor chokes (sfx `jam`), a JAMMED! pop, a splat, sparks and drips. While jammed (`jamUpdate`, `drawJam`): a plug of cheese (`jamblob`) wobbles on the muzzle, steam and drips come off it, a warning triangle blinks, pulling the trigger makes it cough and judder (`jamclick`), and a ring round the plug fills red to green as the gauge recovers to the restart point.
 - When it clears: the plug pops off the end with a flash, CLEAR! and sfx `unjam`.
+
+## v2.33 Cheese jam, simplified
+- The jam is now just smoke, recoil and dripping cheese: no JAMMED / CLEAR text, plug, pressure ring, warning triangle, trigger click or clear sound.
+- On the jam the gun arm bucks back and up (`P.jamKick` in the rig) with a belch of smoke, a gob of cheese and sparks, and the one choking sound (`jam`). While it recovers it smokes, drips and gives a smaller cough every half second or so; one last cough as it clears.

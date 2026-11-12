@@ -265,9 +265,6 @@ const Sound = (() => {
       noise({ f1: 1100, f2: 180, dur: 0.26, vol: 0.4, q: 2.5, t: t + at }); tone({ type: 'sine', f: 260, f2: 70, dur: 0.22, vol: 0.3, t: t + at });
       tone({ type: 'triangle', f: 90, f2: 40, dur: 0.3, vol: 0.5, t: t + at + 0.16 });
       noise({ ft: 'highpass', f1: 2200, f2: 5200, dur: 0.9, vol: 0.2, q: 0.4, t: t + at + 0.24 }); },
-    jamclick: () => { tone({ type: 'square', f: 210, f2: 120, dur: 0.045, vol: 0.16 }); noise({ f1: 700, f2: 300, dur: 0.07, vol: 0.2, q: 2 }); tone({ type: 'triangle', f: 70, f2: 50, dur: 0.08, vol: 0.3, t: ctx.currentTime + 0.04 }); },
-    unjam:   () => { const t = ctx.currentTime; noise({ f1: 500, f2: 2600, dur: 0.1, vol: 0.4, q: 1.5 }); tone({ type: 'sine', f: 240, f2: 900, dur: 0.09, vol: 0.34 });
-      tone({ type: 'square', f: 660, dur: 0.06, vol: 0.12, t: t + 0.1 }); tone({ type: 'square', f: 990, dur: 0.1, vol: 0.12, t: t + 0.16 }); },
     clunk:   () => { tone({ type: 'triangle', f: 95, f2: 45, dur: 0.28, vol: 0.5 }); noise({ f1: 600, dur: 0.08, vol: 0.3 }); },
     reveal:  () => {
       arp([392, 494, 587, 784, 988], 0.09, { type: 'square', vol: 0.14 });

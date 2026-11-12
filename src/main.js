@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.32';
+const BUILD = 'v2.33';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -198,7 +198,7 @@ class Level1 extends Phaser.Scene {
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
-    this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.magG = null; this.jamG = null; this.jamSpr = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
+    this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.magG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
     this.hurtCount = 0; this.wheelsGot = []; this.wheels = []; this.bossCard = null; this.oneUp = null; this.ko = null; this.koStars = null; this.goCam = null; this.goReady = false; this.leavingGO = false;
     if (!(this.registry.get('lives') > 0)) { this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); Shop.reset(this.registry); }   // a fresh game
@@ -1772,7 +1772,7 @@ class Level1 extends Phaser.Scene {
     if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = !P.grabbed && ((CFG.autoFire && tgt) || inp.fire);
-    this.jamUpdate(dt, want);      // caught on a rat's tongue: the gun's useless (he waves it about)
+    this.jamUpdate(dt);      // caught on a rat's tongue: the gun's useless (he waves it about)
     const W = this.weapon;
     // ---- MELEE: gun-butt bash (Halo style). B / F / V / right-click / the BASH button. Never automatic.
     P.bashCd = Math.max(0, P.bashCd - dt);
@@ -4391,70 +4391,37 @@ class Level1 extends Phaser.Scene {
     for (let k = 0; k < 3; k++) this.macDrip(b.theta, h, -dir * rnd(20, 190), rnd(40, 260));
     if (this.lights.length < 22) this.addLight(b.theta, h, 54, 0xffc040, 0.9, 0.14);
   }
-  // ---- CHEESE JAM: the gauge has run dry and the gun has clogged solid. Pure show (the gun was already going to stop):
-  // the motor chokes, a plug of cheese swells out of the muzzle, steam and drips pour off it, pulling the trigger just
-  // makes it cough, a ring round the plug shows the pressure building back, and when it clears the plug POPS off.
+  // ---- CHEESE JAM: the gauge has run dry and the gun has clogged. Pure show (the gun was already going to stop):
+  // it bucks back with a belch of smoke and a gob of cheese, then smokes, drips and gives the odd cough while it sorts itself out.
+  jamSmoke(th, h, n, big) {
+    for (let k = 0; k < n && this.parts.length < 180; k++) {
+      const im = this.add.image(0, 0, 'puff').setDepth(8.4).setTint(k % 3 ? 0xb8b2c4 : 0x7a7488); im.bsx = im.bsy = rnd(0.26, 0.42) * (big ? 1.5 : 1);
+      this.parts.push({ theta: wrap(th + rnd(-6, 6) / R), h: h + rnd(0, 10), vt: rnd(-30, 30) + this.pl.facing * (big ? rnd(20, 90) : 0), vh: rnd(50, 120), life: rnd(0.8, 1.4), fade: 1.2, a0: 1, noGrav: true, grow: big ? 1.3 : 0.9, spr: im, rot: 0, rv: 0 });
+    }
+  }
   gunJam() {
     const P = this.pl, M = this.muzzle; if (P.jam) return;
-    P.jam = { t: 0, click: 0.25, steam: 0, drip: 0, kick: 0 };
-    Sound.sfx('jam'); buzz([30, 40, 30, 60, 90]);
+    P.jam = { t: 0, steam: 0, drip: 0, cough: rnd(0.5, 0.8) };
+    P.jamKick = 1; Sound.sfx('jam'); buzz([30, 40, 60]);
     const th = M ? M.theta : P.theta, h = M ? M.h : P.h + 36;
-    this.popup(th, h + 46, 'JAMMED!', '#ffb52a', true);
-    this.burst(th, h, 'crumb', 12, 1.1); this.burst(th, h, 'spark', 8, 1);
-    const im = this.add.image(0, 0, 'macsplat').setDepth(9.1); im.bsx = im.bsy = 0.5;
-    this.parts.push({ theta: th, h, vt: 0, vh: 0, life: 0.25, fade: 0.25, noGrav: true, grow: 5, spr: im, rot: rnd(0, TAU), rv: 2 });
-    for (let k = 0; k < 7; k++) this.macDrip(th, h, P.facing * rnd(20, 240), rnd(40, 300));
-    this.addLight(th, h, 90, 0xff8a2a, 1, 0.3); this.cameras.main.shake(110, 0.005);
+    this.jamSmoke(th, h, 7, true);
+    const im = this.add.image(0, 0, 'macsplat').setDepth(9.1); im.bsx = im.bsy = 0.45;
+    this.parts.push({ theta: th, h, vt: 0, vh: 0, life: 0.22, fade: 0.22, noGrav: true, grow: 4, spr: im, rot: rnd(0, TAU), rv: 2 });
+    for (let k = 0; k < 7; k++) this.macDrip(th, h, P.facing * rnd(20, 220), rnd(40, 280));
+    this.burst(th, h, 'spark', 6, 0.9);
   }
-  jamUpdate(dt, want) {
-    const P = this.pl, J = P.jam, M = this.muzzle; if (!J) return;
-    const th = M ? M.theta : P.theta, h = M ? M.h : P.h + 36;
-    if (!P.overheat) {                                    // pressure's back: the plug blows off the end
-      P.jam = null; Sound.sfx('unjam'); buzz(40);
-      const im = this.add.image(0, 0, 'jamblob').setDepth(9); im.bsx = im.bsy = 1.1;
-      this.parts.push({ theta: th, h, vt: P.facing * rnd(260, 360), vh: rnd(200, 320), life: 0.9, spr: im, rot: 0, rv: P.facing * 14 });
-      for (let k = 0; k < 6; k++) this.macDrip(th, h, P.facing * rnd(80, 300), rnd(60, 260));
-      const rg = this.add.image(0, 0, 'macsplat').setDepth(9.1).setTintFill(0xffffff); rg.bsx = rg.bsy = 0.4;
-      this.parts.push({ theta: th, h, vt: 0, vh: 0, life: 0.16, fade: 0.16, noGrav: true, grow: 6, spr: rg, rot: 0, rv: 0 });
-      this.burst(th, h, 'spark', 8, 1); this.addLight(th, h, 80, 0xfff3a0, 1, 0.2);
-      this.popup(th, h + 40, 'CLEAR!', '#7dff8a');
-      return;
-    }
-    J.t += dt; J.kick = Math.max(0, J.kick - dt * 7);
-    if ((J.steam -= dt) <= 0) {                           // steam off the hot plug
-      J.steam = rnd(0.1, 0.2);
-      if (this.parts.length < 170) { const im = this.add.image(0, 0, 'puff').setDepth(8.4).setTint(0xfff0d0); im.bsx = im.bsy = rnd(0.12, 0.22);
-        this.parts.push({ theta: wrap(th + rnd(-5, 5) / R), h: h + rnd(2, 10), vt: rnd(-20, 20) - P.vx * 0.1, vh: rnd(50, 110), life: rnd(0.5, 0.8), fade: 0.8, a0: 0.55, noGrav: true, grow: 0.7, spr: im, rot: 0, rv: 0 }); }
-    }
-    if ((J.drip -= dt) <= 0) { J.drip = rnd(0.16, 0.34); this.macDrip(th, h - 4, rnd(-15, 15), rnd(-10, 20)); }
-    J.click -= dt;
-    if (want && J.click <= 0 && P.bashT <= 0) {           // squeezing the trigger: it coughs and judders, nothing comes out
-      J.click = 0.3; J.kick = 1; Sound.sfx('jamclick'); buzz(15);
-      this.burst(th, h, 'crumb', 3, 0.5); if (Math.random() < 0.5) this.burst(th, h, 'spark', 2, 0.6);
-    }
-  }
-  drawJam() {
+  jamUpdate(dt) {
     const P = this.pl, J = P.jam, M = this.muzzle;
-    if (!this.jamSpr) { this.jamSpr = this.add.image(0, 0, 'jamblob').setDepth(8.62).setVisible(false); this.jamG = this.add.graphics().setDepth(8.63); }
-    this.jamG.clear();
-    if (!J || !M || this.state !== 'play') { this.jamSpr.setVisible(false); return; }
-    const z = this.zoom, t = this.t, g = this.jamG;
-    const swell = J.t < 0.35 ? (J.t / 0.35) * (1 + 0.5 * Math.sin(J.t / 0.35 * Math.PI)) : 1;
-    const k = Math.min(1, P.ammo / CFG.ammoRestart), press = 1 + 0.25 * k;                   // it bulges as the pressure builds back
-    const shake = J.kick * 3 + k * k * 1.6, jx = Math.sin(t * 61) * shake * z, jy = Math.cos(t * 53) * shake * z;
-    const sx = 1 + 0.1 * Math.sin(t * 9) + J.kick * 0.35, sy = 1 - 0.1 * Math.sin(t * 9) - J.kick * 0.2;
-    this.jamSpr.setVisible(true).setPosition(M.x + jx, M.y + jy).setScale(1.25 * swell * press * sx * z, 1.25 * swell * press * sy * z).setRotation(Math.sin(t * 5) * 0.12)
-      .setTint(k > 0.75 && Math.floor(t * 14) % 2 ? 0xffffff : 0xffffff - Math.floor(k * 40) * 0x000101);
-    // the pressure ring: fills as the gauge recovers, red to green
-    const r = 17 * z, a0 = -Math.PI / 2, col = k < 0.5 ? 0xff5a3a : k < 0.85 ? 0xffb52a : 0x7dff8a;
-    g.lineStyle(Math.max(3, 4.5 * z), 0x1a1020, 0.75).strokeCircle(M.x, M.y, r);
-    g.lineStyle(Math.max(2, 3 * z), 0x3a3048, 1).strokeCircle(M.x, M.y, r);
-    g.lineStyle(Math.max(2, 3 * z), col, 1).beginPath(); g.arc(M.x, M.y, r, a0, a0 + Math.PI * 2 * k, false); g.strokePath();
-    if (Math.floor(t * 5) % 2 === 0) {                    // warning triangle blinking over the gun
-      const wx = M.x, wy = M.y - 34 * z, s = 9 * z;
-      g.fillStyle(0x1a1020, 1).fillTriangle(wx, wy - s - 2, wx - s - 2, wy + s * 0.8 + 1, wx + s + 2, wy + s * 0.8 + 1);
-      g.fillStyle(0xffd23f, 1).fillTriangle(wx, wy - s + 1, wx - s + 1, wy + s * 0.8 - 1, wx + s - 1, wy + s * 0.8 - 1);
-      g.fillStyle(0x1a1020, 1).fillRect(wx - z, wy - s * 0.35, 2 * z, s * 0.6); g.fillRect(wx - z, wy + s * 0.38, 2 * z, 2 * z);
+    P.jamKick = Math.max(0, (P.jamKick || 0) - dt * 4.5);
+    if (!J) return;
+    const th = M ? M.theta : P.theta, h = M ? M.h : P.h + 36;
+    if (!P.overheat) { P.jam = null; P.jamKick = Math.max(P.jamKick, 0.45); this.jamSmoke(th, h, 3); for (let k = 0; k < 3; k++) this.macDrip(th, h, P.facing * rnd(60, 200), rnd(40, 160)); return; }   // sorted: one last cough clears the barrel
+    J.t += dt;
+    if ((J.steam -= dt) <= 0) { J.steam = rnd(0.05, 0.1); this.jamSmoke(th, h, 2); }                 // smoke curling off the muzzle
+    if ((J.drip -= dt) <= 0) { J.drip = rnd(0.12, 0.28); this.macDrip(th, h - 3, rnd(-15, 15), rnd(-10, 20)); }   // cheese running out of it
+    if ((J.cough -= dt) <= 0) {                           // a cough: a smaller buck, a puff and a spit of cheese
+      J.cough = rnd(0.45, 0.8); P.jamKick = Math.max(P.jamKick, 0.55);
+      this.jamSmoke(th, h, 3); this.macDrip(th, h, P.facing * rnd(40, 140), rnd(60, 160)); if (Math.random() < 0.5) this.burst(th, h, 'spark', 2, 0.6);
     }
   }
   // the Magnet Fork's pull, made visible: a crackling thread of blue-white light from the fork to each thing it has hold of,
@@ -4876,7 +4843,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     this.updateCamera();
     const { cx, cy } = this;
-    this.drawBlastFx(); this.drawMacTrails(); this.drawMagnet(); this.drawJam();
+    this.drawBlastFx(); this.drawMacTrails(); this.drawMagnet();
     this.drawHazards();
     this.drawTongues(); this.drawFactory(); this.drawCheeseStrings(); this.drawMando();
 

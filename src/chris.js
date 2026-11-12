@@ -498,9 +498,10 @@ class ChrisRig {
     this.armB.setRotation(-sw * 0.8 * run + 0.35 + Math.sin(t * 2.2) * 0.07 * idle - air * 1.2 + (P.grabbed ? Math.sin(t * 23 + 1) * 1.2 - 1 : 0));   // (and flapping the other arm)
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
-    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 + (P.bashX || 0), this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0));
+    const jk = P.jamKick || 0;                                  // a jammed gun bucks back and up
+    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 - jk * 8 + (P.bashX || 0), this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0));
     const flail = P.grabbed ? Math.sin(this.t * 26) * 1.1 + Math.sin(this.t * 41) * 0.35 - 0.6 : 0;      // grabbed: waving the useless gun about hysterically
-    this.gunArm.setRotation(-this.recoil * 0.07 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
+    this.gunArm.setRotation(-this.recoil * 0.07 - jk * 0.42 + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
