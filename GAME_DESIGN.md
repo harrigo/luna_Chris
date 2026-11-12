@@ -1467,3 +1467,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.34 Chris loses his temper with a jammed gun
 - While the gun is clogged Chris alternates a furious shake (gun arm, head and hat rattle; `P.jamShake`) with a THUMP (`P.jamBang`): a big gloved fist (`c_fist`, made on demand in the rig) goes up and comes down on the hopper. The gun dips, smoke, sparks, crumbs and drips fly, with a clunk and a tiny shake. About 0.85s a cycle until the gauge recovers. No gameplay change.
+
+## v2.36 Jam: shake then a slow double thump
+- The jam routine is now half a second of shaking, then two deliberate thumps of half a second each, a breath, and round again (1.9s cycle).
+- The gun stays jammed for at least 1.6s so the shake and both thumps always play (it used to clear as soon as the gauge reached the restart point, roughly a second sooner).

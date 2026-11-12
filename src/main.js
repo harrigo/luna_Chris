@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.35';
+const BUILD = 'v2.36';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1769,7 +1769,7 @@ class Level1 extends Phaser.Scene {
     // Mac-Grinder: hold FIRE (Z/X on keyboard). Pasta gauge drains per shot and refills when you let off.
     P.fireCd -= dt;
     P.ammoHold = Math.max(0, P.ammoHold - dt);
-    if (P.overheat && P.ammo >= CFG.ammoRestart) P.overheat = false;
+    if (P.overheat && P.ammo >= CFG.ammoRestart && !(P.jam && P.jam.t < 1.6 && P.bashT <= 0 && !P.grabbed)) P.overheat = false;   // (the jam lasts at least long enough for a shake and two thumps)
     const tgt = CFG.aimAssist ? this.pickTarget() : null;
     const want = !P.grabbed && ((CFG.autoFire && tgt) || inp.fire);
     this.jamUpdate(dt);      // caught on a rat's tongue: the gun's useless (he waves it about)
@@ -4421,10 +4421,11 @@ class Level1 extends Phaser.Scene {
     if ((J.drip -= dt) <= 0) { J.drip = rnd(0.12, 0.28); this.macDrip(th, h - 3, rnd(-15, 15), rnd(-10, 20)); }   // cheese running out of it
     // CHRIS LOSES HIS TEMPER WITH IT: a furious shake, then a thump with his fist, over and over until it clears
     if (P.bashT > 0 || P.grabbed || this.state !== 'play') { P.jamShake = 0; P.jamBang = 0; return; }
-    J.cyc = (J.cyc || 0) + dt; const c = J.cyc % 0.85;
-    P.jamShake = c < 0.42 ? 1 : 0.12; P.jamBang = c >= 0.42 ? (c - 0.42) / 0.43 : 0;
-    if (c < 0.42) J.hit = false;
-    else if (!J.hit && P.jamBang >= 0.62) {               // THUMP
+    // (half a second of shaking, then TWO deliberate thumps half a second each, a breath, and round again)
+    J.cyc = (J.cyc || 0) + dt; const c = J.cyc % 1.9, bi = c < 0.5 ? -1 : c < 1.0 ? 0 : c < 1.5 ? 1 : -1;
+    P.jamShake = c < 0.5 ? 1 : bi >= 0 ? 0.1 : 0; P.jamBang = bi >= 0 ? (c - 0.5 - bi * 0.5) / 0.5 : 0;
+    if (J.bi !== bi) { J.bi = bi; J.hit = false; }
+    if (bi >= 0 && !J.hit && P.jamBang >= 0.62) {         // THUMP
       J.hit = true; P.jamKick = Math.max(P.jamKick, 0.35); Sound.sfx('clunk'); buzz(20);
       this.jamSmoke(th, h, 4, true); this.burst(th, h, 'spark', 5, 0.9); this.burst(th, h, 'crumb', 3, 0.6);
       for (let k = 0; k < 3; k++) this.macDrip(th, h, P.facing * rnd(30, 160), rnd(40, 180));
