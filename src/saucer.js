@@ -72,6 +72,19 @@ function makeSaucerTextures(scene, toonRat) {
       for (const [x, y] of [[12, 28], [24, 28]]) { a.rect(ox + x, oy + y - 1, ox + x + 3, oy + y, WH[1]); a.poly([[ox + x, oy + y + 1], [ox + x + 3, oy + y + 1], [ox + x + 1.5, oy + y + 4 + (i % 2)]], [0xfff6c0, 0xffb52a, 0xff6a1a]); }   // rocket spats
     }));
   }
+  // (v2.67) a deck LASER TURRET: an armoured base bolted to the deck, a glass bubble with a rat gunner squinting through
+  // it (goggles), and a separate twin-barrelled gun that tracks Chris
+  pixSprite(scene, 'lturret', 44, 34, a => {
+    a.rrect(2, 22, 41, 33, 3, DARK); a.rect(4, 24, 39, 25, DARK[0]); for (const x of [6, 14, 29, 37]) { a.px(x, 29, STEEL[0]); a.px(x + 1, 30, INK); }
+    for (let k = 0; k < 5; k++) { a.poly([[6 + k * 7, 33], [9 + k * 7, 33], [12 + k * 7, 26], [9 + k * 7, 26]], k % 2 ? 0xffc23a : INK); }   // hazard stripes on the base
+    a.ell(22, 18, 13, 11, [0x9fd8ff, 0x5a9ac8, 0x2a5a88]);                                                                               // the bubble
+    a.ell(22, 18, 6, 5.5, FUR); a.ell(18, 13, 2, 2.4, PINK); a.ell(26, 13, 2, 2.4, PINK); a.ell(22, 18, 4.5, 2.2, 0x2a3044); a.px(20, 18, 0xff3a2a); a.px(24, 18, 0xff3a2a); a.rect(21, 22, 23, 23, 0xfffbe8);   // the gunner, goggles glowing red
+    a.ell(16, 11, 3, 2, 0xffffff); a.px(29, 23, 0xffffff);                                                                              // glints on the glass
+  });
+  pixSprite(scene, 'lturret_gun', 34, 14, a => {                                                         // the gun (pivot at its left end)
+    a.rrect(0, 2, 12, 12, 3, STEEL); a.rect(10, 3, 32, 5, DARK[1]); a.rect(10, 9, 32, 11, DARK[1]); a.rect(10, 3, 32, 3, STEEL[0]); a.rect(10, 9, 32, 9, STEEL[0]);
+    a.rect(30, 2, 33, 6, 0xff3a2a); a.rect(30, 8, 33, 12, 0xff3a2a); a.px(4, 6, 0xff3a2a);
+  });
   pixSprite(scene, 'cork', 10, 13, a => { a.rrect(2, 4, 7, 12, 1, [0xe8c890, 0xc09a58, 0x8a6a30]); a.ell(4.5, 3.5, 4, 3, [0xf0d8a0, 0xc8a060, 0x8a6a30]); a.px(3, 2, 0xfff6d8); a.px(4, 8, 0x8a6a30); a.px(6, 10, 0x8a6a30); });
   pixSprite(scene, 'sbolt', 8, 24, a => { a.rrect(1, 0, 6, 23, 3, [0xffb0a0, 0xff3a2a, 0xa01008]); a.rect(3, 2, 4, 21, 0xffffff); }, 0);
   // an escort fighter: a ball cockpit (a rat squinting out of it) between two cheese-grater wings
@@ -141,6 +154,29 @@ function makeSaucerTextures(scene, toonRat) {
 }
 
 const SaucerMixin = {
+  // a laser turret: bolted to the deck, the gun tracks him, a red sight line, then a bolt. Every wave: tougher, quicker, faster bolts.
+  turretSetup(e) {
+    const w = this.waveIdx || 0;
+    e.hp = e.maxHp = (4 + 3 * w) * Settings.dk.hp; e.h = 0; e.noStomp = false;
+    e.tur = { cd: rnd(1, 2), aim: 0, ang: -Math.PI / 2, every: Math.max(0.9, 2.4 - 0.55 * w), speed: 380 + 110 * w, burst: 1 + Math.min(2, w), left: 0 };
+    e.spr.setOrigin(0.5, 1); e.ov = e.ov || {}; const g = this.add.image(0, 0, 'lturret_gun').setOrigin(0.18, 0.5).setDepth(4.95); g.bsx = g.bsy = e.spr.bsx || 1; e.ov.gun = g;
+  },
+  turretAI(e, dt, P) {
+    const T = e.tur, k = e.spr.bsx || 1, gh = e.h + 20 * k, w = this.waveIdx || 0;
+    if (Math.abs(this.sz.tilt) > 0.02) e.theta = wrap(e.theta);                                    // (bolted down: it doesn't slide)
+    const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 30 - gh, want = Math.max(0.15, Math.min(Math.PI - 0.15, Math.atan2(ey, ex)));   // (angle up from the deck, toward him)
+    T.ang = T.ang < 0 ? Math.PI / 2 : T.ang;
+    T.ang += Math.max(-1, Math.min(1, want - T.ang)) * (2.2 + 0.6 * w) * dt;
+    this.place(e.ov.gun, e.theta, gh, -T.ang);
+    T.cd -= dt;
+    if (T.left <= 0 && T.cd <= 0 && this.state === 'play' && Math.abs(ex) < 520) { T.aim = 0.55; T.left = T.burst; T.cd = T.every; Sound.sfx('charge'); }
+    if (T.aim > 0) { T.aim -= dt; if (T.aim <= 0) T.shot = 0; }
+    else if (T.left > 0 && (T.shot = (T.shot || 0) - dt) <= 0) {
+      T.shot = 0.16; T.left--;
+      const c = Math.cos(T.ang), sn = Math.sin(T.ang), b = this.addEBullet('sbolt', wrap(e.theta + c * 26 * k / R), gh + sn * 26 * k, c * T.speed, sn * T.speed, 7, 3);
+      b.face = true; Sound.sfx('zing'); this.muzzleFlash(b.theta, b.h);
+    }
+  },
   saucerInit() {
     const DH = SAUCER_HALF / R;
     const G = this.sz = { DH, tilt: 0, tiltDir: 0, tState: 'idle', tT: rnd(7, 10), hatches: [], strafe: null, strafeT: 16, streaks: [], t: 0 };
@@ -273,12 +309,26 @@ const SaucerMixin = {
     for (const m of G.minions) { this.place(m, wrap((m.sd * 62 + G.tilt * 8) / R), 20 + Math.abs(Math.sin(t * 5 + m.sd)) * 4 + (warn && m.sd === dir ? 5 : 0), 0); m.setFlipX(m.sd > 0); m.setScale(m.scaleX * 1.2, m.scaleY * 1.2); }
     this.place(G.yoke, wrap(G.tilt * 20 / R), 14, G.tilt * 0.6);
     if (G.broken) { G.king.setVisible(false); G.yoke.setVisible(false); G.minions.forEach(m => m.setVisible(false)); if (G.domeGlass.texture.key !== 'sdome_broken') G.domeGlass.setTexture('sdome_broken'); }
-    if (G.breakout) { G.king.x += Math.sin(t * 70) * 3; G.king.setTexture(Math.floor(t * 8) % 2 ? 'sking' : 'sking'); }
+    if (G.breakout) {                                                                                  // the King throwing himself at the glass
+      G.lunge = Math.max(0, (G.lunge || 0) - (this.lastDt || 0.016));
+      const l = G.lunge / 0.18; G.king.x += Math.sin(t * 50) * 2 + l * 6 * Math.sin(t * 9); G.king.y -= l * 10 * z; G.king.setScale(G.king.scaleX * (1 + 0.12 * l), G.king.scaleY * (1 - 0.06 * l));
+      for (const m of G.minions) m.x += Math.sin(t * 60 + m.sd) * 3;
+    }
     this.place(G.domeGlass, 0, 0, 0); G.domeGlass.setScale(G.domeGlass.scaleX * 1.25, G.domeGlass.scaleY * 1.25); G.domeGlass.setAlpha(G.broken ? 1 : 0.8);
-    if (G.breakout) {                                                                                  // cracks spreading across the glass
-      const b = this.enemies.find(q => q.type === 'boss'), k = b && b.ks ? Math.min(1, b.ks.t / 2.2) : 0, c = this.screenPos(0, 70);
-      L.lineStyle(2 * z, 0xffffff, 0.9);
-      for (let i = 0; i < Math.floor(k * 9); i++) { const a = -2.6 + i * 0.6, r1 = 18 * z, r2 = (30 + 30 * k) * z; L.lineBetween(c.x + Math.cos(a) * r1 * 0.3, c.y + Math.sin(a) * r1 * 0.3, c.x + Math.cos(a + 0.15) * r2, c.y + Math.sin(a + 0.15) * r2); }
+    if (G.breakout && G.impacts) {                                                                     // a starburst of cracks at every blow, growing with each one after
+      const lv = G.crackLv || 0, L = G.crackG || (G.crackG = this.add.graphics().setDepth(2.4)); L.clear();   // (over the dome glass)
+      const bb = this.enemies.find(q => q.type === 'boss'); if (bb) bb.spr.setAlpha(0);
+      G.impacts.forEach((I, n) => {
+        const c = this.screenPos(wrap(I.x / R), I.h), grow = Math.min(1, 0.45 + (lv - n) * 0.18), arms = 6 + n;
+        L.fillStyle(0xffffff, 0.7).fillCircle(c.x, c.y, 2.5 * z);
+        for (let i = 0; i < arms; i++) {
+          const a = I.a + i * 6.283 / arms + Math.sin(i * 7.1 + n) * 0.25, r2 = (16 + 26 * grow + (i % 3) * 6) * z, mid = r2 * 0.55, kink = Math.sin(i * 3.3 + n) * 0.3;
+          const p1 = { x: c.x + Math.cos(a) * mid, y: c.y + Math.sin(a) * mid }, p2 = { x: c.x + Math.cos(a + kink) * r2, y: c.y + Math.sin(a + kink) * r2 };
+          L.lineStyle(2 * z, 0xffffff, 0.9).lineBetween(c.x, c.y, p1.x, p1.y); L.lineStyle(1.2 * z, 0xd8f4ff, 0.8).lineBetween(p1.x, p1.y, p2.x, p2.y);
+        }
+        L.lineStyle(1 * z, 0xffffff, 0.5).strokeCircle(c.x, c.y, (8 + 6 * grow) * z);                  // the ring round the impact
+      });
+      if (G.lunge > 0.1) { const q = this.screenPos(0, 70); L.fillStyle(0xffffff, 0.25).fillCircle(q.x, q.y, 60 * z); }   // a flash on each blow
     }
     if (G.fall) for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) {                               // re-entry: flames streaming up off the rims
       const q = sp(sd * (E + 20 - k * 30), -60), len = (40 + 40 * Math.random()) * z;
@@ -290,6 +340,10 @@ const SaucerMixin = {
       if (b && b.ks && b.ks.st === 'sweep' && !b.ks.hit) { const q = this.screenPos(wrap(b.theta + b.ks.dir * 70 / R), b.ks.high ? 100 : 26); L.fillStyle(0xff3a2a, 0.25 + 0.2 * Math.sin(t * 30)).fillEllipse(q.x, q.y, 150 * z, 26 * z); } }
     // ---- the strafing run
     const fx = G.fx; fx.clear(); G.fighter.setVisible(false);
+    for (const e of this.enemies) if (e.tur && e.tur.aim > 0 && e.hp > 0) {                         // turrets taking aim: a flickering red sight line
+      const T = e.tur, k = e.spr.bsx || 1, gh = e.h + 20 * k, a = this.screenPos(wrap(e.theta + Math.cos(T.ang) * 26 * k / R), gh + Math.sin(T.ang) * 26 * k), b = this.screenPos(wrap(e.theta + Math.cos(T.ang) * 600 / R), gh + Math.sin(T.ang) * 600);
+      fx.lineStyle((1 + 2 * (1 - T.aim / 0.55)) * z, 0xff3a2a, 0.35 + 0.4 * Math.sin(t * 40)).lineBetween(a.x, a.y, b.x, b.y);
+    }
     if (G.strafe) {
       const S = G.strafe;
       if (S.t < 1.9) { const u = S.t / 1.9; this.place(G.fighter, wrap(P.theta + S.dir * (u * 2 - 1) * (this.visHalf + 0.25)), 300 - 60 * Math.sin(u * Math.PI), S.dir * 0.2); G.fighter.setFlipX(S.dir < 0); }
@@ -383,9 +437,20 @@ Object.assign(SaucerMixin, {
     const G = this.sz, K = e.ks, toP = angDiff(P.theta, e.theta), dirP = Math.sign(toP) || 1, p2 = e.hp < e.maxHp * 0.5, sp = p2 ? 1.3 : 1;
     K.t += dt;
     if (K.st === 'breakout') {
-      // the King in the dome shudders, the glass cracks (drawn by saucerDraw), then SMASH
-      if (K.t > 2.4) {
-        K.st = 'land'; K.t = 0; e.phased = false; e.spr.setVisible(true); e.spr.setTexture('kingboss_b');
+      // (v2.67) he HAMMERS on the glass: blows coming faster and harder, each one a thud, a shake, spreading cracks and a
+      // spray of shards; the last one, at ~4.3 s, takes the dome out
+      e.spr.setAlpha(0);                                  // (his full-size body only appears once he's out: in the dome he's the sketch)
+      const HITS = [0.5, 1.25, 1.9, 2.45, 2.9, 3.3, 3.65, 3.95];
+      K.hitN = K.hitN || 0;
+      if (K.hitN < HITS.length && K.t >= HITS[K.hitN]) {
+        K.hitN++; G.crackLv = K.hitN; G.lunge = 0.18; const pw = K.hitN / HITS.length;
+        const hx = rnd(-30, 30), hh = rnd(50, 110); G.impacts = (G.impacts || []).concat([{ x: hx, h: hh, a: rnd(0, 6) }]);
+        for (let k = 0; k < 3 + K.hitN * 2; k++) { const im = this.add.image(0, 0, 'glassshard').setDepth(8); im.bsx = im.bsy = rnd(0.5, 1.1); this.parts.push({ theta: wrap(hx / R), h: hh, vt: rnd(-160, 160), vh: rnd(80, 260), life: rnd(0.5, 0.9), spr: im, rot: 0, rv: rnd(-12, 12) }); }
+        this.cameras.main.shake(140 + 160 * pw, 0.004 + 0.01 * pw); Sound.sfx(K.hitN % 3 ? 'clunk' : 'crash'); buzz(30 + 40 * pw);
+        if (K.hitN === 3) this.banner('THE GLASS IS GIVING WAY...');
+      }
+      if (K.t > 4.3) {
+        K.st = 'land'; K.t = 0; e.phased = false; e.spr.setVisible(true).setAlpha(1); if (G.crackG) G.crackG.clear(); e.spr.setTexture('kingboss_b');
         e.h = 140; e.vh = 360; e.vt = dirP * 90;
         G.broken = true; G.breakout = 0; G.fall = 0.001;
         for (let k = 0; k < 40; k++) { const im = this.add.image(0, 0, 'glassshard').setDepth(8); im.bsx = im.bsy = rnd(0.7, 1.6); this.parts.push({ theta: wrap(rnd(-60, 60) / R), h: rnd(40, 140), vt: rnd(-300, 300), vh: rnd(150, 520), life: rnd(0.8, 1.4), spr: im, rot: 0, rv: rnd(-14, 14) }); }

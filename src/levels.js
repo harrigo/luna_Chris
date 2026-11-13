@@ -19,6 +19,7 @@ const ENEMY = {
   sharkrat: { hp: 5,  r: 20, ch: 0, tex: 'sharkrat', oy: 0.5, drop: 0.35, ai: 'sharkrat', k: 1.15, big: true },   // L7: circles, then lunges, jaws wide
   nibbler:  { hp: 1,  r: 10, ch: 0, tex: 'nibbler', oy: 0.5, drop: 0.04, ai: 'nibbler', k: 1.2 },     // L7: a shoal fish - one shot, and it pecks
   torprat:  { hp: 2,  r: 13, ch: 0, tex: 'torprat', oy: 0.5, drop: 0.2, ai: 'torprat', k: 1.15, frames: ['torprat', 'torprat_b'], fps: 16 },
+  lturret:  { hp: 4,  r: 18, ch: 14, tex: 'lturret', oy: 1, drop: 0.3, ai: 'lturret', k: 1.25, deck: false },   // L10: deck laser turret (saucer.js) - tougher and faster every wave
   steward:  { hp: 3,  r: 14, ch: 10, tex: 'steward',  oy: 39 / 40, drop: 0.18, k: 1.1, deck: true, ai: 'mouse', frames: ['steward', 'steward_b', 'steward_c', 'steward_d'], fps: 8, eyes: [[34, 21, 4.2], [39.5, 21.5, 2.6]] },   // L10 crew (saucer.js)
   admiral:  { hp: 9,  r: 18, ch: 13, tex: 'admiral',  oy: 44 / 46, drop: 0.5,  k: 1.3, deck: true, big: true, ai: 'mouse', frames: ['admiral', 'admiral_b'], fps: 5, eyes: [[35, 26, 4.2], [40.5, 26.5, 2.6]] },
   toff:     { hp: 2,  r: 15, ch: 12, tex: 'toff',     oy: 0.72,    drop: 0.28, ai: 'flyer', frames: ['toff', 'toff_b', 'toff_c', 'toff_d'], fps: 9, eyes: [[35, 35, 4.2], [40.5, 35.5, 2.6]] },
@@ -350,9 +351,9 @@ const LEVELS = {
     ledges: [{ theta: -0.27, half: 0.055, h: 96 }, { theta: 0, half: 0.06, h: 172 }, { theta: 0.27, half: 0.055, h: 96 }],   // (the middle one is the gantry over the dome)
     props: [],
     waves: [
-      { name: 'WAVE 1', spawns: [S('steward', 0), S('steward', 1.6), S('toff', 3.2), S('steward', 5), S('steward', 6.8), S('toff', 8.6), S('admiral', 10.5), S('steward', 13)] },
-      { name: 'WAVE 2', spawns: [S('toff', 0), S('steward', 1.4), S('admiral', 3), S('steward', 4.6), S('toff', 6.2), S('steward', 7.8), S('toff', 9.4), S('admiral', 11.2), S('steward', 13), S('steward', 14.5)] },
-      { name: 'WAVE 3', spawns: [S('admiral', 0), S('toff', 1.4), S('steward', 2.6), S('steward', 3.8), S('toff', 5.2), S('admiral', 6.8), S('steward', 8.2), S('toff', 9.6), S('steward', 11), S('admiral', 12.6), S('toff', 14), S('steward', 15.4)] }
+      { name: 'WAVE 1', spawns: [S('lturret', 0), S('steward', 0.5), S('steward', 1.6), S('toff', 3.2), S('lturret', 4.2), S('steward', 5), S('steward', 6.8), S('toff', 8.6), S('admiral', 10.5), S('steward', 13)] },
+      { name: 'WAVE 2', spawns: [S('lturret', 0), S('toff', 0.4), S('steward', 1.4), S('lturret', 2.2), S('admiral', 3), S('lturret', 8), S('steward', 4.6), S('toff', 6.2), S('steward', 7.8), S('toff', 9.4), S('admiral', 11.2), S('steward', 13), S('steward', 14.5)] },
+      { name: 'WAVE 3', spawns: [S('lturret', 0), S('admiral', 0.3), S('lturret', 1), S('toff', 1.4), S('lturret', 6), S('lturret', 11), S('steward', 2.6), S('steward', 3.8), S('toff', 5.2), S('admiral', 6.8), S('steward', 8.2), S('toff', 9.6), S('steward', 11), S('admiral', 12.6), S('toff', 14), S('steward', 15.4)] }
     ],
     boss: { tex: 'kingboss', hp: 200, ai: 'saucerking', scale: 1.15 },      // (v2.65) he smashes out of the dome; the saucer dives (saucer.js)
     win: 'The Rat King is beaten!\n(Bessie, the ending and the credits are still to come.)'
