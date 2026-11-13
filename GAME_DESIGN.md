@@ -1621,3 +1621,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - TORPEDO RATS: rats in diving goggles strapped to propeller torpedoes. They cruise near him, shudder and stream bubbles while they line up, then dart in a straight line.
 - Boss: THE RAT DREADNOUGHT (replaces the flagship here): the biggest ironclad, three keels (each a third of its health, "A KEEL IS BREACHED!"), broadsides of three, depth charges in pairs, launches torpedo rats.
 - The ocean: depth-banded water, swaying light shafts, a faint wash over everything under the surface, a foamy white wave crest, bubbles off his shots and helmet and up from the seabed. The seabed has kelp, a sunken wreck, giant clams and scrap. Floating wreckage ledges high above the waves. Drones and jetpack rats fly above the water.
+
+## v2.64 — Armada: a deeper ocean, Nibblers, bubbles not buzzing
+- Fixed the buzz when swimming up: the jetpack flicked on and off every frame under water. The jet can't light under water now, and swimming makes bubbly sine blips instead (each stroke, and every so often while moving).
+- Deeper ocean: seabed radius 170, waterline 270 (was 210 / 170); floating wreckage at ~350; the whole ring is drawn.
+- NIBBLERS: shoals of little bug-eyed buck-toothed puffers (orange or blue, 1 hp, 50 pts) that swarm round Chris, each keeping its own spot, and dart in for a peck when he's close. They go POP: a juicy pop sound, a ring of bubbles, a flash. Schools of 5-8 come in every wave, and the Dreadnought sends them too.
+- More enemies per wave (schools, more torpedo rats). The Dreadnought is lighter: 90 hp (30 per keel), was 150.

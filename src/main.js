@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.63';
+const BUILD = 'v2.64';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1770,7 +1770,7 @@ class Level1 extends Phaser.Scene {
 
     if (P.bounceT > 0) P.bounceT -= dt;
     P.diving = !grounded && !!inp.down && !(P.bounceT > 0);  // duck in mid-air = tuck and drop fast (cuts the jetpack); not while bouncing off a big one
-    P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving;
+    P.thrusting = !grounded && inp.jump && P.jetArmed && P.fuel > 0 && !P.diving && !(this.def.ocean && P.h < WL - 4);   // (no jet under water: it stuttered on and off)
     if (P.thrusting !== this.jetOn) { this.jetOn = P.thrusting; Sound.jet(P.thrusting); }
     // goop suction: just above a pool the muck clings to the jet boots - weak thrust, slow climb, and it drags you back down
     const suck = (this.goops && this.goops.length && P.h < 46 && P.floor === 0 && !this.def.goopMode) ? this.goops.some(g => Math.abs(angDiff(P.theta, g.theta)) < g.half * 1.05) : false;
@@ -3797,7 +3797,7 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
-      } else if (ai === 'ironclad' || ai === 'torprat') {   // L7 (armada.js): ships on the waterline, torpedo rats under it
+      } else if (ai === 'ironclad' || ai === 'torprat' || ai === 'nibbler') {   // L7 (armada.js): ships on the waterline, torpedo rats under it
         this.armadaAI(e, dt, P);
       } else if (ai === 'anchovy') {                    // L4 (mozz.js): a shoal of tin anchovies
         this.anchovyAI(e, dt, P);
@@ -4190,7 +4190,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ironclad: 600, torprat: 120, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ironclad: 600, torprat: 120, nibbler: 50, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -4201,6 +4201,7 @@ class Level1 extends Phaser.Scene {
         this.parts.push({ theta: e.theta, h: e.h, vt: away * rnd(110, 200), vh: rnd(260, 380), life: 0.75, spr: c, rot: 0, rv: away * rnd(9, 14), corpse: true, flashT: 0.07 });
       }
       this.killSfx(e);
+      if (e.type === 'nibbler') this.fishPop(e);         // L7: the little fish go POP (armada.js)
       this.bang(e.theta, e.h + e.ch, e.type === 'boss' ? 90 : (e.big ? 30 : 14));
       if (e.type === 'boss') { this.cameras.main.flash(450, 255, 255, 255); buzz([80, 50, 80, 50, 220]); this.hitStop = 0.3; this.slowT = 1.4; this.camPunch(0.08); }
       else if (e.big) { buzz(25); this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camPunch(0.025); }

@@ -2,6 +2,7 @@
 // To add a level: add an entry to LEVELS (waves, palette, music, boss) - main.js reads everything from here.
 
 const S = (type, t) => ({ type, t });     // spawn helper: S('mouse', 2.5) = a mouse 2.5s into the wave
+const SCHOOL = (t, n) => Array.from({ length: n }, (_, i) => S('nibbler', t + i * 0.05));   // a school of n Nibblers, all at once (L7)
 
 // Per-enemy stats. hp = shots to kill, r = hit radius, ch = centre height above its feet, drop = chance of a cheese wedge,
 // big = may drop the Parmesan Power-Up, oy = sprite origin Y.
@@ -15,6 +16,7 @@ const ENEMY = {
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
   miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel', frames: ['miniwheel', 'miniwheel_b'], fps: 5 },
   ironclad: { hp: 14, r: 50, ch: 0, tex: 'ironclad', oy: 0.7, drop: 0.5, big: true, ai: 'ironclad', k: 1.4 },     // L7 (armada.js): only the glowing keel can be hurt
+  nibbler:  { hp: 1,  r: 10, ch: 0, tex: 'nibbler', oy: 0.5, drop: 0.04, ai: 'nibbler', k: 1.2 },     // L7: a shoal fish - one shot, and it pecks
   torprat:  { hp: 2,  r: 13, ch: 0, tex: 'torprat', oy: 0.5, drop: 0.2, ai: 'torprat', k: 1.15, frames: ['torprat', 'torprat_b'], fps: 16 },
   steward:  { hp: 3,  r: 14, ch: 10, tex: 'steward',  oy: 39 / 40, drop: 0.18, k: 1.1, deck: true, ai: 'mouse', frames: ['steward', 'steward_b', 'steward_c', 'steward_d'], fps: 8, eyes: [[34, 21, 4.2], [39.5, 21.5, 2.6]] },   // L10 crew (saucer.js)
   admiral:  { hp: 9,  r: 18, ch: 13, tex: 'admiral',  oy: 44 / 46, drop: 0.5,  k: 1.3, deck: true, big: true, ai: 'mouse', frames: ['admiral', 'admiral_b'], fps: 5, eyes: [[35, 26, 4.2], [40.5, 26.5, 2.6]] },
@@ -271,20 +273,20 @@ const LEVELS = {
   7: {
     id: 7, name: 'The Astro-Rat Armada', short: 'ASTRO-RAT ARMADA', blurb: 'An ocean world. Rat ironclads rule the waves.\nDive under them and hit the glowing keels.',
     music: 'level7', bossName: 'THE RAT DREADNOUGHT', tip: 'THEIR IRON IS TOO THICK: DIVE UNDER AND HIT THE KEEL!',
-    ocean: true, viewY: 1.27, jetCeil: 330,              // (v2.63) a rock core under a thick ocean (armada.js)
-    radius: 210, sky: [0x02040c, 0x18265a], skyCols: [0x02040c, 0x060c1c, 0x0a1430, 0x101c44, 0x18265a, 0x22306a], bg: '#02040c', starTint: 0xffffff, dustAlpha: 1.2, bgDecor: 'cosmic',
+    ocean: true, viewY: 1.3, jetCeil: 420,              // (v2.63) a rock core under a thick ocean (armada.js); v2.64: deeper
+    radius: 170, sky: [0x02040c, 0x18265a], skyCols: [0x02040c, 0x060c1c, 0x0a1430, 0x101c44, 0x18265a, 0x22306a], bg: '#02040c', starTint: 0xffffff, dustAlpha: 1.2, bgDecor: 'cosmic',
     surface: { pal: [0x14100c, 0x2a2018, 0x40301e, 0x5a4428, 0x7a5c34, 0x987640], seed: 7373 },
     planet: { fill: 0x5a4428, inner: 0x2a2018, rim: 0x987640, glow: 0x3ad0f0 },
     dust: [0x5ce1ff, 0x6a8cff, 0xff9a5a, 0xffffff], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
-    ledges: [{ theta: 1.1, half: 0.16, h: 250 }, { theta: 3.2, half: 0.16, h: 265 }, { theta: 5.2, half: 0.16, h: 250 }],   // (floating wreckage, high above the waves)
+    ledges: [{ theta: 1.1, half: 0.2, h: 350 }, { theta: 3.2, half: 0.2, h: 365 }, { theta: 5.2, half: 0.2, h: 350 }],   // (floating wreckage, high above the waves)
     props: [{ tex: 'kelp', n: 12, sc: [0.9, 1.5] }, { tex: 'wreck', at: [[0.6, 1.2], [3.9, 1.0, 1]] }, { tex: 'clam', n: 3, sc: [1, 1.3] }, { tex: 'pile_scrap', n: 3, sc: [1, 1.4], tint: 0x6a8a9a }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('ironclad', 0), S('torprat', 2), S('torprat', 4), S('drone', 6), S('torprat', 8), S('ironclad', 10), S('torprat', 12.5)] },
-      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1.5), S('flyer', 3), S('torprat', 4.5), S('ironclad', 6.5), S('torprat', 8), S('drone', 9.5), S('torprat', 11), S('torprat', 12.5)] },
-      { name: 'WAVE 3', spawns: [S('ironclad', 0), S('torprat', 1.2), S('ironclad', 3), S('torprat', 4.2), S('flyer', 5.6), S('torprat', 6.8), S('ironclad', 8.5), S('torprat', 10), S('drone', 11.5), S('torprat', 13)] }
+      { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 3), S('torprat', 4.5), ...SCHOOL(6, 6), S('drone', 7.5), S('torprat', 9), S('ironclad', 10.5), ...SCHOOL(12, 5), S('torprat', 13.5)] },
+      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), ...SCHOOL(7.5, 7), S('drone', 9), S('torprat', 10), ...SCHOOL(11.5, 6), S('torprat', 12.5), S('flyer', 13.5)] },
+      { name: 'WAVE 3', spawns: [S('ironclad', 0), ...SCHOOL(1, 7), S('torprat', 2), S('ironclad', 3), S('torprat', 4), S('flyer', 5), ...SCHOOL(6, 8), S('torprat', 7), S('ironclad', 8.5), S('torprat', 9.5), S('drone', 10.5), ...SCHOOL(11.5, 8), S('torprat', 12.5), S('torprat', 13.5)] }
     ],
-    boss: { tex: 'dreadnought', hp: 150, ai: 'dreadnought', scale: 1.5 },
+    boss: { tex: 'dreadnought', hp: 90, ai: 'dreadnought', scale: 1.5 },
     win: 'The flagship is going down in flames!\nBessie was bundled into an escape pod...\n...that crashed straight into a giant block of Swiss.'
   },
 

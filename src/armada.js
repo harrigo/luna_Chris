@@ -11,7 +11,7 @@
 //   TORPEDO RATS    rats strapped to propeller torpedoes: they circle, line up (a shudder, a stream of bubbles) and dart.
 //   THE DREADNOUGHT the boss: the biggest ironclad, three keels, broadsides, depth-charge barrages, torpedo rats.
 
-const WL = 170;                                        // the waterline, px above the seabed
+const WL = 270;                                        // the waterline, px above the seabed (v2.64: a deeper ocean, more room to swim)
 
 function makeArmadaTextures(scene, toonRat) {
   if (scene.game.__armadaTex) return; scene.game.__armadaTex = true;
@@ -76,6 +76,16 @@ function makeArmadaTextures(scene, toonRat) {
     a.line([[21, 7], [16, 4], [12, 6]], PINK[1]);                                                                                       // the tail, streaming back
     if (f) { a.px(0, 8, 0xc8f0ff); a.px(1, 23, 0x9fd8ff); }
   }));
+  // ---- NIBBLER: a little bug-eyed puffer with buck teeth, bright as a sweet (two frames: tail wag, gob open)
+  [['nibbler', 0, [0xffc85a, 0xff8a2a, 0xb8481a]], ['nibbler_b', 1, [0xffc85a, 0xff8a2a, 0xb8481a]], ['nibbler_c', 0, [0x8ae8ff, 0x3aa8e8, 0x1a5aa8]], ['nibbler_d', 1, [0x8ae8ff, 0x3aa8e8, 0x1a5aa8]]].forEach(([key, f, C]) => pixSprite(scene, key, 26, 20, a => {
+    a.poly([[1, f ? 4 : 6], [7, 10], [1, f ? 16 : 14]], C);                                                                             // tail
+    a.ell(13, 10, 8.5, 7.5, C); a.ell(11, 8, 4, 2.5, [0xffffff, C[0], C[1]]);                                                          // a round body, shiny
+    for (const [x, y] of [[9, 13], [13, 15], [16, 13]]) a.px(x, y, C[2]);                                                               // spots
+    a.poly([[12, 3], [15, 0], [17, 4]], C); a.poly([[11, 17], [14, 19], [15, 16]], C);                                                  // fins
+    a.ell(18, 7, 3.6, 3.8, INK); a.ell(18, 7, 2.8, 3, 0xffffff); a.px(19, 7, INK); a.px(19, 8, INK); a.px(17, 6, 0xe0301a);             // one huge eye
+    if (f) { a.ell(22, 12, 2.6, 2.6, [0x8a1a1a, 0x5a0a0a, 0x2a0404]); a.rect(21, 10, 23, 10, 0xfffbe8); a.rect(21, 14, 23, 14, 0xfffbe8); }
+    else { a.rect(19, 12, 24, 13, 0x5a0a0a); a.rect(21, 11, 23, 14, 0xfffbe8); a.line([[22, 11], [22, 14]], 0xb8a888); }               // buck teeth
+  }));
   // ---- cannonball (a fizzing fuse) and a depth charge (a spiky sea mine, a blinking red light)
   pixSprite(scene, 'cannonball', 14, 14, a => { a.ell(7, 8, 6, 6, [0x6a6a7a, 0x3a3a48, 0x141420]); a.px(5, 6, 0xc8c8d8); a.line([[9, 3], [11, 1]], 0x8a6a3a); a.px(12, 0, 0xffd23f); });
   pixSprite(scene, 'dcharge', 26, 26, a => {
@@ -121,6 +131,13 @@ const ArmadaMixin = {
       e.keels.forEach((K, i) => { const g = this.add.image(0, 0, 'keelglow').setDepth(5.0).setBlendMode(Phaser.BlendModes.ADD); e.ov['keel' + i] = g; K.spr = g; });
     } else if (kind === 'torprat') {
       e.h = rnd(40, WL - 40); e.tp = { st: 'cruise', t: rnd(1.2, 2.2), off: rnd(-1, 1) * 140, vt: 0, vh: 0 };
+    } else if (kind === 'nibbler') {                   // schools: each one turns up near the last one spawned
+      const A = this.az, L = A.lastFish && this.t - A.lastFish.t < 0.6 ? A.lastFish : null;
+      if (L) e.theta = wrap(L.theta + rnd(-30, 30) / R);
+      e.h = L ? Math.max(20, Math.min(WL - 20, L.h + rnd(-25, 25))) : rnd(40, WL - 40);
+      A.lastFish = { theta: e.theta, h: e.h, t: this.t };
+      e.fish = { ph: rnd(0, 6), cd: rnd(0.5, 1.5), dash: 0, vt: 0, vh: 0, off: rnd(-1, 1) * 70, offH: rnd(-30, 50) };
+      if (Math.random() < 0.5) { e.spr.setTexture('nibbler_c'); e.fishBlue = true; }
     } else if (kind === 'flyer' || kind === 'drone') {
       e.h = e.baseH = WL + rnd(70, 170);
     }
@@ -158,7 +175,23 @@ const ArmadaMixin = {
         Sound.sfx('clunk'); this.burst(e.theta, e.h - 14, 'bubl', 6, 0.8);
       }
       // the Dreadnought launches torpedo rats
-      if (S.big && (S.torpCd -= dt) <= 0 && this.enemies.length < 6) { S.torpCd = rnd(6, 8); this.spawnEnemy('torprat'); }
+      if (S.big && (S.torpCd -= dt) <= 0 && this.enemies.length < 9) { S.torpCd = rnd(5, 7); if (Math.random() < 0.5) this.spawnEnemy('torprat'); else for (let i = 0; i < 4; i++) this.spawnEnemy('nibbler'); }
+      return;
+    }
+    if (e.fish) {                                        // NIBBLER: swarm round him (each keeps its own spot), wobble, peck when close
+      const F = e.fish, prev = e.theta;
+      F.ph += dt; F.cd -= dt;
+      const tt = wrap(P.theta + (F.off + Math.sin(F.ph * 1.7) * 30) / R), th = Math.max(16, Math.min(WL - 16, (under ? P.h + 26 : WL - 40) + F.offH + Math.sin(F.ph * 2.3) * 14));
+      if (F.dash > 0) { F.dash -= dt; e.theta = wrap(e.theta + F.vt / R * dt); e.h = Math.max(12, Math.min(WL - 10, e.h + F.vh * dt)); }
+      else {
+        e.theta = wrap(e.theta + Math.max(-1, Math.min(1, angDiff(tt, e.theta) * R / 60)) * 120 / R * dt);
+        e.h += Math.max(-1, Math.min(1, (th - e.h) / 30)) * 90 * dt;
+        const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 26 - e.h, d = Math.hypot(ex, ey);
+        if (under && d < 90 && F.cd <= 0) { F.cd = rnd(1.4, 2.2); F.dash = 0.32; F.vt = ex / d * 280; F.vh = ey / d * 280; }   // a darting peck
+      }
+      const mv = angDiff(e.theta, prev) * R; if (Math.abs(mv) > 0.1) e.spr.setFlipX(mv < 0);
+      const fr = (Math.floor(this.t * 9 + F.ph * 3) % 2) ? 1 : 0; e.spr.setTexture((e.fishBlue ? (fr ? 'nibbler_d' : 'nibbler_c') : (fr ? 'nibbler_b' : 'nibbler')));
+      e.spr.rotation = Math.sin(F.ph * 6) * 0.12;
       return;
     }
     if (e.tp) {                                          // TORPEDO RAT
@@ -237,7 +270,8 @@ const ArmadaMixin = {
     if (!P.swim) return;
     P.thrusting = false; if (this.jetOn) { this.jetOn = false; Sound.jet(false); }
     P.fuel = Math.min(1, P.fuel + CFG.jetRegen * 0.6 * dt);
-    if (inp.jump && !P.swimJ) { P.vh = Math.max(P.vh, 0) + 230; Sound.sfx('jump'); this.burst(P.theta, P.h + 10, 'bubl', 5, 0.7); }   // a stroke
+    if (inp.jump && !P.swimJ) { P.vh = Math.max(P.vh, 0) + 230; Sound.sfx('bubble'); this.burst(P.theta, P.h + 10, 'bubl', 5, 0.7); }   // a stroke
+    if ((inp.jump || inp.down || Math.abs(P.vx) > 60) && (P.blubT = (P.blubT || 0) - dt) <= 0) { P.blubT = rnd(0.22, 0.38); Sound.sfx('bubble'); }   // bubbly while he swims
     P.swimJ = !!inp.jump;
     if (inp.jump) P.vh = Math.max(P.vh, Math.min(P.vh + 520 * dt, 210));                // hold it: swim up
     if (inp.down) P.vh = Math.min(P.vh, Math.max(P.vh - 520 * dt, -210));               // hold DOWN: dive
@@ -247,13 +281,17 @@ const ArmadaMixin = {
     P.jetArmed = true; P.holdT = 99;                                                   // (so the jet lights the moment he breaks the surface)
     P.diving = false;
   },
+  fishPop(e) {                                          // the little ones go POP: a ring of bubbles, a flash, a high blip (the combo does the rest)
+    Sound.sfx('fishpop'); this.burst(e.theta, e.h, 'bubl', 12, 1.2); this.addLight(e.theta, e.h, 50, e.fishBlue ? 0x8ae8ff : 0xffc85a, 0.8, 0.2);
+    for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283, im = this.add.image(0, 0, 'wdrop').setDepth(7.7).setTint(e.fishBlue ? 0x8ae8ff : 0xffc85a); this.parts.push({ theta: e.theta, h: e.h, vt: Math.cos(a) * 120, vh: Math.sin(a) * 120, life: 0.35, noGrav: true, spr: im }); }
+  },
   waterSplash(theta, n) {
     for (let k = 0; k < n; k++) { const im = this.add.image(0, 0, 'wdrop').setDepth(7.7); im.bsx = im.bsy = rnd(0.6, 1.3); this.parts.push({ theta: wrap(theta + rnd(-6, 6) / R), h: WL + 2, vt: rnd(-90, 90), vh: rnd(140, 320), life: rnd(0.4, 0.7), spr: im }); }
   },
   // the ocean: a translucent ring from the seabed to the waterline, light shafts, a wash in front, a foamy wave crest
   armadaDraw() {
     const A = this.az; if (!A) return;
-    const z = this.zoom, t = this.t, vt = this.viewT ? this.viewT() : this.pl.theta, span = this.visHalf + 0.35, N = 56;
+    const z = this.zoom, t = this.t, vt = this.viewT ? this.viewT() : this.pl.theta, span = Math.PI, N = 120;   // (the whole ring: the core's small, the edges of a partial band showed)
     const band = (h0, h1) => { const out = [], inn = []; for (let k = 0; k <= N; k++) { const th = vt - span + 2 * span * k / N; out.push(this.screenPos(th, h1 + Math.sin(th * 18 + t * 2.2) * 2)); inn.push(this.screenPos(th, h0)); } return out.concat(inn.reverse()); };
     const g = A.back; g.clear();
     g.fillStyle(0x0a3a7a, 0.55).fillPoints(band(0, WL * 0.4), true);

@@ -251,6 +251,8 @@ const Sound = (() => {
     ufoFly:  () => tone({ type: 'sawtooth', f: 1100, f2: 180, dur: 0.85, vol: 0.1 }),
     crash:   () => { noise({ f1: 3200, f2: 90, dur: 0.9, vol: 0.6 }); tone({ type: 'sawtooth', f: 95, f2: 32, dur: 0.7, vol: 0.5 }); },
     squeak:  () => arp([1500, 2200], 0.05, { type: 'square', vol: 0.1 }),
+    bubble:  () => { const t0 = ctx.currentTime; for (let i = 0; i < 3; i++) { const f = 260 + Math.random() * 380; tone({ type: 'sine', f, f2: f * 2.6, dur: 0.07, vol: 0.09, t: t0 + i * 0.045 + Math.random() * 0.02 }); } },   // (v2.64) swimming: little rising sine blips
+    fishpop: () => { const t0 = ctx.currentTime; tone({ type: 'sine', f: 520, f2: 1400, dur: 0.08, vol: 0.16, t: t0 }); tone({ type: 'square', f: 1300, f2: 2100, dur: 0.05, vol: 0.06, t: t0 + 0.05 }); noise({ ft: 'highpass', f1: 3000, dur: 0.04, vol: 0.08 }); },   // a juicy pop
     beam:    () => wobble({ type: 'sine', f: 330, f2: 520, dur: 1.3, vol: 0.16, rate: 9, depth: 70 }),
     moo:     () => wobble({ type: 'sawtooth', f: 150, f2: 98, dur: 1.0, vol: 0.22, rate: 6, depth: 7, lp: 900 }),
     whoosh:  () => noise({ f1: 400, f2: 4000, dur: 0.7, vol: 0.28, q: 0.5 }),
