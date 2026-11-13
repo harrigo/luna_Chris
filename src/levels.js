@@ -16,6 +16,7 @@ const ENEMY = {
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
   miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel', frames: ['miniwheel', 'miniwheel_b'], fps: 5 },
   ironclad: { hp: 14, r: 50, ch: 0, tex: 'ironclad', oy: 0.7, drop: 0.5, big: true, ai: 'ironclad', k: 1.4 },     // L7 (armada.js): only the glowing keel can be hurt
+  sharkrat: { hp: 5,  r: 20, ch: 0, tex: 'sharkrat', oy: 0.5, drop: 0.35, ai: 'sharkrat', k: 1.15, big: true },   // L7: circles, then lunges, jaws wide
   nibbler:  { hp: 1,  r: 10, ch: 0, tex: 'nibbler', oy: 0.5, drop: 0.04, ai: 'nibbler', k: 1.2 },     // L7: a shoal fish - one shot, and it pecks
   torprat:  { hp: 2,  r: 13, ch: 0, tex: 'torprat', oy: 0.5, drop: 0.2, ai: 'torprat', k: 1.15, frames: ['torprat', 'torprat_b'], fps: 16 },
   steward:  { hp: 3,  r: 14, ch: 10, tex: 'steward',  oy: 39 / 40, drop: 0.18, k: 1.1, deck: true, ai: 'mouse', frames: ['steward', 'steward_b', 'steward_c', 'steward_d'], fps: 8, eyes: [[34, 21, 4.2], [39.5, 21.5, 2.6]] },   // L10 crew (saucer.js)
@@ -282,9 +283,9 @@ const LEVELS = {
     ledges: [{ theta: 1.1, half: 0.2, h: 350 }, { theta: 3.2, half: 0.2, h: 365 }, { theta: 5.2, half: 0.2, h: 350 }],   // (floating wreckage, high above the waves)
     props: [{ tex: 'kelp', n: 12, sc: [0.9, 1.5] }, { tex: 'wreck', at: [[0.6, 1.2], [3.9, 1.0, 1]] }, { tex: 'clam', n: 3, sc: [1, 1.3] }, { tex: 'pile_scrap', n: 3, sc: [1, 1.4], tint: 0x6a8a9a }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 3), S('torprat', 4.5), ...SCHOOL(6, 6), S('drone', 7.5), S('torprat', 9), S('ironclad', 10.5), ...SCHOOL(12, 5), S('torprat', 13.5)] },
-      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), ...SCHOOL(7.5, 7), S('drone', 9), S('torprat', 10), ...SCHOOL(11.5, 6), S('torprat', 12.5), S('flyer', 13.5)] },
-      { name: 'WAVE 3', spawns: [S('ironclad', 0), ...SCHOOL(1, 7), S('torprat', 2), S('ironclad', 3), S('torprat', 4), S('flyer', 5), ...SCHOOL(6, 8), S('torprat', 7), S('ironclad', 8.5), S('torprat', 9.5), S('drone', 10.5), ...SCHOOL(11.5, 8), S('torprat', 12.5), S('torprat', 13.5)] }
+      { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 3), S('torprat', 4.5), ...SCHOOL(6, 6), S('drone', 7.5), S('sharkrat', 8.5), S('torprat', 9), S('ironclad', 10.5), ...SCHOOL(12, 5), S('torprat', 13.5)] },
+      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), S('sharkrat', 7), ...SCHOOL(7.5, 7), S('drone', 9), S('sharkrat', 10.5), S('torprat', 10), ...SCHOOL(11.5, 6), S('torprat', 12.5), S('flyer', 13.5)] },
+      { name: 'WAVE 3', spawns: [S('ironclad', 0), ...SCHOOL(1, 7), S('torprat', 2), S('ironclad', 3), S('torprat', 4), S('flyer', 5), ...SCHOOL(6, 8), S('sharkrat', 6.5), S('torprat', 7), S('ironclad', 8.5), S('sharkrat', 9), S('torprat', 9.5), S('drone', 10.5), ...SCHOOL(11.5, 8), S('torprat', 12.5), S('torprat', 13.5)] }
     ],
     boss: { tex: 'dreadnought', hp: 90, ai: 'dreadnought', scale: 1.5 },
     win: 'The flagship is going down in flames!\nBessie was bundled into an escape pod...\n...that crashed straight into a giant block of Swiss.'

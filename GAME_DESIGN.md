@@ -1637,3 +1637,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - BELLY SLAM: a crouch, a huge leap at Chris, and a shockwave running both ways along the deck (jump it); the ship pitches toward the impact.
   - He slides with the deck too, but hangs on at the rim.
 - Gravity is now scaled per-scene (this.gravMul, reset on every level start).
+
+## v2.66 — Armada: air, shark rats, Star Fox keels
+- AIR: 15 s under water, refilled in 2.5 s above it. A ring of five bubbles over his head while it's below full; red, shaking and beeping in the last third ("AIR! GET TO THE SURFACE!"). Out of air: a heart every 1.4 s until he surfaces.
+- More danger above the water: while Chris is above the waterline the ships fire twice as often and lead their shots.
+- SHARK RATS (5 hp, 350): a scarred grey shark body with a rat's head where the snout should be, ringed with shark teeth. They circle him, twitch, then lunge with their jaws wide; when he's above water the fin cuts along the surface after him. 1-2 per wave.
+- Keels, Star Fox style (ironclads and the Dreadnought): each is its own plate sprite now, tinted green -> amber -> red as it takes damage, cracking at two-thirds, smoking and flashing at a third; blown off, it leaves a ragged smoking hole that leaks bubbles and embers (and the hitbox is gone). Smaller hit circle (11 px x scale). Damage is clamped per keel, and the boss's health is always the keels' total, so it spreads evenly across the three.

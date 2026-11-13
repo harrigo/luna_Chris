@@ -31,7 +31,7 @@ function makeArmadaTextures(scene, toonRat) {
     for (let k = 0; k < 14; k++) { const x = x0 + 8 + r() * (x1 - x0 - 16), y = wl - 15 + r() * 12; p.rect(x, y, x + 2, y + 1, RUST[1]); p.px(x, y, RUST[0]); }   // rust streaks
     for (let k = 0; k < 8; k++) { const x = x0 + 24 + r() * (x1 - x0 - 50); p.line([[x, wl + 2], [x + 1, wl + 7 + r() * 5]], 0x3a8a3a); }   // weed
     // the keels: glowing yellow plates (the weak points)
-    for (const kx of keels) { p.ell(kx, wl + 12, 7, 4, GLOW); p.px(kx - 2, wl + 11, 0xffffff); for (const dx of [-5, 5]) p.px(kx + dx, wl + 9, INK); }
+    for (const kx of keels) { p.ell(kx, wl + 12, 8, 5, [0x3a3a48, 0x1e1e2c, 0x0a0a12]); for (const dx of [-7, 7]) p.px(kx + dx, wl + 12, 0x8a8a9a); }   // (the keel plates are their own sprites: they change colour, crack and blow off)
     // the deck
     p.rect(x0 + 2, wl - 19, x1 - 2, wl - 17, IRON[2]); p.line([[x0 + 2, wl - 20], [x1 - 2, wl - 20]], 0xb8a898);
     for (let x = x0 + 4; x < x1 - 4; x += 5) p.line([[x, wl - 25], [x, wl - 20]], 0x6a5a54); p.line([[x0 + 4, wl - 25], [x1 - 4, wl - 25]], 0x8a7a72);   // the rail
@@ -60,6 +60,14 @@ function makeArmadaTextures(scene, toonRat) {
   hull('ironclad', 140, 82, 58, [70], false);
   hull('dreadnought', 230, 104, 76, [60, 115, 170], true);
   pixSprite(scene, 'keelglow', 24, 16, a => { a.ell(12, 8, 11, 7, 0xd8901a); a.ell(12, 8, 7, 4.5, 0xffd23f); a.ell(12, 8, 3.5, 2.2, 0xfff6c0); }, 0);
+  pixSprite(scene, 'keelplate', 22, 14, a => { a.ell(11, 7, 10, 6, [0xffffff, 0xf0f0f0, 0xb8b8b8]); a.ell(11, 7, 5, 3, 0xffffff); for (const x of [3, 19]) a.px(x, 7, 0x6a6a6a); });   // (tinted: green -> amber -> red as it takes damage)
+  pixSprite(scene, 'keelcrack', 22, 14, a => { a.line([[4, 4], [9, 7], [7, 11]], 0x1a1020); a.line([[9, 7], [15, 5], [18, 9]], 0x1a1020); a.line([[13, 6], [14, 11]], 0x1a1020); a.px(16, 3, 0x1a1020); }, 0);
+  pixSprite(scene, 'keelhole', 28, 20, a => {                             // blown open: a ragged black hole, torn plate curling out, embers at the lip
+    a.poly([[2, 10], [6, 3], [12, 5], [16, 1], [22, 4], [26, 10], [21, 17], [14, 15], [8, 19]], [0x6a4a3a, 0x3a2a20, 0x1a120c]);
+    a.poly([[6, 9], [10, 6], [15, 7], [20, 6], [22, 11], [17, 15], [10, 14]], 0x050304);
+    for (const [x, y] of [[7, 6], [17, 4], [23, 9], [11, 15], [19, 15]]) { a.px(x, y, 0xffa030); a.px(x + 1, y, 0xff5a1a); }
+    a.line([[2, 10], [0, 6]], 0x8a6a5a); a.line([[22, 4], [26, 0]], 0x8a6a5a);
+  });
   // ---- TORPEDO RAT: a rat in diving goggles, strapped to a dented torpedo, propeller whirring (two frames), bubbles
   [0, 1].forEach(f => pixSprite(scene, 'torprat' + (f ? '_b' : ''), 54, 30, a => {
     a.poly([[2, f ? 9 : 13], [8, 15], [2, f ? 21 : 17]], STEEL); a.poly([[8, 15], [3, f ? 13 : 9], [3, f ? 17 : 21]], [0xb8c0cc, 0x6a7280, 0x3a4250]);   // the prop
@@ -75,6 +83,26 @@ function makeArmadaTextures(scene, toonRat) {
     a.line([[28, 10], [31, 12]], FUR[1]); a.line([[34, 10], [36, 12]], FUR[1]);                                                         // paws round it
     a.line([[21, 7], [16, 4], [12, 6]], PINK[1]);                                                                                       // the tail, streaming back
     if (f) { a.px(0, 8, 0xc8f0ff); a.px(1, 23, 0x9fd8ff); }
+  }));
+  // ---- SHARK RAT: a great grey shark body with a RAT'S head where the snout should be - jaws ringed with shark teeth,
+  // pink rat ears, a bloodshot eye, whiskers, a torn dorsal fin, scars. (jaws shut / jaws gaping)
+  [0, 1].forEach(f => pixSprite(scene, 'sharkrat' + (f ? '_b' : ''), 76, 40, a => {
+    const SK = [0x9aa8c0, 0x5a6880, 0x2a3448], BELLY = [0xf0f4fa, 0xc8d0dc, 0x8a96a8];
+    a.poly([[2, 8], [12, 18], [2, 30], [6, 19]], SK);                                                                                   // tail
+    a.poly([[10, 18], [22, 11], [44, 9], [58, 14], [62, 22], [52, 29], [28, 30], [12, 23]], SK);                                       // body
+    a.poly([[16, 23], [30, 27], [50, 26], [58, 22], [52, 29], [28, 31], [14, 26]], BELLY);
+    a.poly([[30, 11], [36, 0], [39, 1], [42, 10]], SK); a.px(36, 2, 0x2a3448); a.px(37, 4, 0x8a96a8);                                  // the dorsal fin, a notch torn out
+    a.poly([[34, 26], [40, 36], [44, 27]], SK);                                                                                         // pectoral fin
+    for (const x of [44, 47, 50]) a.line([[x, 15], [x - 1, 21]], 0x2a3448);                                                             // gills
+    a.line([[20, 16], [26, 20]], 0xd8c8c8); a.line([[24, 14], [22, 19]], 0xd8c8c8);                                                     // scars
+    // the rat head up front
+    a.ell(64, 18, 10, 9, [0xc4c8dc, 0x868ca6, 0x4a4f6a]); a.ell(59, 9, 3, 3.6, [0xffb0c0, 0xe07a90, 0xa04a60]); a.ell(66, 8, 2.6, 3.2, [0xffb0c0, 0xe07a90, 0xa04a60]);
+    a.ell(66, 14, 3.4, 3.2, 0x1a1020); a.ell(66, 14, 2.6, 2.4, 0xffffff); a.px(67, 14, 0x1a1020); a.px(67, 15, 0x1a1020); a.px(64, 13, 0xe0301a); a.px(68, 16, 0xe0301a);
+    a.line([[60, 11], [69, 12]], 0x1a1020, 2);                                                                                          // a furious brow
+    for (const dy of [-1, 1]) a.line([[72, 17 + dy], [76, 15 + dy * 3]], 0xe8ecf8);
+    if (f) { a.poly([[60, 20], [75, 17], [76, 30], [60, 27]], [0x8a1a1a, 0x5a0a0a, 0x2a0404]);
+      for (const x of [62, 66, 70, 74]) { a.poly([[x - 1.5, 18], [x + 1.5, 18], [x, 22]], 0xfffbe8); a.poly([[x - 1.5, 29], [x + 1.5, 29], [x, 25]], 0xfffbe8); } }
+    else { a.rect(60, 21, 74, 24, 0x5a0a0a); for (const x of [61, 64, 67, 70, 73]) { a.poly([[x - 1, 21], [x + 1, 21], [x, 24]], 0xfffbe8); } a.ell(74, 19, 1.8, 1.4, [0xffb0c0, 0xe07a90, 0xa04a60]); }
   }));
   // ---- NIBBLER: a little bug-eyed puffer with buck teeth, bright as a sweet (two frames: tail wag, gob open)
   [['nibbler', 0, [0xffc85a, 0xff8a2a, 0xb8481a]], ['nibbler_b', 1, [0xffc85a, 0xff8a2a, 0xb8481a]], ['nibbler_c', 0, [0x8ae8ff, 0x3aa8e8, 0x1a5aa8]], ['nibbler_d', 1, [0x8ae8ff, 0x3aa8e8, 0x1a5aa8]]].forEach(([key, f, C]) => pixSprite(scene, key, 26, 20, a => {
@@ -128,9 +156,11 @@ const ArmadaMixin = {
       e.keels = keelX.map(x => ({ dx: (x - w / 2), dh: -(12 + 2) , hp: big ? e.maxHp / 3 : e.maxHp, flash: 0, dead: false }));
       e.spr.setOrigin(0.5, wl / (big ? 104 : 82)).setDepth(4.9);
       e.ov = e.ov || {};
-      e.keels.forEach((K, i) => { const g = this.add.image(0, 0, 'keelglow').setDepth(5.0).setBlendMode(Phaser.BlendModes.ADD); e.ov['keel' + i] = g; K.spr = g; });
+      e.keels.forEach((K, i) => { K.max = K.hp; const g = this.add.image(0, 0, 'keelglow').setDepth(5.0).setBlendMode(Phaser.BlendModes.ADD), pl = this.add.image(0, 0, 'keelplate').setDepth(5.02), cr = this.add.image(0, 0, 'keelcrack').setDepth(5.03).setVisible(false); e.ov['keel' + i] = g; e.ov['kplate' + i] = pl; e.ov['kcrack' + i] = cr; g.bsx = g.bsy = pl.bsx = pl.bsy = cr.bsx = cr.bsy = (e.spr.bsx || 1) * 1.1; K.spr = g; K.plate = pl; K.crack = cr; K.smoke = 0; });
     } else if (kind === 'torprat') {
       e.h = rnd(40, WL - 40); e.tp = { st: 'cruise', t: rnd(1.2, 2.2), off: rnd(-1, 1) * 140, vt: 0, vh: 0 };
+    } else if (kind === 'sharkrat') {
+      e.h = rnd(50, WL - 50); e.shark = { st: 'circle', t: rnd(1.5, 2.5), ang: rnd(0, 6), sd: Math.random() < 0.5 ? -1 : 1 };
     } else if (kind === 'nibbler') {                   // schools: each one turns up near the last one spawned
       const A = this.az, L = A.lastFish && this.t - A.lastFish.t < 0.6 ? A.lastFish : null;
       if (L) e.theta = wrap(L.theta + rnd(-30, 30) / R);
@@ -154,14 +184,29 @@ const ArmadaMixin = {
       const fl = S.dir < 0 ? -1 : 1;
       if ((S.smoke -= dt) <= 0) { S.smoke = 0.12; const im = this.add.image(0, 0, 'puff').setDepth(4.8).setTint(Math.random() < 0.5 ? 0x3a3a48 : 0x6a6a7a).setAlpha(0.6); im.bsx = im.bsy = rnd(0.25, 0.4); this.parts.push({ theta: wrap(e.theta + fl * ((S.big ? 1 : -1) * (S.big ? 8 : 6)) * k / R), h: e.h + (S.big ? 62 : 52) * k, vt: -S.dir * 30, vh: rnd(30, 55), life: rnd(1, 1.6), noGrav: true, grow: 1.8, spr: im }); }
       // keels: follow the hull, pulse
-      for (const K of e.keels) { K.flash = Math.max(0, K.flash - dt); K.theta = wrap(e.theta + fl * K.dx * k / R); K.h = e.h + K.dh * k; if (K.spr) { K.spr.setVisible(!K.dead); this.place(K.spr, K.theta, K.h, 0); K.spr.setAlpha(K.flash > 0 ? 1 : 0.55 + 0.35 * Math.sin(this.t * 6)).setScale(K.spr.scaleX * (K.flash > 0 ? 1.4 : 1)); } }
+      for (const K of e.keels) {                         // keels: follow the hull. Star Fox style: green -> amber -> red, cracks, smoke; blown off = a smoking hole
+        K.flash = Math.max(0, K.flash - dt); K.theta = wrap(e.theta + fl * K.dx * k / R); K.h = e.h + K.dh * k;
+        const f = Math.max(0, K.hp / K.max), col = f > 0.66 ? 0x7dff6a : (f > 0.33 ? 0xffb03a : 0xff3a2a), crit = f <= 0.33 && !K.dead;
+        if (!K.spr) continue;
+        this.place(K.spr, K.theta, K.h, 0); this.place(K.plate, K.theta, K.h, 0); this.place(K.crack, K.theta, K.h, 0);
+        if (K.dead) {
+          K.spr.setVisible(false); K.crack.setVisible(false); K.plate.setTexture('keelhole').clearTint().setVisible(true);
+          if ((K.smoke -= dt) <= 0) { K.smoke = 0.09; this.burst(K.theta, K.h - 4, 'bubl', 1, 0.6); if (Math.random() < 0.4) this.burst(K.theta, K.h, 'spark', 1, 0.4); }   // leaking: bubbles pour out, embers
+          continue;
+        }
+        K.plate.setVisible(true); K.spr.setVisible(true);
+        if (K.flash > 0) K.plate.setTintFill(0xffffff); else K.plate.setTint(crit && Math.floor(this.t * 10) % 2 ? 0xffffff : col);
+        K.spr.setTint(col).setAlpha(K.flash > 0 ? 1 : 0.45 + 0.35 * Math.sin(this.t * (crit ? 16 : 6))).setScale(K.spr.scaleX * (K.flash > 0 ? 1.5 : 1.2));
+        K.crack.setVisible(f <= 0.66).setAlpha(f <= 0.33 ? 1 : 0.6);
+        if (f <= 0.66 && (K.smoke -= dt) <= 0) { K.smoke = crit ? 0.07 : 0.22; this.burst(K.theta, K.h, crit ? 'spark' : 'bubl', 1, 0.5); }
+      }
       if (this.state !== 'play') return;
       // the deck guns: an arcing cannonball at him (a broadside of three from the Dreadnought)
       if ((S.fireCd -= dt) <= 0 && dist < 520) {
-        S.fireCd = S.big ? rnd(2.4, 3.2) : rnd(2.6, 3.6);
+        S.fireCd = (S.big ? rnd(2.4, 3.2) : rnd(2.6, 3.6)) * (P.h > WL ? 0.5 : 1);   // (above the water the guns are on him: twice as often)
         const n = S.big ? 3 : 1;
         for (let i = 0; i < n; i++) {
-          const gx = wrap(e.theta + fl * (S.big ? (i - 1) * 50 : 52) * k / R), gh = e.h + 34 * k, tx = angDiff(P.theta, gx) * R + (i - (n - 1) / 2) * 60, T = 1.25 + i * 0.12, g = 430;
+          const gx = wrap(e.theta + fl * (S.big ? (i - 1) * 50 : 52) * k / R), gh = e.h + 34 * k, tx = angDiff(P.theta, gx) * R + (P.h > WL ? P.vx * 1.1 : 0) + (i - (n - 1) / 2) * 60, T = 1.25 + i * 0.12, g = 430;
           const tgtH = Math.max(WL + 4, P.h + 20), vh = ((tgtH - gh) + 0.5 * g * T * T) / T;
           const b = this.addEBullet('cannonball', gx, gh, tx / T, vh, 9, 6); b.grav = g; b.cball = true; b.shootable = true; b.spr.bsx = b.spr.bsy = 1.4;
           this.muzzleFlash(gx, gh); this.burst(gx, gh, 'spark', 4, 0.6);
@@ -194,6 +239,28 @@ const ArmadaMixin = {
       e.spr.rotation = Math.sin(F.ph * 6) * 0.12;
       return;
     }
+    if (e.shark) {                                       // SHARK RAT: circles him, a twitch, then a lunge, jaws wide. Above water: the fin cuts along the surface after him.
+      const Sh = e.shark, prev = e.theta, prevH = e.h;
+      Sh.t -= dt; Sh.ang += dt * 1.3 * Sh.sd;
+      if (Sh.st === 'circle') {
+        const tth = wrap(P.theta + Math.cos(Sh.ang) * 150 / R), th = under ? Math.max(24, Math.min(WL - 24, P.h + 26 + Math.sin(Sh.ang) * 70)) : WL - 12;
+        e.theta = wrap(e.theta + Math.max(-1, Math.min(1, angDiff(tth, e.theta) * R / 60)) * 150 / R * dt); e.h += Math.max(-1, Math.min(1, (th - e.h) / 30)) * 110 * dt;
+        const d = dist2(e.theta, e.h, P.theta, P.h + 26);
+        if (Sh.t <= 0 && (under || P.h < WL + 20) && d < 260 * 260) { Sh.st = 'tell'; Sh.t = 0.45; Sound.sfx('charge'); }
+      } else if (Sh.st === 'tell') {
+        e.theta = wrap(e.theta + Math.sin(this.t * 70) * 0.7 / R);
+        if (Sh.t <= 0) { Sh.st = 'lunge'; Sh.t = 0.5; const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 26 - e.h, L = Math.hypot(ex, ey) || 1; Sh.vt = ex / L * 400; Sh.vh = ey / L * 400; Sound.sfx('whoosh'); }
+      } else {
+        e.theta = wrap(e.theta + Sh.vt / R * dt); e.h = Math.max(14, Math.min(WL - 6, e.h + Sh.vh * dt));
+        if (Math.random() < dt * 30) this.burst(e.theta, e.h, 'bubl', 1, 0.5);
+        if (Sh.t <= 0) { Sh.st = 'circle'; Sh.t = rnd(2.4, 3.4); }
+      }
+      const mv = angDiff(e.theta, prev) * R; if (Math.abs(mv) > 0.2) e.spr.setFlipX(mv < 0);
+      e.spr.setTexture(Sh.st === 'lunge' || (Sh.st === 'tell' && Math.floor(this.t * 12) % 2) ? 'sharkrat_b' : 'sharkrat');
+      e.spr.rotation = (mv < 0 ? -1 : 1) * Math.atan2(e.h - prevH, Math.abs(mv) + 0.01) * 0.5;
+      if (e.h > WL - 18 && Math.random() < dt * 10) this.waterSplash(e.theta, 1);              // the fin slicing the surface
+      return;
+    }
     if (e.tp) {                                          // TORPEDO RAT
       const T = e.tp, prev = { th: e.theta, h: e.h };
       T.t -= dt;
@@ -221,13 +288,15 @@ const ArmadaMixin = {
       if (!e.ship || e.hp <= 0) continue;
       for (const K of e.keels) {
         if (K.dead || K.theta === undefined) continue;
-        if (dist2(theta, h, K.theta, K.h) > (16 + rad) * (16 + rad)) continue;
-        K.hp -= dmg; K.flash = 0.08; e.hp -= dmg; e.flash = 0.06; Sound.sfx('tink'); this.burst(theta, h, 'spark', 4, 0.6);
+        const kr = 11 * (e.spr.bsx || 1);                 // (v2.66: a smaller target)
+        if (dist2(theta, h, K.theta, K.h) > (kr + rad) * (kr + rad)) continue;
+        const d = Math.min(dmg, K.hp); K.hp -= d; K.flash = 0.08; e.flash = 0.06; Sound.sfx('tink'); this.burst(theta, h, 'spark', 4, 0.6);
+        e.hp = e.keels.reduce((sum, q) => sum + Math.max(0, q.hp), 0);
         if (K.hp <= 0) {                                  // a keel blown open: flooding, a list, a burst of bubbles
-          K.dead = true; this.bang(K.theta, K.h, 26); this.burst(K.theta, K.h, 'bubl', 22, 1.6); Sound.sfx('crash'); this.cameras.main.shake(160, 0.008);
+          K.dead = true; K.hp = 0; this.bang(K.theta, K.h, 34); this.burst(K.theta, K.h, 'bubl', 28, 1.8); this.burst(K.theta, K.h, 'spark', 14, 1.4); this.addLight(K.theta, K.h, 110, 0xffa030, 1, 0.4); Sound.sfx('crash'); Sound.sfx('boom'); this.cameras.main.shake(200, 0.01); this.hitStop = Math.max(this.hitStop || 0, 0.08);
           if (e.ship.big && e.keels.some(q => !q.dead)) this.banner('A KEEL IS BREACHED! ' + e.keels.filter(q => !q.dead).length + ' TO GO');
         }
-        if (e.keels.every(q => q.dead)) e.hp = 0;
+        e.hp = e.keels.reduce((sum, q) => sum + Math.max(0, q.hp), 0); if (e.keels.every(q => q.dead)) e.hp = 0;
         return true;
       }
       const k = e.spr.bsx || 1, half = (e.ship.big ? 104 : 62) * k;          // the hull: shots spark off the iron
@@ -267,7 +336,12 @@ const ArmadaMixin = {
       this.waterSplash(P.theta, 10); Sound.sfx('splat');
       if (P.swim) { P.vh *= 0.35; } else if (P.vh > 120 && inp.jump) { P.vh = Math.max(P.vh, 440); P.jetArmed = true; P.holdT = 99; this.banner('BREACH!'); }   // out of the water with a kick
     }
-    if (!P.swim) return;
+    // AIR: 15 s under water; 2.5 s above it fills him back up. Out of air: a heart every 1.4 s until he surfaces.
+    if (P.air === undefined) P.air = 1;
+    if (!P.swim) { P.air = Math.min(1, P.air + dt / 2.5); P.drownT = 0; return; }
+    P.air = Math.max(0, P.air - dt / 15);
+    if (P.air < 0.34 && (P.airBeep = (P.airBeep || 0) - dt) <= 0) { P.airBeep = P.air > 0 ? 0.6 : 0.3; Sound.sfx('blip'); if (!this.airTip) { this.airTip = true; this.banner('AIR! GET TO THE SURFACE!'); } }
+    if (P.air <= 0 && this.state === 'play') { P.drownT = (P.drownT || 0) - dt; if (P.drownT <= 0) { P.drownT = 1.4; P.invuln = 0; this.hurt(); this.burst(P.theta, P.h + 50, 'bubl', 14, 1.2); } }
     P.thrusting = false; if (this.jetOn) { this.jetOn = false; Sound.jet(false); }
     P.fuel = Math.min(1, P.fuel + CFG.jetRegen * 0.6 * dt);
     if (inp.jump && !P.swimJ) { P.vh = Math.max(P.vh, 0) + 230; Sound.sfx('bubble'); this.burst(P.theta, P.h + 10, 'bubl', 5, 0.7); }   // a stroke
@@ -291,6 +365,15 @@ const ArmadaMixin = {
   // the ocean: a translucent ring from the seabed to the waterline, light shafts, a wash in front, a foamy wave crest
   armadaDraw() {
     const A = this.az; if (!A) return;
+    { const P = this.pl, g2 = A.air || (A.air = this.add.graphics().setDepth(9.2)); g2.clear();
+      if (P.air !== undefined && P.air < 0.999 && this.state === 'play') {
+        const q = this.screenPos(P.theta, P.h + 98), n = 5, z2 = this.zoom, low = P.air < 0.34, sh = low ? Math.sin(this.t * 40) * 2 : 0;
+        for (let i = 0; i < n; i++) { const x = q.x + (i - (n - 1) / 2) * 14 * z2 + sh, fill = Math.max(0, Math.min(1, P.air * n - i));
+          g2.lineStyle(2 * z2, 0x0a1a3a, 0.9).strokeCircle(x, q.y, 5.5 * z2);
+          if (fill > 0) { g2.fillStyle(low ? 0xff5a4a : 0x9fe8ff, 0.95).fillCircle(x, q.y, 5 * z2 * fill); g2.fillStyle(0xffffff, 0.9).fillCircle(x - 1.5 * z2, q.y - 1.5 * z2, 1.4 * z2 * fill); }
+          g2.lineStyle(1.5 * z2, low ? 0xff8a7a : 0xd8f8ff, 1).strokeCircle(x, q.y, 5 * z2); }
+      }
+    }
     const z = this.zoom, t = this.t, vt = this.viewT ? this.viewT() : this.pl.theta, span = Math.PI, N = 120;   // (the whole ring: the core's small, the edges of a partial band showed)
     const band = (h0, h1) => { const out = [], inn = []; for (let k = 0; k <= N; k++) { const th = vt - span + 2 * span * k / N; out.push(this.screenPos(th, h1 + Math.sin(th * 18 + t * 2.2) * 2)); inn.push(this.screenPos(th, h0)); } return out.concat(inn.reverse()); };
     const g = A.back; g.clear();
