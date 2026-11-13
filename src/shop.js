@@ -306,7 +306,7 @@ class ShopScene extends Phaser.Scene {
     const S = this.spin; if (!S || S.pick || S.pull || (!S.done && !S.idle)) return;
     this.spinA = (S.done ? S.a1 : S.a0) % (Math.PI * 2); this.spin = null; this.spinG.clear(); this.moodG.clear();
     this.spinT.forEach(t => t.setVisible(false)); (this.spinB || []).forEach(t => t.setVisible(false)); (this.spinI || []).forEach(t => t.setVisible(false));
-    this.rig.head.setTexture('c_head'); this.rig.root.setDepth(3); Object.assign(this.rigP, { h: 0, vh: 0, duck: false, aimA: 0, facing: 1 });
+    this.rig.setFace(null); this.rig.root.setDepth(3); Object.assign(this.rigP, { h: 0, vh: 0, duck: false, aimA: 0, facing: 1 });
     this.build();
   }
   spinGeom() {
@@ -465,7 +465,7 @@ class ShopScene extends Phaser.Scene {
       mg.fillStyle(0x0a0b10, 1).fillCircle(sx, sy + 1, 3.6); mg.fillStyle(0x9fd8ff, 1).fillCircle(sx, sy, 3); mg.fillTriangle(sx - 2.6, sy - 1, sx + 2.6, sy - 1, sx, sy - 7);
       if (!S.idle && !S.done) for (let k = 0; k < 2; k++) { const a = t * 6 + k * Math.PI; mg.lineStyle(2, 0xffffff, 0.6).lineBetween(x - 22 + k * 44, y - 80, x - 26 + k * 52 + Math.sin(a) * 3, y - 86); }   // shake lines
     }
-    this.rig.head.setTexture(mood === 'joy' ? 'c_head_joy' : (mood === 'sad' || mood === 'meh') ? 'c_head_sad' : 'c_head_hope');
+    this.rig.setFace(mood === 'joy' ? 'c_head_joy' : (mood === 'sad' || mood === 'meh') ? 'c_head_sad' : 'c_head_hope');
   }
   move(d) { const n = (this.rows || []).length; if (n) { this.sel = ((this.sel + d) % n + n) % n; Sound.sfx('jump'); } }
   say(m) { this.msg = m; this.msgT = 0; if (this.msgText) this.msgText.setText(m); }

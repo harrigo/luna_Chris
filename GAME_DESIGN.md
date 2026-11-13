@@ -1580,3 +1580,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.58 — Rocket rat redrawn
 - The L4 rocket rat is redrawn in the cartoon style (toons.js), four frames at 11 fps: the bug-eyed space-rat in a scorched flying cap and brass goggles, straddling a dented red missile with a shark snarl painted on its steel nose, an oven mitt clutching a fizzing pepperoni bomb. The flame gutters and forks, the rocket rattles, his legs pedal, tail cracks, eyes roll down at you, he blinks and sweats, his ear smokes. Eye-pop on hit.
+
+## v2.59 — Chris, the grotesque pass
+- THE FACE ACTS: six heads (c_head angry / _blink / _fire gritted with bulging bloodshot eyes and a temple vein / _hurt eyes out, screaming / _grin smug with a gold tooth after a kill / _puff cheeks blown out on the jetpack). The rig picks one every frame (rig.ouch(heavy), rig.grin(), rig.setFace(key) for forced faces: the shop wheel, the bare game-over head). Stubble, a sweaty sheen, a crooked yellow tooth, a bag under the big eye, a scratched and dinged helmet that sits a touch crooked.
+- The moustache is its own part (c_tache): it twitches now and then and bristles (bigger, shaking) when he fires or is hit.
+- Hands: a hairy wrist and a big cartoon glove (c_arm), white-knuckled fingers wrapped round the gun's grip (c_grip), and the free hand splays open (c_hand_open) when he falls, is hit or is grabbed.
+- Smears and impact: the gun arm stretches along the recoil; a hit squashes him for a beat, the helmet rattles, three stars circle his head, and on a HEAVY hit his eyes shoot out on stalks (c_eyepop) and snap back.
+- Wonkier, worn: stubby bowed legs with a hand-stitched patch, bigger scuffed clompy boots (28x15), scorched and dented jetpack tanks, popped stitches and a gravy stain over the belly (c_wear overlay; the hand-drawn c_body is untouched).
+- The toque is bigger and floppier (42x36, slumped over backwards, greasy, darned) and flops on its own spring: lags when he runs, whips forward when he stops, bobs on landing, sits crooked.

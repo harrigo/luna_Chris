@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.58';
+const BUILD = 'v2.59';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1244,7 +1244,7 @@ class Level1 extends Phaser.Scene {
     at(1150, () => { rig.crack.setScale(1.15); Sound.sfx('clang'); });
     // 2. shatter
     at(1600, () => {
-      rig.crack.setVisible(false); rig.head.setTexture('c_head_bare');
+      rig.crack.setVisible(false); rig.setFace('c_head_bare');
       this.burst(P.theta, P.h + 50, 'shard', 16, 1.1); this.bang(P.theta, P.h + 50, 24);
       Sound.sfx('crash'); buzz([60, 40, 120]); cam.flash(160, 255, 255, 255); cam.shake(250, 0.008);
     });
@@ -1334,6 +1334,7 @@ class Level1 extends Phaser.Scene {
       if (P.buff.charges <= 0) this.endBuff();
       return;
     }
+    this.rig.ouch(heavy);                                    // (v2.59) eyes pop, stars, a squashed impact frame
     { const ar = Shop.hit(this.registry);                    // BLACK RIND armour: its plates go before the cheese does
       if (ar !== 'none') {
         P.invuln = CFG.invuln; Sound.sfx('clang'); buzz(40); this.cameras.main.shake(120, 0.006);
@@ -4154,6 +4155,7 @@ class Level1 extends Phaser.Scene {
       }
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
+      this.rig.grin();                                   // (v2.59) a smug grin
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long

@@ -38,14 +38,15 @@ function makeChrisTextures(scene) {
 
   // space boots: chunky white moon-boots that read as FEET: a red ankle cuff the trouser leg tucks into, a rounded
   // heel at the back, a long rounded toe out front, and a thick dark tread sole flat on the floor (the bottom row)
-  pixSprite(scene, 'c_boot', 24, 13, a => {
+  pixSprite(scene, 'c_boot', 28, 15, a => {                                          // (v2.59: bigger and clompier, scuffed and dented)
     const WB = [0xffffff, 0xd6e2f4, 0x8a9cc0];
-    a.rrect(4, 0, 14, 5, 2, RED); a.rect(5, 1, 13, 1, 0xff9a9a);                           // ankle cuff (set back over the heel)
-    a.poly([[3, 4], [14, 4], [17, 6], [22, 7], [23, 10], [1, 10], [1, 7]], WB);              // the foot: short heel behind, long toe out front
-    a.ell(19, 7.5, 4.5, 3, WB); a.rect(18, 5, 20, 5, 0xffffff);                             // bulbous toe cap + shine
-    a.line([[14, 5], [15, 9]], 0xa8b8d8);                                                   // a crease where the toe bends
-    a.rect(0, 10, 23, 12, 0x3a3048); for (let x = 2; x < 23; x += 3) a.px(x, 12, 0x6a6080);  // thick tread sole, flat on the floor
-    a.rect(0, 10, 23, 10, 0x5a5070);
+    a.rrect(5, 0, 16, 6, 2, RED); a.rect(6, 1, 15, 1, 0xff9a9a); a.px(9, 4, 0x8a1414); a.px(12, 3, 0x8a1414);   // ankle cuff, frayed
+    a.poly([[3, 5], [16, 5], [20, 7], [26, 8], [27, 12], [1, 12], [1, 8]], WB);               // the foot: short heel behind, long toe out front
+    a.ell(22, 9, 5.5, 3.8, WB); a.rect(21, 6, 23, 6, 0xffffff);                              // a great bulbous toe cap + shine
+    a.line([[16, 6], [17, 11]], 0xa8b8d8); a.line([[13, 7], [14, 11]], 0xa8b8d8);            // creases where the toe bends
+    a.px(8, 9, 0x8a9cc0); a.px(9, 10, 0x8a9cc0); a.px(10, 9, 0x8a9cc0); a.px(24, 10, 0x8a9cc0); a.px(5, 8, 0xb8a890); a.px(6, 9, 0xb8a890);   // scuffs and a smear of cheese
+    a.rect(0, 12, 27, 14, 0x3a3048); for (let x = 2; x < 27; x += 3) a.px(x, 14, 0x6a6080);   // thick tread sole, flat on the floor
+    a.rect(0, 12, 27, 12, 0x5a5070);
   });
   pixSprite(scene, 'c_welly', 24, 19, a => {                                         // green wellies (at home on the farm): a tall rubber shaft up the shin
     const G = [0x6ad05a, 0x2f8f2f, 0x1a5a1e];
@@ -61,10 +62,13 @@ function makeChrisTextures(scene) {
     a.rect(16, 6, 19, 10, 0xc04a3a); a.rect(4, 7, 6, 10, 0xc04a3a);                     // red toe and heel
   });
   const PANTS = [0x9ab4ff, 0x5a78d8, 0x2e3e8a];                                      // blue suit trousers
-  pixSprite(scene, 'c_leg', 16, 18, a => {                                           // a sturdy trouser leg, a little narrower at the ankle (it tucks into the boot cuff)
-    a.poly([[1, 0], [14, 0], [13, 17], [3, 17]], PANTS);
-    a.rect(2, 9, 13, 9, 0xd62828); a.rect(2, 10, 13, 10, 0xc4d4ff);                     // red + white knee trim
-    a.line([[4, 2], [4, 7]], 0xc4d4ff);                                                 // shine down the front
+  pixSprite(scene, 'c_leg', 16, 18, a => {                                           // (v2.59) a stubby BOWED trouser leg: fat thigh, knee out, a sewn-on patch
+    a.poly([[2, 0], [14, 0], [15, 7], [13, 17], [4, 17], [1, 8]], PANTS);
+    a.rect(3, 9, 14, 9, 0xd62828); a.rect(3, 10, 13, 10, 0xc4d4ff);                     // red + white knee trim
+    a.line([[5, 2], [4, 7]], 0xc4d4ff);                                                 // shine down the front
+    a.rect(7, 12, 11, 15, 0xd8b070); a.rect(8, 13, 10, 14, 0xc09850);                   // a tan patch on the shin...
+    for (const [x, y] of [[6, 12], [8, 11], [11, 11], [12, 13], [12, 15], [10, 16], [7, 16], [6, 14]]) a.px(x, y, 0x1a1020);   // ...stitched on by hand
+    a.px(3, 4, 0x2e3e8a); a.px(12, 5, 0x2e3e8a);                                        // creases
   });
   // Chris's body: hand-pixelled (44x42, facing right, outline included). Edit the rows: each letter is a colour in the palette.
   pixArt(scene, 'c_body', {a: 0x1a1020, b: 0xffffff, c: 0xd6e2f4, d: 0xd52828, e: 0x8aa8fe, f: 0x4a69d7, g: 0x2a398f, h: 0x92a8cc, i: 0xf2b592, j: 0xf0ddd6, k: 0xfed9c4, l: 0xf2b593, m: 0xc8805e, n: 0x50211b, o: 0x37191c}, [
@@ -157,19 +161,68 @@ function makeChrisTextures(scene) {
     a.line([[48, 13], [22, 29], [14, 44]], 0xd62828, 2);                                                // red hem
     word(a, 'KISS', 22, 12, 0xd62828);                                                                  // a ghost of the lettering
   });
-  // head: glass helmet bubble round a furious face: one squint, one bulging eye, red nose, big moustache, gritted teeth
-  const headArt = (a, glass) => {
-    if (glass) a.ell(15, 15, 14, 14, [0xe8f8ff, 0xb8e0ff, 0x7ab0e0]);                   // helmet glass
-    a.ell(15, 16, 11, 11.5, SKIN);                                                       // face
-    a.line([[6, 8], [13, 11]], HAIR, 2); a.line([[24, 7], [17, 11]], HAIR, 2);           // angry brows
-    a.rect(7, 12, 12, 12, 0x1a1020); a.px(8, 13, 0x1a1020);                              // squinting eye
-    a.ell(20.5, 13, 3.2, 3.4, 0xffffff); a.rect(21, 12, 22, 14, 0x1a1020);                // bulging eye
-    a.ell(16, 17.5, 3.4, 3, [0xff9a9a, 0xe03a3a, 0xa01818]); a.px(15, 16, 0xffffff);     // big red nose
-    a.poly([[5, 22], [9, 19], [15, 20.5], [21, 19], [26, 21], [28, 18], [27, 23], [21, 23], [15, 22.5], [9, 23], [3, 24], [2, 20]], HAIR);   // handlebar moustache
-    a.rect(10, 24, 20, 26, 0xffffff); a.rect(10, 25, 20, 25, 0x8a7a7a); a.px(13, 24, 0x8a7a7a); a.px(17, 24, 0x8a7a7a); a.px(13, 26, 0x8a7a7a); a.px(17, 26, 0x8a7a7a);   // gritted teeth
-    if (glass) { a.px(5, 6, 0xffffff); a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(4, 8, 0xffffff); }   // glass glint
+  // (v2.59) THE FACE ACTS. One head, six faces (the moustache is its own part now, so it can bristle and twitch):
+  //   c_head angry (idle) / _blink / _fire gritted, eyes bulging, a vein up / _hurt eyes out on stalks, screaming /
+  //   _grin smug, a gold tooth / _puff cheeks blown out (jetpack). Stubble, a sweaty sheen, one crooked tooth, a scratched helmet.
+  const INK = 0x1a1020, GLASS = [0xe8f8ff, 0xb8e0ff, 0x7ab0e0], NOSE = [0xff9a9a, 0xe03a3a, 0xa01818], BLUSH = [0xffb8a8, 0xf09480, 0xc06a58];
+  const bulge = (a, x, y, r, px, py, shot) => {                                           // a bulging eyeball: pin-prick pupil, bloodshot if he's riled
+    a.ell(x, y, r + 0.9, r * 1.06 + 0.9, INK);                                              // (inked round, so it pops off the skin)
+    a.ell(x, y, r, r * 1.06, [0xffffff, 0xfff4ea, 0xd8c8c0]);
+    if (shot) { a.px(Math.round(x - r + 0.6), Math.round(y - 1), 0xe0302a); a.px(Math.round(x + r - 1.4), Math.round(y + 1), 0xe0302a); a.px(Math.round(x), Math.round(y + r - 1), 0xe0302a); if (r > 3.6) a.px(Math.round(x - 1), Math.round(y - r + 0.6), 0xe0302a); }
+    a.rect(Math.round(x + px), Math.round(y + py - 1), Math.round(x + px) + (r > 3 ? 1 : 0), Math.round(y + py), INK);
+    a.px(Math.round(x - r * 0.4), Math.round(y - r * 0.5), 0xffffff);
   };
-  pixSprite(scene, 'c_head', 30, 30, a => headArt(a, true));
+  const faceArt = (a, glass, f) => {
+    if (glass) a.ell(15, 15, 14, 14, GLASS);
+    a.ell(15, 16, f === 'puff' ? 12.2 : 11, 11.5, SKIN);
+    a.px(11, 7, 0xfff4ea); a.px(12, 7, 0xfff4ea); a.px(13, 8, 0xfff4ea);                                                     // a sweaty sheen on the brow
+    for (const [x, y] of [[6, 20], [7, 22], [8, 24], [7, 25], [10, 26], [12, 27], [14, 26], [17, 27], [19, 26], [21, 27], [22, 25], [24, 23], [23, 21], [9, 22], [21, 24]]) a.px(x, y, (x + y) % 2 ? 0xb8846a : 0xa07258);   // stubble
+    a.line([[18, 17], [23, 17]], SKIN[2]);                                                                                     // a bag under the big eye
+    if (f === 'puff') { a.ell(7.5, 20, 4, 3.6, BLUSH); a.ell(23, 20.5, 3.6, 3.4, BLUSH); a.px(6, 18, 0xffe0d8); a.px(22, 19, 0xffe0d8); }
+    // brows + eyes
+    if (f === 'hurt') {
+      a.line([[5, 6], [12, 4]], HAIR, 2); a.line([[18, 3], [25, 5]], HAIR, 2);
+      bulge(a, 9.5, 11.5, 4.2, -1, 1, true); bulge(a, 20.5, 11.5, 4.8, 2, -1, true);
+    } else if (f === 'fire') {
+      a.line([[5, 8], [13, 12]], HAIR, 2); a.line([[25, 7], [17, 12]], HAIR, 2);
+      bulge(a, 9.5, 13.5, 2.8, 1, 0, true); bulge(a, 20.5, 13.5, 3.8, 1, 0, true);
+      a.px(5, 14, 0xd0302a); a.px(6, 13, 0xd0302a); a.px(5, 12, 0xd0302a); a.px(6, 11, 0xd0302a); a.px(7, 10, 0xd0302a);         // the vein on his temple
+    } else if (f === 'grin') {
+      a.line([[6, 10], [13, 10]], HAIR, 2); a.line([[18, 6], [25, 8]], HAIR, 2);                                               // one brow cocked
+      a.rect(7, 13, 12, 13, INK); a.px(11, 14, INK);
+      bulge(a, 20.5, 13.5, 3.2, 1, 1, false); a.rect(17, 10, 24, 12, SKIN[1]); a.line([[17, 12], [24, 12]], INK);               // a heavy, smug lid
+    } else if (f === 'puff') {
+      a.line([[6, 9], [12, 9]], HAIR, 2); a.line([[18, 8], [24, 9]], HAIR, 2);
+      a.line([[7, 13], [9.5, 11.5], [12, 13]], INK, 1); a.line([[18, 13], [20.5, 11.5], [23, 13]], INK, 1);                     // eyes screwed shut with the effort
+    } else {
+      a.line([[6, 8], [13, 11]], HAIR, 2); a.line([[24, 7], [17, 11]], HAIR, 2);                                               // angry brows
+      a.rect(7, 12, 12, 12, INK); a.px(8, 13, INK); a.px(6, 11, SKIN[2]);                                                       // the squint (and a crow's foot)
+      if (f === 'blink') { a.rect(18, 13, 23, 13, INK); a.px(19, 14, INK); }
+      else bulge(a, 20.5, 13, 3.3, 1, 0, false);
+    }
+    a.ell(16, 17.5, 3.4, 3, NOSE); a.px(15, 16, 0xffffff); a.px(18, 19, 0x7a1010);                                             // big red nose, a pore
+    // mouths (the moustache sits over the top lip)
+    if (f === 'hurt') { a.ell(15, 25.5, 5.2, 3.6, [0x8a1a2a, 0x5a0a14, 0x3a0510]); a.rect(11, 23, 19, 23, 0xffffff); a.px(13, 24, 0xf0e090); a.ell(15, 27.2, 2.6, 1.3, 0xff7a8a); }
+    else if (f === 'fire') { a.rect(8, 23, 22, 27, 0xffffff); for (const x of [10, 13, 16, 19]) a.rect(x, 23, x, 27, 0x8a7a7a); a.rect(8, 25, 22, 25, 0x8a7a7a); a.rect(8, 22, 22, 22, 0x7a3a2a); a.rect(8, 28, 22, 28, 0x7a3a2a); a.px(17, 28, 0xf0e090); a.px(24, 22, 0x9ae8ff); a.px(25, 23, 0x5ac8f0); }
+    else if (f === 'grin') { a.rect(9, 24, 21, 25, 0xffffff); a.px(8, 23, 0xffffff); a.px(22, 23, 0xffffff); a.px(22, 22, 0x7a3a2a); a.px(8, 22, 0x7a3a2a); for (const x of [11, 14, 20]) a.px(x, 25, 0x8a7a7a); a.rect(17, 24, 18, 25, 0xffd23f); a.px(17, 24, 0xfff6c0); a.line([[9, 26], [15, 27], [21, 26]], 0x7a3a2a); }
+    else if (f === 'puff') { a.ell(15, 25, 2.4, 2.1, 0x5a0a14); a.px(14, 24, 0x8a1a2a); a.px(19, 25, 0xc8f0ff); a.px(21, 24, 0xe8f8ff); }
+    else { a.rect(10, 24, 20, 26, 0xffffff); a.rect(10, 25, 20, 25, 0x8a7a7a); a.px(13, 24, 0x8a7a7a); a.px(17, 24, 0x8a7a7a); a.px(13, 26, 0x8a7a7a); a.px(17, 26, 0x8a7a7a); a.rect(18, 26, 18, 27, 0xf0e090); }   // gritted teeth, one crooked and yellow
+    if (glass) { a.px(5, 6, 0xffffff); a.px(6, 5, 0xffffff); a.px(7, 5, 0xffffff); a.px(4, 8, 0xffffff);                       // glass glint...
+      a.px(22, 3, 0xffffff); a.px(23, 4, 0xffffff); a.px(24, 5, 0x7ab0e0); a.px(26, 20, 0x7ab0e0); a.px(25, 22, 0x7ab0e0); }   // ...a scratch, and a ding in the rim
+  };
+  // (the old all-in-one head, moustache and all: the bare game-over head still uses it)
+  const headArt = (a, glass) => {
+    faceArt(a, glass, '');
+    a.poly([[5, 22], [9, 19], [15, 20.5], [21, 19], [26, 21], [28, 18], [27, 23], [21, 23], [15, 22.5], [9, 23], [3, 24], [2, 20]], HAIR);
+  };
+  pixSprite(scene, 'c_head', 30, 30, a => faceArt(a, true, ''));
+  for (const f of ['blink', 'fire', 'hurt', 'grin', 'puff']) pixSprite(scene, 'c_head_' + f, 30, 30, a => faceArt(a, true, f));
+  pixSprite(scene, 'c_tache', 30, 11, a => {                                              // the handlebar moustache, on its own
+    a.poly([[5, 7], [9, 4], [15, 5.5], [21, 4], [26, 6], [28, 3], [27, 8], [21, 8], [15, 7.5], [9, 8], [3, 9], [2, 5]], [0x7a4a26, 0x5a3216, 0x3a1e0a]);
+    a.px(8, 5, 0x8a5a30); a.px(12, 6, 0x8a5a30); a.px(19, 5, 0x8a5a30); a.px(24, 6, 0x8a5a30);
+  });
+  pixSprite(scene, 'c_eyepop', 22, 13, a => { bulge(a, 6.5, 6.5, 5.6, -2, 1, true); bulge(a, 15.5, 6.5, 5.6, 2, -1, true); a.px(3, 9, 0xe0302a); a.px(18, 3, 0xe0302a); });   // eyes out on stalks (a heavy hit)
+  pixSprite(scene, 'c_ouchstar', 9, 9, a => { a.poly([[4, 0], [5.5, 3], [8, 3.5], [6, 5.5], [7, 8], [4, 6.5], [1, 8], [2, 5.5], [0, 3.5], [2.5, 3]], [0xfff6a0, 0xffd23f, 0xd8901a]); });
   // game over: the helmet glass cracks... then shatters (the bare head is left, dazed: both eyes X'd out)
   pixSprite(scene, 'c_head_bare', 30, 30, a => {
     headArt(a, false);
@@ -181,18 +234,21 @@ function makeChrisTextures(scene) {
     a.line([[22, 5], [21, 10], [26, 13]], 0xffffff); a.line([[21, 10], [17, 14]], 0xffffff); a.line([[24, 22], [20, 25], [21, 28]], 0xffffff);
   }, 0);
   pixSprite(scene, 'shard', 8, 8, a => { a.poly([[0, 0], [7, 2], [2, 7]], [0xffffff, 0xc8f0ff, 0x7ab0e0]); });
-  // chef's toque
-  pixSprite(scene, 'c_hat', 38, 30, a => {
+  // chef's toque (v2.59: bigger and floppier, the top slumping over backwards, a grease stain, a darned hole)
+  pixSprite(scene, 'c_hat', 42, 36, a => {
     const W3 = [0xffffff, 0xeef2f8, 0xbcc6d6];
-    a.ell(9, 17, 7.5, 7.5, W3); a.ell(29, 17, 7.5, 7.5, W3); a.ell(19, 11, 9.5, 9.5, W3); a.ell(19, 18, 8.5, 8, W3);
+    a.ell(8, 15, 6.5, 6.5, W3);                                                             // the lobe that's flopped over the back
+    a.ell(11, 23, 8, 8, W3); a.ell(31, 22, 8.5, 8.5, W3); a.ell(18, 12, 11.5, 10.5, W3); a.ell(28, 13, 8, 8, W3); a.ell(21, 23, 9, 8.5, W3);
     // the band wraps round the round helmet, so its top and bottom edges curve down in the middle
-    const curve = x => 3.2 * (1 - Math.pow((x + 0.5 - 18.5) / 12, 2));
-    for (let x = 6; x <= 31; x++) {
-      const c = curve(x), y0 = Math.round(19 + c * 0.6), y1 = Math.round(25 + c);
-      for (let y = y0; y <= y1; y++) a.px(x, y, y === y0 ? 0xffffff : (y >= y1 - 1 ? 0xc4cede : (x > 24 ? 0xe2e8f0 : 0xf1f1f1)));
+    const curve = x => 3.2 * (1 - Math.pow((x + 0.5 - 20.5) / 12, 2));
+    for (let x = 8; x <= 33; x++) {
+      const c = curve(x), y0 = Math.round(25 + c * 0.6), y1 = Math.round(31 + c);
+      for (let y = y0; y <= y1; y++) a.px(x, y, y === y0 ? 0xffffff : (y >= y1 - 1 ? 0xc4cede : (x > 26 ? 0xe2e8f0 : 0xf1f1f1)));
     }
-    for (const x of [12, 18, 25]) { const c = curve(x); for (let y = Math.round(20 + c * 0.6); y <= Math.round(24 + c); y++) a.px(x, y, 0xbcc6d6); }   // pleats follow the curve
-    a.line([[14, 6], [16, 13]], 0xbcc6d6); a.line([[24, 7], [22, 13]], 0xbcc6d6);
+    for (const x of [14, 20, 27]) { const c = curve(x); for (let y = Math.round(26 + c * 0.6); y <= Math.round(30 + c); y++) a.px(x, y, 0xbcc6d6); }   // pleats follow the curve
+    a.line([[14, 8], [17, 18]], 0xbcc6d6); a.line([[26, 9], [24, 18]], 0xbcc6d6); a.line([[6, 12], [9, 18]], 0xbcc6d6); a.line([[20, 5], [21, 14]], 0xd8dee8);
+    a.px(30, 18, 0xffb84a); a.px(31, 19, 0xffb84a); a.px(31, 18, 0xffd890); a.px(12, 20, 0xe8c070);                           // mac-cheese grease
+    for (const [x, y] of [[23, 20], [25, 20], [24, 21], [23, 22], [25, 22]]) a.px(x, y, 0x8a96aa);                             // a hole, darned shut
   });
   // The Spaghetti Spinner (pixel art): teal body, a big reel of spaghetti on top, loose strand, red nozzle
   pixSprite(scene, 'c_gun2', 34, 26, a => {
@@ -262,11 +318,33 @@ function makeChrisTextures(scene) {
     a.rect(20, 6, 21, 7, 0xffe8dc); a.px(22, 8, 0xffe8dc);                              // shine on the curve
     a.line([[6, 13], [12, 14], [18, 13]], 0xc9805e);                                    // the underside crease
   });
-  // gun arm: suit sleeve, red cuff, big white glove
-  pixSprite(scene, 'c_arm', 18, 11, a => {
-    a.rrect(0, 2, 10, 8, 2, SUIT); a.rect(8, 2, 9, 8, 0xd62828);
-    a.ell(13, 5.5, 4.2, 4.2, [0xffffff, 0xeef2f8, 0xbcc6d6]);
+  // gun arm (v2.59): suit sleeve, red cuff, a hairy wrist poking out, and a great four-fingered cartoon glove
+  const GLV = [0xffffff, 0xeef2f8, 0xbcc6d6];
+  pixSprite(scene, 'c_arm', 22, 13, a => {
+    a.rrect(0, 3, 9, 9, 2, SUIT); a.rect(8, 3, 9, 9, 0xd62828);
+    a.rect(10, 4, 12, 8, SKIN[1]); a.px(10, 4, HAIR); a.px(12, 5, HAIR); a.px(11, 7, HAIR); a.px(10, 8, HAIR); a.px(12, 8, SKIN[2]);   // hairy wrist
+    a.ell(13.5, 6, 2, 4.6, GLV);                                                          // the glove's rolled cuff
+    a.rrect(13, 1, 21, 11, 4, GLV);                                                       // the fist
+    a.line([[16, 2], [16, 5]], 0xbcc6d6); a.line([[18, 2], [18, 5]], 0xbcc6d6); a.line([[20, 3], [20, 5]], 0xbcc6d6);         // knuckles
+    a.ell(16, 9.5, 2.6, 1.8, GLV); a.px(15, 3, 0xffffff);                                 // thumb
   });
+  pixSprite(scene, 'c_hand_open', 17, 17, a => {                                          // the free hand, fingers splayed (falling, flailing)
+    for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) a.line([[6, 8], [x, y]], GLV[1], 3);
+    for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) { a.line([[7, 8], [x, y]], GLV[0], 1); a.ell(x, y, 1.6, 1.6, GLV); }
+    a.line([[5, 7], [3, 2]], GLV[1], 3); a.ell(3, 2, 1.6, 1.6, GLV);                      // thumb
+    a.ell(6, 8.5, 4.6, 4.6, GLV); a.ell(3, 9, 2, 3.6, GLV); a.line([[5, 6], [8, 7]], 0xbcc6d6);
+  });
+  pixSprite(scene, 'c_grip', 9, 12, a => {                                                // white-knuckled fingers wrapped round the gun's grip
+    for (let k = 0; k < 4; k++) { a.rrect(1, k * 3, 7, k * 3 + 2, 1, GLV); a.px(6, k * 3, 0xffffff); a.px(2, k * 3 + 2, 0xbcc6d6); }
+  });
+  // popped stitches where the suit strains over the belly, and a gravy stain (laid over the body)
+  pixSprite(scene, 'c_wear', 44, 42, a => {
+    for (const y of [17, 19, 21]) a.px(27, y, 0x93a8cc);                                  // the side seam...
+    for (const [x, y] of [[26, 23], [28, 23], [27, 24], [26, 25], [28, 25]]) a.px(x, y, 0x4a5a80);   // ...has burst
+    a.px(27, 26, 0xf2b593); a.px(28, 26, 0xf2b593); a.px(27, 27, 0xc9805e); a.px(29, 24, 0xd62828); a.px(30, 23, 0xd62828);   // skin showing, a loose red thread
+    for (const [x, y] of [[21, 24], [23, 23]]) { a.px(x, y, 0x4a5a80); a.px(x + 1, y + 1, 0x4a5a80); }                         // two more stitches hanging on
+    a.px(17, 19, 0xe8b060); a.px(18, 19, 0xe8b060); a.px(18, 20, 0xd89a40); a.px(16, 20, 0xf0c880);                           // gravy down his front
+  }, 0);
   // The Mac-Grinder (pixel art): chunky orange grinder body, glass hopper heaped with macaroni,
   // a crank with a red knob at the back, wooden grip and a steel barrel ring. The drill bit is a separate spinning part.
   pixSprite(scene, 'c_gun', 34, 26, a => {
@@ -287,6 +365,8 @@ function makeChrisTextures(scene) {
   pixSprite(scene, 'c_tanks', 14, 28, a => {
     a.rrect(0, 1, 5, 20, 2, SUIT); a.rrect(7, 1, 12, 20, 2, SUIT);
     a.rect(0, 1, 5, 3, 0xd62828); a.rect(7, 1, 12, 3, 0xd62828);
+    for (const [x, y, c] of [[1, 19, 0x3a3a48], [2, 18, 0x5a5a68], [3, 19, 0x3a3a48], [2, 16, 0x7a7a88], [8, 19, 0x3a3a48], [10, 18, 0x5a5a68], [9, 17, 0x7a7a88], [11, 19, 0x3a3a48], [10, 15, 0x8a8a98]]) a.px(x, y, c);   // (v2.59) scorched round the nozzles
+    a.line([[2, 8], [4, 10]], 0x93a8cc); a.px(9, 7, 0xb86a3a); a.px(10, 8, 0xb86a3a); a.px(3, 5, 0x93a8cc); a.px(9, 11, 0x93a8cc);   // a dent, a rust spot
     a.rect(1, 21, 4, 25, 0x5a6272); a.rect(8, 21, 11, 25, 0x5a6272); a.rect(1, 21, 4, 21, 0x9aa4b4); a.rect(8, 21, 11, 21, 0x9aa4b4);
   });
 }
@@ -316,9 +396,13 @@ class ChrisRig {
     this.apronB = img('c_apronB', 5, -14, 0.5, 0);                   // ...with a skirt that flaps on a spring
     this.collar = img('c_collar', -3, -37, 0.5, 0.5);                // the cape's knot, over the neck
     this.head = img('c_head', 2, -44, 0.5, 0.5);
+    this.tache = img('c_tache', 2, -38, 0.5, 0.5);                    // (v2.59) the moustache is its own part: it twitches and bristles
+    this.pop = img('c_eyepop', 5, -47, 0.5, 0.5).setVisible(false);   // eyes out on stalks
+    this.wear = img('c_wear', 0, 3, 0.5, 1);                          // popped stitches over the belly
+    this.handB = img('c_hand_open', 0, 0, 0.3, 0.5).setVisible(false); // the free hand, splayed
     this.crack = img('c_crack', 2, -44, 0.5, 0.5).setVisible(false);  // game over: cracked glass
     this.hat = img('c_hat', 3, -54, 0.5, 1);
-    this.torso.add([this.body, this.armB, this.apron, this.apronB, this.belly, this.collar, this.head, this.crack, this.hat]);
+    this.torso.add([this.body, this.wear, this.armB, this.handB, this.apron, this.apronB, this.belly, this.collar, this.head, this.crack, this.tache, this.hat, this.pop]);
     this.legF = img('c_leg', 7, -16, 0.5, 0);
     this.bootF = img('c_boot', 7, 0, 0.5, 1);
     this.gunArm = scene.add.container(4, -42);
@@ -329,10 +413,12 @@ class ChrisRig {
     this.gun = img('c_gun', 4 - GX, 1 - GY, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
     this.auger = img('auger0', 44 - GX, 1 - GY, 0, 0.5).setScale(1.25);
     this.gunPivot.add([this.gun, this.auger]);
-    this.gunArm.add([this.gArm, this.gunPivot]);
-    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.torso, this.gunArm]);   // (legs behind the torso, so the belly hangs over them)
+    this.grip = img('c_grip', 20, 10, 0.5, 0.5);                      // fingers round the grip, over the gun
+    this.gunArm.add([this.gArm, this.gunPivot, this.grip]);
+    this.stars = [0, 1, 2].map(() => img('c_ouchstar', 0, 0, 0.5, 0.5).setVisible(false));
+    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.torso, this.gunArm, ...this.stars]);   // (legs behind the torso, so the belly hangs over them)
 
-    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.hat, this.legF, this.bootF, this.gArm, this.gun];
+    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.handB, this.grip, this.hat, this.legF, this.bootF, this.gArm, this.gun];
     this.tinted = false;
     this.wp = 0;          // waddle phase
     this.t = 0;
@@ -344,7 +430,12 @@ class ChrisRig {
     this.recoil = 0;
     this.wasGround = true;
     this.vhPrev = 0;
+    this.faceKey = null; this.ouchT = 0; this.ouchHeavy = false; this.grinT = 0; this.blinkT = 2; this.blinkOn = 0; this.twitchT = 3; this.twitch = 0; this.hatA = 0; this.hatV = 0;
   }
+  // (v2.59) acting: a hit (eyes pop, stars), a kill (smug grin), or a face forced from outside (the shop wheel, game over)
+  ouch(heavy) { this.ouchT = 0.7; this.ouchHeavy = !!heavy; }
+  grin() { this.grinT = 0.8; }
+  setFace(key) { this.faceKey = key || null; }
 
   // chef mode (the intro / ending at home): "Kiss the Cook" apron, no cape. Battle mode: just the cape.
   setChef(on) {
@@ -477,6 +568,7 @@ class ChrisRig {
     this.torso.setScale(1 + 0.16 * Math.max(0, sq) - 0.08 * Math.max(0, -sq) + Math.sin(t * 2.6) * 0.012 * idle,
       stretchY - 0.18 * Math.max(0, sq) + 0.1 * Math.max(0, -sq) + Math.sin(t * 2.6 + 1) * 0.018 * idle);
     if (dk > 0) this.torso.setScale(this.torso.scaleX * (1 + 0.04 * dk), this.torso.scaleY * (1 - 0.05 * dk));   // only a hint of squash
+    if (this.ouchT > 0.45) { const k = (this.ouchT - 0.45) / 0.25; this.torso.setScale(this.torso.scaleX * (1 + 0.14 * k), this.torso.scaleY * (1 - 0.12 * k)); }   // OUCH: a squashed impact frame
 
     // belly jiggle on every footfall
 
@@ -489,12 +581,30 @@ class ChrisRig {
 
     // ---- chef-hat helmet lags behind
     const vyLag = Math.max(-7, Math.min(8, P.vh * 0.011));
-    this.hat.setPosition(3 - sw * 2.2 * run, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
-    this.hat.setRotation(-sw * (0.16 * run + 0.1 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5));
+    // (v2.59) the toque flops on a spring of its own: it lags when he runs, whips forward when he stops, bobs when he lands
+    { const fc = P.facing < 0 ? -1 : 1, tgt = Math.max(-0.5, Math.min(0.5, -(P.vx || 0) * fc * 0.0016 - (P.vh || 0) * 0.0005));
+      this.hatV += ((tgt - this.hatA) * 130 - this.hatV * 7) * dt; if (this.squash > 0.9) this.hatV += 5;
+      this.hatA = Math.max(-0.7, Math.min(0.7, this.hatA + this.hatV * dt)); }
+    this.hat.setPosition(3 - sw * 2.2 * run + this.hatA * 5, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
+    this.hat.setRotation(-0.09 - sw * (0.16 * run + 0.1 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5) + this.hatA * 0.7);   // (it sits a bit crooked)
     this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
     const jS = P.jamShake || 0, jB = P.jamBang || 0;            // a clogged gun: he shakes it furiously, then thumps it
     this.head.setPosition(2 + sw * 0.6 * run + Math.sin(t * 37) * 1.3 * jS, -44 + vyLag * 0.2 + (jB > 0.55 && jB < 0.8 ? 1.5 : 0)); this.crack.setPosition(this.head.x, this.head.y);
     if (jS) { this.hat.x += Math.sin(t * 37 - 0.9) * 2.2 * jS; this.hat.rotation += Math.sin(t * 37 - 0.9) * 0.1 * jS; }
+    // ---- (v2.59) the face: what's he doing?
+    this.ouchT = Math.max(0, this.ouchT - dt); this.grinT = Math.max(0, this.grinT - dt); this.blinkOn = Math.max(0, this.blinkOn - dt); this.twitch = Math.max(0, this.twitch - dt);
+    if ((this.blinkT -= dt) <= 0) { this.blinkT = 1.8 + Math.random() * 3.2; this.blinkOn = 0.12; }
+    if ((this.twitchT -= dt) <= 0) { this.twitchT = 2.5 + Math.random() * 4; this.twitch = 0.22; }
+    const angry = this.ouchT > 0 || jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed;
+    const fk = this.faceKey || (this.ouchT > 0 ? 'c_head_hurt' : (jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed) ? 'c_head_fire' : fly ? 'c_head_puff' : this.grinT > 0 ? 'c_head_grin' : this.blinkOn > 0 ? 'c_head_blink' : 'c_head');
+    if (this.head.texture.key !== fk) this.head.setTexture(fk);
+    this.head.setRotation(0.06 + (this.ouchT > 0.45 ? Math.sin(t * 60) * 0.12 : 0));                                // the helmet sits a touch crooked; it rattles when he's hit
+    const br = angry ? 1 : 0, tw = this.twitch > 0 ? Math.sin(this.twitch * 40) * 0.22 : 0;
+    this.tache.setVisible(!this.faceKey).setPosition(this.head.x, this.head.y + 6 + (fk === 'c_head_hurt' ? -1 : 0))
+      .setRotation(0.06 + tw + Math.sin(t * 2.2) * 0.02 + (br ? Math.sin(t * 50) * 0.05 : 0)).setScale(1 + 0.16 * br + (fk === 'c_head_grin' ? 0.08 : 0), 1 + 0.3 * br);   // it bristles when he's riled
+    const pk = this.ouchT > 0.45 && this.ouchHeavy && !this.faceKey ? (0.7 - this.ouchT) / 0.25 : -1;                  // a heavy hit: the eyes shoot out and snap back
+    this.pop.setVisible(pk >= 0).setPosition(this.head.x + 3, this.head.y - 3).setScale(pk >= 0 ? 0.75 + 0.5 * Math.sin(Math.min(1, pk) * Math.PI) : 1);
+    this.stars.forEach((st, i) => { const on = this.ouchT > 0; st.setVisible(on); if (on) { const a = t * 9 + i * 2.094; st.setPosition(this.torso.x + 2 + Math.cos(a) * 15, this.torso.y - 68 + Math.sin(a) * 4).setRotation(t * 6).setScale(Math.min(1, this.ouchT * 4)); } });
 
     // ---- arms
     this.armB.setRotation(-sw * 0.8 * run + 0.35 + Math.sin(t * 2.2) * 0.07 * idle - air * 1.2 + (P.grabbed ? Math.sin(t * 23 + 1) * 1.2 - 1 : 0));   // (and flapping the other arm)
@@ -519,13 +629,17 @@ class ChrisRig {
       const fy = jB < 0.5 ? gy - 6 - 26 * up2 : gy - 32 + 32 * hit * hit, sq = hit >= 1 && jB < 0.72;
       this.fist.setVisible(true).setPosition(gx + 9 * up2 * (1 - hit), fy + (sq ? 2 : 0)).setRotation(jB < 0.5 ? -0.5 * up2 : -0.5 + 0.5 * hit).setScale(sq ? 1.6 : 1.3, sq ? 1.0 : 1.3);
     } else if (this.fist) this.fist.setVisible(false);
-    if ((jB > 0) !== !!this.armUp) { this.armUp = jB > 0; if (this.armUp) this.torso.bringToTop(this.armB); else this.torso.moveTo(this.armB, 1); }   // (his far arm comes round in front to do it)
+    { const open = (air && !fly && P.vh < -60 && jB <= 0) || (this.ouchT > 0.3 && jB <= 0) || !!P.grabbed, r = this.armB.rotation;     // falling / hit / grabbed: the free hand splays open
+      this.handB.setVisible(!!open).setPosition(this.armB.x + Math.cos(r) * 13, this.armB.y + Math.sin(r) * 13).setRotation(r + Math.sin(t * 20) * 0.15); }
+    if ((jB > 0) !== !!this.armUp) { this.armUp = jB > 0; if (this.armUp) this.torso.bringToTop(this.armB); else this.torso.moveTo(this.armB, 2); }   // (his far arm comes round in front to do it)
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     const jk = P.jamKick || 0;                                  // a jammed gun bucks back and up
     this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 26 + sw * 0.6 * run + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0));
     const flail = P.grabbed ? Math.sin(this.t * 26) * 1.1 + Math.sin(this.t * 41) * 0.35 - 0.6 : 0;      // grabbed: waving the useless gun about hysterically
     this.gunArm.setRotation(-this.recoil * 0.07 - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
+    this.gunArm.setScale(1 + this.recoil * 0.16, 1 - this.recoil * 0.07);                            // (v2.59) a smear: the arm stretches along the kick
+    this.grip.setVisible(!(P.bashSpin || 0));
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
