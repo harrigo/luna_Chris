@@ -34,33 +34,111 @@ const Shop = {
   }
 };
 
-// gunmetal copies of the suit parts: every pale, colourless pixel (the white suit, the hat) is re-shaded dark grey-blue
-function makeArmourTextures(scene) {
-  for (const key of ['c_tanks', 'c_leg', 'c_boot', 'c_body', 'c_arm', 'c_hat', 'c_collar']) {
-    const ak = '__ar_' + key; if (scene.textures.exists(ak) || !scene.textures.exists(key)) continue;
+// BLACK RIND armour (v2.60: properly drawn, not a recolour). Blue-black lacquered plate with trim that gets richer
+// with every mark (I steel, II bronze, III gold, IV gold with molten studs), ember-orange seams and a glowing cheese reactor
+// where the mission badge was, a gauntlet, knee cops, sabatons with a glowing sole, black tanks with hot vents, a studded
+// black band and a cheese-wedge badge on the toque (which stays white), and a bolted steel ring round the helmet glass.
+// The belly still won't fit in it. Textures are '__ar<mk>_<key>'.
+const AR_TRIM = [null, [0xeef2f8, 0x9aa4b4, 0x5a6272], [0xf6b878, 0xb8703a, 0x6a3a18], [0xfff0a0, 0xffc83a, 0xb07a1a], [0xfff6c0, 0xffd23f, 0xc0801a]];
+function makeArmourTextures(scene, mk) {
+  mk = Math.max(1, Math.min(4, mk || 1));
+  const K = k => '__ar' + mk + '_' + k;
+  if (scene.textures.exists(K('c_body'))) return;
+  const PL = [0x55618a, 0x2a3048, 0x12141e], HI = 0x9ab0e0, TR = AR_TRIM[mk], EM = [0xfff0a0, 0xff9a2a, 0xc0501a], INKC = 0x1a1020;
+  const hot = mk >= 4;
+  // ---- parts drawn from scratch (same sizes and pivots as the suit's)
+  pixSprite(scene, K('c_arm'), 22, 13, a => {                               // pauldron sleeve, dark mail wrist, a studded gauntlet
+    a.rrect(0, 2, 10, 10, 3, PL); a.rect(8, 2, 9, 10, TR[1]); a.px(8, 2, TR[0]); a.line([[2, 4], [6, 4]], HI); a.line([[2, 7], [6, 7]], EM[1]);
+    a.rect(10, 4, 12, 8, 0x1e2230); a.px(10, 5, 0x3a4058); a.px(12, 7, 0x3a4058); a.px(11, 4, 0x3a4058);
+    a.rrect(13, 1, 21, 11, 4, PL); a.line([[14, 2], [19, 2]], HI);
+    for (const [x, y] of [[16, 4], [18, 4], [20, 5]]) a.px(x, y, hot ? EM[0] : TR[0]);
+    a.ell(16, 9.5, 2.6, 1.8, PL); a.rect(13, 2, 13, 10, TR[1]);
+  });
+  pixSprite(scene, K('c_grip'), 9, 12, a => { for (let k = 0; k < 4; k++) { a.rrect(1, k * 3, 7, k * 3 + 2, 1, PL); a.px(6, k * 3, HI); a.px(3, k * 3 + 1, hot ? EM[1] : TR[1]); } });
+  pixSprite(scene, K('c_hand_open'), 17, 17, a => {
+    for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) { a.line([[6, 8], [x, y]], PL[1], 3); a.ell(x, y, 1.6, 1.6, PL); a.px(x, y, TR[0]); }
+    a.line([[5, 7], [3, 2]], PL[1], 3); a.ell(3, 2, 1.6, 1.6, PL); a.ell(6, 8.5, 4.6, 4.6, PL); a.ell(3, 9, 2, 3.6, PL); a.px(6, 8, EM[1]);
+  });
+  pixSprite(scene, K('c_leg'), 16, 18, a => {                               // a greave, a big knee cop
+    a.poly([[2, 0], [14, 0], [15, 7], [13, 17], [4, 17], [1, 8]], PL);
+    a.line([[5, 1], [4, 6]], HI); a.line([[6, 13], [11, 13]], EM[1]); a.rect(4, 16, 13, 17, TR[1]);
+    a.ell(8.5, 9, 5.5, 3.6, TR); a.px(8, 8, TR[0]); a.px(9, 10, TR[2]); a.px(8, 9, hot ? EM[0] : TR[0]);
+  });
+  pixSprite(scene, K('c_boot'), 28, 15, a => {                              // sabatons: a trimmed cuff, a capped toe, the sole glowing
+    a.rrect(5, 0, 16, 6, 2, PL); a.rect(6, 1, 15, 1, TR[1]); a.px(6, 1, TR[0]);
+    a.poly([[3, 5], [16, 5], [20, 7], [26, 8], [27, 12], [1, 12], [1, 8]], PL); a.line([[4, 7], [14, 7]], HI);
+    a.ell(22, 9, 5.5, 3.8, TR); a.rect(21, 6, 23, 6, TR[0]); a.line([[16, 6], [17, 11]], PL[2]);
+    a.rect(0, 12, 27, 14, 0x12141e); a.rect(1, 12, 26, 12, EM[1]); for (let x = 2; x < 27; x += 3) a.px(x, 12, EM[0]);
+  });
+  pixSprite(scene, K('c_tanks'), 14, 28, a => {                             // black tanks, trimmed caps, vents glowing hot
+    a.rrect(0, 1, 5, 20, 2, PL); a.rrect(7, 1, 12, 20, 2, PL); a.rect(0, 1, 5, 3, TR[1]); a.rect(7, 1, 12, 3, TR[1]); a.px(1, 1, TR[0]); a.px(8, 1, TR[0]);
+    a.line([[1, 6], [1, 16]], HI); a.line([[8, 6], [8, 16]], HI);
+    for (const y of [9, 12, 15]) { a.rect(2, y, 4, y, EM[1]); a.rect(9, y, 11, y, EM[1]); a.px(3, y, EM[0]); a.px(10, y, EM[0]); }
+    a.rect(1, 21, 4, 25, 0x3a4052); a.rect(8, 21, 11, 25, 0x3a4052); a.rect(1, 21, 4, 21, TR[1]); a.rect(8, 21, 11, 21, TR[1]); a.rect(2, 25, 3, 25, EM[0]); a.rect(9, 25, 10, 25, EM[0]);
+  });
+  pixSprite(scene, K('c_helm'), 30, 30, a => {                              // a bolted steel ring round the helmet glass, a fin at the back
+    for (let y = 0; y < 30; y++) for (let x = 0; x < 30; x++) { const d = Math.hypot(x + 0.5 - 15, y + 0.5 - 15); if (d > 12.6 && d <= 14.4) a.px(x, y, (x + y < 24) ? PL[0] : (x + y > 36 ? PL[2] : PL[1])); }
+    for (const an of [-2.4, -0.75, 0.75, 2.4]) a.px(Math.round(15 + Math.cos(an) * 13.5 - 0.5), Math.round(15 + Math.sin(an) * 13.5 - 0.5), hot ? EM[0] : TR[0]);
+    a.rect(1, 13, 2, 17, TR[1]); a.px(1, 13, TR[0]); a.rect(13, 28, 17, 28, TR[1]);
+  }, 0);
+  pixSprite(scene, K('c_glow'), 11, 11, a => { a.ell(5.5, 5.5, 5, 5, 0xff8a2a); a.ell(5.5, 5.5, 3, 3, 0xffd23f); a.ell(5.5, 5.5, 1.4, 1.4, 0xfff6c0); }, 0);
+  // ---- parts repainted from the suit's own pixels (so the hand-drawn body, belly and all, keeps its shape)
+  const copy = (key, fn) => {
+    if (!scene.textures.exists(key)) return;
     const fr = scene.textures.getFrame(key), w = fr.cutWidth, h = fr.cutHeight;
-    const ct = scene.textures.createCanvas(ak, w, h), ctx = ct.getContext();
+    const ct = scene.textures.createCanvas(K(key), w, h), ctx = ct.getContext();
     ctx.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
     const img = ctx.getImageData(0, 0, w, h), D = img.data;
-    const ramp = [[0x10, 0x12, 0x1a], [0x1a, 0x1e, 0x2a], [0x26, 0x2b, 0x3b], [0x34, 0x3b, 0x50], [0x41, 0x4a, 0x64]];
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4; if (D[i + 3] < 200) continue;
-      const r = D[i], g = D[i + 1], b = D[i + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), lum = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
-      if (lum < 0.3 || (mx - mn) / (mx || 1) > 0.22) continue;            // outlines and anything coloured (skin, red, gold) stay
-      const c = ramp[Math.min(4, Math.floor((lum - 0.3) / 0.7 * 5))];
-      const edge = lum > 0.9 && (y === 0 || D[((y - 1) * w + x) * 4 + 3] < 200 || (D[((y - 1) * w + x) * 4] < 60 && D[((y - 1) * w + x) * 4 + 1] < 60));   // top edges catch a cold light
-      D[i] = edge ? 0x7a : c[0]; D[i + 1] = edge ? 0x9a : c[1]; D[i + 2] = edge ? 0xc8 : c[2];
-    }
+    const get = (x, y) => { const i = (y * w + x) * 4; return x < 0 || y < 0 || x >= w || y >= h || D[i + 3] < 200 ? null : [D[i], D[i + 1], D[i + 2]]; };
+    const put = (x, y, c) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const i = (y * w + x) * 4; if (D[i + 3] < 200) return; D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; };
+    fn(get, put, w, h);
     ctx.putImageData(img, 0, 0); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.NEAREST);
-  }
+  };
+  const kind = c => { if (!c) return ''; const [r, g, b] = c, mx = Math.max(r, g, b), mn = Math.min(r, g, b), lum = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
+    if (lum < 0.22) return 'ink'; if (r > 170 && g < 90 && b < 90) return 'red'; if (b > r + 30 && b > 120 && (mx - mn) > 50) return 'blue'; if ((mx - mn) / (mx || 1) <= 0.22 && lum >= 0.3) return 'pale'; return 'other'; };
+  copy('c_body', (get, put, w, h) => {
+    const pale = [];
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const c = get(x, y), k = kind(c); if (!k) continue;
+      if (k === 'pale') { const lum = (c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11) / 255; pale.push([x, y]); put(x, y, lum > 0.93 ? PL[0] : lum > 0.8 ? PL[1] : PL[2]); }
+      else if (k === 'red') put(x, y, y > 24 ? TR[1] : TR[0]);                 // the hem and shoulder flash become trim
+      else if (k === 'blue') { const d = Math.hypot(x - 12.5, y - 12.5); put(x, y, d < 1.8 ? EM[0] : d < 3.4 ? 0xffd23f : EM[1]); }   // the badge becomes a glowing cheese reactor
+    }
+    const isP = new Set(pale.map(([x, y]) => x + ',' + y)), on = (x, y) => isP.has(x + ',' + y);
+    for (const [x, y] of pale) {                                                // a lit top edge, panel lines, an ember seam, rivets
+      if (!on(x, y - 1) && kind(get(x, y - 1)) === 'ink' && y < 14) put(x, y, HI);
+      if (y === 17 && x > 6 && x < 30) put(x, y, PL[2]);
+      if (y === 18 && x > 6 && x < 30) put(x, y, x % 3 ? EM[1] : EM[0]);
+      if (x === 21 && y > 4 && y < 17) put(x, y, PL[2]);
+      if (y === 22 && x > 8 && x < 26 && x % 4 === 0) put(x, y, TR[0]);
+      if (y === 7 && (x === 8 || x === 18 || x === 25)) put(x, y, TR[0]);
+      if (y === 6 && x > 23 && x < 34) put(x, y, TR[1]);                        // a pauldron rim over the shoulder
+      if (y === 10 && x > 26 && x < 35) put(x, y, TR[2]);
+    }
+    if (hot) for (const [x, y] of [[9, 20], [15, 20], [24, 20], [29, 14]]) if (on(x, y)) put(x, y, EM[0]);
+  });
+  copy('c_hat', (get, put, w, h) => {                                           // the toque stays white: a black studded band, a cheese-wedge badge
+    const curve = x => 3.2 * (1 - Math.pow((x + 0.5 - 20.5) / 12, 2));
+    for (let x = 8; x <= 33; x++) { const c = curve(x), y0 = Math.round(25 + c * 0.6), y1 = Math.round(31 + c);
+      for (let y = y0; y <= y1; y++) put(x, y, y === y0 ? TR[1] : y === y1 ? TR[2] : (y === y0 + 1 ? PL[0] : PL[1]));
+      if (x % 4 === 2) put(x, Math.round((y0 + y1) / 2), hot ? EM[0] : TR[0]); }
+    for (const [x, y, c] of [[20, 26, TR[0]], [19, 27, TR[0]], [20, 27, TR[1]], [21, 27, TR[0]], [18, 28, TR[1]], [19, 28, EM[1]], [20, 28, TR[1]], [21, 28, TR[1]], [22, 28, TR[0]], [18, 29, TR[2]], [19, 29, TR[2]], [20, 29, TR[2]], [21, 29, TR[2]], [22, 29, TR[2]]]) put(x, y + 1, c);
+  });
 }
-ChrisRig.prototype.setArmour = function (on) {
-  if (!!on === !!this.armoured) return;
-  this.armoured = !!on;
-  const sc = this.root.scene; if (on) makeArmourTextures(sc);
-  const set = (o, key) => { const ak = '__ar_' + key; o.setTexture(on && sc.textures.exists(ak) ? ak : key); };
+ChrisRig.prototype.setArmour = function (on, mk) {
+  mk = Math.max(1, Math.min(4, mk || this.armourMk || 1));
+  if (!!on === !!this.armoured && (!on || mk === this.armourMk)) return;
+  this.armoured = !!on; this.armourMk = mk;
+  const sc = this.root.scene; if (on) makeArmourTextures(sc, mk);
+  const set = (o, key) => { const ak = '__ar' + mk + '_' + key; o.setTexture(on && sc.textures.exists(ak) ? ak : key); };
   set(this.tanks, 'c_tanks'); set(this.legB, 'c_leg'); set(this.legF, 'c_leg'); set(this.bootB, 'c_boot'); set(this.bootF, 'c_boot');
-  set(this.body, 'c_body'); set(this.armB, 'c_arm'); set(this.gArm, 'c_arm'); set(this.hat, 'c_hat'); set(this.collar, 'c_collar');
+  set(this.body, 'c_body'); set(this.armB, 'c_arm'); set(this.gArm, 'c_arm'); set(this.hat, 'c_hat'); set(this.grip, 'c_grip'); set(this.handB, 'c_hand_open');
+  this.wear.setVisible(!on);                                                    // (the popped stitches are under the plate)
+  if (on && !this.helm) {                                                       // the helmet ring, and the reactor's glow
+    this.helm = sc.add.image(0, 0, 'blank').setOrigin(0.5); this.arGlow = sc.add.image(-9.5, -26.5, 'blank').setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
+    this.torso.addAt(this.helm, this.torso.getIndex(this.hat)); this.torso.addAt(this.arGlow, this.torso.getIndex(this.body) + 1);
+  }
+  if (this.helm) { this.helm.setVisible(on); this.arGlow.setVisible(on); if (on) { this.helm.setTexture('__ar' + mk + '_c_helm'); this.arGlow.setTexture('__ar' + mk + '_c_glow'); } }
 };
 
 function makeShopTextures(scene) {
@@ -500,7 +578,7 @@ class ShopScene extends Phaser.Scene {
     this.ui.add(this.msgText);
     const arm = s.armMk > 0 ? (s.armHp > 0 ? 'BLACK RIND ' + ['', 'Mk I', 'Mk II', 'Mk III', 'Mk IV'][s.armMk] + '  ' + s.armHp + '/' + SHOP.armHp[s.armMk] : 'BLACK RIND: SHATTERED') : 'NO ARMOUR';
     this.ui.add(this.add.text(12 + lw / 2, top + 44, arm + '\nBOOTS LV ' + s.boots + '   LIVES ' + (this.registry.get('lives') || 0), f(8, '#c9cde0', { align: 'center', lineSpacing: 5 })).setOrigin(0.5, 0));
-    this.rig.setArmour(s.armHp > 0);
+    this.rig.setArmour(s.armHp > 0, s.armMk);
     { const left = Shop.spinsLeft(), bx = 22, bw2 = lw - 24, by2 = top + 78, bh2 = 34, sg = this.add.graphics();    // the LUCKY WHEEL button: a steel plate with the gold wheel
       sg.fillStyle(0x0a0b10, 1).fillRect(bx - 2, by2 - 2, bw2 + 4, bh2 + 4); sg.fillStyle(left > 0 ? 0x30343e : 0x14141c, 1).fillRect(bx, by2, bw2, bh2);
       if (left > 0) { sg.fillStyle(0x3e434e, 1).fillRect(bx, by2, bw2, 3); sg.lineStyle(2, 0xc8902a, 1).strokeRect(bx, by2, bw2, bh2); }

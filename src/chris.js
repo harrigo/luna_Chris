@@ -604,6 +604,7 @@ class ChrisRig {
       .setRotation(0.06 + tw + Math.sin(t * 2.2) * 0.02 + (br ? Math.sin(t * 50) * 0.05 : 0)).setScale(1 + 0.16 * br + (fk === 'c_head_grin' ? 0.08 : 0), 1 + 0.3 * br);   // it bristles when he's riled
     const pk = this.ouchT > 0.45 && this.ouchHeavy && !this.faceKey ? (0.7 - this.ouchT) / 0.25 : -1;                  // a heavy hit: the eyes shoot out and snap back
     this.pop.setVisible(pk >= 0).setPosition(this.head.x + 3, this.head.y - 3).setScale(pk >= 0 ? 0.75 + 0.5 * Math.sin(Math.min(1, pk) * Math.PI) : 1);
+    if (this.helm && this.armoured) { this.helm.setPosition(this.head.x, this.head.y).setRotation(this.head.rotation); this.arGlow.setAlpha(0.45 + 0.3 * Math.sin(t * 4)).setScale(1 + 0.15 * Math.sin(t * 4)); }   // BLACK RIND: the ring rides the helmet, the reactor pulses
     this.stars.forEach((st, i) => { const on = this.ouchT > 0; st.setVisible(on); if (on) { const a = t * 9 + i * 2.094; st.setPosition(this.torso.x + 2 + Math.cos(a) * 15, this.torso.y - 68 + Math.sin(a) * 4).setRotation(t * 6).setScale(Math.min(1, this.ouchT * 4)); } });
 
     // ---- arms

@@ -1588,3 +1588,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Smears and impact: the gun arm stretches along the recoil; a hit squashes him for a beat, the helmet rattles, three stars circle his head, and on a HEAVY hit his eyes shoot out on stalks (c_eyepop) and snap back.
 - Wonkier, worn: stubby bowed legs with a hand-stitched patch, bigger scuffed clompy boots (28x15), scorched and dented jetpack tanks, popped stitches and a gravy stain over the belly (c_wear overlay; the hand-drawn c_body is untouched).
 - The toque is bigger and floppier (42x36, slumped over backwards, greasy, darned) and flops on its own spring: lags when he runs, whips forward when he stops, bobs on landing, sits crooked.
+
+## v2.60 — BLACK RIND, properly drawn
+- The armour is no longer a grey recolour. Blue-black lacquered plate with trim by mark (I steel, II bronze, III gold, IV gold with molten studs): the mission badge becomes a pulsing cheese REACTOR (additive glow), an ember seam and panel lines across the chest, rivets, a pauldron rim; a studded gauntlet (and dark grip fingers / open hand), greaves with big knee cops, sabatons with a capped toe and a glowing sole, black tanks with hot vents, a bolted ring round the helmet glass, and a black studded band with a cheese-wedge badge on the toque (which stays white). The belly still hangs out; the cape stays red.
+- rig.setArmour(on, mk); textures '__ar<mk>_<key>' built on demand from the suit's own pixels (body, hat) or drawn fresh (arm, leg, boot, tanks, helm ring, glow).

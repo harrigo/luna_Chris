@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.59';
+const BUILD = 'v2.60';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -493,7 +493,7 @@ class Level1 extends Phaser.Scene {
 
     this.augerPhase = 0;
     this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
-    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.tankLv = Shop.get(this.registry).tank || 0; this.magOwned = !!Shop.get(this.registry).magnet; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
+    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.tankLv = Shop.get(this.registry).tank || 0; this.magOwned = !!Shop.get(this.registry).magnet; this.rig.setArmour(Shop.get(this.registry).armHp > 0, Shop.get(this.registry).armMk);
     this.fxInit();                                        // neo-retro lighting (fx.js)
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;

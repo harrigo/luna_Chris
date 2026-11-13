@@ -936,7 +936,7 @@ class SelectScene extends Phaser.Scene {
     this.sel = this.sel || 1;
     this.selG = this.add.graphics().setDepth(2);
     // Luna Chris himself, jetpacking along the route to whichever stop is picked
-    this.rig = new ChrisRig(this); this.rig.root.setDepth(3); this.rig.setWeapon(WEAPONS[0]); this.rig.setArmour(Shop.get(this.registry).armHp > 0);
+    this.rig = new ChrisRig(this); this.rig.root.setDepth(3); this.rig.setWeapon(WEAPONS[0]); this.rig.setArmour(Shop.get(this.registry).armHp > 0, Shop.get(this.registry).armMk);
     this.rigP = { h: 60, floor: 0, vh: 0, vx: 0, thrusting: true, firing: 0, aimA: 0.1, power: 0, duck: false, facing: 1 };
     this.rigX = null; this.lastT = 0;
     const padOff = Pad.on(b => {
