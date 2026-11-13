@@ -1613,3 +1613,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The dome sits in the middle with a first sketch of the Grand Rat-King at the yoke (background for now: you run in front of it; a gantry platform sits over it).
 - Stand-in boss: Parmesan Prime's mech, until stage 2 (the real Rat King fight with his knotted minions for limbs), then stage 3 (Bessie in the dome, the ending, credits).
 - Fix: the Chip Bandito (L6) had no behaviour assigned and stood still; it now walks like the other ground rats.
+
+## v2.63 — The Astro-Rat Armada is an OCEAN WORLD (src/armada.js)
+- Two rings: a small rock core (radius 210, the seabed) under a thick translucent ocean up to the waterline (WL 170), open space above for breaches. The view sits lower on this level (def.viewY) and the jet ceiling is 330.
+- Swimming: under water gravity is 20% and everything drags. Tap JUMP for a stroke, hold it to swim up, hold DOWN to dive; horizontal speed capped at 75%; no jetpack under water (the tank refills instead). Break the surface holding JUMP and he's kicked out at speed with the jet lit: BREACH! Splashes on the way in and out.
+- IRONCLADS sail the waterline (riveted rusty hulls, boot-topping stripe, lit portholes, funnel smoke, turrets, a skull-and-forks flag, rats at the rail). Arcing cannonballs (shootable) that splash and sink slowly once they hit the water; spiky depth charges dropped on anyone swimming underneath (blink, blow up near him or on the seabed). Shots spark off the iron ("TOO THICK! HIT THE KEEL!"): only the glowing yellow KEEL under the waterline can be hurt.
+- TORPEDO RATS: rats in diving goggles strapped to propeller torpedoes. They cruise near him, shudder and stream bubbles while they line up, then dart in a straight line.
+- Boss: THE RAT DREADNOUGHT (replaces the flagship here): the biggest ironclad, three keels (each a third of its health, "A KEEL IS BREACHED!"), broadsides of three, depth charges in pairs, launches torpedo rats.
+- The ocean: depth-banded water, swaying light shafts, a faint wash over everything under the surface, a foamy white wave crest, bubbles off his shots and helmet and up from the seabed. The seabed has kelp, a sunken wreck, giant clams and scrap. Floating wreckage ledges high above the waves. Drones and jetpack rats fly above the water.

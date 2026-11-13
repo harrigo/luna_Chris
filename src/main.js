@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.62';
+const BUILD = 'v2.63';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -413,6 +413,7 @@ class Level1 extends Phaser.Scene {
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
     this.pinT = 0;
+    if (this.def.ocean) this.armadaInit();              // L7: the ocean (armada.js)
     if (this.def.saucer) this.saucerInit();             // L10: the Royal Saucer's deck (saucer.js)
     if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
     this.specLights = []; this.fogFg = [];
@@ -621,7 +622,7 @@ class Level1 extends Phaser.Scene {
     this.zoom = Math.min(1, H / 470);          // short (landscape) screens zoom the world out so the boss still fits
     const z = this.zoom, Rz = R * z;
     this.cx = W / 2;
-    this.groundY = H * (this.landscape ? 0.70 : 0.58);   // where the player stands on screen
+    this.groundY = H * (this.landscape ? 0.70 : 0.58) * (this.def.viewY || 1);   // where the player stands on screen (an ocean world sits lower: room above for the water and the ships)
     this.cy = this.groundY + Rz + (this.camSlide || 0);    // planet centre (camSlide: easing the view down/up a cave ring)
     // how far round the planet (radians) you can see before things drop off-screen
     const byX = Math.asin(Math.min(1, (W / 2) / Rz));
@@ -1446,6 +1447,7 @@ class Level1 extends Phaser.Scene {
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
+      if (this.def.ocean) this.armadaUpdate(dt);                                     // L7 (armada.js)
       if (this.def.saucer) this.saucerUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L10 (saucer.js)
       if (this.def.gorge) this.gorgeUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L6 (gorge.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
@@ -1793,11 +1795,12 @@ class Level1 extends Phaser.Scene {
     }
     if (P.thrusting) P.airRegenT = 0;
 
-    P.vh -= this.gAt(P.theta) * dt * (P.diving ? 3.2 : 1);
+    if (this.def.ocean) this.oceanSwim(P, inp, dt);      // L7: under the water, swim (armada.js)
+    P.vh -= this.gAt(P.theta) * dt * (P.diving ? 3.2 : 1) * (P.swim ? 0.2 : 1);
     if (P.diving && P.vh > -220) P.vh = -220;                // kill the upward float straight away
     if (P.diving) P.vh = Math.max(P.vh, -900);
     P.h += P.vh * dt;
-    const ceilH = this.cave && this.cave.ring > 0 ? (this.caveHoleAt(this.cave.ring - 1, P.theta) ? 1e9 : this.def.cave.rings[this.cave.ring].ceil - 50) : CFG.jetCeiling;      // in the cave: the tunnel roof (open under a hole)
+    const ceilH = this.def.jetCeil ? this.def.jetCeil : this.cave && this.cave.ring > 0 ? (this.caveHoleAt(this.cave.ring - 1, P.theta) ? 1e9 : this.def.cave.rings[this.cave.ring].ceil - 50) : CFG.jetCeiling;      // in the cave: the tunnel roof (open under a hole)
     if (P.h >= ceilH) { P.h = ceilH; if (P.vh > 0) P.vh = 0; }
     const fl2 = this.floorAt(P.theta, hPrev);
     if (P.h <= fl2) {
@@ -3420,6 +3423,7 @@ class Level1 extends Phaser.Scene {
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
     if (this.lumps.length) this.lumpHit(theta, h, rad, dmg);
     if (this.gz) this.gorgeHit(theta, h, rad);
+    if (this.az) this.armadaHit(theta, h, rad, dmg);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
     // (shockwave, stretchy strings of molten cheese and popping Swiss holes: drawn in planet coordinates by drawBlastFx)
@@ -3660,6 +3664,7 @@ class Level1 extends Phaser.Scene {
     } else if (kind === 'slicer') {
       e.shootCd = rnd(1.4, 2.4); e.roll = 0; e.flipCd = rnd(3, 6);
     }
+    if (this.def.ocean) this.armadaSetup(e, kind);
     return e;
   }
 
@@ -3792,6 +3797,8 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
+      } else if (ai === 'ironclad' || ai === 'torprat') {   // L7 (armada.js): ships on the waterline, torpedo rats under it
+        this.armadaAI(e, dt, P);
       } else if (ai === 'anchovy') {                    // L4 (mozz.js): a shoal of tin anchovies
         this.anchovyAI(e, dt, P);
       } else if (ai === 'ovendrone') {                  // L4 (mozz.js): the Toasty Oven Drone
@@ -3876,7 +3883,8 @@ class Level1 extends Phaser.Scene {
       } else if (e.type === 'boss') {
         if (e.ai === 'croque' || e.ai === 'baron') this.croqueStage(e, P);
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
-        if (e.ai !== 'wheel' && !e.mmLock && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
+        if (e.ai === 'dreadnought') this.armadaAI(e, dt, P);   // L7's boss steers itself (armada.js)
+        else if (e.ai !== 'wheel' && !e.mmLock && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
           const baron = e.ai === 'baron';
           const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head
           const maxV = baron ? (e.hp < e.maxHp * 0.5 ? 270 : 225) / R : (e.hp < e.maxHp * 0.5 ? 0.3 : 0.24);   // (the Baron runs about as fast as Chris)
@@ -4096,7 +4104,7 @@ class Level1 extends Phaser.Scene {
 
       // touching Chris
       // stomp: little enemies get squashed and Chris ploughs on down through them; big ones bounce him back off and take two
-      if (P.vh < -40 && e.hp > 0 && this.state === 'play') {
+      if (P.vh < -40 && e.hp > 0 && this.state === 'play' && !e.noStomp) {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
           const pound = P.diving && P.vh < -380;
@@ -4182,7 +4190,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ironclad: 600, torprat: 120, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -4303,6 +4311,7 @@ class Level1 extends Phaser.Scene {
         }
       }
       if (!dead && this.gz && this.gorgeHit(b.theta, b.h, 6)) dead = true;
+      if (!dead && this.az && this.armadaHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (false) {
       }
       if (!dead && b.deflected) { /* glancing off a shield: harmless now */ }
@@ -5279,6 +5288,7 @@ class Level1 extends Phaser.Scene {
         if (e.spr.visible && e.jetT <= 0) { e.jetT = 0.05; this.fxRatJet.emitParticleAt(jx - Math.sin(r) * 9 * sc, jy + Math.cos(r) * 9 * sc, 1); }
       }
     }
+    if (this.def.ocean) this.armadaDraw();
     if (this.def.saucer) this.saucerDraw();
     if (this.def.gorge) this.gorgeDraw();
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
@@ -5420,7 +5430,8 @@ Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
 Object.assign(Level1.prototype, GorgeMixin);
-Object.assign(Level1.prototype, SaucerMixin);         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
+Object.assign(Level1.prototype, SaucerMixin);
+Object.assign(Level1.prototype, ArmadaMixin);         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
