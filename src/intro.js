@@ -393,7 +393,7 @@ class IntroScene extends Phaser.Scene {
 
   preload() {
     if (window.LCBoot) { LCBoot.set(0.62, 'FINDING BESSIE'); this.load.on('progress', f => LCBoot.set(0.62 + 0.2 * f)); }
-    this.load.image('titleArt', 'assets/title.jpg?v=1');
+    // (v2.54: the painted cover art, assets/title.jpg, is kept in the repo but no longer used: TitleBackdrop draws the title in the game's own pixel style)
     this.load.image('portrait', 'assets/portrait.png?v=2');
     // the editable sprites (assets/sprites/*.png, see SPRITE_FILES in textures.js). On the live site the deploy packs
     // them into one sheet (sheet.json + sheet0.png: two requests); if there's no sheet (running locally from the repo)
@@ -415,7 +415,7 @@ class IntroScene extends Phaser.Scene {
   // (muzzle flash, macaroni flying out of the drill, steam from the hopper, pulsing UFO beam, twinkles).
   // Positions are in the art's own pixels (1024 x 572).
   buildTitleArt() {
-    if (!this.textures.exists('titleArt')) return;
+    if (!this.textures.exists('titleArt')) { this.backdrop = new TitleBackdrop(this, 0.2, 0.24); this.time.addEvent({ delay: 16, loop: true, callback: () => this.fitArt() }); return; }
     const A = this.add.container(0, 0).setDepth(9);
     this.art = A;
     const P = (x, y) => [x - 512, y - 286];
@@ -448,6 +448,7 @@ class IntroScene extends Phaser.Scene {
   }
 
   fitArt() {
+    if (this.backdrop) this.backdrop.update();
     if (!this.art) return;
     // cover the whole screen every frame (size can change: fullscreen, rotation, PC window), with a slow drift + zoom
     const W = this.scale.width, H = this.scale.height, t = this.time.now / 1000;
@@ -615,7 +616,7 @@ class IntroScene extends Phaser.Scene {
     this.pulse.stop();
     this.capText.setText('').setAlpha(1);
     this.tweens.add({ targets: [this.gateTitle, this.gateSub], scale: 1.12, yoyo: true, repeat: 3, duration: 330, ease: 'Sine.easeInOut' });
-    this.titleT = this.at(this.art ? 4400 : 1500, () => this.story());
+    this.titleT = this.at(this.art || this.backdrop ? 4400 : 1500, () => this.story());
   }
 
   story() {
@@ -627,6 +628,7 @@ class IntroScene extends Phaser.Scene {
     this.cameras.main.once('camerafadeoutcomplete', () => {
       if (this.leaving) return;
       if (this.art) { this.art.destroy(); this.art = null; }
+      if (this.backdrop) { this.backdrop.destroy(); this.backdrop = null; }
       [this.gateTitle, this.gateSub, this.capText].forEach(o => o.setVisible(false));
       this.stage.setVisible(true);
       [this.bars, this.caption, this.chapter, this.skipText].forEach(o => o.setVisible(true));
@@ -1181,4 +1183,59 @@ class IntroScene extends Phaser.Scene {
     this.cameras.main.fadeOut(350, 0, 0, 0);
     this.time.delayedCall(380, () => this.scene.start('menu'));
   }
+}
+
+
+// ---------------------------------------------------------------- TITLE BACKDROP (v2.54)
+// In the game's own pixel style instead of the painted cover art: a dithered night sky, twinkling stars, a ringed planet,
+// shooting stars, and the curve of the Gruyere Globe across the bottom (craters turning slowly), with Chris standing
+// on it, cape flapping, the odd blast of the Mac-Grinder into the sky. depth: where it sits; cx: Chris's x (0..1 of the width).
+class TitleBackdrop {
+  constructor(scene, cx, depth) {
+    this.s = scene; this.cx = cx === undefined ? 0.5 : cx;
+    this.g = scene.add.graphics().setDepth(depth || 0);
+    this.stars = []; for (let i = 0; i < 120; i++) this.stars.push({ x: Math.random(), y: Math.random() * 0.75, s: Math.random() < 0.15 ? 2 : 1, tw: Math.random() * 6, c: [0xffffff, 0xffe8b0, 0xb8d0ff][i % 3] });
+    this.craters = []; for (let i = 0; i < 22; i++) this.craters.push({ a: -0.8 + Math.random() * 1.6, dep: 8 + Math.random() * 70, r: 5 + Math.random() * 16 });
+    this.shoot = null; this.shootT = 2; this.fireT = 3; this.t0 = scene.time.now;
+    this.rig = new ChrisRig(scene); this.rig.root.setDepth((depth || 0) + 0.05); this.rig.setWeapon(WEAPONS[0]);
+    this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0.5, power: 0, duck: false, facing: 1 };
+    this.last = scene.time.now;
+  }
+  update() {
+    const sc = this.s, g = this.g, W = sc.scale.width, H = sc.scale.height, now = sc.time.now, t = (now - this.t0) / 1000, dt = Math.min(0.05, (now - this.last) / 1000);
+    this.last = now; g.clear();
+    // the sky: bands of deep blue into purple, stepped like the levels' skies
+    const bands = [0x070a26, 0x0b1036, 0x111546, 0x1a1a56, 0x261c62, 0x34206a];
+    bands.forEach((c, i) => g.fillStyle(c, 1).fillRect(0, Math.floor(H * i / bands.length), W, Math.ceil(H / bands.length) + 1));
+    for (const st of this.stars) g.fillStyle(st.c, 0.35 + 0.55 * Math.abs(Math.sin(t * 1.3 + st.tw))).fillRect(Math.round(st.x * W), Math.round(st.y * H), st.s, st.s);
+    // a ringed planet, far off
+    { const px = W * 0.82, py = H * 0.2, pr = Math.max(14, H * 0.06);
+      g.lineStyle(3, 0x8a6ab8, 0.5).strokeEllipse(px, py, pr * 3.4, pr * 0.9);
+      g.fillStyle(0x6a4a9a, 1).fillCircle(px, py, pr); g.fillStyle(0x8a6ab8, 1).fillCircle(px - pr * 0.25, py - pr * 0.25, pr * 0.7); g.fillStyle(0x4a3478, 1).fillCircle(px + pr * 0.35, py + pr * 0.35, pr * 0.45);
+      g.lineStyle(3, 0xb89ae0, 0.8).beginPath(); g.arc(px, py, pr * 1.7, 0.1, Math.PI - 0.1, false); g.strokePath(); }
+    // shooting stars
+    this.shootT -= dt;
+    if (this.shootT <= 0) { this.shootT = 2.5 + Math.random() * 4; this.shoot = { x: Math.random() * W * 0.8 + W * 0.2, y: Math.random() * H * 0.3, l: 0.6 }; }
+    if (this.shoot) { const q = this.shoot; q.l -= dt; q.x -= 520 * dt; q.y += 200 * dt; if (q.l <= 0) this.shoot = null; else { g.lineStyle(2, 0xffffff, q.l / 0.6).lineBetween(q.x, q.y, q.x + 40, q.y - 15); g.fillStyle(0xffffff, 1).fillRect(q.x - 1, q.y - 1, 3, 3); } }
+    // the Gruyere Globe: a huge cheese moon whose top curves across the bottom of the screen
+    const R = Math.max(W, H) * 1.1, mx = W * 0.5, top = H * 0.8, my = top + R;
+    g.fillStyle(0xffd23f, 0.08).fillCircle(mx, my, R + 26); g.fillStyle(0xffd23f, 0.12).fillCircle(mx, my, R + 12);   // a warm halo
+    g.fillStyle(0x7a4a10, 1).fillCircle(mx, my, R + 3);
+    g.fillStyle(0xe0a628, 1).fillCircle(mx, my, R); g.fillStyle(0xf2c040, 1).fillCircle(mx, my - 6, R - 4); g.fillStyle(0xffd860, 1).fillCircle(mx - 4, my - 10, R - 14);
+    for (const c of this.craters) {                         // Gruyere holes near the surface, drifting round as it turns
+      const a = ((c.a + t * 0.012 + 0.8) % 1.6 + 1.6) % 1.6 - 0.8, rr = R - c.dep - c.r * 0.5, x = mx + Math.sin(a) * rr, y = my - Math.cos(a) * rr;
+      if (y - c.r > H || x < -c.r || x > W + c.r) continue;
+      const k = 0.35 + 0.65 * (1 - Math.abs(a) / 0.8);
+      g.fillStyle(0xa86a10, 1).fillEllipse(x, y, c.r * 2 * k + 2, c.r * 0.8); g.fillStyle(0x7a4a08, 1).fillEllipse(x, y - c.r * 0.12, c.r * 1.6 * k + 1, c.r * 0.5); g.fillStyle(0xffe890, 0.8).fillEllipse(x, y + c.r * 0.32, c.r * 1.4 * k, c.r * 0.16);
+    }
+    // Chris on top, cape in the wind; now and then a blast of the gun into the sky
+    const P = this.P; this.fireT -= dt;
+    if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
+    this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = 0.45 + 0.1 * Math.sin(t * 0.8);
+    const x = W * this.cx, y = top + 3 + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))));
+    const z = Math.max(1.3, Math.min(2.2, H / 230));
+    this.rig.update(P, dt, Math.round(x), Math.round(y), z, 1, Math.floor(t * 10) % 4);
+    if (this.burst > 0 && Math.floor(t * 20) % 2) { const gx = x + 60 * z * 0.5, gy = y - 46 * z; g.fillStyle(0xffe27a, 0.35).fillCircle(gx + 10 * z, gy - 8 * z, 10 * z); }
+  }
+  destroy() { this.g.destroy(); this.rig.root.destroy(); }
 }

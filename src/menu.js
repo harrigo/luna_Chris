@@ -161,7 +161,8 @@ class MenuScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
-    this.bg = this.textures.exists('titleArt') ? this.add.image(0, 0, 'titleArt').setAlpha(0.45) : null;
+    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.15, 0);   // (v2.54: the pixel title scene, not the painted cover art)
+    this.events.on('update', () => { if (this.backdrop) this.backdrop.update(); });
     this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5);
     this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
     this.fit();

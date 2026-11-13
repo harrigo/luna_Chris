@@ -1559,3 +1559,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Chris stands beside the wheel: trembling, sweating, wide-eyed while it spins; then jumping about with his gun up (good prize), a glum face (30 / plate), or sat down under a little rain cloud (the rat). New head textures c_head_hope / c_head_joy / c_head_sad.
 - Rugged look: no neon frame, sirens, rainbow bulbs or confetti. A bolted steel housing with rust, caged amber work lamps (slow chase while spinning, strobe on a win, dead on the rat), rotating amber beacons on a gantry, a steel clapper, weathered slice paint, a riveted sign plate, a hazard-chevron plinth and welding sparks on a good prize.
 - Route map: the ROUTE TO BESSIE banner is gone (the map starts higher), the shop kiosk moved to the empty top-middle sky, and the '?' stubs that gave away hidden warps are removed.
+
+## v2.54 — Pixel title screen
+- The painted cover art (assets/title.jpg) is no longer loaded or shown (the file stays in the repo). The title gate and the main menu now share TitleBackdrop (intro.js): a stepped night sky, twinkling stars, a ringed planet, shooting stars, and the curve of the Gruyere Globe with drifting Gruyere holes, Chris standing on it (cape flapping, the odd blast of the gun).
