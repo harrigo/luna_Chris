@@ -1627,3 +1627,13 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Deeper ocean: seabed radius 170, waterline 270 (was 210 / 170); floating wreckage at ~350; the whole ring is drawn.
 - NIBBLERS: shoals of little bug-eyed buck-toothed puffers (orange or blue, 1 hp, 50 pts) that swarm round Chris, each keeping its own spot, and dart in for a peck when he's close. They go POP: a juicy pop sound, a ring of bubbles, a flash. Schools of 5-8 come in every wave, and the Dreadnought sends them too.
 - More enemies per wave (schools, more torpedo rats). The Dreadnought is lighter: 90 hp (30 per keel), was 150.
+
+## v2.65 — The Rat King's Saucer, stage 2: he breaks out (src/saucer.js)
+- After the three waves the Rat King shudders in the dome, cracks spread across the glass, and he SMASHES out (glass everywhere, the dome left a jagged stub). Nobody's at the wheel: the saucer DIVES.
+- The dive: the ship never sits level (a constant wobble on top of the pitches), pitches come every 2.5-4.5 s with only 0.7 s of warning, and FREE FALL (gravity x0.35, you float off the deck) / PULL UP (x1.55, a crushing lurch) spells alternate with plain diving. Streaks rush up past, Parmesan Prime swells below, flames stream off the rims.
+- THE GRAND RAT-KING (new body, 3 poses): a bloated mangy rat in a tattered robe and ermine collar, a dented crown, the one huge bloodshot eye, a sagging belly - and for arms, two writhing KNOTS of his own minions, tails tangled, a fist of a rat on the end. 200 hp; faster below half.
+  - KNOT SWEEP: a wind-up (red warning band, "JUMP!" or "DUCK!"), then the knot sweeps across in front of him, low or high.
+  - MINION TOSS: he plucks Stewards off his arm and lobs them across the deck.
+  - BELLY SLAM: a crouch, a huge leap at Chris, and a shockwave running both ways along the deck (jump it); the ship pitches toward the impact.
+  - He slides with the deck too, but hangs on at the rim.
+- Gravity is now scaled per-scene (this.gravMul, reset on every level start).

@@ -353,8 +353,8 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('toff', 0), S('steward', 1.4), S('admiral', 3), S('steward', 4.6), S('toff', 6.2), S('steward', 7.8), S('toff', 9.4), S('admiral', 11.2), S('steward', 13), S('steward', 14.5)] },
       { name: 'WAVE 3', spawns: [S('admiral', 0), S('toff', 1.4), S('steward', 2.6), S('steward', 3.8), S('toff', 5.2), S('admiral', 6.8), S('steward', 8.2), S('toff', 9.6), S('steward', 11), S('admiral', 12.6), S('toff', 14), S('steward', 15.4)] }
     ],
-    boss: { tex: 'ratking', hp: 240, ai: 'king', armouredTop: true },       // (a stand-in: the mech from Parmesan Prime, until the real Rat King fight is built)
-    win: 'The Rat King is beaten... for now.\n(The real fight, Bessie and the ending are still to come.)'
+    boss: { tex: 'kingboss', hp: 200, ai: 'saucerking', scale: 1.15 },      // (v2.65) he smashes out of the dome; the saucer dives (saucer.js)
+    win: 'The Rat King is beaten!\n(Bessie, the ending and the credits are still to come.)'
   },
 
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)

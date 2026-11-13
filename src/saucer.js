@@ -18,6 +18,7 @@
 const SAUCER_HALF = 560;                                  // half the deck, px along the surface
 
 function makeSaucerTextures(scene, toonRat) {
+  makeKingTextures(scene);
   if (scene.game.__saucerTex) return; scene.game.__saucerTex = true;
   const INK = 0x1a1020, STEEL = [0xdfe6f0, 0x8a94a6, 0x4a5262], DARK = [0x5a6688, 0x2a3044, 0x141826], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a];
   const BLK = [0x4a4a5e, 0x1e1e2c, 0x0a0a12], RED = [0xff7a5a, 0xd8301a, 0x8a1408], FUR = [0xc4c8dc, 0x868ca6, 0x4a4f6a], PINK = [0xffb0c0, 0xe07a90, 0xa04a60];
@@ -170,10 +171,11 @@ const SaucerMixin = {
     G.t += dt;
     // ---- HE STEERS: idle -> warn (lights run, alarm) -> hard over -> ease back
     if (this.state === 'play') G.tT -= dt;
-    if (G.tState === 'idle' && G.tT <= 0) { G.tState = 'warn'; G.tT = 1.3; G.tiltDir = Math.random() < 0.5 ? -1 : 1; Sound.sfx('alarm'); this.banner(G.tiltDir < 0 ? '<<<  HARD TO PORT!' : 'HARD TO STARBOARD!  >>>'); }
-    else if (G.tState === 'warn' && G.tT <= 0) { G.tState = 'over'; G.tT = rnd(2.6, 3.4) + 0.3 * (this.waveIdx || 0); Sound.sfx('whoosh'); this.cameras.main.shake(260, 0.006); buzz(60); }
-    else if (G.tState === 'over' && G.tT <= 0) { G.tState = 'idle'; G.tT = rnd(7, 11) - 1.2 * (this.waveIdx || 0); }
-    const goal = G.tState === 'over' ? G.tiltDir : 0;
+    if (G.fall) { this.saucerFall(dt); this.kingWaves(dt); }
+    if (G.tState === 'idle' && G.tT <= 0) { G.tState = 'warn'; G.tT = G.fall ? 0.7 : 1.3; G.tiltDir = Math.random() < 0.5 ? -1 : 1; Sound.sfx('alarm'); this.banner(G.tiltDir < 0 ? '<<<  HARD TO PORT!' : 'HARD TO STARBOARD!  >>>'); }
+    else if (G.tState === 'warn' && G.tT <= 0) { G.tState = 'over'; G.tT = G.fall ? rnd(1.4, 2.4) : rnd(2.6, 3.4) + 0.3 * (this.waveIdx || 0); Sound.sfx('whoosh'); this.cameras.main.shake(260, 0.006); buzz(60); }
+    else if (G.tState === 'over' && G.tT <= 0) { G.tState = 'idle'; G.tT = G.fall ? rnd(2.5, 4.5) : rnd(7, 11) - 1.2 * (this.waveIdx || 0); }
+    const goal = (G.tState === 'over' ? G.tiltDir : 0) + (G.fall ? 0.22 * Math.sin(G.t * 1.7) + 0.12 * Math.sin(G.t * 4.3) : 0);   // (diving: it never sits level)
     G.tilt += (goal - G.tilt) * Math.min(1, dt * (goal ? 3.5 : 2.2));
     if (Math.abs(G.tilt) > 0.02 && this.state === 'play' && !P.pitFall) {
       const onDeck = P.h <= (P.floor || 0) + 0.5;
@@ -185,6 +187,7 @@ const SaucerMixin = {
     if (Math.abs(d) > G.DH + 6 / R && P.h <= 0.5 && !(P.floor > 0) && !P.pitFall && this.state === 'play') { P.pitFall = 0.85; Sound.sfx('whoosh'); this.banner('OVERBOARD!'); buzz(80); }
     for (const e of this.enemies) {
       if (e.type === 'boss' || e.hp <= 0) continue;
+      if (e.tossV) { e.theta = wrap(e.theta + e.tossV / R * dt); if (e.h <= 1) e.tossV = 0; }
       const st = ENEMY[e.type] || {};
       if (!e.over) {
         if (st.deck && e.h <= 1) {
@@ -221,12 +224,17 @@ const SaucerMixin = {
     const sp = (px, h) => this.screenPos(wrap(px / R), h);
     // ---- sky: hyperspace streaks (they lean with the helm), and the cheese world far below
     const sk = G.sky; sk.clear();
-    for (const s of G.streaks) {
+    if (G.fall) for (const s of G.streaks) {                                                         // diving: everything rushes up past us
+      s.y -= (0.5 * s.sp) * (this.lastDt || 0.016); if (s.y < -0.2) { s.y += 1.4; s.x = Math.random(); }
+      const x = s.x * W + G.tilt * 30, y = s.y * H, len = s.len * 1.4;
+      sk.lineStyle(s.sp > 1.3 ? 2 : 1, s.c, 0.3 + 0.3 * s.sp / 1.7).lineBetween(x, y, x - G.tilt * len * 0.3, y + len);
+    }
+    else for (const s of G.streaks) {
       s.x -= (0.22 * s.sp + G.tilt * 0.3 * s.sp) * (this.lastDt || 0.016); if (s.x < -0.2) s.x += 1.4; if (s.x > 1.2) s.x -= 1.4;
       const x = s.x * W, y = s.y * H * 0.8, len = s.len * (1 + Math.abs(G.tilt) * 1.5);
       sk.lineStyle(s.sp > 1.3 ? 2 : 1, s.c, 0.25 + 0.3 * s.sp / 1.7).lineBetween(x, y, x + len, y - G.tilt * len * 0.12);
     }
-    { const pr = H * 0.2, px = W * 0.2 - angDiff(P.theta, 0) * 40, py = H * 0.34;                          // Parmesan Prime, far below and behind: small, on fire
+    { const fk = G.fall ? Math.min(1, G.fall / 40) : 0, pr = H * (0.2 + 0.9 * fk), px = W * (0.2 + 0.3 * fk) - angDiff(P.theta, 0) * 40, py = H * (0.34 + 0.75 * fk);   // (it swells as we plunge toward it)                          // Parmesan Prime, far below and behind: small, on fire
       sk.fillStyle(0xffb070, 0.07).fillCircle(px, py, pr + 26); sk.fillStyle(0xffb070, 0.1).fillCircle(px, py, pr + 12);
       sk.fillStyle(0x8a7a4a, 1).fillCircle(px, py, pr); sk.fillStyle(0xc0b07a, 1).fillCircle(px - pr * 0.02, py - pr * 0.02, pr * 0.975); sk.fillStyle(0xdcd0a0, 1).fillCircle(px - pr * 0.05, py - pr * 0.05, pr * 0.93);
       for (let k = 0; k < 9; k++) { const a = k * 0.7 + 0.3, dd = pr * (0.25 + (k % 4) * 0.16), cxp = px + Math.cos(a) * dd, cyp = py + Math.sin(a) * dd; sk.fillStyle(k % 3 ? 0xa8985a : 0xff7a3a, k % 3 ? 0.8 : 0.6 + 0.3 * Math.sin(t * 5 + k)).fillEllipse(cxp, cyp, pr * (0.12 + (k % 3) * 0.05), pr * (0.07 + (k % 2) * 0.03)); }
@@ -264,7 +272,22 @@ const SaucerMixin = {
     this.place(G.king, wrap(G.tilt * 14 / R), 22 + bob, lean); G.king.setScale(G.king.scaleX * 1.0, G.king.scaleY * (1 + 0.02 * Math.sin(t * 2.2)));
     for (const m of G.minions) { this.place(m, wrap((m.sd * 62 + G.tilt * 8) / R), 20 + Math.abs(Math.sin(t * 5 + m.sd)) * 4 + (warn && m.sd === dir ? 5 : 0), 0); m.setFlipX(m.sd > 0); m.setScale(m.scaleX * 1.2, m.scaleY * 1.2); }
     this.place(G.yoke, wrap(G.tilt * 20 / R), 14, G.tilt * 0.6);
-    this.place(G.domeGlass, 0, 0, 0); G.domeGlass.setScale(G.domeGlass.scaleX * 1.25, G.domeGlass.scaleY * 1.25); G.domeGlass.setAlpha(0.8);
+    if (G.broken) { G.king.setVisible(false); G.yoke.setVisible(false); G.minions.forEach(m => m.setVisible(false)); if (G.domeGlass.texture.key !== 'sdome_broken') G.domeGlass.setTexture('sdome_broken'); }
+    if (G.breakout) { G.king.x += Math.sin(t * 70) * 3; G.king.setTexture(Math.floor(t * 8) % 2 ? 'sking' : 'sking'); }
+    this.place(G.domeGlass, 0, 0, 0); G.domeGlass.setScale(G.domeGlass.scaleX * 1.25, G.domeGlass.scaleY * 1.25); G.domeGlass.setAlpha(G.broken ? 1 : 0.8);
+    if (G.breakout) {                                                                                  // cracks spreading across the glass
+      const b = this.enemies.find(q => q.type === 'boss'), k = b && b.ks ? Math.min(1, b.ks.t / 2.2) : 0, c = this.screenPos(0, 70);
+      L.lineStyle(2 * z, 0xffffff, 0.9);
+      for (let i = 0; i < Math.floor(k * 9); i++) { const a = -2.6 + i * 0.6, r1 = 18 * z, r2 = (30 + 30 * k) * z; L.lineBetween(c.x + Math.cos(a) * r1 * 0.3, c.y + Math.sin(a) * r1 * 0.3, c.x + Math.cos(a + 0.15) * r2, c.y + Math.sin(a + 0.15) * r2); }
+    }
+    if (G.fall) for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) {                               // re-entry: flames streaming up off the rims
+      const q = sp(sd * (E + 20 - k * 30), -60), len = (40 + 40 * Math.random()) * z;
+      L.fillStyle(k % 2 ? 0xff8a2a : 0xffd23f, 0.5).fillTriangle(q.x - 8 * z, q.y, q.x + 8 * z, q.y, q.x + G.tilt * 10, q.y - len);
+    }
+    if (G.waves) for (const Wv of G.waves) { const q = this.screenPos(wrap(Wv.theta + Wv.dir * 300 * Wv.t / R), 6); L.fillStyle(0xffe27a, 0.8).fillEllipse(q.x, q.y, 34 * z, 12 * z); L.fillStyle(0xffffff, 0.9).fillEllipse(q.x, q.y, 14 * z, 5 * z); }
+    { const b = this.enemies.find(q => q.type === 'boss'); if (b && b.ks && b.ks.swing) {                // the knot sweeping across: a smear in front of him, low or high
+      const S2 = b.ks.swing; S2.t += this.lastDt || 0.016; if (S2.t > 0.35) b.ks.swing = null; else { const a = S2.t / 0.35, hh = S2.high ? 100 : 26; const pts = []; for (let i = 0; i <= 10; i++) { const u = i / 10; pts.push(this.screenPos(wrap(b.theta + S2.dir * (20 + 150 * u * a) / R), hh + 20 * Math.sin(u * Math.PI))); } L.lineStyle(16 * z, 0xffd23f, 0.35 * (1 - a)).strokePoints(pts, false); L.lineStyle(5 * z, 0xffffff, 0.8 * (1 - a)).strokePoints(pts, false); } }
+      if (b && b.ks && b.ks.st === 'sweep' && !b.ks.hit) { const q = this.screenPos(wrap(b.theta + b.ks.dir * 70 / R), b.ks.high ? 100 : 26); L.fillStyle(0xff3a2a, 0.25 + 0.2 * Math.sin(t * 30)).fillEllipse(q.x, q.y, 150 * z, 26 * z); } }
     // ---- the strafing run
     const fx = G.fx; fx.clear(); G.fighter.setVisible(false);
     if (G.strafe) {
@@ -278,3 +301,175 @@ const SaucerMixin = {
     }
   }
 };
+
+// ---------------------------------------------------------------- STAGE 2 (v2.65): THE RAT KING BREAKS OUT
+// When the waves are done he smashes out through the dome glass and comes for Chris on the open deck. With nobody at the
+// wheel the saucer goes into a dive: it pitches about at random (short warnings), and FREE FALL / PULL UP spells swing the
+// gravity - floaty while it plunges, crushing when it lurches level. Parmesan Prime swells up below, streaks rush past.
+//   THE KING      a bloated mangy rat in a tattered ermine robe, the crown jammed on, the one huge eye - and for arms,
+//                 two writhing knots of his own minions, tails tangled together.
+//   KNOT SWEEP    he hauls a knot back (it glows), then sweeps it across the deck: LOW (jump it) or HIGH (duck it).
+//   MINION TOSS   he plucks rats off his knot and lobs them; they land and scurry at you.
+//   BELLY SLAM    he leaps, hangs, and drops on the deck: a shockwave runs both ways along it (jump), and the ship
+//                 pitches toward the impact.
+//   Half health: everything faster, the dive gets wilder.
+function makeKingTextures(scene) {
+  if (scene.game.__kingTex) return; scene.game.__kingTex = true;
+  const INK = 0x1a1020, FUR = [0xc4c8dc, 0x868ca6, 0x4a4f6a], MANGE = [0x9aa0b8, 0x6a7088, 0x3a3f54], PINK = [0xffb0c0, 0xe07a90, 0xa04a60];
+  const GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a], ERM = [0xffffff, 0xeef2f8, 0xc8d0e0], ROBE = [0xc84a6a, 0x8a1a3a, 0x4a0a1e];
+  const minirat = (a, x, y, ang, s, eyeOpen) => {                          // one of the rats in the knot: a body, a head, an eye, a tail
+    const c = Math.cos(ang), sn = Math.sin(ang);
+    a.ell(x, y, 6 * s, 4 * s, FUR); a.ell(x + c * 6 * s, y + sn * 6 * s, 3.6 * s, 3.2 * s, FUR);
+    a.ell(x + c * 4 * s - sn * 3 * s, y + sn * 4 * s + c * 3 * s - 2 * s, 1.8 * s, 2 * s, PINK);
+    a.px(Math.round(x + c * 9 * s), Math.round(y + sn * 9 * s), PINK[1]);
+    if (eyeOpen) { a.ell(x + c * 7 * s, y + sn * 7 * s - 1, 1.6, 1.6, 0xffffff); a.px(Math.round(x + c * 7 * s + c), Math.round(y + sn * 7 * s - 1), INK); }
+    a.line([[x - c * 5 * s, y - sn * 5 * s], [x - c * 9 * s + sn * 3, y - sn * 9 * s - c * 3], [x - c * 12 * s, y - sn * 12 * s + 2]], PINK[1]);
+  };
+  const knot = (a, cx, cy, ang, len) => {                                  // an arm made of rats: a writhing tangle along a line
+    for (let k = 0; k < 5; k++) { const u = k / 4, x = cx + Math.cos(ang) * len * u + Math.sin(k * 2.1) * 4, y = cy + Math.sin(ang) * len * u + Math.cos(k * 1.7) * 4; minirat(a, x, y, ang + Math.sin(k * 2.7) * 1.4 + (k % 2 ? Math.PI : 0), 1 - u * 0.15, k % 2 === 0); }
+    for (let k = 0; k < 6; k++) { const u = (k + 0.5) / 6, x = cx + Math.cos(ang) * len * u, y = cy + Math.sin(ang) * len * u; a.line([[x - 4, y - 3], [x + 2, y + 4], [x + 5, y - 2]], PINK[1]); }   // the tangled tails
+    const ex = cx + Math.cos(ang) * (len + 6), ey = cy + Math.sin(ang) * (len + 6); a.ell(ex, ey, 7, 6, FUR); a.ell(ex + 2, ey - 1, 2.6, 2.6, 0xffffff); a.px(Math.round(ex + 3), Math.round(ey - 1), INK); a.rect(Math.round(ex + 4), Math.round(ey + 2), Math.round(ex + 6), Math.round(ey + 4), 0xfffbe8);   // a fist of a rat on the end, teeth bared
+  };
+  const body = (key, pose) => pixSprite(scene, key, 140, 130, a => {
+    const sq = pose === 2 ? 6 : 0, up = pose === 1;
+    // the knots behind (the far arm)
+    knot(a, 46, 70, up ? -2.2 : 2.5, up ? 40 : 34);
+    // robe, tattered at the hem; a sagging belly out of it
+    a.poly([[30, 72 + sq], [46, 52 + sq], [94, 52 + sq], [110, 72 + sq], [112, 118], [100, 124], [92, 116], [82, 126], [70, 118], [58, 126], [48, 116], [36, 124], [28, 118]], ROBE);
+    for (let x = 34; x < 108; x += 7) a.line([[x, 70 + sq], [x + 2, 116]], ROBE[2]);
+    a.ell(70, 96 + sq * 0.5, 26, 22 - sq * 0.3, MANGE); a.ell(66, 92 + sq * 0.5, 16, 12, FUR); a.ell(70, 98 + sq * 0.5, 2.4, 2, PINK[2]);   // the belly, a deep navel
+    for (const [x, y] of [[54, 104], [84, 88], [76, 110], [60, 86]]) { a.px(x, y + sq * 0.5, MANGE[2]); a.px(x + 1, y + sq * 0.5, PINK[1]); }   // sores
+    a.ell(70, 52 + sq, 42, 8, ERM); for (let x = 34; x < 108; x += 8) { a.px(x, 51 + sq, INK); a.px(x + 1, 52 + sq, INK); }                       // ermine collar
+    // the head: jowly, mangy, one huge eye, a crown jammed on
+    const hy = 34 + sq;
+    a.ell(40, hy - 14, 10, 13, PINK); a.ell(100, hy - 14, 10, 13, PINK); a.ell(40, hy - 13, 5, 8, PINK[2]); a.ell(100, hy - 13, 5, 8, PINK[2]); a.poly([[104, hy - 24], [110, hy - 20], [105, hy - 17]], INK);
+    a.ell(70, hy, 32, 26, FUR); a.ell(52, hy + 14, 14, 10, MANGE); a.ell(88, hy + 14, 14, 10, MANGE);
+    for (const [x, y] of [[50, hy - 8], [92, hy - 2], [62, hy + 20], [80, hy - 16]]) { a.ell(x, y, 2.4, 2, PINK); a.px(x - 1, y - 1, 0xffd0d8); }   // warts
+    a.line([[46, hy - 10], [62, hy - 4]], INK, 4); a.line([[96, hy - 14], [78, hy - 4]], INK, 5);
+    a.ell(56, hy, 4.6, 2.6, INK); a.ell(56, hy, 3.4, 1.4, 0xffe8d0); a.px(57, hy, INK);
+    a.ell(84, hy + 1, 12, 11, INK); a.ell(84, hy + 1, 10.6, 9.6, [0xffffff, 0xfff0e0, 0xd8c0b0]);
+    for (let k = 0; k < 7; k++) { const t2 = k / 7 * 6.283; a.line([[84 + Math.cos(t2) * 9.5, hy + 1 + Math.sin(t2) * 8.6], [84 + Math.cos(t2 + 0.3) * 6, hy + 1 + Math.sin(t2 + 0.3) * 5.5]], 0xe0301a); }
+    a.ell(85 + (up ? 0 : 1), hy + 2, 4, 4.5, [0xffd23f, 0xc8901a, 0x7a5210]); a.ell(85 + (up ? 0 : 1), hy + 2, 1.8, 2.8, INK); a.px(81, hy - 3, 0xffffff);
+    a.ell(70, hy + 14, 7, 5.5, PINK); a.px(67, hy + 12, 0xffffff);
+    if (up || pose === 2) { a.ell(70, hy + 22, 11, 7, [0x8a1a1a, 0x5a0a0a, 0x2a0404]); a.rect(64, hy + 15, 69, hy + 22, 0xf0e090); a.rect(71, hy + 15, 76, hy + 21, 0xfffbe8); a.ell(70, hy + 26, 5, 2, [0xff8a9a, 0xd04a5a, 0x8a1a2a]); a.line([[60, hy + 26], [58, hy + 36]], 0x9ae8ff); }
+    else { a.poly([[58, hy + 19], [82, hy + 19], [78, hy + 26], [62, hy + 26]], [0x8a1a1a, 0x5a0a0a, 0x2a0404]); a.rect(64, hy + 19, 69, hy + 27, 0xf0e090); a.rect(71, hy + 19, 76, hy + 25, 0xfffbe8); a.line([[62, hy + 26], [61, hy + 33]], 0x9ae8ff); }
+    for (const sd of [-1, 1]) for (const dy of [-2, 1, 4]) a.line([[70 + sd * 8, hy + 13 + dy * 0.3], [70 + sd * 30, hy + 9 + dy * 2]], 0xe8ecf8);
+    const cy2 = hy - 26 - (up ? 2 : 0);
+    a.poly([[56, cy2 + 8], [58, cy2 - 4], [63, cy2 + 2], [70, cy2 - 7], [77, cy2 + 2], [82, cy2 - 4], [84, cy2 + 8]], GOLD); a.rect(57, cy2 + 6, 83, cy2 + 9, GOLD[1]);
+    a.px(70, cy2 - 4, 0xff3a2a); a.px(63, cy2 + 7, 0x5ce1ff); a.px(77, cy2 + 7, 0x7dff8a); a.line([[80, cy2 + 2], [83, cy2 + 6]], GOLD[2]);   // dented
+    // the near arm: a knot of rats
+    knot(a, 96, 70, up ? -1.0 : (pose === 2 ? 0.3 : 0.9), up ? 40 : 34);
+    // stubby legs, splayed toes
+    for (const x of [52, 88]) { a.rrect(x - 7, 116, x + 7, 128, 3, MANGE); for (const t2 of [-5, 0, 5]) a.ell(x + t2, 128, 2, 1.6, PINK); }
+  });
+  body('kingboss', 0); body('kingboss_b', 1); body('kingboss_c', 2);
+  pixSprite(scene, 'sdome_broken', 180, 124, a => {                         // what's left of the dome: the rim, jagged stubs of glass, a bent rib
+    for (let k = 0; k <= 60; k++) { const t2 = Math.PI + k / 60 * Math.PI, x = 90 + Math.cos(t2) * 80, y = 110 + Math.sin(t2) * 100; if (y > 70) { a.px(Math.round(x), Math.round(y), 0xd8f0ff); a.px(Math.round(x), Math.round(y) + 1, 0x8ac0e8); } }
+    for (const [x0, h, w] of [[16, 26, 10], [40, 16, 12], [130, 22, 12], [156, 30, 10], [96, 10, 14]]) a.poly([[x0, 110], [x0 + w * 0.3, 110 - h], [x0 + w * 0.6, 110 - h * 0.5], [x0 + w, 110 - h * 0.8], [x0 + w + 2, 110]], [0xd8f4ff, 0x8ac8f0, 0x3a7aa8]);
+    a.line([[48, 110], [60, 64], [80, 52]], 0x9ad0f0, 2);
+  }, 0);
+  pixSprite(scene, 'glassshard', 12, 12, a => { a.poly([[1, 10], [5, 1], [11, 6], [7, 11]], [0xffffff, 0xb8e4ff, 0x6aa8d8]); }, 0);
+}
+
+Object.assign(SaucerMixin, {
+  // the boss turns up in the dome: he shakes, the glass cracks... and he bursts out
+  kingSetup(e) {
+    const G = this.sz;
+    e.theta = 0; e.h = 20; e.phased = true; e.ch = 80; e.r = 58; e.ks = { st: 'breakout', t: 0, cd: 1.5, seq: 0 };
+    e.spr.setOrigin(0.5, 1).setDepth(6); e.spr.bsx = e.spr.bsy = 1.5; e.spr.setVisible(false);
+    G.breakout = 0.001; this.banner('THE RAT KING IS COMING OUT!');
+  },
+  kingAI(e, dt, P) {
+    const G = this.sz, K = e.ks, toP = angDiff(P.theta, e.theta), dirP = Math.sign(toP) || 1, p2 = e.hp < e.maxHp * 0.5, sp = p2 ? 1.3 : 1;
+    K.t += dt;
+    if (K.st === 'breakout') {
+      // the King in the dome shudders, the glass cracks (drawn by saucerDraw), then SMASH
+      if (K.t > 2.4) {
+        K.st = 'land'; K.t = 0; e.phased = false; e.spr.setVisible(true); e.spr.setTexture('kingboss_b');
+        e.h = 140; e.vh = 360; e.vt = dirP * 90;
+        G.broken = true; G.breakout = 0; G.fall = 0.001;
+        for (let k = 0; k < 40; k++) { const im = this.add.image(0, 0, 'glassshard').setDepth(8); im.bsx = im.bsy = rnd(0.7, 1.6); this.parts.push({ theta: wrap(rnd(-60, 60) / R), h: rnd(40, 140), vt: rnd(-300, 300), vh: rnd(150, 520), life: rnd(0.8, 1.4), spr: im, rot: 0, rv: rnd(-14, 14) }); }
+        this.cameras.main.shake(400, 0.016); this.cameras.main.flash(200, 220, 240, 255); Sound.sfx('crash'); Sound.sfx('boom'); buzz([80, 40, 120]);
+        this.banner('NOBODY AT THE WHEEL... WE\'RE GOING DOWN!');
+      }
+      return;
+    }
+    if (K.st === 'land') {                                // in the air (out of the dome, or a slam): ballistic
+      e.vh -= this.gAt(e.theta) * dt; e.h += e.vh * dt; e.theta = wrap(e.theta + e.vt / R * dt);
+      if (e.h <= 0 && e.vh < 0) {
+        e.h = 0; e.vh = 0;
+        this.kingShock(e, K.slam ? 1 : 0.6);
+        K.slam = false; K.st = 'walk'; K.t = 0; K.cd = rnd(0.9, 1.4) / sp; e.spr.setTexture('kingboss_c'); K.squash = 0.35;
+      }
+      return;
+    }
+    // slides with the deck, and staggers toward Chris between attacks
+    if (Math.abs(G.tilt) > 0.02) e.theta = wrap(e.theta + G.tilt * 70 / R * dt);
+    if (Math.abs(angDiff(e.theta, 0)) > G.DH - 40 / R) e.theta = wrap(Math.sign(angDiff(e.theta, 0)) * (G.DH - 40 / R));   // (he holds on at the rim)
+    K.squash = Math.max(0, (K.squash || 0) - dt);
+    if (K.st === 'walk') {
+      if (K.squash <= 0) e.spr.setTexture('kingboss');
+      if (Math.abs(toP) * R > 90) e.theta = wrap(e.theta + dirP * 55 * sp / R * dt);
+      e.spr.setFlipX(dirP < 0);
+      if ((K.cd -= dt) <= 0) {
+        const moves = ['sweep', 'toss', 'sweep', 'slam'];
+        const m = moves[K.seq++ % moves.length];
+        if (m === 'sweep') { K.st = 'sweep'; K.t = 0; K.high = Math.random() < 0.5; K.dir = dirP; e.spr.setTexture('kingboss_b'); Sound.sfx('charge'); this.popup(e.theta, e.h + 170, K.high ? 'DUCK!' : 'JUMP!', '#ffd23f'); }
+        else if (m === 'toss') { K.st = 'toss'; K.t = 0; K.n = p2 ? 3 : 2; e.spr.setTexture('kingboss_b'); }
+        else { K.st = 'slamup'; K.t = 0; e.spr.setTexture('kingboss_b'); Sound.sfx('charge'); }
+      }
+    } else if (K.st === 'sweep') {                        // wind-up (0.7 s), then the knot sweeps across in front of him
+      const wind = 0.7 / sp;
+      if (K.t > wind && !K.hit) {
+        K.hit = true; Sound.sfx('whoosh'); this.cameras.main.shake(120, 0.006);
+        K.swing = { t: 0, dir: K.dir, high: K.high };
+        const dx = angDiff(P.theta, e.theta) * R * K.dir, low = !K.high;
+        const hitLow = low && P.h < 46, hitHigh = !low && P.h + (P.duck ? 30 : 62) > 64 && P.h < 150;
+        if (dx > -20 && dx < 170 && (hitLow || hitHigh) && P.invuln <= 0 && this.state === 'play') { this.hurt(); P.vx = K.dir * 320; P.vh = Math.max(P.vh, 260); }
+      }
+      if (K.t > wind + 0.5) { K.st = 'walk'; K.cd = rnd(1.0, 1.6) / sp; K.hit = false; }
+    } else if (K.st === 'toss') {                         // plucks rats off his arm and lobs them
+      if (K.t > 0.45 && K.n > 0) {
+        K.t = 0.2; K.n--;
+        const r = this.makeEnemy('steward', e.theta, dirP); r.h = 110; r.vh = 420; r.tossV = dirP * rnd(120, 220); this.enemies.push(r);
+        Sound.sfx('squeak'); this.burst(e.theta, 110, 'spark', 4, 0.6);
+      }
+      if (K.n <= 0 && K.t > 0.6) { K.st = 'walk'; K.cd = rnd(1.0, 1.5) / sp; }
+    } else if (K.st === 'slamup') {                       // a crouch, then a huge leap at where Chris is
+      if (K.t > 0.5 / sp) { K.st = 'land'; K.slam = true; e.vh = 640; e.vt = Math.max(-260, Math.min(260, toP * R / 1.3)); e.spr.setTexture('kingboss_c'); Sound.sfx('jump'); }
+    }
+  },
+  // the slam: a shockwave runs both ways along the deck, and the ship pitches toward it
+  kingShock(e, power) {
+    const G = this.sz;
+    G.waves = G.waves || [];
+    for (const d of [-1, 1]) G.waves.push({ theta: e.theta, dir: d, t: 0, power });
+    this.cameras.main.shake(260, 0.012 * power); Sound.sfx('crash'); this.burst(e.theta, 4, 'spark', 16, 1.3); buzz(70);
+    if (G.tState === 'idle' && power >= 1) { G.tState = 'over'; G.tiltDir = Math.sign(angDiff(e.theta, 0)) || 1; G.tT = 1.4; }
+  },
+  kingWaves(dt) {
+    const G = this.sz, P = this.pl; if (!G.waves) return;
+    for (let i = G.waves.length - 1; i >= 0; i--) {
+      const W = G.waves[i]; W.t += dt; const px = W.dir * 300 * W.t;
+      const th = wrap(W.theta + px / R);
+      if (!W.hit && Math.abs(angDiff(P.theta, th)) * R < 18 && P.h < 24 && P.invuln <= 0 && this.state === 'play') { W.hit = true; this.hurt(); P.vh = 300; }
+      if (Math.random() < dt * 30) this.burst(th, 4, 'spark', 1, 0.5);
+      if (W.t > 2.2 || Math.abs(angDiff(th, 0)) > G.DH) G.waves.splice(i, 1);
+    }
+  },
+  // the dive: FREE FALL (light) and PULL UP (heavy) spells, wild pitching
+  saucerFall(dt) {
+    const G = this.sz, P = this.pl;
+    G.fall += dt;
+    G.fs = G.fs || { st: 'dive', t: 3 };
+    G.fs.t -= dt;
+    if (G.fs.t <= 0) {
+      if (G.fs.st === 'dive') { G.fs.st = Math.random() < 0.5 ? 'free' : 'pull'; G.fs.t = G.fs.st === 'free' ? rnd(2.2, 3) : rnd(1.4, 2); this.banner(G.fs.st === 'free' ? 'FREE FALL!' : 'PULL UP!'); Sound.sfx(G.fs.st === 'free' ? 'whoosh' : 'alarm'); if (G.fs.st === 'pull') this.cameras.main.shake(300, 0.01); }
+      else { G.fs.st = 'dive'; G.fs.t = rnd(3, 5); }
+    }
+    const goalG = G.fs.st === 'free' ? 0.35 : (G.fs.st === 'pull' ? 1.55 : 1);
+    this.gravMul = (this.gravMul || 1) + (goalG - (this.gravMul || 1)) * Math.min(1, dt * 4);
+    if (G.fs.st === 'free' && Math.random() < dt * 6) { P.vh += 30; }                                    // lifted off the deck
+    if (Math.random() < dt * 1.5) this.cameras.main.shake(80, 0.003);
+  }
+});

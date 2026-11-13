@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.64';
+const BUILD = 'v2.65';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -412,7 +412,7 @@ class Level1 extends Phaser.Scene {
     // L6: bottomless pits / speed-bump craters (drawn in front, flush with the ground) and razor tortilla chips
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
-    this.pinT = 0;
+    this.pinT = 0; this.gravMul = 1;
     if (this.def.ocean) this.armadaInit();              // L7: the ocean (armada.js)
     if (this.def.saucer) this.saucerInit();             // L10: the Royal Saucer's deck (saucer.js)
     if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
@@ -1415,7 +1415,7 @@ class Level1 extends Phaser.Scene {
   gAt(theta) {
     const zs = this.def.zones;
     if (zs) for (const z of zs) if (Math.abs(angDiff(theta, z.theta)) < z.half) return CFG.gravity * z.mult;
-    return CFG.gravity;
+    return CFG.gravity * (this.gravMul || 1);            // (L10: the saucer's dive swings it about)
   }
 
   // ----------------------------------------------------------------- update
@@ -3665,6 +3665,7 @@ class Level1 extends Phaser.Scene {
       e.shootCd = rnd(1.4, 2.4); e.roll = 0; e.flipCd = rnd(3, 6);
     }
     if (this.def.ocean) this.armadaSetup(e, kind);
+    if (type === 'boss' && this.def.boss.ai === 'saucerking') this.kingSetup(e);
     return e;
   }
 
@@ -3884,6 +3885,7 @@ class Level1 extends Phaser.Scene {
         if (e.ai === 'croque' || e.ai === 'baron') this.croqueStage(e, P);
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
         if (e.ai === 'dreadnought') this.armadaAI(e, dt, P);   // L7's boss steers itself (armada.js)
+        else if (e.ai === 'saucerking') this.kingAI(e, dt, P);  // L10: the Rat King on the deck (saucer.js)
         else if (e.ai !== 'wheel' && !e.mmLock && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
           const baron = e.ai === 'baron';
           const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head
