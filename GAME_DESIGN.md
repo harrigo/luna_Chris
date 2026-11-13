@@ -1546,3 +1546,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Rocket rats are twice the size (k 2.44, hit radius 30) and hover a little higher over you; the Oven Drone's homing pizza-cutter wheels are twice the size and can now be shot down (+100).
 - The whipping string-cheese strands are gone.
 - New: VOLCANO TANTRUMS. Every 17–24 s (not during the boss) the volcano rumbles for 2 s, then for 5.5 s molten boulders rain round Chris, each with a red shadow on the ground. 60% land in one piece and sit there cooling for 7 s: crack one (3 hits, shots/bash/spaghetti/blasts) for 3 cheddar and a 12% chance of a cheese wedge.
+
+## v2.52 — Milkmaid: MILK SPOUTS
+- New attack, in both acts (twice per cycle). She dips low and rams the churn's dasher down; a row of foaming rings appears along the ground ALL AT ONCE (so you can read the whole pattern), each brightening as its turn comes, then they burst one after another (0.24 s apart) into knee-high spouts of milk (0.4 s each) marching at you.
+- Act 1: one row from her, through Chris and beyond: hop each spout as it reaches you (it's below jump height), or back off.
+- Act 2: two rows march in from both sides and stop short of a two-spout gap near Chris with no ring in it: stand in the gap.
+- Not used while the laser cage is up.

@@ -13,6 +13,10 @@
 //                      2 s behind it (jetpack, or stand on a bone ledge).
 //   TRIANGULATION      neon-purple triangles fly out and lock into a laser cage round you: two walls and a lid that
 //                      close in for 8 s. Touching the lasers hurts and throws you back in.
+//   MILK SPOUTS        (v2.52) she rams the churn's dasher down: a row of foaming rings appears along the ground, all at
+//                      once, and they burst one after another into knee-high spouts of milk marching at you. Hop each one
+//                      as it reaches you (they're jump height). Act 2: two rows march in from both sides and stop short of a
+//                      gap (no ring there) - stand in it.
 //   TELEPORT           she streaks across the sky to your other side, leaving fading after-images.
 // ACT 2 "THE SOUR STAMPEDE" (below half): her bonnet shreds to show a spectral COW SKULL, she slams the churn into the
 //   ground (big shake, CLANG, shockwaves), then adds GHOST-COW STAMPEDES: skeletal cows rise out of the ribcages in
@@ -170,9 +174,9 @@ const MilkmaidMixin = {
         if (arenaOn) e.theta = this.mmClampIn(e.theta, 0.1);
         S.cd -= dt;
         if (S.cd <= 0) {
-          const seq = S.p2 ? ['stampede', 'rings', 'teleport', 'cascade', 'stampede', 'triangle', 'rings', 'teleport'] : ['rings', 'cascade', 'teleport', 'rings', 'triangle', 'teleport'];
+          const seq = S.p2 ? ['stampede', 'spouts', 'rings', 'teleport', 'cascade', 'stampede', 'spouts', 'triangle', 'rings', 'teleport'] : ['rings', 'spouts', 'cascade', 'teleport', 'rings', 'spouts', 'triangle', 'teleport'];
           let a = seq[S.i++ % seq.length];
-          if (arenaOn && (a === 'cascade' || a === 'teleport' || a === 'triangle')) a = 'rings';    // inside the cage: keep it close
+          if (arenaOn && (a === 'cascade' || a === 'teleport' || a === 'triangle' || a === 'spouts')) a = 'rings';    // inside the cage: keep it close
           this.mmStart(e, a, P);
         }
         break;
@@ -224,6 +228,27 @@ const MilkmaidMixin = {
         e.spr.setAlpha(0.35 + 0.55 * Math.abs(1 - 2 * k));
         if ((S.gT = (S.gT || 0) - dt) <= 0) { S.gT = 0.035; this.mmGhost(e); }
         if (k >= 1) { e.spr.setAlpha(0.9); this.mmIdle(e, 0.5); }
+        break;
+      }
+      case 'spouts': {                                 // (v2.52) the dasher slams down; a marching row of milk spouts
+        e.mmLock = true; S.wide = 0.2;
+        if (S.t < 0.5) { S.tiltGoal = -0.5; e.h += (95 - e.h) * Math.min(1, dt * 5); }
+        else if (!S.spawned) {
+          S.spawned = true; S.tiltGoal = 0.12;
+          Sound.sfx('churnclang'); this.cameras.main.shake(160, 0.008); this.burst(e.theta, 6, 'mm_splat', 10, 1.1);
+          const gap = 46 / R, list = [];
+          if (!S.p2) {                                  // one row from her, through Chris and out the other side
+            const dir = Math.sign(angDiff(P.theta, e.theta)) || 1, d0 = Math.abs(angDiff(P.theta, e.theta)) * R;
+            const start = Math.max(40, Math.min(d0 - 140, 120)) / R;
+            for (let k = 0; k < 9; k++) list.push({ theta: wrap(e.theta + dir * (start + k * gap)), t: -0.9 - k * 0.24 });
+          } else {                                      // two rows march in from both sides; a 2-spout gap near Chris is safe
+            const safe = wrap(P.theta + rnd(-40, 40) / R);
+            for (const sd of [-1, 1]) for (let k = 0; k < 6; k++) list.push({ theta: wrap(safe + sd * (gap * 1.5 + (5 - k) * gap)), t: -0.9 - k * 0.22 });
+          }
+          M.spouts = list;
+        }
+        if (S.t > 0.5) e.h += (MM.idleH - e.h) * Math.min(1, dt * 2);
+        if (S.t > 3.6) this.mmIdle(e, 0.4);
         break;
       }
       case 'stampede': {                               // skeletal cows rise from the ribcages and charge round the planet
@@ -328,6 +353,16 @@ const MilkmaidMixin = {
         if (P.h < L - 4) { this.hurt(); P.vh = Math.max(P.vh, 420); }
       }
     }
+    // the milk spouts: rings bubble (warning), then each bursts for 0.4 s, knee-high (jump it)
+    if (M.spouts) {
+      let any = false;
+      for (const Q of M.spouts) {
+        Q.t += dt; if (Q.t < 0.5) any = true;
+        if (Q.t >= 0 && !Q.fired) { Q.fired = true; Sound.sfx('splat'); this.burst(Q.theta, 6, 'mm_splat', 5, 0.9); }
+        if (Q.t >= 0 && Q.t < 0.4 && P.invuln <= 0 && Math.abs(angDiff(P.theta, Q.theta)) * R < 20 && P.h < 66) { this.hurt(); P.vh = Math.max(P.vh, 380); }
+      }
+      if (!any) M.spouts = null;
+    }
     // the pour itself
     if (M.stream && P.invuln <= 0 && Math.abs(angDiff(P.theta, M.stream.theta)) * R < 20 && P.h < M.stream.h) this.hurt();
     // the cage
@@ -382,7 +417,7 @@ const MilkmaidMixin = {
   },
   mmCleanup() {
     const M = this.mm; if (!M) return;
-    M.g.clear(); M.glow.clear(); M.flood = null; M.arena = null; M.stream = null;
+    M.g.clear(); M.glow.clear(); M.flood = null; M.arena = null; M.stream = null; M.spouts = null;
     if (M.boss) this.mmParts(M.boss, false);
     for (const e of this.enemies) if (e.mmS) this.mmParts(e, false);
     for (const b of this.eBullets) if (b.cow) b.life = 0;
@@ -429,6 +464,25 @@ const MilkmaidMixin = {
       }
       g.fillStyle(0xffffff, 0.95).fillPoints(left.concat(right.reverse()), true);          // MILK is white (v2.37: it used to glow blue)
       gl.fillStyle(0xfff4dc, 0.1).fillPoints(left.concat(right), true);
+    }
+    // milk spouts: a foaming ring on the ground (brighter as its turn comes), then a white column
+    if (M.spouts) for (const Q of M.spouts) {
+      const b = this.screenPos(Q.theta, 2); if (!b.vis) continue;
+      const ang = angDiff(Q.theta, vt);
+      if (Q.t < 0) {
+        const k = Math.max(0, 1 + Q.t / 0.9), w = (9 + 5 * k) * z;
+        g.lineStyle(5 * z, 0x2a1850, 0.5 + 0.4 * k).strokeEllipse(b.x, b.y, w * 2, w * 0.7);   // (dark under white: it reads on the pale brie)
+        g.lineStyle(2.5 * z, 0xffffff, 0.35 + 0.55 * k).strokeEllipse(b.x, b.y, w * 2, w * 0.7);
+        if (k > 0.5 && Math.random() < 0.6) g.fillStyle(0xffffff, 0.9).fillCircle(b.x + rnd(-w, w) * Math.cos(ang), b.y + rnd(-w, w) * Math.sin(ang) - rnd(0, 8) * z, 2 * z);
+        gl.fillStyle(0xfff4dc, 0.12 * k).fillCircle(b.x, b.y, w * 1.2);
+      } else if (Q.t < 0.5) {
+        const k = Q.t < 0.08 ? Q.t / 0.08 : Math.max(0, 1 - (Q.t - 0.4) / 0.1), top = 4 + 86 * Math.min(1, Q.t / 0.08), hw = 13 * z;
+        const t0 = this.screenPos(Q.theta, top), cx = Math.cos(ang), sy = Math.sin(ang);
+        const pts = [{ x: b.x - cx * hw, y: b.y - sy * hw }, { x: t0.x - cx * hw * 0.7, y: t0.y - sy * hw * 0.7 }, { x: t0.x + cx * hw * 0.7, y: t0.y + sy * hw * 0.7 }, { x: b.x + cx * hw, y: b.y + sy * hw }];
+        g.fillStyle(0xfdfbf4, 0.95 * k).fillPoints(pts, true);
+        g.fillStyle(0xffffff, k).fillCircle(t0.x, t0.y, hw * (0.8 + 0.2 * Math.sin(this.t * 30)));
+        gl.fillStyle(0xfff4dc, 0.18 * k).fillPoints(pts, true);
+      }
     }
     // the flood: milk lying on the planet, foaming along the crest
     if (M.flood) {
