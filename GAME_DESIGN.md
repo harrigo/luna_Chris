@@ -1569,3 +1569,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Gun start chips cost 50% more: 270 / 480 / 750.
 - Route map: the shop kiosk is back on the left (top corner of the sky), and the whole map sits a few pixels lower.
 - Title gate: LUNA CHRIS and the subtitle up in the sky to the right, TAP TO START below them, Chris on the moon to the left (nothing overlaps him); the ringed planet moved lower right.
+
+## v2.56 — Title text centred
+- LUNA CHRIS, the subtitle and TAP TO START are centred again (still up in the sky, clear of Chris).

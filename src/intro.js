@@ -551,7 +551,7 @@ class IntroScene extends Phaser.Scene {
     this.fitArt();
     const tfs = Math.max(24, Math.min(50, W / 17));
     if (this.backdrop) {                              // (v2.55) the pixel title: words up in the sky to the right, Chris on the moon to the left
-      const tx = W * 0.6;
+      const tx = W * 0.5;
       this.gateTitle.setFontSize(tfs).setPosition(tx, H * 0.25);
       this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(tx, H * 0.25 + tfs * 0.8);
       this.capText.setPosition(tx, H * 0.58).setWordWrapWidth(W * 0.6);
