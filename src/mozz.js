@@ -155,6 +155,36 @@ function makeMozzTextures(scene) {
     else p.line([[25, 6], [29, 6]], ST[1], 1);
   });
   fish('anchovy0', true); fish('anchovy1', false);
+  // (v2.57) the TOASTY OVEN DRONE, redrawn bigger and grubbier: a brick dome blackened with soot, a sooty steel chimney,
+  // riveted iron band, a roaring mouth with a pizza in it, glaring furnace eyes, little thrusters underneath
+  pixSprite(scene, 'ovendrone', 110, 88, p => {
+    const BR = [0xd8805a, 0xa04a2a, 0x5a2414], SOOT = [0x4a3a36, 0x2a201e, 0x141010], IRON = [0x9aa0aa, 0x5a606a, 0x2a2e36];
+    p.rrect(70, 0, 82, 26, 2, IRON); p.rect(68, 0, 84, 4, 0x2a2e36); p.rect(72, 4, 80, 14, 0x2a201e);                 // chimney, black at the top
+    p.ell(55, 44, 50, 34, BR);                                                                                      // the dome
+    for (let y = 16; y < 64; y += 7) { const hw = Math.sqrt(Math.max(0, 1 - Math.pow((y - 44) / 34, 2))) * 48;      // bricks
+      p.line([[55 - hw, y], [55 + hw, y]], 0x6a2a16); for (let x = 55 - hw + ((y / 7) % 2) * 6; x < 55 + hw; x += 12) p.line([[x, y], [x, y + 6]], 0x6a2a16); }
+    { let sd = 7; const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;          // soot: a dithered blackening, heaviest at the top and round the chimney
+      for (let y = 10; y < 46; y++) for (let x = 8; x < 102; x++) {
+        const dx = (x - 55) / 50, dy = (y - 44) / 34; if (dx * dx + dy * dy > 0.98) continue;
+        const k = Math.max(0, (40 - y) / 30) * 0.8 + Math.max(0, 1 - Math.hypot(x - 76, y - 12) / 16) * 0.7;
+        if (r() < k * 0.75) p.px(x, y, r() < 0.5 ? 0x2a1814 : 0x3e241a);
+      } }
+    for (const [x, y] of [[24, 30], [88, 34], [34, 20], [70, 20], [46, 12]]) { p.px(x, y, 0x141010); p.px(x + 1, y, 0x2a201e); }
+    p.rrect(4, 56, 106, 66, 3, IRON); for (let x = 10; x < 104; x += 10) { p.px(x, 59, 0xdfe6f0); p.px(x + 1, 60, 0x1a1020); }   // the iron band, riveted
+    p.ell(55, 62, 24, 14, 0x140808); p.rect(31, 62, 79, 74, 0x140808);                                               // the mouth
+    p.ell(55, 70, 20, 5, [0xffe27a, 0xff8a1a, 0xc0301a]);                                                           // fire
+    p.ell(55, 64, 12, 4, [0xfff0b0, 0xf0c050, 0xa86a20]); for (const x of [49, 55, 61]) p.ell(x, 64, 2, 1.5, [0xff7a6a, 0xd0301a, 0x8a1a10]);   // a pizza cooking
+    p.poly([[28, 38], [46, 43], [44, 49], [28, 45]], [0xffe27a, 0xffb020, 0xc05a10]); p.poly([[82, 38], [64, 43], [66, 49], [82, 45]], [0xffe27a, 0xffb020, 0xc05a10]);   // furnace eyes
+    p.line([[26, 34], [46, 40]], 0x141010, 2); p.line([[84, 34], [64, 40]], 0x141010, 2);                                  // scowl
+    p.rrect(16, 74, 94, 80, 2, IRON);                                                                               // the base plate
+    for (const x of [24, 55, 86]) { p.rrect(x - 6, 79, x + 6, 84, 2, IRON); p.poly([[x - 4, 84], [x + 4, 84], [x, 88]], [0xfff6c0, 0xffb52a, 0xff6a1a]); }   // thrusters
+    p.px(12, 50, 0xffd0a0); p.px(98, 50, 0xffd0a0);
+  });
+  pixSprite(scene, 'pizza', 22, 22, p => {                                     // (v2.57) a hot pizza, flung like a frisbee
+    p.ell(11, 11, 10, 10, [0xf0b060, 0xc07a30, 0x7a4418]); p.ell(11, 11, 8, 8, [0xfff0b0, 0xf8d860, 0xd8a030]);
+    for (const [x, y] of [[8, 7], [14, 8], [7, 13], [13, 14], [11, 11]]) p.ell(x, y, 2, 2, [0xff7a6a, 0xd0301a, 0x8a1a10]);
+    p.px(16, 12, 0x3a8a2a); p.px(6, 10, 0x3a8a2a); p.line([[11, 3], [11, 19]], 0xd8a030); p.line([[3, 11], [19, 11]], 0xd8a030);
+  });
   pixSprite(scene, 'pizzacutter', 18, 18, p => {
     p.ell(9, 9, 8, 8, [0xf4f8ff, 0xb0bccc, 0x5a6478]); p.ell(9, 9, 3, 3, [0xd04a2a, 0x9a2a14, 0x5a1408]);
     for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; p.line([[9 + Math.cos(a) * 4, 9 + Math.sin(a) * 4], [9 + Math.cos(a) * 7, 9 + Math.sin(a) * 7]], 0x6a7488); }
@@ -326,7 +356,15 @@ const MozzMixin = {
       e.theta = wrap(e.theta + Math.sign(d) * Math.min(Math.abs(d), 120 / R * dt));
       e.h += (200 + Math.sin(e.t * 1.6) * 18 - e.h) * Math.min(1, dt * 2);
       e.cutCd -= dt; e.cd -= dt;
-      if (e.cutCd <= 0) {                                                        // a homing pizza-cutter wheel
+      // (v2.57) soot: a column of greasy smoke from the chimney, embers from the mouth
+      if (Math.random() < dt * 9) { const im = this.add.image(0, 0, 'puff').setDepth(5.8).setTint(Math.random() < 0.5 ? 0x5a4a44 : 0x7a6a62).setAlpha(0.32); im.bsx = im.bsy = rnd(0.18, 0.3); this.parts.push({ theta: wrap(e.theta + (e.spr.flipX ? -1 : 1) * 27 / R), h: e.h + 56, vt: rnd(-15, 15), vh: rnd(40, 70), life: rnd(1, 1.6), noGrav: true, grow: 1.6, spr: im }); }
+      if (Math.random() < dt * 4) this.burst(e.theta, e.h - 14, 'spark', 1, 0.5);
+      if (e.cutCd <= 0 && (e.shots = (e.shots || 0) + 1) % 2 === 0) {           // every other throw: a hot PIZZA, lobbed in an arc (shoot it down, or dodge where it lands)
+        e.cutCd = rnd(2.2, 3);
+        const dx = angDiff(P.theta, e.theta) * R, air = 1.1, vt = Math.max(-260, Math.min(260, dx / air)), b = this.addEBullet('pizza', e.theta, e.h - 18, vt, 120, 14, 3);
+        b.grav = 2 * (120 * air + (e.h - 18 - 6)) / (air * air); b.pizza = true; b.spinV = 9; b.shootable = true; b.spr.bsx = b.spr.bsy = 1.5;
+        Sound.sfx('whoosh'); this.muzzleFlash(e.theta, e.h - 18); e.spr.hsq = 0.6;
+      } else if (e.cutCd <= 0) {                                                 // a homing pizza-cutter wheel
         e.cutCd = rnd(2.2, 3);
         const b = this.addEBullet('pizzacutter', e.theta, e.h - 20, dirP * 120, -60, 14, 4); b.home = 2.4; b.homeV = 165; b.spinV = 16; b.spr.bsx = b.spr.bsy = 2; b.shootable = true;   // (v2.51: twice the size, and you can shoot them down)
         Sound.sfx('zing'); this.muzzleFlash(e.theta, e.h - 20);
@@ -338,8 +376,8 @@ const MozzMixin = {
       if (e.cd <= 0) { e.st = 'drop'; e.vh = 0; e.spr.clearTint(); }
     } else if (e.st === 'drop') {
       e.vh -= 2400 * dt; e.h += e.vh * dt;
-      if (e.h <= 40) {
-        e.h = 40; e.st = 'sit'; e.cd = 0.9;
+      if (e.h <= 48) {
+        e.h = 48; e.st = 'sit'; e.cd = 0.9;
         Sound.sfx('boom'); this.cameras.main.shake(220, 0.012); this.burst(e.theta, 6, 'crumb', 12, 1.2);
         for (const sd of [-1, 1]) this.addEBullet('crumb', wrap(e.theta + sd * 40 / R), 9, sd * 240, 0, 10, 2.2);
       }

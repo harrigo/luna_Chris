@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.56';
+const BUILD = 'v2.57';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3678,7 +3678,7 @@ class Level1 extends Phaser.Scene {
       } else if (ai === 'flyer') {
         const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
         e.h += (want - e.h) * Math.min(1, dt * 3);
-        const hold = e.type === 'rocketrat' ? 40 + Math.sin(e.t * 0.9 + e.seed) * 30 : (e.type === 'ghostpirate' ? 150 + Math.sin(e.t * 0.7 + e.seed) * 60 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70);   // rocket rats park right over you
+        const hold = e.type === 'rocketrat' ? 18 + Math.sin(e.t * 0.9 + e.seed) * 30 : (e.type === 'ghostpirate' ? 150 + Math.sin(e.t * 0.7 + e.seed) * 60 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70);   // rocket rats park right over you
         const mv = distP > hold ? dirP : -dirP * 0.6;
         e.theta = wrap(e.theta + (mv * 105 / R) * dt);
         e.dir = dirP;
@@ -4372,6 +4372,10 @@ class Level1 extends Phaser.Scene {
       }
       if (b.caveWave && this.cave && this.caveWallHit(b.theta)) { this.burst(b.theta, b.h, 'spark', 3, 0.5); b.life = 0; }   // cheese waves splat on the rock walls
       if (b.acid && b.h <= 6) { this.acidSplat(b.theta); b.life = 0; }            // the Baron's cheese globe splats into a pool of acid
+      if (b.pizza) {                                     // (v2.57) the oven drone's flying pizza: trails smoke, splats on the crust
+        if (Math.random() < dt * 14) { const im = this.add.image(0, 0, 'puff').setDepth(7.8).setTint(0x3a2a24).setAlpha(0.5); im.bsx = im.bsy = rnd(0.2, 0.35); this.parts.push({ theta: b.theta, h: b.h, vt: rnd(-10, 10), vh: rnd(10, 30), life: rnd(0.5, 0.8), noGrav: true, grow: 1.2, spr: im }); }
+        if (b.h <= 6) { this.burst(b.theta, 6, 'flame', 5, 0.7); this.burst(b.theta, 6, 'crumb', 8, 0.9); this.bang(b.theta, 6, 22); Sound.sfx('splat'); this.cameras.main.shake(60, 0.003); b.life = 0; }
+      }
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
       if (!dead && P.invuln <= 0) {

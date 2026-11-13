@@ -1572,3 +1572,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.56 — Title text centred
 - LUNA CHRIS, the subtitle and TAP TO START are centred again (still up in the sky, clear of Chris).
+
+## v2.57 — Mount Mozzarella: anchovies bigger, rats back, a grubbier oven drone that throws pizzas
+- Rocket rats back to their old size (v2.51's doubling undone). The anchovy "missiles" are 20% bigger instead (k 1.38, hit radius 11).
+- The Toasty Oven Drone has its own sprite ('ovendrone', 110x88, k 1.3, about 75% bigger than before): a brick dome blackened with dithered soot (heaviest round the chimney), a sooty steel chimney, a riveted iron band, glaring furnace eyes, a roaring mouth with a pizza cooking in it, a base plate and three little thrusters. It trails greasy smoke from the chimney and spits embers.
+- Every other throw is now a hot PIZZA lobbed in an arc at Chris (trailing smoke, splats on the crust); it can be shot down. The homing pizza cutters alternate with it.
