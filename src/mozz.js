@@ -328,7 +328,7 @@ const MozzMixin = {
       e.cutCd -= dt; e.cd -= dt;
       if (e.cutCd <= 0) {                                                        // a homing pizza-cutter wheel
         e.cutCd = rnd(2.2, 3);
-        const b = this.addEBullet('pizzacutter', e.theta, e.h - 20, dirP * 120, -60, 9, 4); b.home = 2.4; b.homeV = 165; b.spinV = 16;
+        const b = this.addEBullet('pizzacutter', e.theta, e.h - 20, dirP * 120, -60, 14, 4); b.home = 2.4; b.homeV = 165; b.spinV = 16; b.spr.bsx = b.spr.bsy = 2; b.shootable = true;   // (v2.51: twice the size, and you can shoot them down)
         Sound.sfx('zing'); this.muzzleFlash(e.theta, e.h - 20);
       }
       if (e.cd <= 0 && Math.abs(d) * R < 140) { e.st = 'tell'; e.cd = 0.6; Sound.sfx('alarm'); }

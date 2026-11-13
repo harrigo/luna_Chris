@@ -17,7 +17,7 @@ const ENEMY = {
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer', frames: ['ghostpirate', 'ghostpirate_b'], fps: 7, eyes: [[27, 14, 4]] },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
-  rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },
+  rocketrat: { hp: 2, r: 30, ch: 24, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer', k: 2.44 },   // (v2.51: twice the size - they were too fiddly to hit)
   anchovy:  { hp: 1, r: 9,  ch: 0,  tex: 'anchovy0', oy: 0.5,     drop: 0.08, ai: 'anchovy', k: 1.15 },    // L4 anchovy swarmer: shoals of five, one darts at you
   ovendrone: { hp: 9, r: 34, ch: 0, tex: 'oven', oy: 0.5,         drop: 0.6, ai: 'ovendrone', k: 0.55, big: true },   // L4 Toasty Oven Drone: homing pizza cutters, SLAMS down               // L4 rocket rat: hovers over you, drops pepperoni bombs
   forkrat:  { hp: 3, r: 14, ch: 11, tex: 'forkrat0', oy: 0.95, drop: 0.2, ai: 'forkrat', k: 1.1, frames: ['forkrat0', 'forkrat0b'], eyes: [[31, 15, 4.2], [36.5, 15.5, 2.6]] },        // L5.5 Fork Fanatic: pole-vaults over you, lance-charges
@@ -175,7 +175,7 @@ const LEVELS = {
     goop: [{ theta: 1.2, half: 0.065 }, { theta: 2.6, half: 0.06 }, { theta: 3.35, half: 0.05 }, { theta: 3.95, half: 0.065 }, { theta: 4.9, half: 0.05 }, { theta: 5.7, half: 0.06 }],
     goopMode: 'string', goopTex: 'cheesepit', goopBub: 'cheesebub', goopGlow: 0xffb03a,
     goopPal: { edge: 0x4a1404, deep: 0xff6a1a, mid: 0xffb84a, top: 0xfff0c0, gloss: 0xffffff },   // white-hot molten mozzarella
-    strands: { every: [2.6, 4.5] },
+    eruption: { every: [17, 24], shower: 5.5 },        // (v2.51: the whipping strands are gone; the VOLCANO throws tantrums instead: dodge the boulders, crack the cooling ones for cheddar)
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('rocketrat', 1), S('anchovy', 2.2), S('mouse', 3.4), S('rocketrat', 4.2), S('mgolem', 5.2), S('mouse', 6), S('rocketrat', 7)] },
       { name: 'WAVE 2', spawns: [S('rocketrat', 0), S('ovendrone', 0.8), S('mouse', 1.8), S('anchovy', 2.8), S('mgolem', 3.8), S('rocketrat', 4.8), S('mouse', 5.6), S('anchovy', 6.6), S('rocketrat', 7.6)] },
@@ -2065,6 +2065,12 @@ function makeOvenTextures(scene) {
     for (const [x, y, r] of [[18, 10, 3], [28, 6, 4], [40, 8, 3.5], [48, 14, 2.5], [33, 2, 2]]) p.ell(x, y, r, r, MOZ);  // bubbling top
   });
   golem('mgolem', true); golem('mgolem_hot', false);
+  pixSprite(scene, 'lavarock', 30, 28, p => {                      // (v2.51) a volcano boulder: charred crust round a white-hot mozzarella heart
+    p.poly([[4, 10], [11, 3], [21, 2], [28, 9], [27, 20], [20, 26], [8, 25], [2, 18]], CHAR);
+    for (const [x, y, w, h] of [[8, 6, 6, 4], [17, 5, 6, 4], [5, 15, 5, 4], [20, 15, 5, 5], [12, 20, 6, 3]]) p.poly([[x, y + 1], [x + 2, y], [x + w, y + 1], [x + w - 1, y + h], [x + 1, y + h]], [0x8a4a22, 0x5a2a12, 0x2a1408]);
+    p.line([[9, 11], [14, 14], [12, 19]], 0xffa030, 2); p.line([[14, 14], [21, 12], [24, 9]], 0xffa030, 2); p.line([[14, 14], [18, 21]], 0xff6a1a, 1);
+    p.ell(14, 14, 3, 2.5, HOT); p.px(14, 13, 0xffffff);
+  });
   pixSprite(scene, 'rocketrat', 44, 40, p => {                     // rat on a rocket pack: blast goggles, oven mitts
     const FUR = [0x9a9aa8, 0x6a6a78, 0x3a3a48];
     p.poly([[4, 22], [12, 18], [12, 28]], HOT);                                                     // thrust flame

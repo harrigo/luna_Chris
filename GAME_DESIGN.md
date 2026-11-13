@@ -1541,3 +1541,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.50 — Mouse + keyboard everywhere
 - The Centrifuge and Zero-G rooms now work like the planets on PC: as soon as a real mouse moves, the gun follows the pixel crosshair (no click needed to aim), left click fires, the system cursor is hidden and the right-click menu is off. A touch-screen laptop no longer locks the mouse out (touch sticks hide while the mouse is in use; a touch switches back).
 - Planets: the crosshair also shows during the after-boss rescue (for the churn), and the touch buttons hide while the mouse is in use.
+
+## v2.51 — Mount Mozzarella: bigger targets, volcano tantrums
+- Rocket rats are twice the size (k 2.44, hit radius 30) and hover a little higher over you; the Oven Drone's homing pizza-cutter wheels are twice the size and can now be shot down (+100).
+- The whipping string-cheese strands are gone.
+- New: VOLCANO TANTRUMS. Every 17–24 s (not during the boss) the volcano rumbles for 2 s, then for 5.5 s molten boulders rain round Chris, each with a red shadow on the ground. 60% land in one piece and sit there cooling for 7 s: crack one (3 hits, shots/bash/spaghetti/blasts) for 3 cheddar and a 12% chance of a cheese wedge.

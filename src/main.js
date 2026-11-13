@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.50';
+const BUILD = 'v2.51';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -208,7 +208,7 @@ class Level1 extends Phaser.Scene {
     this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
-    this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.bossLaser = null; this.hazG = null;
+    this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
     this.buffFx = null; this.giantK = 1; this.slowRect = null; this.buffIcon = null; this.buffHead = null; this.stepT = 0; this.buffsSeen = []; this.waveBuff = -1;
     this.bashTipShown = false; this.chargeSpr = null; this.chargeG = null; this.macG = null; this.magG = null; this.bashTrail = null; this.blastFx = []; this.puddles = []; this.blastG = null; this.puddleG = null;
     this.popups = []; this.popPool = []; this.combo = 0; this.comboT = 0; this.maxCombo = 0; this.comboText = null; this.vign = null; this.beatT = 0;
@@ -3189,6 +3189,7 @@ class Level1 extends Phaser.Scene {
       this.bang(e.theta, e.h + e.ch, 16);
     }
     if (this.relics && this.relics.length) hit += this.relicHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
+    if (this.lumps && this.lumps.length) hit += this.lumpHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (hit) {
       this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy);
       Sound.sfx('bonk'); buzz([30, 20, 50]);
@@ -3398,6 +3399,7 @@ class Level1 extends Phaser.Scene {
       if (!(e.flashCd > 0)) { e.flash = 0.06; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }
     }
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
+    if (this.lumps.length) this.lumpHit(theta, h, rad, dmg);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
     // (shockwave, stretchy strings of molten cheese and popping Swiss holes: drawn in planet coordinates by drawBlastFx)
@@ -3497,6 +3499,10 @@ class Level1 extends Phaser.Scene {
       r.beamCd = Math.max(0, (r.beamCd || 0) - dt);
       if (r.hp <= 0 || r.beamCd > 0) continue;
       if (near(r.theta, r.h, r.r + Wp.band)) { r.beamCd = tick; this.relicHit(r.theta, r.h, 1, W.dmg); }
+    }
+    for (const L of this.lumps) {
+      L.beamCd = Math.max(0, (L.beamCd || 0) - dt);
+      if (L.beamCd <= 0 && near(L.theta, L.h, L.r + Wp.band)) { L.beamCd = tick * 2; this.lumpHit(L.theta, L.h, 1, 1); break; }
     }
     if (hitAny) { if (hitAny === true) Sound.sfx('hit'); else this.hitSfx(hitAny); }
     this.reapEnemies();
@@ -3672,7 +3678,7 @@ class Level1 extends Phaser.Scene {
       } else if (ai === 'flyer') {
         const want = e.baseH + Math.sin(e.t * 2 + e.seed) * 28;
         e.h += (want - e.h) * Math.min(1, dt * 3);
-        const hold = e.type === 'rocketrat' ? 18 + Math.sin(e.t * 0.9 + e.seed) * 30 : (e.type === 'ghostpirate' ? 150 + Math.sin(e.t * 0.7 + e.seed) * 60 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70);   // rocket rats park right over you
+        const hold = e.type === 'rocketrat' ? 40 + Math.sin(e.t * 0.9 + e.seed) * 30 : (e.type === 'ghostpirate' ? 150 + Math.sin(e.t * 0.7 + e.seed) * 60 : 90 + Math.sin(e.t * 0.7 + e.seed) * 70);   // rocket rats park right over you
         const mv = distP > hold ? dirP : -dirP * 0.6;
         e.theta = wrap(e.theta + (mv * 105 / R) * dt);
         e.dir = dirP;
@@ -4306,6 +4312,7 @@ class Level1 extends Phaser.Scene {
       }
       if (!dead && this.cave && this.caveValveHit(b)) dead = true;
       if (!dead && this.relics.length && this.relicHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
+      if (!dead && this.lumps.length && this.lumpHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (!dead && this.blocks && this.blocks.length && this.blockHit(b.theta, b.h, b.dmg || 1)) dead = true;
       if (!dead && this.chips && this.chips.length && this.chipHit(b.theta, b.h, b.dmg || 1)) dead = true;
       if (dead && b.blast) {
@@ -4702,6 +4709,7 @@ class Level1 extends Phaser.Scene {
         if (S.t > S.warn + S.snap + 0.4) this.strands.splice(i, 1);
       }
     }
+    if (d.eruption) this.updateEruption(dt, bossUp, hit);
     if (d.chaser) {
       if (bossUp) { if (this.chaser) { this.chaser.spr.destroy(); this.chaser.face.destroy(); this.chaser = null; } }
       else {
@@ -4780,6 +4788,63 @@ class Level1 extends Phaser.Scene {
         }
       }
     }
+  }
+
+  // ---- L4 (v2.51): VOLCANO TANTRUMS. A rumble, then a shower of molten boulders round Chris (a red shadow marks each one).
+  // Some land and sit there cooling, glowing: crack them (3 hits) for cheddar - but they crumble away once they've cooled.
+  updateEruption(dt, bossUp, hit) {
+    const d = this.def.eruption, P = this.pl;
+    if (!this.erupt) {
+      if (!bossUp && this.state === 'play') this.eruptT -= dt;
+      if (this.eruptT <= 0) { this.erupt = { t: 0, rumble: 2, dropT: 0 }; this.banner('THE VOLCANO RUMBLES...'); Sound.sfx('charge'); }
+    } else {
+      const E = this.erupt; E.t += dt;
+      if (E.t < E.rumble) { if (Math.random() < dt * 8) this.cameras.main.shake(120, 0.002 + 0.004 * E.t / E.rumble); }
+      else if (E.t < E.rumble + d.shower) {
+        if (!E.go) { E.go = true; this.cameras.main.shake(300, 0.01); this.cameras.main.flash(200, 255, 120, 40); Sound.sfx('clang'); buzz(60); this.banner('ERUPTION!'); }
+        E.dropT -= dt;
+        if (E.dropT <= 0) {
+          E.dropT = rnd(0.3, 0.55);
+          const spr = this.add.image(0, 0, 'lavarock').setDepth(7); spr.bsx = spr.bsy = rnd(1.1, 1.6); bakedGlow(spr, 0xff8a2a, 3, 8);
+          this.rocks.push({ theta: wrap(P.theta + rnd(-0.5, 0.5) + P.vx / R * 0.6), h: 460, vh: -160, spr, rot: 0, rv: rnd(-5, 5), lava: true });
+        }
+      } else if (!this.rocks.some(K => K.lava)) { this.erupt = null; this.eruptT = rnd(d.every[0], d.every[1]); }
+    }
+    for (let i = this.rocks.length - 1; i >= 0; i--) {
+      const K = this.rocks[i]; if (!K.lava) continue;
+      K.vh -= 560 * dt; K.h += K.vh * dt; K.rot += K.rv * dt;
+      if (Math.random() < dt * 20) this.burst(K.theta, K.h + 8, 'spark', 1, 0.4);
+      if (K.h > 0) continue;
+      this.burst(K.theta, 4, 'spark', 10, 1); this.bang(K.theta, 6, 24); this.addLight(K.theta, 10, 80, 0xff8a2a, 0.9, 0.4); this.cameras.main.shake(90, 0.004); Sound.sfx('clunk');
+      if (Math.abs(angDiff(P.theta, K.theta)) * R < 30 && P.h < 40) hit();
+      if (Math.random() < 0.6 && this.lumps.length < 6) {            // it lands in one piece: a cooling lump, crack it for cheddar
+        K.spr.setDepth(5.9); this.lumps.push({ theta: K.theta, h: 12, hp: 3, r: 18, spr: K.spr, t: 0, life: 7, rot: K.rot });
+      } else K.spr.destroy();
+      this.rocks.splice(i, 1);
+    }
+    for (let i = this.lumps.length - 1; i >= 0; i--) {
+      const L = this.lumps[i]; L.t += dt; L.flash = Math.max(0, (L.flash || 0) - dt);
+      const cool = Math.min(1, L.t / L.life);
+      if (L.flash <= 0) L.spr.setTint(Phaser.Display.Color.GetColor(255, Math.round(255 - 120 * cool), Math.round(255 - 170 * cool)));
+      L.spr.setAlpha(L.t > L.life - 0.6 ? Math.max(0, (L.life - L.t) / 0.6) : 1);
+      this.place(L.spr, L.theta, L.h + Math.sin(L.t * 30) * (L.flash > 0 ? 1.5 : 0), L.rot);
+      if (L.t >= L.life) { this.burst(L.theta, 10, 'crumb', 6, 0.6); L.spr.destroy(); this.lumps.splice(i, 1); }
+    }
+  }
+  lumpHit(theta, h, rad, dmg) {
+    let hit = false;
+    for (let i = this.lumps.length - 1; i >= 0; i--) {
+      const L = this.lumps[i], rr = L.r + rad;
+      if (dist2(theta, h, L.theta, L.h) > rr * rr) continue;
+      L.hp -= Math.max(1, Math.min(2, dmg)); hit = true; L.flash = 0.06; L.spr.setTintFill(0xffffff); L.spr.hsq = 1; Sound.sfx('clang');
+      if (L.hp <= 0) {
+        this.burst(L.theta, L.h, 'spark', 12, 1); this.bang(L.theta, L.h, 26); Sound.sfx('kill');
+        this.spillCheddar(L.theta, L.h + 10, 3);
+        if (Math.random() < 0.12) this.pickups.push({ kind: 'heal', theta: L.theta, h: L.h + 10, vh: 180, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+        L.spr.destroy(); this.lumps.splice(i, 1);
+      }
+    }
+    return hit;
   }
 
   drawHazards() {
