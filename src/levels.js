@@ -1057,7 +1057,7 @@ class SelectScene extends Phaser.Scene {
     { // the SPACE SHOP hovers over the start of the route: a little orbital kiosk with SUPPLIES on its sign. Tap it to go in.
       makeShopTextures(this);
       if (this.shopTw) { this.shopTw.forEach(t => t.stop()); }
-      const sc = Math.max(1, Math.min(1.5, W / 760)), sx = W * 0.64, sy = 30 * sc + 10,   // (v2.53: up in the empty sky top-middle, clear of the route)
+      const sc = Math.max(1, Math.min(1.5, W / 760)), sx = W * 0.15, sy = 30 * sc + 12,   // (v2.55: back on the left, up in the corner of the sky)
         _u = 0, coins = Shop.get(this.registry).coins;
       const box = this.add.container(sx, sy);
       const glow = this.add.graphics(); glow.fillStyle(0x5cffe0, 0.1).fillEllipse(0, 2, 120 * sc, 76 * sc); glow.fillStyle(0x5cffe0, 0.08).fillEllipse(0, 2, 92 * sc, 58 * sc);
@@ -1082,7 +1082,7 @@ class SelectScene extends Phaser.Scene {
     // the map: only the stops you can see (secret ones appear once they're found)
     this.nodes = this.mapNodes().filter(n => !n.kind || this.isOpen(n.id)); this.ids = this.nodes.map(n => n.id);
     const panelH = Math.min(H * 0.24, 96), y0p = H - 6 - panelH;            // (the info panels along the bottom)
-    const top = Math.max(38, H * 0.1), mh = (y0p - 28 - top) / 0.95, R = Math.round(Math.max(13, Math.min(30, W * 0.03, H * 0.064)));
+    const top = Math.max(46, H * 0.12), mh = (y0p - 28 - top) / 0.95, R = Math.round(Math.max(13, Math.min(30, W * 0.03, H * 0.064)));
     this.panelY = y0p;
     this.nodeR = R;
     this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };

@@ -1562,3 +1562,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v2.54 — Pixel title screen
 - The painted cover art (assets/title.jpg) is no longer loaded or shown (the file stays in the repo). The title gate and the main menu now share TitleBackdrop (intro.js): a stepped night sky, twinkling stars, a ringed planet, shooting stars, and the curve of the Gruyere Globe with drifting Gruyere holes, Chris standing on it (cape flapping, the odd blast of the gun).
+
+## v2.55 — Leave the wheel, JET TANK, dearer chips, map and title nudges
+- Lucky Wheel: fixed not being able to leave (the "finished" timer never ran once it stopped). Now there's a proper < LEAVE button bottom-left (plus tap anywhere / ESC / ENTER / pad B once it's stopped).
+- New shop item JET TANK Lv 1-3 (160 / 300 / 460): the jetpack burns 12% slower per level and refills 15% faster. Fills the 5x2 shelf.
+- Gun start chips cost 50% more: 270 / 480 / 750.
+- Route map: the shop kiosk is back on the left (top corner of the sky), and the whole map sits a few pixels lower.
+- Title gate: LUNA CHRIS and the subtitle up in the sky to the right, TAP TO START below them, Chris on the moon to the left (nothing overlaps him); the ringed planet moved lower right.

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.54';
+const BUILD = 'v2.55';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -493,7 +493,7 @@ class Level1 extends Phaser.Scene {
 
     this.augerPhase = 0;
     this.netRigs = new Map(); this.netTxt = null; this.netToast = null;        // other players (multiplayer, src/net.js)
-    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.magOwned = !!Shop.get(this.registry).magnet; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
+    this.rig = new ChrisRig(this); this.bootLv = Shop.get(this.registry).boots || 0; this.tankLv = Shop.get(this.registry).tank || 0; this.magOwned = !!Shop.get(this.registry).magnet; this.rig.setArmour(Shop.get(this.registry).armHp > 0);
     this.fxInit();                                        // neo-retro lighting (fx.js)
     { let wi = 0; try { wi = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ }
       if (!WEAPONS[wi] || !weaponUnlocked(WEAPONS[wi], this.levelId)) wi = 0;
@@ -1772,10 +1772,10 @@ class Level1 extends Phaser.Scene {
         for (const e of this.enemies) if (e.type !== 'boss' && Math.abs(angDiff(e.theta, P.theta)) * R < 34 && e.h + e.ch < P.h + 6 && e.h + e.ch > P.h - 80) { e.hp -= 4 * dt; e.burn = 1.5; }
       }
       P.vh = Math.max(P.vh, Math.min(CFG.jetMaxV * (rb ? 1.45 : 1) * (suck ? 0.3 : 1), P.vh + CFG.jetAccel * (rb ? 1.35 : 1) * (suck ? 0.85 : 1) * dt));   // (never slows a bounce down)
-      P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * (1 - 0.08 * this.bootLv) * dt);
+      P.fuel = rb ? 1 : Math.max(0, P.fuel - CFG.jetDrain * (1 - 0.08 * this.bootLv) * (1 - 0.12 * (this.tankLv || 0)) * dt);
       this.jetFlames(2);
     } else if (grounded) {
-      P.fuel = Math.min(1, P.fuel + CFG.jetRegen * dt);
+      P.fuel = Math.min(1, P.fuel + CFG.jetRegen * (1 + 0.15 * (this.tankLv || 0)) * dt);
     } else {                                                   // gliding with the jet off: a slow trickle back after half a second
       P.airRegenT = (P.airRegenT || 0) + dt;
       if (P.airRegenT > 0.5) P.fuel = Math.min(1, P.fuel + CFG.jetRegen * 0.3 * dt);

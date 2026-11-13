@@ -10,14 +10,15 @@ const SHOP = {
   armHp: [0, 2, 3, 4, 5],                 // gauge size per mark
   armCost: [0, 150, 260, 400, 600],        // forging / upgrading TO this mark
   bootCost: [0, 120, 220, 350, 500],
-  chipCost: [0, 180, 320, 500],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4
+  chipCost: [0, 270, 480, 750],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
+  tankCost: [0, 160, 300, 460],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
   magnetCost: 450, setBonus: 75, lifeCost: 300, patchCost: 25, heartCost: [0, 350, 600]   // (v2.24: everything roughly 2.5x dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
 const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['GUN +1', 10, 0x2a7a72], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
 const Shop = {
   get(reg) { const s = reg.get('shop'); return s || { coins: SHOP.setBonus * this.goldenSets(),      // (a GOLDEN SET: every game starts with cheddar in hand)
-      armMk: 0, armHp: 0, boots: 0, hearts: 0, spins: 0, chips: {} }; },
+      armMk: 0, armHp: 0, boots: 0, tank: 0, hearts: 0, spins: 0, chips: {} }; },
   set(reg, s) { reg.set('shop', Object.assign({}, s)); },
   reset(reg) { reg.set('shop', null); },
   earn(reg, n) { const s = this.get(reg); s.coins += n; this.set(reg, s); },
@@ -168,6 +169,13 @@ function makeShopTextures(scene) {
       for (let k = 0; k < 3; k++) a.line([[4 + ox, 21 + k * 2], [15 + ox, 21 + k * 2]], SP);
     }
   }, true);
+  pixSprite(scene, 'si_tank', 26, 30, a => {                            // (v2.55) a jetpack tank: two steel cylinders, a gauge, flames
+    const ST = [0xdfe6f0, 0x9aa4b4, 0x5a6272];
+    a.rrect(3, 3, 11, 23, 4, ST); a.rrect(14, 3, 22, 23, 4, ST); a.rect(3, 10, 22, 13, 0x2a7a72); a.rect(11, 6, 14, 20, 0x5a6272);
+    a.ell(12.5, 11.5, 3, 3, [0xffffff, 0xdfe6f0, 0x9aa4b4]); a.line([[12.5, 11.5], [14, 10]], 0xd0302a);
+    a.poly([[4, 23], [10, 23], [7, 29]], [0xfff6c0, 0xffb52a, 0xff6a1a]); a.poly([[15, 23], [21, 23], [18, 29]], [0xfff6c0, 0xffb52a, 0xff6a1a]);
+    a.px(5, 5, 0xffffff); a.px(16, 5, 0xffffff);
+  }, true);
   pixSprite(scene, 'si_chip', 14, 14, a => {                             // a little circuit chip (goes on the gun)
     a.rect(2, 2, 11, 11, 0x1a1020); a.rect(3, 3, 10, 10, 0x2a7a72); a.rect(5, 5, 8, 8, 0x5cffe0);
     for (let k = 3; k <= 10; k += 2) { a.px(k, 0, 0xffd23f); a.px(k, 13, 0xffd23f); a.px(0, k, 0xffd23f); a.px(13, k, 0xffd23f); }
@@ -208,7 +216,8 @@ class ShopScene extends Phaser.Scene {
         const S = this.spin;
         if (S.pick) { const hit = (S.pickBoxes || []).find(q => p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) this.pickGun(hit.gun); return; }
         const L = this.leverBox; if (L && p.x >= L.x && p.x <= L.x + L.w && p.y >= L.y && p.y <= L.y + L.h) { this.pullLever(); return; }
-        if ((S.done && S.t > S.dur + 0.5) || S.idle) this.endSpin(); return; }
+        const B = this.leaveBox; if (B && p.x >= B.x && p.x <= B.x + B.w && p.y >= B.y && p.y <= B.y + B.h) { this.endSpin(); return; }
+        if ((S.done && S.doneT > 0.4) || S.idle) this.endSpin(); return; }
       if (this.spinBox && p.x >= this.spinBox.x && p.x <= this.spinBox.x + this.spinBox.w && p.y >= this.spinBox.y && p.y <= this.spinBox.y + this.spinBox.h) { this.startSpin(); return; }
       if (this.backBox && p.x >= this.backBox.x && p.x <= this.backBox.x + this.backBox.w && p.y >= this.backBox.y && p.y <= this.backBox.y + this.backBox.h) { this.back(); return; }
       const i = (this.rows || []).findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
@@ -230,6 +239,9 @@ class ShopScene extends Phaser.Scene {
     L.push({ name: 'PATCH UP ARMOUR', label: 'PATCH UP', icon: 'si_patch', desc: miss > 0 ? 'Weld on the ' + miss + ' missing plate' + (miss > 1 ? 's' : '') + '.' : (s.armHp > 0 ? 'Not a scratch on it.' : 'Nothing to patch.'), cost: miss * SHOP.patchCost, max: miss <= 0, act: q => { q.armHp = SHOP.armHp[q.armMk]; } });
     if (s.boots < 4) L.push({ name: 'MOON BOOTS LV ' + (s.boots + 1), label: 'MOON BOOTS', icon: 'si_boots', pips: [s.boots, 4], desc: 'Run faster, jump higher, and the jetpack sips less fuel.', cost: SHOP.bootCost[s.boots + 1], act: q => { q.boots++; } });
     else L.push({ name: 'MOON BOOTS LV 4', label: 'MOON BOOTS', icon: 'si_boots', pips: [4, 4], desc: 'Fully sprung.', cost: 0, max: true });
+    { const k = s.tank || 0;
+      if (k < 3) L.push({ name: 'JET TANK LV ' + (k + 1), label: 'JET TANK', icon: 'si_tank', pips: [k, 3], desc: 'A bigger jetpack tank: burns ' + (12 * (k + 1)) + '% slower and refills faster.', cost: SHOP.tankCost[k + 1], act: q => { q.tank = (q.tank || 0) + 1; } });
+      else L.push({ name: 'JET TANK LV 3', label: 'JET TANK', icon: 'si_tank', pips: [3, 3], desc: 'As big as they come.', cost: 0, max: true }); }
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {
@@ -315,11 +327,11 @@ class ShopScene extends Phaser.Scene {
     if (sN !== S.lastSeg && spinning) { S.lastSeg = sN; Sound.sfx('blip'); S.kick = 1;
       for (let k = 0; k < 4; k++) S.sparks.push({ x: cx, y: cy - R0 - 2, vx: (Math.random() - 0.3) * 190, vy: -Math.random() * 170 - 20, l: 0.25 + Math.random() * 0.2 }); }
     if (!S.idle && u >= 1 && !S.done) {
-      S.done = true; S.msg = this.prize(S.idx); this.say(S.msg); S.mood = this.moodOf(S.idx); S.moodT = 0;
+      S.done = true; S.doneT = 0; S.msg = this.prize(S.idx); this.say(S.msg); S.mood = this.moodOf(S.idx); S.moodT = 0;
       if (S.mood === 'joy') for (let k = 0; k < 60; k++) S.conf.push({ x: cx + (Math.random() - 0.5) * R0 * 0.6, y: cy - R0 * 0.3, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380 - 80, l: 0.7 + Math.random() * 0.9 });   // a shower of welding sparks
       if (S.mood === 'sad') Sound.sfx('clunk');
     }
-    S.kick = Math.max(0, (S.kick || 0) - dt * 9);
+    S.kick = Math.max(0, (S.kick || 0) - dt * 9); if (S.done) S.doneT = (S.doneT || 0) + dt;
     g.clear(); g.fillStyle(0x05060a, 0.9).fillRect(0, 0, W, H);
     const lit = S.done ? (S.mood === 'sad' ? (Math.random() < 0.08 ? 0.5 : 0.05) : (S.mood === 'joy' ? 0.75 + 0.25 * Math.sin(t * 22) : 0.6)) : 1;   // the lamps: on a win they strobe, the rat kills them
     // girders behind it, and the stand
@@ -419,7 +431,12 @@ class ShopScene extends Phaser.Scene {
     g.fillStyle(0x0a0b10, 1).fillRect(mx - 3, my - mh / 2 - 3, mw + 6, mh + 6); g.fillStyle(0x30343e, 1).fillRect(mx, my - mh / 2, mw, mh); g.fillStyle(0x3e434e, 1).fillRect(mx, my - mh / 2, mw, 3);
     for (const [x, y] of [[mx + 5, my - mh / 2 + 5], [mx + mw - 5, my - mh / 2 + 5], [mx + 5, my + mh / 2 - 5], [mx + mw - 5, my + mh / 2 - 5]]) { g.fillStyle(0x0a0b10, 1).fillCircle(x + 0.8, y + 0.8, 2.2); g.fillStyle(0x9aa2ae, 1).fillCircle(x, y, 1.8); }
     let hint = this.spinT[n + 1]; if (!hint) hint = this.spinT[n + 1] = this.add.text(0, 0, 'TAP TO CARRY ON', { fontFamily: PIXEL, fontSize: '7px', color: '#8a8f9e', stroke: '#0a0b10', strokeThickness: 3 }).setOrigin(1, 1).setDepth(10.2);
-    hint.setPosition(W - 10, H - 8).setRotation(0).setVisible(((S.done && !S.pick && S.t > S.dur + 0.5) || S.idle) && Math.floor(t * 3) % 2 === 0);
+    hint.setVisible(false);
+    { const can = (S.done && !S.pick && S.doneT > 0.4 && !S.pull) || (S.idle && !S.pull), bw = 104, bh = 26, bx = 12, by = H - bh - 10;   // (v2.55) a proper LEAVE button
+      g.fillStyle(0x0a0b10, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4); g.fillStyle(can ? 0x3a1a2a : 0x1a1418, 1).fillRect(bx, by, bw, bh); if (can) g.lineStyle(2, 0xc8902a, 1).strokeRect(bx, by, bw, bh);
+      let lb = this.spinT[n + 3]; if (!lb) lb = this.spinT[n + 3] = this.add.text(0, 0, '< LEAVE', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#0a0b10', strokeThickness: 3 }).setOrigin(0.5).setDepth(10.2);
+      lb.setPosition(bx + bw / 2, by + bh / 2).setRotation(0).setVisible(true).setAlpha(can ? 1 : 0.35);
+      this.leaveBox = { x: bx, y: by, w: bw, h: bh }; }
     for (let i = S.conf.length - 1; i >= 0; i--) { const q = S.conf[i]; q.l -= dt; if (q.l <= 0 || q.y > H + 10) { S.conf.splice(i, 1); continue; } q.vy += 600 * dt; const x0 = q.x, y0 = q.y; q.x += q.vx * dt; q.y += q.vy * dt;
       g.lineStyle(2, q.l > 0.5 ? 0xfff4d8 : 0xff9a2a, Math.min(1, q.l * 2)).lineBetween(x0, y0, q.x, q.y); }
     this.drawMood(dt, t);

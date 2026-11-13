@@ -548,11 +548,18 @@ class IntroScene extends Phaser.Scene {
     this.chapter.setPosition(12, Math.round(top / 2 - 4));
     this.skipText.setOrigin(1, 1).setPosition(px + pw - 10, py + ph - 8);
 
-    this.capText.setPosition(W / 2, H - 34).setWordWrapWidth(W - 40);
     this.fitArt();
     const tfs = Math.max(24, Math.min(50, W / 17));
-    this.gateTitle.setFontSize(tfs).setPosition(W / 2, H * 0.74);
-    this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.74 + tfs * 0.8);
+    if (this.backdrop) {                              // (v2.55) the pixel title: words up in the sky to the right, Chris on the moon to the left
+      const tx = W * 0.6;
+      this.gateTitle.setFontSize(tfs).setPosition(tx, H * 0.25);
+      this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(tx, H * 0.25 + tfs * 0.8);
+      this.capText.setPosition(tx, H * 0.58).setWordWrapWidth(W * 0.6);
+    } else {
+      this.capText.setPosition(W / 2, H - 34).setWordWrapWidth(W - 40);
+      this.gateTitle.setFontSize(tfs).setPosition(W / 2, H * 0.74);
+      this.gateSub.setFontSize(Math.max(8, Math.min(13, W / 75))).setPosition(W / 2, H * 0.74 + tfs * 0.8);
+    }
   }
 
   // any tap / key / button: start -> straight into the story -> (tap twice) skip the story
@@ -1209,7 +1216,7 @@ class TitleBackdrop {
     bands.forEach((c, i) => g.fillStyle(c, 1).fillRect(0, Math.floor(H * i / bands.length), W, Math.ceil(H / bands.length) + 1));
     for (const st of this.stars) g.fillStyle(st.c, 0.35 + 0.55 * Math.abs(Math.sin(t * 1.3 + st.tw))).fillRect(Math.round(st.x * W), Math.round(st.y * H), st.s, st.s);
     // a ringed planet, far off
-    { const px = W * 0.82, py = H * 0.2, pr = Math.max(14, H * 0.06);
+    { const px = W * 0.9, py = H * 0.52, pr = Math.max(14, H * 0.06);
       g.lineStyle(3, 0x8a6ab8, 0.5).strokeEllipse(px, py, pr * 3.4, pr * 0.9);
       g.fillStyle(0x6a4a9a, 1).fillCircle(px, py, pr); g.fillStyle(0x8a6ab8, 1).fillCircle(px - pr * 0.25, py - pr * 0.25, pr * 0.7); g.fillStyle(0x4a3478, 1).fillCircle(px + pr * 0.35, py + pr * 0.35, pr * 0.45);
       g.lineStyle(3, 0xb89ae0, 0.8).beginPath(); g.arc(px, py, pr * 1.7, 0.1, Math.PI - 0.1, false); g.strokePath(); }
