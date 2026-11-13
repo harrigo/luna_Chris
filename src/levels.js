@@ -1052,17 +1052,13 @@ class SelectScene extends Phaser.Scene {
     this.nebImg = this.add.image(0, 0, 'map_neb').setOrigin(0).setDisplaySize(W, H).setDepth(-1);
     // the title, in a framed banner
     const tw = Math.min(W * 0.46, 380), th = Math.max(26, H * 0.085), tx = W / 2 - tw / 2, ty = 6;
-    const ban = this.add.graphics();
-    ban.fillStyle(0x000000, 0.4).fillRect(tx + 4, ty + 4, tw, th);
-    ban.fillStyle(0x141a44, 1).fillRect(tx, ty, tw, th);
-    ban.lineStyle(3, 0xffd23f, 1).strokeRect(tx, ty, tw, th); ban.lineStyle(1, 0x5a78d8, 1).strokeRect(tx + 4, ty + 4, tw - 8, th - 8);
-    this.ui.add(ban);
-    this.ui.add(this.add.text(W / 2, ty + th / 2 + 1, 'ROUTE TO BESSIE', f(Math.round(Math.min(18, th * 0.55, tw / 17)), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 4 })).setOrigin(0.5));
+    // (v2.53: the ROUTE TO BESSIE banner is gone: the map gets that room)
     this.bannerBox = { tx, ty, tw, th };
     { // the SPACE SHOP hovers over the start of the route: a little orbital kiosk with SUPPLIES on its sign. Tap it to go in.
       makeShopTextures(this);
       if (this.shopTw) { this.shopTw.forEach(t => t.stop()); }
-      const sc = Math.max(1, Math.min(1.5, W / 760)), sx = W * 0.135, sy = ty + th + 26 * sc + 8, coins = Shop.get(this.registry).coins;
+      const sc = Math.max(1, Math.min(1.5, W / 760)), sx = W * 0.64, sy = 30 * sc + 10,   // (v2.53: up in the empty sky top-middle, clear of the route)
+        _u = 0, coins = Shop.get(this.registry).coins;
       const box = this.add.container(sx, sy);
       const glow = this.add.graphics(); glow.fillStyle(0x5cffe0, 0.1).fillEllipse(0, 2, 120 * sc, 76 * sc); glow.fillStyle(0x5cffe0, 0.08).fillEllipse(0, 2, 92 * sc, 58 * sc);
       const flame = this.add.image(0, 25 * sc, 'shopflame0').setOrigin(0.5, 0).setScale(sc);
@@ -1086,7 +1082,7 @@ class SelectScene extends Phaser.Scene {
     // the map: only the stops you can see (secret ones appear once they're found)
     this.nodes = this.mapNodes().filter(n => !n.kind || this.isOpen(n.id)); this.ids = this.nodes.map(n => n.id);
     const panelH = Math.min(H * 0.24, 96), y0p = H - 6 - panelH;            // (the info panels along the bottom)
-    const top = ty + th + Math.max(44, H * 0.12), mh = (y0p - 28 - top) / 0.95, R = Math.round(Math.max(13, Math.min(30, W * 0.03, H * 0.064)));
+    const top = Math.max(38, H * 0.1), mh = (y0p - 28 - top) / 0.95, R = Math.round(Math.max(13, Math.min(30, W * 0.03, H * 0.064)));
     this.panelY = y0p;
     this.nodeR = R;
     this.pos = id => { const n = this.nodes.find(q => q.id === id); return { x: W * n.x, y: top + mh * n.y }; };
@@ -1158,7 +1154,7 @@ class SelectScene extends Phaser.Scene {
     if (!this.ids.includes(this.sel) || !this.isOpen(this.sel)) this.sel = 1;
     // the secret-exit hint: a level with an undiscovered warp shows a stub of route trailing off into the dark, with a '?'
     this.stubs = [];
-    for (const n of this.nodes) {
+    for (const n of (false ? this.nodes : [])) {          // (v2.53: off - the '?' gave the hidden warps away)
       const w = !n.kind && this.isOpen(n.id) && LEVELS[n.id] && LEVELS[n.id].warp; if (!w || Progress.found(w.to)) continue;
       const tgt = this.mapNodes().find(q => q.id === w.to); if (!tgt) continue;
       const A = this.pos(n.id), B = { x: W * tgt.x, y: top + mh * tgt.y };

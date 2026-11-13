@@ -1552,3 +1552,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Act 1: one row from her, through Chris and beyond: hop each spout as it reaches you (it's below jump height), or back off.
 - Act 2: two rows march in from both sides and stop short of a two-spout gap near Chris with no ring in it: stand in the gap.
 - Not used while the laser cage is up.
+
+## v2.53 — Shop tiles, the lever, Chris at the wheel, a cleaner map
+- Shop shelves are a grid of tiles: a big pixel picture on a dark plinth (new icons: Black Rind breastplate, welding torch, moon boots, the gun with a chip on it, the cheese heart, Chris's head for a life, the magnet), level pips, and a price tag. Hover (mouse) or tap shows the name and blurb in the left panel; click (or tap again) buys.
+- Lucky Wheel: a pull LEVER beside it. Pulling starts the spin; once it's stopped the lever glows and RESPIN pulls again (uses another spin) without leaving the wheel. SPACE / pad A pulls, ESC / ENTER / tap elsewhere leaves.
+- Chris stands beside the wheel: trembling, sweating, wide-eyed while it spins; then jumping about with his gun up (good prize), a glum face (30 / plate), or sat down under a little rain cloud (the rat). New head textures c_head_hope / c_head_joy / c_head_sad.
+- Rugged look: no neon frame, sirens, rainbow bulbs or confetti. A bolted steel housing with rust, caged amber work lamps (slow chase while spinning, strobe on a win, dead on the rat), rotating amber beacons on a gantry, a steel clapper, weathered slice paint, a riveted sign plate, a hazard-chevron plinth and welding sparks on a good prize.
+- Route map: the ROUTE TO BESSIE banner is gone (the map starts higher), the shop kiosk moved to the empty top-middle sky, and the '?' stubs that gave away hidden warps are removed.
