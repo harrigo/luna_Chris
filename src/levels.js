@@ -17,7 +17,7 @@ const ENEMY = {
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer', frames: ['ghostpirate', 'ghostpirate_b'], fps: 7, eyes: [[27, 14, 4]] },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
-  rocketrat: { hp: 2, r: 15, ch: 12, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer' },
+  rocketrat: { hp: 2, r: 16, ch: 13, tex: 'rocketrat', oy: 0.6,    drop: 0.28, ai: 'flyer', frames: ['rocketrat', 'rocketrat_b', 'rocketrat_c', 'rocketrat_d'], fps: 11, eyes: [[37, 13, 4.2], [42.5, 13.5, 2.6]] },   // (v2.58: redrawn in the cartoon style, four frames)
   anchovy:  { hp: 1, r: 11, ch: 0,  tex: 'anchovy0', oy: 0.5,     drop: 0.08, ai: 'anchovy', k: 1.38 },   // (v2.57: 20% bigger)    // L4 anchovy swarmer: shoals of five, one darts at you
   ovendrone: { hp: 9, r: 58, ch: 0, tex: 'ovendrone', oy: 0.5,    drop: 0.6, ai: 'ovendrone', k: 1.3, big: true },   // (v2.57: its own bigger, sootier sprite)   // L4 Toasty Oven Drone: homing pizza cutters, SLAMS down               // L4 rocket rat: hovers over you, drops pepperoni bombs
   forkrat:  { hp: 3, r: 14, ch: 11, tex: 'forkrat0', oy: 0.95, drop: 0.2, ai: 'forkrat', k: 1.1, frames: ['forkrat0', 'forkrat0b'], eyes: [[31, 15, 4.2], [36.5, 15.5, 2.6]] },        // L5.5 Fork Fanatic: pole-vaults over you, lance-charges

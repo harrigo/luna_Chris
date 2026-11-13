@@ -84,6 +84,40 @@ function makeToonTextures(scene) {
       a.line([[19, 13 + y], [24, 20]], 0x5a3a1a, 1);                                                                                // harness strap
       if (i === 1 || i === 2) { a.px(45, 8 + i, 0x9ae8ff); a.px(46, 9 + i, 0x5ac8f0); }                                              // sweat
     }));
+  // ROCKET RAT (L4, v2.58): the same wretch in a scorched flying cap and brass goggles, straddling a battered missile with
+  // teeth painted on its nose, an oven mitt clutching a fizzing pepperoni bomb. Four frames: the flame gutters and roars,
+  // the rocket rattles under him, his legs pedal, his tail cracks, his eyes roll down at you, he blinks, the fuse spits.
+  [{ f: 2, tail: 0, dy: 0, look: 0.8, fl: 0 }, { f: 3, tail: 1, dy: 1, look: 0.5, lookY: 0.9, drool: true, fl: 1 }, { f: 4, tail: 2, dy: 0, look: 0.2, lookY: 0.9, flap: true, fl: 2 }, { f: 3, tail: 0, dy: -1, blink: true, flap: true, drool: true, fl: 1 }].forEach((o, i) =>
+    pixSprite(scene, 'rocketrat' + ['', '_b', '_c', '_d'][i], 58, 44, a => {
+      const y = o.dy, RD = [0xff7a5a, 0xc8402a, 0x7a1a10], ST2 = [0xdfe6f0, 0x8a94a6, 0x4a5262], HOT = [0xfff6c0, 0xffb52a, 0xff6a1a];
+      // the flame: long and roaring / short and guttering / forked
+      const fl = [[[9, 29], [-1, 33], [9, 37]], [[9, 28], [2, 30], [5, 33], [0, 36], [9, 38]], [[9, 29], [3, 31], [-2, 30], [4, 34], [-1, 37], [9, 37]]][o.fl].map(([fx, fy]) => [fx, fy + y]);
+      a.poly(fl, HOT); a.poly([[9, 31 + y], [4 + o.fl, 33 + y], [9, 35 + y]], 0xffffff);
+      if (i % 2) { a.px(1, 27 + y, 0x6a5a56); a.px(3, 25 + y, 0x4a3e3a); a.px(0, 40 + y, 0x6a5a56); }                              // soot coughing off the flame
+      // tail fins, then the missile body: dented red tin, a soot-black belly, rivets, a steel nose with TEETH painted on
+      a.poly([[8, 27 + y], [15, 27 + y], [10, 21 + y], [6, 22 + y]], RD); a.poly([[8, 39 + y], [15, 39 + y], [11, 43 + y], [6, 43 + y]], [0xc8402a, 0x8a2414, 0x4a100a]);
+      a.rrect(9, 27 + y, 43, 39 + y, 4, RD);
+      a.rect(11, 36 + y, 41, 38 + y, 0x3a1410); for (let x = 13; x < 40; x += 4) a.px(x + (x % 8 ? 0 : 1), 35 + y, 0x3a1410);       // scorched underside
+      a.rect(19, 27 + y, 20, 39 + y, 0x7a1a10); a.rect(33, 27 + y, 34, 39 + y, 0x7a1a10);                                            // hoops
+      for (const [rx, ry] of [[13, 30], [24, 29], [29, 34], [38, 30]]) { a.px(rx, ry + y, 0xffd0c0); a.px(rx + 1, ry + 1 + y, 0x5a1008); }   // rivets
+      a.line([[23, 32 + y], [27, 34 + y]], 0x7a1a10); a.px(15, 33 + y, 0xffb0a0);                                                    // a dent, a chip
+      a.poly([[43, 27 + y], [50, 29 + y], [56, 33 + y], [50, 37 + y], [43, 39 + y]], ST2);                                           // nose cone
+      a.poly([[44, 33 + y], [53, 33 + y], [49, 37 + y], [44, 38 + y]], 0x1a1018);                                                    // a painted snarl...
+      for (const tx of [45, 48, 51]) { a.px(tx, 33 + y, 0xfffbe0); a.px(tx, 34 + y, 0xfffbe0); } a.px(46, 37 + y, 0xfffbe0); a.px(49, 36 + y, 0xfffbe0);   // ...full of teeth
+      a.ell(47, 30 + y, 1.6, 1.6, 0xffffff); a.px(47, 30 + y, 0xe0302a);                                                             // and a mad painted eye
+      // the rider
+      toonRat(a, 6, 2 + y, Object.assign({ shell: false, cap: [0x8a5a3a, 0x5a3418, 0x2e1a0c], goggles: true }, o));
+      a.px(27, 6 + y, 0x1a1018); a.px(29, 5 + y, 0x3a2a24); a.px(22, 19 + y, 0x3a2a24); a.px(19, 22 + y, 0x3a2a24); a.px(26, 23 + y, 0x3a2a24);   // singed and sooty
+      if (i === 1 || i === 3) { a.px(31, 1 + y, 0x8a7a76); a.px(32, -1 + y + 1, 0x6a5a56); }                                         // his ear is smoking
+      // one scrawny arm in a quilted oven mitt, a pepperoni bomb in it, the fuse spitting
+      const hx = 35 + (i === 2 ? 2 : 0), hy = 21 + y + (i === 3 ? -3 : (i === 1 ? 1 : 0));
+      a.line([[27, 21 + y], [30, 24 + y], [hx - 2, hy + 1]], 0x868ca6, 2);
+      a.ell(hx + 6, hy + 2, 4.5, 4.5, [0xff7a6a, 0xb8281a, 0x6a100a]); a.px(hx + 5, hy + 1, 0xffd0c0); a.px(hx + 8, hy + 3, 0x6a100a); a.px(hx + 4, hy + 4, 0xf0c8a0);   // the bomb (a fat pepperoni)
+      a.line([[hx + 8, hy - 2], [hx + 10, hy - 4]], 0x5a3a1a); a.px(hx + 11, hy - 5 - (i % 2), i % 2 ? 0xffffff : 0xffd23f); if (i % 2) a.px(hx + 12, hy - 7, 0xff8a1a);
+      a.ell(hx, hy, 3.6, 3.2, [0xffe6d0, 0xe8a070, 0xa05a30]); a.line([[hx - 2, hy - 1], [hx + 2, hy + 1]], 0xa05a30); a.line([[hx - 1, hy + 2], [hx + 2, hy - 2]], 0xa05a30);   // mitt, quilted
+      a.rect(hx - 4, hy - 2, hx - 3, hy + 2, 0xd0302a);                                                                              // its red cuff
+      if (i === 1 || i === 2) { a.px(48, 9 + i + y, 0x9ae8ff); a.px(49, 10 + i + y, 0x5ac8f0); }                                     // sweat (it's hot up here)
+    }));
   // FORK FANATIC: the same wretch in a party bandana, a two-pronged fondue fork under its arm
   const SIL = [0xf4f8ff, 0xb8c0cc, 0x6a7280], BAND = [0xd08aff, 0x9a3ae8, 0x5a1a9a];
   const fork = (a, x0, y0, x1, y1) => {
