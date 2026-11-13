@@ -13,7 +13,9 @@ const ENEMY = {
   minigerm: { hp: 1,  r: 11, ch: 9,  tex: 'minigerm', oy: 0.85,    drop: 0.05, frames: ['minigerm', 'minigerm_b'], eyes: [[10, 10, 4], [17, 10, 2.2]] },
   frog:     { hp: 6,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true, eyes: [[45, 15, 7.5]] },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
-  miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel' },             // L6: little wheels the Pepper Jack spits out
+  miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel', frames: ['miniwheel', 'miniwheel_b'], fps: 5 },
+  chiprat:  { hp: 3,  r: 14, ch: 10, tex: 'chiprat',  oy: 37 / 38, drop: 0.18, k: 1.1, frames: ['chiprat', 'chiprat_b', 'chiprat_c', 'chiprat_d'], fps: 8, eyes: [[35, 19, 4.2], [40.5, 19.5, 2.6]] },   // L6 (gorge.js): a rat in a sombrero and poncho
+  pepwasp:  { hp: 2,  r: 15, ch: 12, tex: 'pepwasp',  oy: 0.55,    drop: 0.22, ai: 'flyer', frames: ['pepwasp', 'pepwasp_b'], fps: 18, eyes: [[26, 18, 3.6], [32, 19, 2.8]] },                      // L6: a bloated jalapeno wasp, drips hot sauce             // L6: little wheels the Pepper Jack spits out
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer', frames: ['ghostpirate', 'ghostpirate_b'], fps: 7, eyes: [[27, 14, 4]] },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
   mgolem:   { hp: 18, r: 27, ch: 30, tex: 'mgolem',   oy: 1,       drop: 0.65, big: true, ai: 'golem' },   // L4 Mozzarella Magma-Golem: charred armour chips off
@@ -224,8 +226,16 @@ const LEVELS = {
   },
 
   6: {
-    id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A tiny, high-speed cheddar planetoid.\nA giant wheel of Pepper Jack is chasing you.',
-    music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'RUN! BLAST THE CHIPS, JET OVER THE PITS!',
+    id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A canyon right round a tiny cheddar moon.\nThe Great Pepper Jack is rolling after you.',
+    music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'RUN! SHOOT THE WHEEL TO STAGGER IT. JET THE SALSA PITS!', gorge: true,
+    // depth (depth.js) - a sunset canyon: low red sun, long wine-dark shadows, a hot dusty haze; salsa veins glowing in the
+    // crust; banded cheddar mesas and buttes on the horizon, nearer cliffs with slot canyons; giant tortilla chips and a
+    // chilli cactus right in front of the camera
+    depth: { light: [-0.7, -0.6, 0.4], dark: [58, 10, 30], shadeA: [0, 60, 110, 155], rim: [255, 226, 150], atmo: [255, 130, 60], atmoW: 0.09, atmoA: 60,
+      cracks: [255, 70, 30], crackPulse: 0.8, crackA: 0.22,
+      ridges: [{ style: 'gorge', n: 20, off: 78, amp: 62, col: [150, 62, 60], top: [226, 122, 76], strata: [118, 44, 56], k: 0.42, depth: 0.33, seed: 61 },
+               { style: 'gorge', n: 14, off: 30, amp: 46, col: [198, 96, 36], top: [255, 176, 70], strata: [150, 62, 24], k: 0.7, depth: 0.37, seed: 67 }],
+      fg: { style: 'chips', col: [40, 10, 22], glow: [255, 150, 60] } },
     radius: 270, sky: [0x1a0a20, 0xd86a20], skyCols: [0x1a0a20, 0x3a1430, 0x6a2030, 0xa03a28, 0xd86a20, 0xf0a030], bg: '#1a0a20', starTint: 0xffd8a0, dustAlpha: 1.2, bgDecor: 'cosmic',
     surface: { pal: [0x6a2a0a, 0xa84a10, 0xe07a1a, 0xf6a02a, 0xffc85a, 0xffe8a0], seed: 6262 },
     planet: { fill: 0xf6a02a, inner: 0xe07a1a, rim: 0xffe8a0, glow: 0xffb050 },
@@ -233,20 +243,23 @@ const LEVELS = {
     gravity: 1, ledgeTypes: ['panini', 'girder', 'panini', 'girder'], ledgeTex: 'ledge1',
     ledges: [{ theta: 0.8, half: 0.2, h: 90 }, { theta: 2.4, half: 0.18, h: 165 }, { theta: 4.0, half: 0.18, h: 90 }, { theta: 5.5, half: 0.18, h: 165 }],
     props: [
-      { tex: 'bg_spires', at: [[0.5, 0.7], [1.9, 0.6, 1], [3.3, 0.75], [4.7, 0.65, 1], [5.9, 0.6]], depth: 0.95, tint: 0xa06a5a, alpha: 0.85, h: -14 },
+      { tex: 'gorge_arch', at: [[0.3, 1.0], [2.5, 0.85, 1], [4.3, 1.1]], tint: 0xe8b8a0, h: -6 },              // (v2.61) cheddar rock arches, chip spires, chilli cacti (gorge.js)
+      { tex: 'chip_spire', at: [[1.45, 0.8], [3.55, 0.95, 1], [5.35, 0.75]], tint: 0xf0c8a8, h: -4 },
+      { tex: 'chili_cactus', at: [[0.8, 0.9], [1.9, 0.75, 1], [2.9, 1.0], [3.95, 0.8], [5.0, 0.9, 1], [5.95, 0.8]], h: -2 },
       { tex: 'rock_dark', at: [[1.2, 0.9], [3.6, 1.0, 1], [5.2, 0.9]], tint: 0xc0703a, h: -3 },
       { tex: 'p_tuft1', n: 8, sc: [0.8, 1.2], fg: true, tint: 0xffb050 }],
-    chaser: { speed: 175, spit: [2.5, 4], spawn: [7, 10] },
+    chaser: { speed: 170, spit: [3, 4.5], spawn: [8, 11] },
     // bottomless pits (jet over them!) and speed-bump craters; razor tortilla chips block the way - blast them
     craters: [{ theta: 1.05, half: 0.075, kind: 'pit' }, { theta: 1.6, half: 0.1, kind: 'bump' }, { theta: 2.15, half: 0.08, kind: 'pit' }, { theta: 3.0, half: 0.11, kind: 'bump' },
               { theta: 3.35, half: 0.075, kind: 'pit' }, { theta: 4.45, half: 0.1, kind: 'bump' }, { theta: 4.85, half: 0.08, kind: 'pit' }, { theta: 5.85, half: 0.075, kind: 'pit' }],
-    chips: [0.55, 1.35, 1.85, 2.7, 3.15, 3.85, 4.25, 5.05, 5.55, 6.15],
+    chips: [1.35, 2.7, 4.25, 5.55],                     // (v2.61: only four to start with - the wheel plants the rest as you knock its rind off)
+    // three laps = three layers of rind. Lighter company than other levels: the wheel is the fight.
     waves: [
-      { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 1.2), S('slicer', 2.4), S('mouse', 3.4), S('drone', 4.4), S('mouse', 5.4), S('slicer', 6.6)] },
-      { name: 'WAVE 2', spawns: [S('slicer', 0), S('mouse', 1), S('drone', 2), S('mouse', 3), S('slicer', 4), S('drone', 5), S('mouse', 6), S('mouse', 7)] },
-      { name: 'WAVE 3', spawns: [S('drone', 0), S('slicer', 1), S('mouse', 1.8), S('drone', 2.8), S('slicer', 3.8), S('mouse', 4.6), S('drone', 5.6), S('slicer', 6.6), S('mouse', 7.4)] }
+      { name: 'LAP 1', spawns: [S('chiprat', 0), S('chiprat', 2), S('pepwasp', 4), S('chiprat', 6.5), S('pepwasp', 9), S('chiprat', 11.5), S('chiprat', 14), S('pepwasp', 16.5)] },
+      { name: 'LAP 2', spawns: [S('pepwasp', 0), S('chiprat', 1.5), S('chiprat', 3.5), S('pepwasp', 5.5), S('chiprat', 8), S('pepwasp', 10), S('chiprat', 12), S('pepwasp', 14), S('chiprat', 16), S('chiprat', 18)] },
+      { name: 'LAP 3', spawns: [S('chiprat', 0), S('pepwasp', 1.5), S('pepwasp', 3.5), S('chiprat', 5), S('chiprat', 7), S('pepwasp', 9), S('chiprat', 11), S('pepwasp', 13), S('chiprat', 15), S('pepwasp', 17), S('chiprat', 19), S('pepwasp', 21)] }
     ],
-    boss: { tex: 'jack_rind', hp: 170, ai: 'wheel' },
+    boss: { tex: 'jack_rind2', hp: 170, ai: 'wheel' },
     win: 'The Great Pepper Jack has crumbled!\nBessie rolled clear... into the hold of the rat armada.\nTime to board their fleet.'
   },
 

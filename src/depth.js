@@ -62,6 +62,14 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         for (const f of feats) { const d = Math.abs(dA(a, f.a)) / f.w; if (d < 1) h = Math.max(h, f.h * Math.pow(1 - d, 0.7)); }
         return h;
       }
+      if (st === 'gorge') {                                                     // (v2.61) canyon country: flat-topped mesas in steps, sheer sides, slot canyons cut through, the odd needle butte
+        const raw = 0.5 + 0.3 * Math.sin(a * 4 + n * 2) + 0.2 * Math.sin(a * 9 + n) + 0.3 * walk(a);
+        let h = Math.round(Math.max(0.12, Math.min(1, raw)) * 4) / 4 + 0.02 * Math.sin(a * 60);
+        for (const f of feats) { const d = Math.abs(dA(a, f.a)) / (f.w * 0.7);
+          if (f.s < 0.4 && d < 1) h = Math.min(h, 0.06 + 0.2 * d * d);            // a slot canyon
+          else if (f.s > 0.8 && d < 0.6) h = Math.max(h, f.h * (d < 0.35 ? 1 : 0.86)); }   // a needle
+        return h;
+      }
       if (st === 'wrecks' || st === 'factory' || st === 'cogs' || st === 'tiers') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
       return 0.55 + 0.25 * Math.sin(a * 7 + n) + 0.15 * Math.sin(a * 19 + n * 2) + 0.35 * walk(a);   // jagged hills
     };
@@ -141,6 +149,11 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         let col = null;
         if (dd <= top) {
           col = top - dd < 3 && th < 0.6 ? TOP : C;
+          if (st === 'gorge' && top - dd >= 3) {                                    // banded strata, a lit cap, shadow under every ledge
+            const band = Math.floor((dd - Rw - rg.off + 400 + 2.5 * Math.sin(a * 40)) / 7) % 3;
+            col = band === 0 ? (rg.strata || C) : (band === 1 && th < 0.35 ? TOP : C);
+            if (top - dd < 7 && th < 0.5) col = rg.strata || C;
+          }
           if (holes) for (const H of holes) { const hu = dA(a, H.a) * Rw, hv = dd - (Rw + rg.off + rg.amp * H.d * 0.6), q = Math.hypot(hu, hv); if (q < H.r) { col = q > H.r - 1.6 ? TOP : null; break; } }
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
         else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
@@ -188,6 +201,16 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         for (const [t, rw, rh] of [[0.22, 9, 8], [0.42, 7, 10], [0.62, 10, 7], [0.8, 6, 6]]) { const x = 500 + 110 * t, y = H - 1 - (H - 19) * t; for (let yy = -rh; yy <= rh; yy++) for (let xx = -rw; xx <= rw; xx++) if ((xx * xx) / (rw * rw) + (yy * yy) / (rh * rh) <= 1) set(x + xx, y + yy, FC); if (GL) set(x - rw * 0.5, y - rh * 0.6, GL); }   // ...with chunks on it
         for (let y = 0; y < 30; y++) { const half = y < 14 ? 13 - y * 0.55 : (y < 26 ? 2 : 2 + (y - 25) * 2.4); for (let x = -half; x <= half; x++) set(320 + x, H - 31 + y, FC); }   // a goblet
         if (GL) for (let x = -12; x <= 12; x++) set(320 + x, H - 31, GL);
+      } else if (st === 'chips') {                                              // (v2.61) the gorge: giant tortilla chips stuck in at angles, a chilli cactus, rubble
+        const tri = (x0, w, hh, lean) => { for (let y = 0; y < hh; y++) { const half = w * (y / hh) / 2, cx = x0 + lean * (hh - y); for (let x = -half; x <= half; x++) set(cx + x, H - hh + y, FC); if (GL) { set(cx + half, H - hh + y, GL); if (y % 9 === 4) set(cx + half * 0.3, H - hh + y, GL); } } };
+        tri(40, 46, 58, 0.25); tri(78, 30, 36, -0.3); tri(18, 22, 26, 0.1); tri(520, 52, 62, -0.2); tri(566, 28, 34, 0.35); tri(300, 26, 30, 0.05);
+        for (const [cx, hh] of [[430, 44], [150, 30]]) {                                                    // cacti
+          for (let y = H - hh; y < H; y++) for (let x = cx - 3; x <= cx + 3; x++) set(x, y, FC);
+          for (let y = H - hh * 0.75; y < H - hh * 0.4; y++) { for (let x = cx - 11; x <= cx - 8; x++) set(x, y, FC); for (let x = cx + 8; x <= cx + 11; x++) set(x, y - 5, FC); }
+          for (let x = cx - 11; x <= cx + 11; x++) { set(x, H - hh * 0.4, FC); set(x, H - hh * 0.4 - 1, FC); }
+          if (GL) { set(cx, H - hh - 1, GL); set(cx - 10, H - hh * 0.75 - 1, GL); set(cx + 10, H - hh * 0.75 - 6, GL); }
+        }
+        for (const [cx, w, hh] of [[230, 16, 9], [370, 22, 12], [610, 18, 10]]) for (let x = cx - w; x <= cx + w; x++) { const d = (x - cx) / w, y = Math.round(H - hh * Math.sqrt(Math.max(0, 1 - d * d))); for (let yy = y; yy < H; yy++) set(x, yy, FC); if (GL) set(x, y, GL); }
       } else if (st === 'bones') {                                              // graveyard: great curved ribs and a broken grave post
         for (const [x0, span, hgt] of [[40, 60, 46], [500, 70, 52]]) for (let rib = 0; rib < 4; rib++) {
           const xs = x0 + rib * span / 4, hh = hgt * (1 - rib * 0.15);

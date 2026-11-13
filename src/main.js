@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.60';
+const BUILD = 'v2.61';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -413,6 +413,7 @@ class Level1 extends Phaser.Scene {
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
     this.pinT = 0;
+    if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
     this.specLights = []; this.fogFg = [];
     if (this.def.bgDecor === 'haze' && Settings.lights) {   // eerie coloured light from the anomalies, sweeping slowly over the pale ground
       for (let i = 0; i < 7; i++) { const hl = this.add.image(0, 0, 'halo').setDepth(2.45).setTint([0xd070ff, 0x5ce1ff, 0xff7ad8][i % 3]).setBlendMode(Phaser.BlendModes.ADD); hl.bsx = rnd(1.6, 2.6); hl.bsy = hl.bsx * 0.45; this.specLights.push({ spr: hl, theta: i * TAU / 7, v: rnd(-0.05, 0.05), ph: rnd(0, 6) }); }
@@ -1444,6 +1445,7 @@ class Level1 extends Phaser.Scene {
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
+      if (this.def.gorge) this.gorgeUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L6 (gorge.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
       if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
@@ -1656,12 +1658,18 @@ class Level1 extends Phaser.Scene {
 
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
     P.vx += (ax * CFG.runSpeed * (1 + 0.05 * this.bootLv) * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.3 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
+    if (P.tripT > 0) { P.tripT -= dt; P.vx = Math.max(-110, Math.min(110, P.vx)); }   // (stumbling)
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.chips && this.chips.length) {               // tortilla chips are solid: you can't run (or be pushed) through them
       this.pinT = Math.max(0, this.pinT - dt);
       for (const C of this.chips) {
         if (!C.alive || P.h >= 52) continue;
         const rel = angDiff(P.theta, C.theta) * R;
+        if (Math.abs(rel) < 15 && this.def.gorge) {      // (v2.61) L6: clip a chip and it shatters - Chris TRIPS (a beat of lost speed, no damage). The jalapeno ploughs straight through.
+          C.alive = false; C.spr.setVisible(false); this.burst(C.theta, 20, 'crumb', 14, 1.1); this.bang(C.theta, 20, 16); Sound.sfx('clunk');
+          if (!this.buffOn('jalapeno')) { P.vx *= 0.15; P.tripT = 0.5; if (P.h <= 0) P.vh = 170; this.rig.ouch(false); this.popup(P.theta, P.h + 80, 'OOF!', '#ffd23f'); this.camKick((P.facing || 1) * 6, 3); buzz(25); }
+          continue;
+        }
         if (Math.abs(rel) < 15) { const side = Math.sign(rel) || -(P.facing || 1); P.theta = wrap(C.theta + side * 15 / R); if (Math.sign(P.vx) === -side) P.vx = 0; this.pinT = 0.15; this.pinSide = side; }
       }
     }
@@ -3001,6 +3009,14 @@ class Level1 extends Phaser.Scene {
       g.fillStyle(pit ? 0x0a0204 : 0xc87a1a, 1).fillPoints(top.concat(bot), true);
       if (pit) { const mid = []; for (let k = 0; k <= n; k++) { const u = k / n; mid.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.92), -8 * Math.sin(u * Math.PI) - 2)); } g.fillStyle(0x3a1206, 1).fillPoints(top.concat(mid.reverse()), true); }
       else { g.fillStyle(0xe89a3a, 1).fillPoints(top.concat(bot.slice(0, Math.ceil(bot.length / 2))), true); }
+      if (pit && this.def.gorge) {                         // (v2.61) L6: the pits are full of SALSA: a red pool part-way down, a hot skin on it, bubbles
+        const lvl = [], n2 = 12;
+        for (let k = 0; k <= n2; k++) { const u = k / n2; lvl.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.86), -16 - 3 * Math.sin(u * Math.PI) + Math.sin(this.t * 3 + k * 0.9) * 1.2)); }
+        g.fillStyle(0xa81808, 1).fillPoints(lvl.concat(bot.slice(1, -1)), true);
+        g.lineStyle(3 * z, 0xff6a2a, 1).strokePoints(lvl, false); g.lineStyle(1.5 * z, 0xffc23a, 0.8).strokePoints(lvl.slice(2, 6), false);
+        for (let k = 0; k < 3; k++) { const ph = (this.t * 0.8 + k * 0.37 + C.theta) % 1, q = this.screenPos(wrap(C.theta + (k - 1) * C.half * 0.45), -19); g.fillStyle(0xff8a4a, 1 - ph).fillCircle(q.x, q.y, (1.5 + 3 * ph) * z); }
+        for (const [u, c] of [[0.3, 0x3a9a2a], [0.62, 0xffe08a], [0.8, 0x3a9a2a]]) { const q = this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.8), -18 + Math.sin(this.t * 2 + u * 9)); g.fillStyle(c, 1).fillRect(q.x - 1.5 * z, q.y - 1 * z, 3 * z, 2 * z); }   // bits of pepper and chip bobbing in it
+      }
       g.lineStyle(3.5 * z, 0xffc860, 1).strokePoints(top, false);                       // the bright crusty lip
       for (const e of [top[0], top[n]]) g.fillStyle(0xa85a10, 1).fillCircle(e.x, e.y, 3.5 * z);
     }
@@ -3031,7 +3047,7 @@ class Level1 extends Phaser.Scene {
   // the boss wheel's face (upright, not spinning): furious face, then the exposed gooey core with its eye
   drawWheelFace(e) {
     if (!e.face) e.face = this.add.image(0, 0, 'jack_face').setDepth(6.1);
-    e.face.setTexture(e.core ? 'jack_core' : 'jack_face');
+    e.face.setTexture(e.core ? 'jack_core' : (e.flash > 0 ? 'jack_hurt' : (Math.floor(this.t * 7) % 2 ? 'jack_face_b' : 'jack_face')));
     this.place(e.face, e.theta, e.h + (e.core ? 2 : 6), Math.sin(this.t * 6) * 0.04);
     e.face.setScale(e.face.scaleX * (e.spr.bsx || 1), e.face.scaleY * (e.spr.bsy || 1));
     if (e.flash > 0) e.face.setTintFill(0xffffff); else e.face.clearTint();
@@ -3401,6 +3417,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.relics.length) this.relicHit(theta, h, rad, dmg);
     if (this.lumps.length) this.lumpHit(theta, h, rad, dmg);
+    if (this.gz) this.gorgeHit(theta, h, rad);
     // big cheesy splat: shockwave ring, chunks, sparks, a puddle left on the ground
     const s = this.screenPos(theta, h + 4), z = this.zoom;
     // (shockwave, stretchy strings of molten cheese and popping Swiss holes: drawn in planet coordinates by drawBlastFx)
@@ -3574,7 +3591,7 @@ class Level1 extends Phaser.Scene {
   spawnEnemy(type) {
     const P = this.pl;
     let theta, side = this.spawnSide;
-    if (type === 'boss') theta = wrap(P.theta + 0.2);
+    if (type === 'boss') theta = this.chaser && this.def.gorge ? this.chaser.theta : wrap(P.theta + 0.2);
     else {
       this.spawnSide = -this.spawnSide;
       theta = wrap(P.theta + side * (this.visHalf + 0.1 + rnd(0, 0.15)));
@@ -3692,6 +3709,9 @@ class Level1 extends Phaser.Scene {
           } else if (e.type === 'rocketrat') {                  // a sizzling pepperoni bomb: blinks as it falls, bursts into greasy shrapnel on the crust
             const bb = this.addEBullet('pepbomb', e.theta, e.h - 10, (P.vx || 0) * 0.25, -40, 9, 4); bb.grav = 420; bb.bomb = true; bb.spinV = 6;
             e.bombCd = rnd(1.8, 2.6); Sound.sfx('cube');
+          } else if (e.type === 'pepwasp') {             // (v2.61) a drip of hot sauce, straight down
+            const bb = this.addEBullet('chili', e.theta, e.h - 10, (P.vx || 0) * 0.2, -30, 7, 3); bb.grav = 380;
+            e.bombCd = rnd(1.6, 2.4); Sound.sfx('cube');
           } else if (e.type === 'stinkfly') {            // spore bomb: a lob that leads Chris, and a stink puff either side
             this.addEBullet('spore', e.theta, e.h, dirP * 70 + (P.vx || 0) * 0.35, -150, 11, 3).grav = 120;
             e.bombCd = rnd(2.0, 3.0);
@@ -4156,7 +4176,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -4272,7 +4292,12 @@ class Level1 extends Phaser.Scene {
       if (b.h < 0 && !b.blast && Math.random() < 0.6) this.burst(b.theta, 2, 'spark', 2, 0.35);   // shots aimed down spark off the ground
       if (!dead && this.chaser) {                         // shooting the rolling Pepper Jack slows it a touch
         const C = this.chaser;
-        if (dist2(b.theta, b.h, C.theta, C.r) < (C.r + 6) * (C.r + 6)) { dead = true; C.v *= 0.9; this.burst(b.theta, b.h, 'crumb', 3, 0.6); }
+        if (dist2(b.theta, b.h, C.theta, C.r) < (C.r + 6) * (C.r + 6)) { dead = true; C.v *= 0.92; this.burst(b.theta, b.h, 'crumb', 3, 0.6); C.hurtT = 0.12;
+          if (!(C.stun > 0) && !(C.stagCd > 0)) { C.stag = (C.stag || 0) + (b.dmg || 1); if (C.stag >= 12) { C.stag = 0; C.stagCd = 3.2; this.stunChaser(1.7); if (this.gz) this.gorgeFling(C, 2); } }   // (v2.61) enough hits: it reels back, and rind flies
+        }
+      }
+      if (!dead && this.gz && this.gorgeHit(b.theta, b.h, 6)) dead = true;
+      if (false) {
       }
       if (!dead && b.deflected) { /* glancing off a shield: harmless now */ }
       else if (!dead && b.plough) {                            // Swiss-Shot: ploughs THROUGH enemies, shrinking (and losing blast) with every one
@@ -4725,7 +4750,8 @@ class Level1 extends Phaser.Scene {
           this.banner('THE PEPPER JACK IS COMING - RUN!'); Sound.sfx('bossIn');
         }
         const C = this.chaser, to = angDiff(P.theta, C.theta), dir = Math.sign(to) || 1;
-        const sp = d.chaser.speed + 15 * Math.max(0, this.waveIdx);
+        const gapPx = Math.abs(to) * R, sp = (d.chaser.speed + 15 * Math.max(0, this.waveIdx)) * (gapPx > 520 ? 1.3 : (gapPx < 170 ? 0.84 : 1));   // (v2.61: it eases off when it's on top of him, floors it when he's far ahead)
+        C.hurtT = Math.max(0, (C.hurtT || 0) - dt); C.stagCd = Math.max(0, (C.stagCd || 0) - dt);
         if (C.stun > 0) { C.stun -= dt; C.v *= Math.exp(-3 * dt); }
         else C.v += (dir * sp - C.v) * Math.min(1, dt * 1.2);
         C.theta = wrap(C.theta + (C.v / R) * dt); C.roll += (C.v / C.r) * dt;
@@ -4757,6 +4783,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.chips) for (const Cp of this.chips) {
       if (Cp.flash > 0) { Cp.flash -= dt; if (Cp.flash <= 0) Cp.spr.clearTint(); }
+      if (!Cp.alive && this.def.gorge) continue;
       if (!Cp.alive) { Cp.regrow -= dt; if (Cp.regrow <= 0 && Math.abs(angDiff(P.theta, Cp.theta)) * R > 60) { Cp.alive = true; Cp.hp = 4; Cp.spr.setVisible(true); Cp.spr.hsq = 1; } }
     }
     if (d.sweep) {
@@ -5246,6 +5273,7 @@ class Level1 extends Phaser.Scene {
         if (e.spr.visible && e.jetT <= 0) { e.jetT = 0.05; this.fxRatJet.emitParticleAt(jx - Math.sin(r) * 9 * sc, jy + Math.cos(r) * 9 * sc, 1); }
       }
     }
+    if (this.def.gorge) this.gorgeDraw();
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
     if (this.def.fondue) this.fondueDraw(this.unw - (this.lagU || 0));   // L5.5: curtains, waves, party lights, the fountain (fondue.js)
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, b.blast ? b.rot : Math.atan2(-b.vh, b.vt));   // (the Swiss ball spins)
@@ -5256,7 +5284,7 @@ class Level1 extends Phaser.Scene {
     if (this.chaser) {                                   // spinning rind, upright furious face (dizzy wobble when stunned)
       const C = this.chaser; this.place(C.spr, C.theta, C.r, C.roll);
       this.place(C.face, C.theta, C.r + 4, C.stun > 0 ? Math.sin(this.t * 20) * 0.3 : 0); C.face.setScale(C.face.scaleX * 1.25, C.face.scaleY * 1.25);
-      C.face.setTint(C.stun > 0 && Math.floor(this.t * 10) % 2 ? 0xc0c0ff : 0xffffff);
+      C.face.setTexture(C.stun > 0 ? 'jack_dizzy' : (C.hurtT > 0 ? 'jack_hurt' : (Math.floor(this.t * 7) % 2 ? 'jack_face_b' : 'jack_face')));
     }
     for (const Cp of (this.chips || [])) if (Cp.alive) { this.place(Cp.spr, Cp.theta, -2, 0); if (Cp.spr.hsq > 0) Cp.spr.hsq = Math.max(0, Cp.spr.hsq - this.lastDt * 4); }
     this.drawCraters();
@@ -5384,6 +5412,7 @@ class Level1 extends Phaser.Scene {
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
+Object.assign(Level1.prototype, GorgeMixin);          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
