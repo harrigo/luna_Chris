@@ -14,7 +14,10 @@ const ENEMY = {
   frog:     { hp: 6,  r: 24, ch: 18, tex: 'frog',     oy: 0.92,    drop: 0.55, big: true, eyes: [[45, 15, 7.5]] },
   drone:    { hp: 2,  r: 16, ch: 12, tex: 'drone',    oy: 0.5,     drop: 0.25 },
   miniwheel: { hp: 2, r: 13, ch: 14, tex: 'miniwheel', oy: 0.5, drop: 0.2, ai: 'miniwheel', frames: ['miniwheel', 'miniwheel_b'], fps: 5 },
-  chiprat:  { hp: 3,  r: 14, ch: 10, tex: 'chiprat',  oy: 37 / 38, drop: 0.18, k: 1.1, frames: ['chiprat', 'chiprat_b', 'chiprat_c', 'chiprat_d'], fps: 8, eyes: [[35, 19, 4.2], [40.5, 19.5, 2.6]] },   // L6 (gorge.js): a rat in a sombrero and poncho
+  steward:  { hp: 3,  r: 14, ch: 10, tex: 'steward',  oy: 39 / 40, drop: 0.18, k: 1.1, deck: true, ai: 'mouse', frames: ['steward', 'steward_b', 'steward_c', 'steward_d'], fps: 8, eyes: [[34, 21, 4.2], [39.5, 21.5, 2.6]] },   // L10 crew (saucer.js)
+  admiral:  { hp: 9,  r: 18, ch: 13, tex: 'admiral',  oy: 44 / 46, drop: 0.5,  k: 1.3, deck: true, big: true, ai: 'mouse', frames: ['admiral', 'admiral_b'], fps: 5, eyes: [[35, 26, 4.2], [40.5, 26.5, 2.6]] },
+  toff:     { hp: 2,  r: 15, ch: 12, tex: 'toff',     oy: 0.72,    drop: 0.28, ai: 'flyer', frames: ['toff', 'toff_b', 'toff_c', 'toff_d'], fps: 9, eyes: [[35, 35, 4.2], [40.5, 35.5, 2.6]] },
+  chiprat:  { hp: 3,  r: 14, ch: 10, tex: 'chiprat',  oy: 37 / 38, drop: 0.18, k: 1.1, ai: 'mouse', frames: ['chiprat', 'chiprat_b', 'chiprat_c', 'chiprat_d'], fps: 8, eyes: [[35, 19, 4.2], [40.5, 19.5, 2.6]] },   // L6 (gorge.js): a rat in a sombrero and poncho
   pepwasp:  { hp: 2,  r: 15, ch: 12, tex: 'pepwasp',  oy: 0.55,    drop: 0.22, ai: 'flyer', frames: ['pepwasp', 'pepwasp_b'], fps: 18, eyes: [[26, 18, 3.6], [32, 19, 2.8]] },                      // L6: a bloated jalapeno wasp, drips hot sauce             // L6: little wheels the Pepper Jack spits out
   ghostpirate: { hp: 3, r: 15, ch: 14, tex: 'ghostpirate', oy: 0.6, drop: 0.25, ai: 'flyer', frames: ['ghostpirate', 'ghostpirate_b'], fps: 7, eyes: [[27, 14, 4]] },             // L5 phantom pirate: triangle-zigzag bolts
   polterwedge: { hp: 2, r: 13, ch: 10, tex: 'polterwedge', oy: 0.6, drop: 0.3, ai: 'polter' },            // L5 poltergeist wedge: only hittable when it's solid
@@ -329,6 +332,25 @@ const LEVELS = {
     ],
     boss: { tex: 'ratking', hp: 240, ai: 'king', armouredTop: true },
     win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
+  },
+
+  // LEVEL 10 (the finale, in progress - open on the map for testing): the Rat King's flying saucer (saucer.js)
+  10: {
+    id: 10, name: "The Rat King's Saucer", short: 'THE ROYAL SAUCER', blurb: 'The top deck of the Royal Saucer, high over Parmesan Prime.\nThe Rat King is at the wheel. Do not fall off.',
+    music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
+    radius: 1100, sky: [0x03040e, 0x1a1238], skyCols: [0x03040e, 0x070a1c, 0x0c1030, 0x141440, 0x1e164a, 0x2a1a50], bg: '#03040e', starTint: 0xc8d8ff, dustAlpha: 0.5, bgDecor: 'cosmic',
+    planet: { fill: 0x4a5672, inner: 0x232a3e, rim: 0xb8c4e0, glow: 0x9fd8ff },
+    dust: [0xffffff, 0x9fd8ff, 0xffd8a0, 0xc8d8ff], decorTint: 0x8a94a6, decorAlpha: 0.5,
+    gravity: 1, ledgeTypes: ['energy', 'girder', 'energy'], ledgeTex: 'ledge3',
+    ledges: [{ theta: -0.27, half: 0.055, h: 96 }, { theta: 0, half: 0.06, h: 172 }, { theta: 0.27, half: 0.055, h: 96 }],   // (the middle one is the gantry over the dome)
+    props: [],
+    waves: [
+      { name: 'WAVE 1', spawns: [S('steward', 0), S('steward', 1.6), S('toff', 3.2), S('steward', 5), S('steward', 6.8), S('toff', 8.6), S('admiral', 10.5), S('steward', 13)] },
+      { name: 'WAVE 2', spawns: [S('toff', 0), S('steward', 1.4), S('admiral', 3), S('steward', 4.6), S('toff', 6.2), S('steward', 7.8), S('toff', 9.4), S('admiral', 11.2), S('steward', 13), S('steward', 14.5)] },
+      { name: 'WAVE 3', spawns: [S('admiral', 0), S('toff', 1.4), S('steward', 2.6), S('steward', 3.8), S('toff', 5.2), S('admiral', 6.8), S('steward', 8.2), S('toff', 9.6), S('steward', 11), S('admiral', 12.6), S('toff', 14), S('steward', 15.4)] }
+    ],
+    boss: { tex: 'ratking', hp: 240, ai: 'king', armouredTop: true },       // (a stand-in: the mech from Parmesan Prime, until the real Rat King fight is built)
+    win: 'The Rat King is beaten... for now.\n(The real fight, Bessie and the ending are still to come.)'
   },
 
   // LEVEL 5.5 (secret detour): reached through a warp hole (shows on level select once found)
@@ -972,7 +994,7 @@ class SelectScene extends Phaser.Scene {
     return [
       { id: 1, x: 0.05, y: 0.62 }, { id: 2, x: 0.15, y: 0.47 }, { id: 3, x: 0.255, y: 0.6 },
       { id: 4, x: 0.37, y: 0.42 }, { id: 5, x: 0.48, y: 0.35 }, { id: 6, x: 0.59, y: 0.42 },
-      { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 },
+      { id: 7, x: 0.72, y: 0.6 }, { id: 8, x: 0.83, y: 0.47 }, { id: 9, x: 0.94, y: 0.62 }, { id: 10, x: 0.945, y: 0.3 },   // (10: the Royal Saucer - open for testing)
       { id: 'zerog', x: 0.3, y: 0.02, kind: 'bonus', name: 'BONUS: ZERO-G ROOM', blurb: bonus },
       { id: 'freefall', x: 0.655, y: 0.02, kind: 'bonus', name: 'BONUS: CERAMIC GRILL FREEFALL', blurb: 'BONUS: drop down a giant kamado grill to the coals.\nFind the gaps in the grates, dodge the flare-ups, hold JUMP to brake.' },
       { id: 5.5, x: 0.56, y: 0.97, kind: 'warp', name: 'WARP: FONDUE FOUNTAIN', blurb: 'WARP ZONE: a molten cheese moon, deep in a warp.\nReached through the Centrifuge. Comes out at level 7.' },
@@ -995,7 +1017,7 @@ class SelectScene extends Phaser.Scene {
   }
   isOpen(id) {
     const best = Progress.best;
-    if (id === 1 || Progress.testMode) return true;
+    if (id === 1 || id === 10 || Progress.testMode) return true;   // (10 is open while it's being built)
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
     if (id === 'centrifuge') return Progress.found(5.5);          // (v2.40) the warp road: Triangle -> CENTRIFUGE -> Fondue Fountain -> level 7

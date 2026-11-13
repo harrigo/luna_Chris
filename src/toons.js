@@ -352,6 +352,7 @@ function makeToonTextures(scene) {
       a.ell(13, 13, 6, 6, CH); a.ell(12, 12, 3, 3, 0xfffbe0);
     }, false); }
   pixSprite(scene, 'toon_eye', 18, 18, a => { a.ell(9, 9, 7, 7, WH); for (const [x0, y0, x1, y1] of [[2, 8, 5, 9], [15, 11, 12, 10], [9, 15, 9, 13]]) a.line([[x0, y0], [x1, y1]], 0xe0302a); a.ell(11, 9.5, 1.5, 1.5, DARK); a.px(6, 5, 0xffffff); });
+  if (typeof makeSaucerTextures === 'function') makeSaucerTextures(scene, toonRat);   // L10: the Royal Saucer and its crew (saucer.js)
   if (typeof makeGorgeTextures === 'function') makeGorgeTextures(scene, toonRat);   // L6: the Pepper Jack, the canyon and its vermin (gorge.js)
 }
 

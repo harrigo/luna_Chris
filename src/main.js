@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.61';
+const BUILD = 'v2.62';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -363,12 +363,12 @@ class Level1 extends Phaser.Scene {
     }
     this.fx = null; this.toon = null;
     this.depthFx = null; this.depthInit();               // neo-retro depth: sphere shading, parallax hills, foreground rocks (depth.js)
-    if (!this.def.surface) for (let i = 0; i < 28; i++) {
+    if (!this.def.surface && !this.def.saucer) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
       spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -8 });
     }
-    if (!this.def.surface) for (let i = 0; i < 60; i++) {
+    if (!this.def.surface && !this.def.saucer) for (let i = 0; i < 60; i++) {
       const spr = this.add.image(0, 0, 'hole').setDepth(2).setTint(this.def.decorTint).setAlpha(rnd(0.5, 1) * this.def.decorAlpha);
       spr.bsx = spr.bsy = rnd(0.5, 2.2);
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
@@ -413,6 +413,7 @@ class Level1 extends Phaser.Scene {
     this.craters = (this.def.craters || []).map(c => Object.assign({}, c)); this.crG = null;   // drawn along the planet's curve (drawCraters)
     this.chips = (this.def.chips || []).map(theta => { const spr = this.add.image(0, 0, 'nacho').setOrigin(0.5, 1).setDepth(5.2); spr.bsx = spr.bsy = 1.3; return { theta, hp: 4, alive: true, regrow: 0, spr, flash: 0 }; });
     this.pinT = 0;
+    if (this.def.saucer) this.saucerInit();             // L10: the Royal Saucer's deck (saucer.js)
     if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
     this.specLights = []; this.fogFg = [];
     if (this.def.bgDecor === 'haze' && Settings.lights) {   // eerie coloured light from the anomalies, sweeping slowly over the pale ground
@@ -1445,6 +1446,7 @@ class Level1 extends Phaser.Scene {
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
       if (this.def.boss && this.def.boss.ai === 'mandoline') this.updateMando(dt);
       if (this.def.boss && this.def.boss.ai === 'milkmaid') this.mmUpdate(dt);       // L3 boss hazards (milkmaid.js)
+      if (this.def.saucer) this.saucerUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L10 (saucer.js)
       if (this.def.gorge) this.gorgeUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L6 (gorge.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
       if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
@@ -1685,7 +1687,7 @@ class Level1 extends Phaser.Scene {
         P.pitFall = 0; P.sink = 0; this.hurt();
         const away = this.chaser ? (Math.sign(angDiff(P.theta, this.chaser.theta)) || 1) : (P.facing || 1);
         const cr = this.craters.find(c => Math.abs(angDiff(P.theta, c.theta)) < c.half * 1.2);
-        P.theta = wrap((cr ? cr.theta : P.theta) + away * ((cr ? cr.half * R : 20) + 26) / R); P.h = 40; P.vh = 320; P.invuln = Math.max(P.invuln, 1.2);
+        P.theta = this.def.saucer ? this.saucerEdgeBack() : wrap((cr ? cr.theta : P.theta) + away * ((cr ? cr.half * R : 20) + 26) / R); P.h = 40; P.vh = 320; P.invuln = Math.max(P.invuln, 1.2);
       }
     }
     if (this.def.conveyor && this.state === 'play' && P.h <= 0) {          // the grater floor: the treadmill carries you back...
@@ -3592,6 +3594,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     let theta, side = this.spawnSide;
     if (type === 'boss') theta = this.chaser && this.def.gorge ? this.chaser.theta : wrap(P.theta + 0.2);
+    if (this.def.saucer) theta = type === 'boss' ? wrap((angDiff(P.theta, 0) > 0 ? -1 : 1) * 200 / R) : this.saucerSpawnTheta();
     else {
       this.spawnSide = -this.spawnSide;
       theta = wrap(P.theta + side * (this.visHalf + 0.1 + rnd(0, 0.15)));
@@ -3708,6 +3711,9 @@ class Level1 extends Phaser.Scene {
             e.bombCd = rnd(1.8, 2.6); Sound.sfx('psy');
           } else if (e.type === 'rocketrat') {                  // a sizzling pepperoni bomb: blinks as it falls, bursts into greasy shrapnel on the crust
             const bb = this.addEBullet('pepbomb', e.theta, e.h - 10, (P.vx || 0) * 0.25, -40, 9, 4); bb.grav = 420; bb.bomb = true; bb.spinV = 6;
+            e.bombCd = rnd(1.8, 2.6); Sound.sfx('cube');
+          } else if (e.type === 'toff') {                // (v2.62) a champagne cork, popped at him
+            const bb = this.addEBullet('cork', e.theta, e.h - 6, Math.sign(angDiff(P.theta, e.theta)) * 70, 150, 7, 3); bb.grav = 520; bb.spinV = 9; bb.shootable = true;
             e.bombCd = rnd(1.8, 2.6); Sound.sfx('cube');
           } else if (e.type === 'pepwasp') {             // (v2.61) a drip of hot sauce, straight down
             const bb = this.addEBullet('chili', e.theta, e.h - 10, (P.vx || 0) * 0.2, -30, 7, 3); bb.grav = 380;
@@ -4176,7 +4182,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -5095,9 +5101,9 @@ class Level1 extends Phaser.Scene {
     const pg = this.planetG;
     pg.clear();
     const pc = this.def.planet;
-    pg.fillStyle(pc.glow, 0.08).fillCircle(cx, cy, Rz + 30);
-    pg.fillStyle(pc.glow, 0.14).fillCircle(cx, cy, Rz + 14);
-    if (this.planetImg) {
+    if (!this.def.saucer) { pg.fillStyle(pc.glow, 0.08).fillCircle(cx, cy, Rz + 30);
+    pg.fillStyle(pc.glow, 0.14).fillCircle(cx, cy, Rz + 14); }
+    if (this.def.saucer) { /* no planet: saucerDraw draws the hull */ } else if (this.planetImg) {
       const ps = (2 * Rz) / this.planetImg.width;
       this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-unwV);
       this.planetShade.setPosition(cx, cy).setScale(ps);
@@ -5273,6 +5279,7 @@ class Level1 extends Phaser.Scene {
         if (e.spr.visible && e.jetT <= 0) { e.jetT = 0.05; this.fxRatJet.emitParticleAt(jx - Math.sin(r) * 9 * sc, jy + Math.cos(r) * 9 * sc, 1); }
       }
     }
+    if (this.def.saucer) this.saucerDraw();
     if (this.def.gorge) this.gorgeDraw();
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
     if (this.def.fondue) this.fondueDraw(this.unw - (this.lagU || 0));   // L5.5: curtains, waves, party lights, the fountain (fondue.js)
@@ -5412,7 +5419,8 @@ class Level1 extends Phaser.Scene {
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
-Object.assign(Level1.prototype, GorgeMixin);          // L6's Cheddar Gorge (src/gorge.js)
+Object.assign(Level1.prototype, GorgeMixin);
+Object.assign(Level1.prototype, SaucerMixin);         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)

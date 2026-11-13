@@ -1602,3 +1602,14 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - New creatures (grotesque style): CHIP BANDITO (rat in a sombrero, poncho and chilli bandolier, 4 frames), PEPPER WASP (bloated jalapeno wasp, drips hot sauce), SALSA SNAPPER (lives in every other pit: the salsa boils for half a second, then it leaps jaws-first; shoot it out of the air for 200 and cheddar; back in 9 s). Mini wheels redrawn as bug-eyed pups (2 frames).
 - The Pepper Jack redrawn: mismatched bloodshot eyes, girder brows, yellow tombstone teeth, drool, pepper warts; it gnashes (2 frames), goes spiral-eyed when stunned, yelps when shot; a veined molten-lidded eye for the core.
 - Identity: sunset canyon. depth.js gets a 'gorge' ridge style (stepped flat-topped mesas, banded strata, slot canyons, needles) and a 'chips' foreground (giant tortilla chips, chilli cacti); salsa veins glow in the crust; the pits are full of bubbling salsa; props are cheddar rock arches, chip spires and chilli cacti; the razor chip itself is redrawn (blistered, salted, salsa sliding down it).
+
+## v2.62 — The Rat King's Saucer, stage 1 (src/saucer.js; level 10, open on the map for testing)
+- The finale's arena: the curved top deck of the Royal Saucer. Still the polar world underneath (radius 1100) but only +-560 px of it is deck; no planet is drawn, saucerDraw draws the hull (edge plate, bowl, panel seams, rivets, hazard-striped rims, rim lights, thrusters), a hyperspace-streak sky and Parmesan Prime burning in the distance.
+- Fall off either rim: OVERBOARD, a heart, dropped back on board near that edge. Deck crew who end up past the rim go overboard too (and count as kills).
+- HE STEERS: every 7-11 s (sooner in later waves) the Rat King throws the ship over. 1.3 s warning (alarm, banner, chevrons running along the deck the way you'll slide, the far thruster firing, the King and his knotted lever-rat leaning in), then ~3 s of everything on deck sliding that way (Chris 118 px/s on deck, 60 in the air; crew 95).
+- HATCHES: four flaps in the deck; the crew climb out of one away from Chris.
+- STRAFING RUN (wave 2 on): an escort fighter crosses overhead and eight bolts walk along the deck, each marked by a red ring for a second first.
+- THE CREW (posh): STEWARD (tailcoat, bow tie, monocle, silver cloche), ADMIRAL (bicorne and plume, navy coat, epaulettes, sash, sabre; 9 hp), TOFF (top hat, monocle, cravat, floats under a striped parasol on rocket spats, pops champagne corks you can shoot down).
+- The dome sits in the middle with a first sketch of the Grand Rat-King at the yoke (background for now: you run in front of it; a gantry platform sits over it).
+- Stand-in boss: Parmesan Prime's mech, until stage 2 (the real Rat King fight with his knotted minions for limbs), then stage 3 (Bessie in the dome, the ending, credits).
+- Fix: the Chip Bandito (L6) had no behaviour assigned and stood still; it now walks like the other ground rats.
