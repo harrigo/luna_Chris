@@ -293,23 +293,31 @@ const LEVELS = {
   },
 
   8: {
-    id: 8, hpMul: 1.58, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
+    id: 8, hpMul: 1.58, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'A dead, quiet moon of Swiss.\nSomething is down there. In the dark.',
     music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
-    radius: 1100, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
-    surface: { pal: [0x6a4a10, 0xa87a1a, 0xe0b02a, 0xf6d04a, 0xffe27a, 0xfff4c4], seed: 8484 },
-    planet: { fill: 0xf6d04a, inner: 0xe0b02a, rim: 0xfff4c4, glow: 0xffd23f },
-    dust: [0xffd23f, 0xffb03a, 0xfff4c4, 0xe0b02a], decorTint: 0xffe8a0, decorAlpha: 0.8,
+    radius: 1100, sky: [0x05040a, 0x2a2430], skyCols: [0x05040a, 0x0e0c14, 0x16131e, 0x1e1a28, 0x2a2430, 0x343040], bg: '#05040a', starTint: 0x8a8498, dustAlpha: 0.8, bgDecor: 'motes',
+    surface: { pal: [0x3a3224, 0x54482e, 0x6e6040, 0x857652, 0x9c8e66, 0xb8ac88], seed: 8484 },
+    planet: { fill: 0x857652, inner: 0x6e6040, rim: 0xb8ac88, glow: 0x5a5066 },
+    dust: [0x8a8070, 0x6a6458, 0xb8ac88, 0x5a5448], decorTint: 0xa8a090, decorAlpha: 0.6,
     gravity: 1, ledgeTypes: ['crystal', 'panini', 'crystal', 'girder', 'panini', 'crystal'], ledgeTex: 'ledge1',
-    ledges: [{ theta: 0.6, half: 0.13, h: 80 }, { theta: 1.5, half: 0.12, h: 160 }, { theta: 2.5, half: 0.13, h: 80 }, { theta: 3.5, half: 0.12, h: 160 }, { theta: 4.5, half: 0.13, h: 80 }, { theta: 5.5, half: 0.12, h: 160 }],
-    props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xffe27a }, { tex: 'p_skull', n: 4, sc: [1, 1.4], tint: 0xffe0a0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0xd8b040 }],
+    ledges: [],                                                                                       // (v2.71) a dead, flat, quiet surface
+    props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xa89a78 }, { tex: 'p_skull', n: 6, sc: [1, 1.4], tint: 0xd8d0c0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0x8a7a50 }],
     ricochet: true,
     // TEST: a labyrinth inside the planet (main.js: the cave). Angles are relative to the hole in the surface.
     // Ring 1: a wall just to the right, so go LEFT round to the hole; ring 2: a wall to the left, so go RIGHT; the core: Bessie.
-    cave: { holeOff: 0.3, fillT: 200, rings: [
-      { hole: 0 },                                                                                     // the surface
-      { R: 980, ceil: 92, walls: [0.15], hole: -1.1, outlet: -0.55, every: 4, valves: [-0.35, -0.85] },
-      { R: 860, ceil: 92, walls: [-1.25], hole: 0.1, outlet: -0.5, every: 2, valves: [-0.8, -0.15] },
-      { R: 700, ceil: 130, core: true, bessie: 1.45, outlet: 1.45, every: 2, doubles: true }
+    // (v2.71) THE LABYRINTH (src/labyrinth.js). Angles are relative to the hole in the surface. Each ring: walls split it into
+    // chambers; `holes` in its floor drop to the ring below; `path` is the hole that leads on; `pipes` [from, to, flowsTo]
+    // run along the roof of the true route's chambers; `spawn` [type, angle]; `loot` [kind, angle, cheddar] sits in dead ends.
+    cave: { holeOff: 0.32, fillT: 300, rings: [
+      { hole: 0 },                                                                                     // the surface (a boulder plugs the hole)
+      { R: 950, ceil: 112, walls: [-1.4, 1.2], holes: [-1.1, 0.5, 0.95], path: 0.95, pipes: [[-1.4, 1.2, 0.95]], outlet: -0.25, every: 4, valves: [0.2],
+        spawn: [['rindtick', -0.35], ['grub', -0.18], ['rindtick', 0.28], ['grub', 0.66], ['gnawer', 1.1], ['paladin', -0.75], ['rindtick', -0.98], ['gnawer', -1.3]] },
+      { R: 800, ceil: 112, walls: [-1.25, -0.9, 0.3, 0.72, 1.6, 2.4], holes: [1.45, 2.0], path: 1.45, pipes: [[0.72, 1.6, 1.45]], outlet: 1.15, every: 3, valves: [0.85],
+        loot: [['stash', -1.07, 60], ['heal', 0.6], ['stash', 2.15, 120], ['heal', 2.3]],      // two dead-end pockets off ring 1, and a hoard you can only jet UP into from ring 3
+        spawn: [['rindtick', -1.0], ['rindtick', -1.16], ['grub', -1.04], ['gnawer', 0.36], ['grub', 0.45], ['grub', 0.62], ['rindtick', 1.1], ['paladin', 1.3], ['gnawer', 1.55], ['grub', 1.22], ['rindtick', 1.38], ['paladin', 1.9], ['rindtick', 2.1], ['gnawer', 2.33]] },
+      { R: 650, ceil: 112, walls: [0.9, 2.95], holes: [2.6], path: 2.6, pipes: [[0.9, 2.95, 2.6]], outlet: 1.8, every: 2, doubles: true, valves: [1.3, 2.3],
+        spawn: [['gnawer', 0.98], ['rindtick', 1.2], ['grub', 1.7], ['paladin', 1.9], ['rindtick', 2.15], ['grub', 2.35], ['gnawer', 2.86], ['rindtick', 2.5], ['paladin', 2.75]] },
+      { R: 480, ceil: 140, core: true, bessie: 3.5, outlet: 3.0, every: 2, doubles: true }
     ] },
     waves: [
       { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 0.4), S('germ', 0.4), S('paladin', 0.4), S('germ', 0.4), S('germ', 0.4), S('germ', 0.6), S('mouse', 1.2), S('mouse', 1.8), S('germ', 2.4), S('germ', 3), S('mouse', 3.6), S('germ', 4.2), S('paladin', 4.8), S('mouse', 5.4), S('germ', 6), S('mouse', 6.6), S('mouse', 7.2)] },

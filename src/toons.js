@@ -354,7 +354,8 @@ function makeToonTextures(scene) {
   pixSprite(scene, 'toon_eye', 18, 18, a => { a.ell(9, 9, 7, 7, WH); for (const [x0, y0, x1, y1] of [[2, 8, 5, 9], [15, 11, 12, 10], [9, 15, 9, 13]]) a.line([[x0, y0], [x1, y1]], 0xe0302a); a.ell(11, 9.5, 1.5, 1.5, DARK); a.px(6, 5, 0xffffff); });
   if (typeof makeArmadaTextures === 'function') makeArmadaTextures(scene, toonRat);   // L7: the ocean, the ironclads, torpedo rats (armada.js)
   if (typeof makeSaucerTextures === 'function') makeSaucerTextures(scene, toonRat);   // L10: the Royal Saucer and its crew (saucer.js)
-  if (typeof makeGorgeTextures === 'function') makeGorgeTextures(scene, toonRat);   // L6: the Pepper Jack, the canyon and its vermin (gorge.js)
+  if (typeof makeGorgeTextures === 'function') makeGorgeTextures(scene, toonRat);
+  if (typeof makeLabTextures === 'function') makeLabTextures(scene);   // L8: the labyrinth's vermin, the boulder, tumbleweeds (labyrinth.js)   // L6: the Pepper Jack, the canyon and its vermin (gorge.js)
 }
 
 // The rat saucer is drawn by plain images in half a dozen scenes (levels, the intro, the map, the ending, the

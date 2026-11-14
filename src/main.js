@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.70';
+const BUILD = 'v2.71';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1068,7 +1068,7 @@ class Level1 extends Phaser.Scene {
   }
 
   nextWave() {
-    if (this.def.cave) { this.waveIdx = 0; this.queue = []; this.waveTotal = 1; this.waveText.setText('LEVEL 8'); this.banner('BESSIE\'S DOWN THERE SOMEWHERE...\nFIND THE HOLE!'); return; }   // the cave test: no waves
+    if (this.def.cave) { this.waveIdx = 0; this.queue = []; this.waveTotal = 1; this.waveText.setText('LEVEL 8'); this.banner('IT\'S QUIET...\nTOO QUIET.'); return; }   // the cave test: no waves
     this.waveIdx++;
     if (this.waveIdx >= this.waves.length) { this.win(); return; }
     const w = this.waves[this.waveIdx];
@@ -3804,6 +3804,8 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
+      } else if (ai === 'rindtick' || ai === 'gnawer' || ai === 'grub') {   // L8 (labyrinth.js): ceiling ticks, wall gnawers, floor grubs
+        this.labAI(e, dt, P, dirP);
       } else if (ai === 'lturret') {                     // L10: deck laser turrets (saucer.js)
         this.turretAI(e, dt, P);
       } else if (ai === 'ironclad' || ai === 'torprat' || ai === 'nibbler' || ai === 'sharkrat') {   // L7 (armada.js): ships on the waterline, torpedo rats under it
@@ -4201,7 +4203,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       Tel.kill(e);
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -5443,7 +5445,8 @@ Object.assign(Level1.prototype, MilkmaidMixin);
 Object.assign(Level1.prototype, MozzMixin);
 Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);
-Object.assign(Level1.prototype, ArmadaMixin);         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
+Object.assign(Level1.prototype, ArmadaMixin);
+Object.assign(Level1.prototype, LabMixin);           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
