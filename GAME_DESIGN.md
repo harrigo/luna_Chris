@@ -1778,3 +1778,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   2 Bubble pops: hover + 5-way spray, red sight-line then a CHARGE across the drum, drones. Stomp him for big damage.
   3 MILK OVERDRIVE (<40%): hose into himself, swells and glows, spinning rings of milk with a gap; the drain resumes, faster.
 - Beat him, grab Bessie... the churn's roof tears open and the Rat King's saucer beams her away ("MWAHAHA! THE COW IS MINE!"). Back up to the labyrinth: level clear, on to Parmesan Prime. Losing in the core = a death in the labyrinth.
+
+### v2.87 - The Core looks like a core, and has gravity again
+- Gravity is back in the core: the centrifuge rules (the spin pins you to the wall; as it winds down to a stop, gravity takes over and you fall).
+- New look (core.js): the churn is a ring of pitted rind crust and craggy rock hung in the molten heart of the moon - glowing veins of molten cheese running out from the hub, tyrosine crystal clusters, glowing crystal studs round the wall (to read the spin), hot cracks in the outer rock, a film of milk spun against the wall. Behind it, the moon's heart: a throbbing white-hot glow, rough rings of strata, molten rivers running inwards, boulders and crystal shards drifting round, embers rising. The cogs, motor and factory are hidden.

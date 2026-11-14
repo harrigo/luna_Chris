@@ -126,25 +126,99 @@ const CoreMixin = {
     Sound.sfx('moo');
   },
 
-  // the lab around the churn: a rock wall sweating cheese, big glass vats of milk with things floating in them
-  coreBack() {
-    const W = this.scale.width, H = this.scale.height, g = this.backG;
-    for (let i = 0; i < 16; i++) g.fillStyle(Phaser.Display.Color.GetColor(14 + i * 0.6, 10 + i * 0.8, 20 + i * 1.5), 1).fillRect(0, H * i / 16, W, H / 16 + 1);
-    for (let k = 0; k < 60; k++) { const x = (k * 137.5) % W, y = (k * 71.3) % H, r = 6 + (k % 5) * 5; g.fillStyle(0x07050c, 0.6).fillCircle(x, y, r); if (k % 4 === 0) g.fillStyle(0xffb52a, 0.5).fillCircle(x + r * 0.4, y - r * 0.3, 1.6); }
-    for (const [fx, sd] of [[0.07, 1], [0.93, -1]]) {                                     // the vats
-      const x = W * fx, w = Math.min(70, W * 0.08), y0 = H * 0.18, y1 = H * 0.92;
-      g.fillStyle(0x0a0c14, 1).fillRect(x - w / 2 - 4, y0 - 10, w + 8, y1 - y0 + 20);
-      g.fillStyle(0x9ab0c8, 0.25).fillRect(x - w / 2, y0, w, y1 - y0); g.fillStyle(0xe8f0ff, 0.55).fillRect(x - w / 2, y0 + (y1 - y0) * 0.25, w, (y1 - y0) * 0.75);
-      g.fillStyle(0x6a5a6a, 0.6).fillEllipse(x + sd * 4, y0 + (y1 - y0) * 0.55, w * 0.45, w * 0.7);      // something curled up in the milk
-      g.fillStyle(0x4a3a4a, 0.6).fillCircle(x + sd * 10, y0 + (y1 - y0) * 0.45, w * 0.16);
-      g.fillStyle(0xb8842a, 1).fillRect(x - w / 2 - 6, y0 - 14, w + 12, 8).fillRect(x - w / 2 - 6, y1 + 6, w + 12, 8);
-      g.fillStyle(0xffffff, 0.35).fillRect(x - w / 2 + 4, y0 + 6, 3, y1 - y0 - 12);
+  // ---- (v2.87) THE CORE OF THE MOON. The churn is a ring of rind crust and rock hung in the molten heart of the moon:
+  // round it, glowing strata of rock and cheese, rivers of molten cheese running inwards, crystals, floating boulders,
+  // embers rising through the heat. (The centrifuge's cogs and motor are hidden.)
+  coreBuildDrum() {
+    const RD = this.RD, key = 'core_drum';
+    if (!this.textures.exists(key)) {
+      const S = 1.5, Ro = RD + 66, size = Math.ceil(Ro * 2 * S) + 4, c = size / 2, ct = this.textures.createCanvas(key, size, size), x = ct.getContext();
+      let sd = 77; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      x.save(); x.translate(c, c); x.scale(S, S);
+      // the craggy outer rock of the ring: spikes and boulders, lit from the molten core behind
+      x.beginPath(); for (let k = 0; k <= 120; k++) { const a = k / 120 * Math.PI * 2, r = RD + 40 + Math.abs(Math.sin(k * 1.7)) * 14 + (k % 7 === 0 ? 14 : 0) + rnd() * 6; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath();
+      let gr = x.createRadialGradient(0, 0, RD, 0, 0, RD + 66); gr.addColorStop(0, '#5a3418'); gr.addColorStop(0.5, '#3a200e'); gr.addColorStop(1, '#1a0c06'); x.fillStyle = gr; x.fill();
+      x.lineWidth = 3; x.strokeStyle = '#ff9a2a'; x.globalAlpha = 0.55; x.stroke(); x.globalAlpha = 1;
+      // the back of the churn: dark rock, glowing veins of molten cheese running out from the hub, crystal clusters
+      gr = x.createRadialGradient(0, 0, 20, 0, 0, RD + 4); gr.addColorStop(0, '#3a1e0e'); gr.addColorStop(0.6, '#24120a'); gr.addColorStop(1, '#140a06');
+      x.fillStyle = gr; x.beginPath(); x.arc(0, 0, RD + 4, 0, 7); x.fill();
+      for (let k = 0; k < 70; k++) { const a = rnd() * 6.3, r = 30 + rnd() * (RD - 40); x.fillStyle = 'rgba(0,0,0,0.25)'; x.beginPath(); x.ellipse(Math.cos(a) * r, Math.sin(a) * r, 6 + rnd() * 18, 4 + rnd() * 10, a, 0, 7); x.fill(); }
+      for (let k = 0; k < 9; k++) {                                              // the veins
+        let a = k / 9 * Math.PI * 2 + rnd() * 0.3, r = 40; x.beginPath(); x.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+        while (r < RD - 10) { r += 10 + rnd() * 10; a += (rnd() - 0.5) * 0.25; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+        for (const [w, col, al] of [[9, '#ff6a1a', 0.25], [5, '#ffa82a', 0.7], [2, '#fff0a0', 1]]) { x.lineWidth = w; x.strokeStyle = col; x.globalAlpha = al; x.lineJoin = 'round'; x.stroke(); }
+        x.globalAlpha = 1;
+      }
+      for (let k = 0; k < 14; k++) {                                             // crystal clusters of cheese (tyrosine)
+        const a = rnd() * 6.3, r = 70 + rnd() * (RD - 110), cx = Math.cos(a) * r, cy = Math.sin(a) * r;
+        for (let q = 0; q < 4; q++) { const b = a + Math.PI + (q - 1.5) * 0.4, L = 8 + rnd() * 12, w = 3 + rnd() * 2;
+          x.beginPath(); x.moveTo(cx + Math.cos(b + 1.57) * w, cy + Math.sin(b + 1.57) * w); x.lineTo(cx + Math.cos(b) * L, cy + Math.sin(b) * L); x.lineTo(cx - Math.cos(b + 1.57) * w, cy - Math.sin(b + 1.57) * w); x.closePath();
+          x.fillStyle = q % 2 ? '#fff4c0' : '#e8c060'; x.fill(); x.strokeStyle = '#3a200e'; x.lineWidth = 1; x.stroke(); }
+      }
+      // the rind crust you run on: layered, pitted, a pale worn lip on the inside
+      for (const [r0, r1, col] of [[RD + 2, RD + 40, '#8a5a24'], [RD + 10, RD + 22, '#a8743a'], [RD + 26, RD + 32, '#6a4018']]) { x.lineWidth = r1 - r0; x.strokeStyle = col; x.beginPath(); x.arc(0, 0, (r0 + r1) / 2, 0, 7); x.stroke(); }
+      for (let k = 0; k < 90; k++) { const a = rnd() * 6.3, r = RD + 6 + rnd() * 30; x.fillStyle = '#3a200e'; x.beginPath(); x.arc(Math.cos(a) * r, Math.sin(a) * r, 1.5 + rnd() * 3, 0, 7); x.fill(); }
+      x.lineWidth = 5; x.strokeStyle = '#e8c890'; x.beginPath(); x.arc(0, 0, RD + 2, 0, 7); x.stroke();
+      // glowing crystal studs round the inside of the wall, so you can see it whizz round
+      for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, px = Math.cos(a) * (RD - 1), py = Math.sin(a) * (RD - 1);
+        x.fillStyle = 'rgba(255,170,40,0.35)'; x.beginPath(); x.arc(px, py, 9, 0, 7); x.fill();
+        x.beginPath(); x.moveTo(px + Math.cos(a + 1.57) * 4, py + Math.sin(a + 1.57) * 4); x.lineTo(px - Math.cos(a) * 10, py - Math.sin(a) * 10); x.lineTo(px - Math.cos(a + 1.57) * 4, py - Math.sin(a + 1.57) * 4); x.closePath(); x.fillStyle = k % 2 ? '#fff4c0' : '#ffb52a'; x.fill(); x.strokeStyle = '#3a200e'; x.lineWidth = 1.2; x.stroke(); }
+      // hot cracks seeping through the outer rock
+      for (let k = 0; k < 12; k++) { const a = rnd() * 6.3; x.beginPath(); let r = RD + 34; x.moveTo(Math.cos(a) * r, Math.sin(a) * r); let b = a; while (r < RD + 58) { r += 5; b += (rnd() - 0.5) * 0.06; x.lineTo(Math.cos(b) * r, Math.sin(b) * r); } x.lineWidth = 2; x.strokeStyle = '#ffb52a'; x.stroke(); }
+      x.restore(); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
     }
-    const sc = this.wsc(), cx = W / 2, cy = H * 0.53;
-    for (const d of this.drive) g.fillStyle(0x000000, 0.35).fillCircle(cx + d.cx * sc + 10, cy + d.cy * sc + 12, (d.bigR + 8) * sc);
-    g.fillStyle(0x000000, 0.55).fillCircle(cx + 10, cy + 12, (this.RD + 48) * sc);
-    for (const f of this.farCogs) f.im.setPosition(W * f.fx, H * f.fy).setScale(H * f.fr / 208).setTint(0x6a5a7a);
+    this.drum.add(this.add.image(0, 0, key).setScale(1 / 1.5));
+    const g = this.add.graphics(); g.lineStyle(8, 0xf4f8ff, 0.35).strokeCircle(0, 0, RD - 5);    // a film of milk spun against the wall
+    for (let k = 0; k < 20; k++) { const a = Math.random() * 6.3, r = RD - 4 - Math.random() * 6; g.fillStyle(0xffffff, 0.8).fillCircle(Math.cos(a) * r, Math.sin(a) * r, 2 + Math.random() * 4); }
+    this.drum.add(g);
+  },
+
+  coreBack() {
+    const W = this.scale.width, H = this.scale.height, g = this.backG, cx = W / 2, cy = H * 0.53, sc = this.wsc(), Rm = Math.hypot(W, H);
+    if (!this.coreBg) {                                                          // the molten heart, as a smooth canvas (radial glow + strata)
+      const key = 'core_bg', w = 512, h = 512;
+      if (!this.textures.exists(key)) {
+        const ct = this.textures.createCanvas(key, w, h), x = ct.getContext(); let sd = 31; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+        const gr = x.createRadialGradient(256, 256, 30, 256, 256, 360); gr.addColorStop(0, '#fff0a0'); gr.addColorStop(0.18, '#ffb52a'); gr.addColorStop(0.38, '#c8501a'); gr.addColorStop(0.62, '#5a1c0e'); gr.addColorStop(1, '#140608');
+        x.fillStyle = gr; x.fillRect(0, 0, w, h);
+        for (let k = 0; k < 9; k++) {                                            // rough rings of strata round the heart, darker outwards
+          const r = 150 + k * 26 + rnd() * 10; x.beginPath(); for (let q = 0; q <= 90; q++) { const a = q / 90 * Math.PI * 2, rr = r + Math.sin(q * 0.7 + k) * 6 + rnd() * 5; x.lineTo(256 + Math.cos(a) * rr, 256 + Math.sin(a) * rr); } x.closePath();
+          x.lineWidth = 10 + rnd() * 10; x.strokeStyle = `rgba(${20 + k * 2},${8 + k},${6},${0.25 + k * 0.05})`; x.stroke();
+          x.lineWidth = 1.5; x.strokeStyle = `rgba(255,${150 - k * 10},40,${0.35 - k * 0.03})`; x.stroke();
+        }
+        for (let k = 0; k < 16; k++) {                                           // molten rivers running in to the heart
+          let a = k / 16 * Math.PI * 2 + rnd() * 0.2, r = 360; x.beginPath(); x.moveTo(256 + Math.cos(a) * r, 256 + Math.sin(a) * r);
+          while (r > 120) { r -= 12; a += (rnd() - 0.5) * 0.12; x.lineTo(256 + Math.cos(a) * r, 256 + Math.sin(a) * r); }
+          x.lineWidth = 6; x.strokeStyle = 'rgba(255,120,30,0.35)'; x.stroke(); x.lineWidth = 2; x.strokeStyle = 'rgba(255,220,120,0.7)'; x.stroke();
+        }
+        ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      }
+      this.coreBg = this.add.image(0, 0, key).setDepth(-0.5);
+      // floating boulders and crystal shards drifting round the heart
+      this.rocks = Array.from({ length: 14 }, (_, k) => ({ a: k / 14 * Math.PI * 2 + Math.random() * 0.3, r: 0.55 + Math.random() * 0.45, s: 6 + Math.random() * 16, sp: (Math.random() < 0.5 ? -1 : 1) * (0.02 + Math.random() * 0.05), ph: Math.random() * 6, cr: Math.random() < 0.35 }));
+      this.embers = Array.from({ length: 50 }, () => ({ x: Math.random(), y: Math.random(), v: 0.03 + Math.random() * 0.06, ph: Math.random() * 6 }));
+      for (const d of this.drive) { for (const o of [d.big, d.pin, d.mot, d.motorG]) if (o) o.setVisible(false); }
+      if (this.sun) this.sun.setVisible(false);
+      for (const f of this.farCogs) f.im.setVisible(false);
+    }
+    this.coreBg.setPosition(cx, cy).setDisplaySize(Rm * 1.15, Rm * 1.15);
+    g.fillStyle(0x000000, 0.5).fillCircle(cx + 10, cy + 14, (this.RD + 66) * sc);       // the churn's shadow
     this.vig.setDisplaySize(W, H);
+  },
+  coreBackAnim(dt) {
+    const W = this.scale.width, H = this.scale.height, cx = W / 2, cy = H * 0.53, Rm = Math.hypot(W, H) * 0.5, t = this.t, bg = this.beamG, sg = this.steamG;
+    bg.clear(); sg.clear();
+    bg.fillStyle(0xffb52a, 0.06 + 0.03 * Math.sin(t * 1.7)).fillCircle(cx, cy, Rm * 0.75);   // the heart throbs
+    bg.fillStyle(0xfff0a0, 0.05 + 0.03 * Math.sin(t * 2.3 + 1)).fillCircle(cx, cy, Rm * 0.45);
+    for (const r of this.rocks || []) {                                           // boulders drifting round in the heat
+      r.a += r.sp * dt; const rr = r.r * Rm, x = cx + Math.cos(r.a) * rr, y = cy + Math.sin(r.a) * rr * 0.8 + Math.sin(t + r.ph) * 4, s = r.s * (H / 390);
+      if (r.cr) { sg.fillStyle(0x1a0c06, 1).fillTriangle(x - s * 0.4, y + s * 0.5, x + s * 0.4, y + s * 0.5, x, y - s); sg.fillStyle(0xffd27a, 0.9).fillTriangle(x - s * 0.25, y + s * 0.35, x + s * 0.1, y + s * 0.35, x, y - s * 0.75); }
+      else { sg.fillStyle(0x1a0c06, 1).fillEllipse(x, y, s * 2, s * 1.5); sg.fillStyle(0x4a2a14, 1).fillEllipse(x - s * 0.2, y - s * 0.2, s * 1.4, s * 0.9); sg.fillStyle(0xff8a2a, 0.8).fillEllipse(x + s * 0.4, y + s * 0.4, s * 0.6, s * 0.3); }
+    }
+    for (const e of this.embers || []) {                                          // embers rising through the heat
+      e.y -= e.v * dt; e.x += Math.sin(t * 1.3 + e.ph) * 0.01 * dt; if (e.y < -0.02) { e.y = 1.02; e.x = Math.random(); }
+      bg.fillStyle(Math.sin(e.ph * 3) > 0 ? 0xffb52a : 0xff6a1a, 0.5 + 0.4 * Math.sin(t * 5 + e.ph)).fillRect(e.x * W, e.y * H, 2, 2);
+    }
   },
 
   pumpWorld(p) { const r = this.RD - 28, x = Math.cos(p.a) * r, y = Math.sin(p.a) * r, c = Math.cos(this.D), s = Math.sin(this.D); return { x: x * c - y * s, y: x * s + y * c }; },

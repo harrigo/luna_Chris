@@ -174,7 +174,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20); this.curs = new MouseCursor(this);
-    this.msg = this.add.text(0, 0, this.core ? 'THE CORE: THE MILKMASTER\'S CHURN\nNO GRAVITY - THE SPIN HOLDS YOU TO THE WALL\nSMASH THE PUMPS TO DROP HIS SHIELD\nSAVE BESSIE!' : 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    this.msg = this.add.text(0, 0, this.core ? 'THE CORE: THE MILKMASTER\'S CHURN\nTHE SPIN HOLDS YOU TO THE WALL - WHEN IT STOPS, YOU FALL\nSMASH THE PUMPS TO DROP HIS SHIELD\nSAVE BESSIE!' : 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
     if (!this.core) Bonus.tag(this);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
@@ -203,6 +203,7 @@ class CentrifugeScene extends Phaser.Scene {
 
   // ---- the drum: a riveted stainless steel shell with portholes, a film of whey pinned to the wall, curd lumps, the hub
   buildDrum() {
+    if (this.core) return this.coreBuildDrum();
     const RD = this.RD, g = this.add.graphics(), rnd = (a, b) => a + Math.random() * (b - a);
     this.drum.add(this.add.image(0, 0, cfBackPlate(this, RD, this.HOLES)).setScale(1 / 1.5));
     // the ring gear round the outside of the shell, that the pinions drive
@@ -243,6 +244,7 @@ class CentrifugeScene extends Phaser.Scene {
   }
   wsc() { return this.scale.height * 0.47 / (this.RD + 60); }
   drawBack(dt) {                                                  // sweeping warning beams, steam vents, dust in the light
+    if (this.core) return this.coreBackAnim(dt);
     const W = this.scale.width, H = this.scale.height, bg = this.beamG, open = this.hatches.some(h => h.st === 'open'), warn = this.hatches.some(h => h.st === 'warn');
     for (const f of this.farCogs) f.im.setRotation(this.D * f.sp);
     bg.clear();
@@ -358,7 +360,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.w += ((this.core ? CORE_SPIN : CF_SPIN)[this.spinIdx].w - this.w) * Math.min(1, dt * 1.2);
     this.D += this.w * dt;
     // gravity: drowned out by the spin, but it takes over as the drum stops (none at all above ~0.45 rad/s)
-    const grav = this.grav = this.core ? 0 : 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);   // (none at all in the core)
+    const grav = this.grav = 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);   // (v2.87: the core has it too)
     // ---- input
     const k = this.keys, ts = this.readTouch();
     let ax = 0, jump = false, fire = false, aimAt = null, jetNow = false;
@@ -601,7 +603,7 @@ class CentrifugeScene extends Phaser.Scene {
     // the gears: each pinion meshes the drum's ring; the big cog shares its axle; the motor pinion meshes the big cog.
     // mesh(): rotation of a cog B driven by A, with a gap of B's facing A's tooth along the line of centres u
     const mesh = (thA, u, rA, rB, nB) => -(rA / rB) * (thA - u) + u + Math.PI + Math.PI / nB;
-    for (const d of this.drive) {
+    for (const d of (this.core ? [] : this.drive)) {
       const th = mesh(this.D, d.u, this.ringR, 50, 12); d.pin.setRotation(th); d.big.setRotation(th);
       if (d.motor) this.sun.setRotation(mesh(th, d.u + Math.PI, d.bigR, 150, 36));
       if (d.mot) {
