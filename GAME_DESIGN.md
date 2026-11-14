@@ -1759,3 +1759,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Deep-sea parallax (depth.js): a far 'reef' ring (coral towers, sea fans, kelp ribbons, rock arches, glowing tips), sunken ships nearer, a nearer reef with pink glows; the water bands wash over them so the far layers fade blue. Big blue-tinted wrecks and coral loom behind the core. New fg strip 'coral' in front of the camera.
 - The map node and the HUD radar now show L7 as an ocean world (oceanglobe texture; drawMiniPlanet id 7).
 - ppSculpt takes an optional palette (opts.pal).
+
+### v2.84 - Armada: the green flash, and calmer
+- Fixed the green screen flash on L7: the ironclads' keel glow multiplied its own scale by 1.2 every frame; while a ship was round the far side place() didn't reset it, so it grew to millions of pixels and washed the screen green when it came back. Now scaled from its base scale, and hidden round the far side.
+- The ocean bands are drawn as quad strips instead of one big ring polygon (safer triangulation).
+- Toned down: fewer, smaller seabed props, nothing parked in front of the camera, dimmer reef glows and light shafts, fainter background coral.

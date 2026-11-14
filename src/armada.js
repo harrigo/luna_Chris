@@ -195,9 +195,10 @@ const ArmadaMixin = {
           if ((K.smoke -= dt) <= 0) { K.smoke = 0.09; this.burst(K.theta, K.h - 4, 'bubl', 1, 0.6); if (Math.random() < 0.4) this.burst(K.theta, K.h, 'spark', 1, 0.4); }   // leaking: bubbles pour out, embers
           continue;
         }
+        if (Math.abs(angDiff(K.theta, this.viewT())) > 1.45) { K.spr.setVisible(false); K.plate.setVisible(false); K.crack.setVisible(false); continue; }   // round the far side
         K.plate.setVisible(true); K.spr.setVisible(true);
         if (K.flash > 0) K.plate.setTintFill(0xffffff); else K.plate.setTint(crit && Math.floor(this.t * 10) % 2 ? 0xffffff : col);
-        K.spr.setTint(col).setAlpha(K.flash > 0 ? 1 : 0.45 + 0.35 * Math.sin(this.t * (crit ? 16 : 6))).setScale(K.spr.scaleX * (K.flash > 0 ? 1.5 : 1.2));
+        K.spr.setTint(col).setAlpha(K.flash > 0 ? 1 : 0.45 + 0.35 * Math.sin(this.t * (crit ? 16 : 6))).setScale((K.spr.bsx || 1) * this.zoom * (K.flash > 0 ? 1.5 : 1.2));   // (v2.84: from the base scale - it used to multiply its own scale, and while the ship was round the far side, place() left it alone, so it grew x1.2 every frame into a screen-filling green flash)
         K.crack.setVisible(f <= 0.66).setAlpha(f <= 0.33 ? 1 : 0.6);
         if (f <= 0.66 && (K.smoke -= dt) <= 0) { K.smoke = crit ? 0.07 : 0.22; this.burst(K.theta, K.h, crit ? 'spark' : 'bubl', 1, 0.5); }
       }
@@ -376,17 +377,18 @@ const ArmadaMixin = {
       }
     }
     const z = this.zoom, t = this.t, vt = this.viewT ? this.viewT() : this.pl.theta, span = Math.PI, N = 120;   // (the whole ring: the core's small, the edges of a partial band showed)
-    const band = (h0, h1) => { const out = [], inn = []; for (let k = 0; k <= N; k++) { const th = vt - span + 2 * span * k / N; out.push(this.screenPos(th, h1 + Math.sin(th * 18 + t * 2.2) * 2)); inn.push(this.screenPos(th, h0)); } return out.concat(inn.reverse()); };
+    // (v2.84) a ring as a strip of quads: one big polygon round the whole ring sometimes triangulated wrong and flooded
+    // half the screen with green-blue for a frame
+    const band = (h0, h1) => { const out = [], inn = []; for (let k = 0; k <= N; k++) { const th = vt - span + 2 * span * k / N; out.push(this.screenPos(th, h1 + Math.sin(th * 18 + t * 2.2) * 2)); inn.push(this.screenPos(th, h0)); } return { out, inn }; };
+    const fillBand = (gr, col, al, B) => { gr.fillStyle(col, al); for (let k = 0; k < N; k++) { const a = B.out[k], b = B.out[k + 1], c = B.inn[k + 1], d = B.inn[k]; gr.fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y); gr.fillTriangle(a.x, a.y, c.x, c.y, d.x, d.y); } };
     const g = A.back; g.clear();
-    g.fillStyle(0x0a3a7a, 0.55).fillPoints(band(0, WL * 0.4), true);
-    g.fillStyle(0x1a7ac8, 0.42).fillPoints(band(WL * 0.4, WL * 0.75), true);
-    g.fillStyle(0x3ad0f0, 0.38).fillPoints(band(WL * 0.75, WL), true);
+    fillBand(g, 0x0a3a7a, 0.55, band(0, WL * 0.4)); fillBand(g, 0x1a7ac8, 0.42, band(WL * 0.4, WL * 0.75)); fillBand(g, 0x3ad0f0, 0.32, band(WL * 0.75, WL));
     for (const r of A.rays) {                                   // shafts of light from the surface, swaying
       const th = r.a + Math.sin(t * 0.4 + r.ph) * 0.04; if (Math.abs(angDiff(th, vt)) > span) continue;
       const a = this.screenPos(th - r.w * 0.5, WL), b = this.screenPos(th + r.w * 0.5, WL), c = this.screenPos(th + r.w * 0.9 + 0.05, 10), d = this.screenPos(th + r.w * 0.2 + 0.05, 10);
-      g.fillStyle(0xc8f8ff, 0.07 + 0.03 * Math.sin(t * 1.3 + r.ph)).fillPoints([a, b, c, d], true);
+      g.fillStyle(0xc8f8ff, 0.05 + 0.02 * Math.sin(t * 1.3 + r.ph)).fillPoints([a, b, c, d], true);
     }
-    const f = A.front; f.clear(); f.fillStyle(0x3ad0f0, 0.12).fillPoints(band(0, WL), true);
+    const f = A.front; f.clear(); fillBand(f, 0x3ad0f0, 0.12, band(0, WL));
     const fo = A.foam; fo.clear();                              // the wave line: a white crest, foam blobs riding it
     const top = []; for (let k = 0; k <= N * 2; k++) { const th = vt - span + 2 * span * k / (N * 2); top.push(this.screenPos(th, WL + Math.sin(th * 18 + t * 2.2) * 2 + Math.sin(th * 41 - t * 3.1) * 1.2)); }
     fo.lineStyle(7 * z, 0xffffff, 0.35).strokePoints(top, false); fo.lineStyle(3.5 * z, 0xffffff, 1).strokePoints(top, false); fo.lineStyle(1.5 * z, 0x9fe8ff, 1).strokePoints(top.map(q => ({ x: q.x, y: q.y + 3 * z })), false);
