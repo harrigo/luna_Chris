@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.69';
+const BUILD = 'v2.70';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3633,6 +3633,8 @@ class Level1 extends Phaser.Scene {
   }
 
   // Build an enemy object. Sprites are drawn a bit bigger than their art; hitboxes grow less so it stays fair.
+  // (v2.70) later worlds' enemies are tougher (def.hpMul): one-hit fodder stays one-hit, ships and turrets keep their own scaling
+  hpMul(type, st) { const m = this.def.hpMul || 1; return type === 'boss' || m === 1 || st.hp < 2 || type === 'ironclad' || type === 'lturret' ? 1 : Math.round(st.hp * m) / st.hp; }
   makeEnemy(type, theta, side) {
     let st, tex, oy, k;
     if (type === 'boss') {
@@ -3642,7 +3644,7 @@ class Level1 extends Phaser.Scene {
       st = ENEMY[type]; tex = st.tex; oy = st.oy; k = st.k || 1.22;
     }
     const e = {
-      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp, maxHp: st.hp * Settings.dk.hp, r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
+      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp * this.hpMul(type, st), maxHp: st.hp * Settings.dk.hp * this.hpMul(type, st), r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
       big: !!st.big, drop: st.drop,
       spr: this.add.image(0, 0, tex).setOrigin(0.5, oy).setDepth(type === 'boss' ? 6 : 5),
       t: 0, seed: rnd(0, 6), flash: 0, vx: 0, dh: 0, dir: -(side || 1)

@@ -70,7 +70,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 155, ai: 'croque', armouredTop: true },
+    boss: { tex: 'croque', hp: 170, ai: 'croque', armouredTop: true },
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
@@ -108,9 +108,9 @@ const LEVELS = {
       { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0xc8f6ff, glow: 0x5ce1ff, oy: 36 / 42 }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7), S('germ', 7.6)] },
-      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('germ', 8.2), S('frog', 8.8), S('germ', 9.4)] },
-      { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('germ', 8.6), S('frog', 9.2), S('stinkfly', 9.6), S('frog', 10.2)] },
+      { name: 'WAVE 1', spawns: [S('germ', 0), S('germ', 0.8), S('stinkfly', 1.6), S('frog', 2.4), S('germ', 3), S('germ', 3.6), S('stinkfly', 4.4), S('frog', 5), S('germ', 5.6), S('germ', 6.2), S('stinkfly', 7)] },
+      { name: 'WAVE 2', spawns: [S('frog', 0), S('germ', 0.5), S('stinkfly', 1), S('germ', 1.6), S('frog', 2.4), S('germ', 2.8), S('stinkfly', 3.4), S('germ', 4), S('frog', 4.8), S('stinkfly', 5.2), S('germ', 5.8), S('germ', 6.2), S('frog', 7), S('stinkfly', 7.6), S('frog', 8.8)] },
+      { name: 'WAVE 3', spawns: [S('stinkfly', 0), S('stinkfly', 0.5), S('frog', 1.2), S('germ', 1.6), S('germ', 2), S('frog', 2.8), S('stinkfly', 3.2), S('germ', 3.8), S('frog', 4.4), S('germ', 4.8), S('stinkfly', 5.4), S('germ', 5.8), S('frog', 6.4), S('germ', 7), S('stinkfly', 7.4), S('frog', 8), S('frog', 9.2), S('stinkfly', 9.6)] },
     ],
     goop: [{ theta: 1.08, half: 0.1 }, { theta: 2.05, half: 0.085 }, { theta: 3.08, half: 0.11 }, { theta: 4.05, half: 0.09 }, { theta: 5.02, half: 0.1 }],   // green quicksand pools
     // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
@@ -151,10 +151,10 @@ const LEVELS = {
     warp: { to: 5.5, style: 'triangle', afterBoss: true, theta: 2.6, h: 160, relics: [] },
     waves: [
       { name: 'WAVE 1', spawns: [S('ghostpirate', 0), S('polterwedge', 1), S('ghostpirate', 2), S('polterwedge', 2.8), S('phantom', 4), S('ghostpirate', 5), S('polterwedge', 6), S('ghostpirate', 7)] },
-      { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
-      { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
+      { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('polterwedge', 5), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
+      { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('polterwedge', 4), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('polterwedge', 6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
     ],
-    boss: { tex: 'milkmaid', hp: 200, ai: 'milkmaid', scale: 1.25 },
+    boss: { tex: 'milkmaid', hp: 220, ai: 'milkmaid', scale: 1.25 },
     win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a smoking volcano planet.'
   },
 
@@ -190,14 +190,14 @@ const LEVELS = {
     waves: [
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('rocketrat', 1), S('anchovy', 2.2), S('mouse', 3.4), S('rocketrat', 4.2), S('mgolem', 5.2), S('mouse', 6), S('rocketrat', 7)] },
       { name: 'WAVE 2', spawns: [S('rocketrat', 0), S('ovendrone', 0.8), S('mouse', 1.8), S('anchovy', 2.8), S('mgolem', 3.8), S('rocketrat', 4.8), S('mouse', 5.6), S('anchovy', 6.6), S('rocketrat', 7.6)] },
-      { name: 'WAVE 3', spawns: [S('mgolem', 0), S('anchovy', 1), S('rocketrat', 1.8), S('ovendrone', 2.6), S('mouse', 3.4), S('mgolem', 4.4), S('anchovy', 5.4), S('rocketrat', 6.2), S('ovendrone', 7.2), S('rocketrat', 8.2)] }
+      { name: 'WAVE 3', spawns: [S('mgolem', 0), S('anchovy', 1), S('rocketrat', 1.8), S('ovendrone', 2.6), S('mouse', 3.4), S('ovendrone', 3.9), S('mgolem', 4.4), S('anchovy', 5.4), S('rocketrat', 6.2), S('ovendrone', 7.2), S('rocketrat', 8.2)] }
     ],
-    boss: { tex: 'magmagolem', hp: 240, ai: 'magmagolem', scale: 1.25 },
+    boss: { tex: 'magmagolem', hp: 265, ai: 'magmagolem', scale: 1.25 },
     win: 'The Magma-Golem has cooled into a crust!\nBessie popped out of the cheese... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
   },
 
   5: {
-    id: 5, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
+    id: 5, hpMul: 1.58, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
     music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
@@ -226,16 +226,16 @@ const LEVELS = {
       { tex: 'p_pipe', n: 3, sc: [0.9, 1.4] },
       { tex: 'p_cone', n: 7, sc: [0.8, 1.1], fg: true }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 1.2), S('gogglerat', 2), S('slicer', 3.2), S('drone', 4.4), S('gogglerat', 5.2), S('drone', 6.4), S('gogglerat', 7.2)] },
-      { name: 'WAVE 2', spawns: [S('slicer', 0), S('gogglerat', 0.8), S('drone', 1.6), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('slicer', 7.6), S('gogglerat', 8.2)] },
-      { name: 'WAVE 3', spawns: [S('slicer', 0), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('slicer', 9.4)] },
+      { name: 'WAVE 1', spawns: [S('gogglerat', 0), S('drone', 0.4), S('drone', 1.2), S('drone', 1.6), S('gogglerat', 2), S('gogglerat', 2.6), S('slicer', 3.2), S('gogglerat', 3.8), S('drone', 4.4), S('gogglerat', 5.2), S('gogglerat', 5.8), S('drone', 6.4), S('gogglerat', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('slicer', 0), S('slicer', 0.4), S('gogglerat', 0.4), S('gogglerat', 0.8), S('drone', 1.2), S('drone', 1.6), S('drone', 2.1), S('drone', 2.6), S('gogglerat', 3.4), S('slicer', 3.8), S('slicer', 4.2), S('drone', 5), S('gogglerat', 5.8), S('drone', 6.6), S('gogglerat', 7.1), S('slicer', 7.6), S('gogglerat', 8.2)] },
+      { name: 'WAVE 3', spawns: [S('slicer', 0), S('slicer', 0.4), S('slicer', 0.4), S('drone', 0.4), S('gogglerat', 0.4), S('drone', 0.8), S('gogglerat', 1.4), S('drone', 2), S('gogglerat', 2.5), S('slicer', 3), S('gogglerat', 3.6), S('drone', 4.2), S('drone', 5), S('gogglerat', 5.6), S('drone', 6), S('slicer', 6.4), S('drone', 7), S('gogglerat', 7.6), S('drone', 8.2), S('gogglerat', 8.8), S('slicer', 9.4)] },
     ],
-    boss: { tex: 'mandoline', hp: 150, ai: 'mandoline' },
+    boss: { tex: 'mandoline', hp: 300, ai: 'mandoline' },
     win: 'The Mega-Mandoline is sliced and diced!\nBessie bounced clear of the blades... right into a tractor beam.\nThe rats are fleeing to a tiny cheddar moon.'
   },
 
   6: {
-    id: 6, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A canyon right round a tiny cheddar moon.\nThe Great Pepper Jack is rolling after you.',
+    id: 6, hpMul: 1.58, name: 'Cheddar Gorge', short: 'CHEDDAR GORGE', blurb: 'A canyon right round a tiny cheddar moon.\nThe Great Pepper Jack is rolling after you.',
     music: 'level6', bossName: 'THE GREAT PEPPER JACK', tip: 'RUN! SHOOT THE WHEEL TO STAGGER IT. JET THE SALSA PITS!', gorge: true,
     // depth (depth.js) - a sunset canyon: low red sun, long wine-dark shadows, a hot dusty haze; salsa veins glowing in the
     // crust; banded cheddar mesas and buttes on the horizon, nearer cliffs with slot canyons; giant tortilla chips and a
@@ -264,16 +264,16 @@ const LEVELS = {
     chips: [1.35, 2.7, 4.25, 5.55],                     // (v2.61: only four to start with - the wheel plants the rest as you knock its rind off)
     // three laps = three layers of rind. Lighter company than other levels: the wheel is the fight.
     waves: [
-      { name: 'LAP 1', spawns: [S('chiprat', 0), S('chiprat', 2), S('pepwasp', 4), S('chiprat', 6.5), S('pepwasp', 9), S('chiprat', 11.5), S('chiprat', 14), S('pepwasp', 16.5)] },
-      { name: 'LAP 2', spawns: [S('pepwasp', 0), S('chiprat', 1.5), S('chiprat', 3.5), S('pepwasp', 5.5), S('chiprat', 8), S('pepwasp', 10), S('chiprat', 12), S('pepwasp', 14), S('chiprat', 16), S('chiprat', 18)] },
-      { name: 'LAP 3', spawns: [S('chiprat', 0), S('pepwasp', 1.5), S('pepwasp', 3.5), S('chiprat', 5), S('chiprat', 7), S('pepwasp', 9), S('chiprat', 11), S('pepwasp', 13), S('chiprat', 15), S('pepwasp', 17), S('chiprat', 19), S('pepwasp', 21)] }
+      { name: 'LAP 1', spawns: [S('chiprat', 0), S('chiprat', 1.1), S('chiprat', 2.3), S('chiprat', 3.4), S('pepwasp', 4.5), S('pepwasp', 5.9), S('chiprat', 7.3), S('chiprat', 8.7), S('pepwasp', 9.4), S('pepwasp', 10.1), S('chiprat', 11.6), S('pepwasp', 12.3), S('chiprat', 13), S('pepwasp', 13.7), S('chiprat', 14.4), S('pepwasp', 15.1), S('chiprat', 15.8), S('chiprat', 17.2), S('pepwasp', 18.6)] },
+      { name: 'LAP 2', spawns: [S('pepwasp', 0), S('chiprat', 0.8), S('chiprat', 1.6), S('chiprat', 2.7), S('chiprat', 3.8), S('chiprat', 4.9), S('pepwasp', 6), S('chiprat', 6.7), S('pepwasp', 7.4), S('pepwasp', 8.1), S('chiprat', 8.8), S('chiprat', 9.9), S('pepwasp', 11), S('pepwasp', 12.1), S('chiprat', 13.2), S('pepwasp', 13.8), S('pepwasp', 14.3), S('pepwasp', 15.4), S('chiprat', 16.5), S('chiprat', 17.1), S('chiprat', 17.6), S('chiprat', 18.7), S('chiprat', 19.2), S('chiprat', 19.8)] },
+      { name: 'LAP 3', spawns: [S('chiprat', 0), S('pepwasp', 0.8), S('pepwasp', 1.6), S('pepwasp', 2.2), S('pepwasp', 2.7), S('pepwasp', 3.8), S('chiprat', 4.6), S('chiprat', 5.4), S('pepwasp', 6.5), S('chiprat', 7.6), S('chiprat', 8.7), S('pepwasp', 9.8), S('pepwasp', 10.9), S('chiprat', 12), S('chiprat', 13.1), S('pepwasp', 14.2), S('chiprat', 15.2), S('chiprat', 15.8), S('chiprat', 16.3), S('chiprat', 17.4), S('chiprat', 17.9), S('pepwasp', 18.5), S('pepwasp', 19.1), S('pepwasp', 19.6), S('chiprat', 20.7), S('chiprat', 21.2), S('chiprat', 21.8), S('pepwasp', 22.9)] }
     ],
     boss: { tex: 'jack_rind2', hp: 170, ai: 'wheel' },
     win: 'The Great Pepper Jack has crumbled!\nBessie rolled clear... into the hold of the rat armada.\nTime to board their fleet.'
   },
 
   7: {
-    id: 7, name: 'The Astro-Rat Armada', short: 'ASTRO-RAT ARMADA', blurb: 'An ocean world. Rat ironclads rule the waves.\nDive under them and hit the glowing keels.',
+    id: 7, hpMul: 1.58, name: 'The Astro-Rat Armada', short: 'ASTRO-RAT ARMADA', blurb: 'An ocean world. Rat ironclads rule the waves.\nDive under them and hit the glowing keels.',
     music: 'level7', bossName: 'THE RAT DREADNOUGHT', tip: 'THEIR IRON IS TOO THICK: DIVE UNDER AND HIT THE KEEL!',
     ocean: true, viewY: 1.3, jetCeil: 420,              // (v2.63) a rock core under a thick ocean (armada.js); v2.64: deeper
     radius: 170, sky: [0x02040c, 0x18265a], skyCols: [0x02040c, 0x060c1c, 0x0a1430, 0x101c44, 0x18265a, 0x22306a], bg: '#02040c', starTint: 0xffffff, dustAlpha: 1.2, bgDecor: 'cosmic',
@@ -284,16 +284,16 @@ const LEVELS = {
     ledges: [{ theta: 1.1, half: 0.2, h: 350 }, { theta: 3.2, half: 0.2, h: 365 }, { theta: 5.2, half: 0.2, h: 350 }],   // (floating wreckage, high above the waves)
     props: [{ tex: 'kelp', n: 12, sc: [0.9, 1.5] }, { tex: 'wreck', at: [[0.6, 1.2], [3.9, 1.0, 1]] }, { tex: 'clam', n: 3, sc: [1, 1.3] }, { tex: 'pile_scrap', n: 3, sc: [1, 1.4], tint: 0x6a8a9a }],
     waves: [
-      { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 3), S('torprat', 4.5), ...SCHOOL(6, 6), S('drone', 7.5), S('sharkrat', 8.5), S('torprat', 9), S('ironclad', 10.5), ...SCHOOL(12, 5), S('torprat', 13.5)] },
-      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), S('sharkrat', 7), ...SCHOOL(7.5, 7), S('drone', 9), S('sharkrat', 10.5), S('torprat', 10), ...SCHOOL(11.5, 6), S('torprat', 12.5), S('flyer', 13.5)] },
-      { name: 'WAVE 3', spawns: [S('ironclad', 0), ...SCHOOL(1, 7), S('torprat', 2), S('ironclad', 3), S('torprat', 4), S('flyer', 5), ...SCHOOL(6, 8), S('sharkrat', 6.5), S('torprat', 7), S('ironclad', 8.5), S('sharkrat', 9), S('torprat', 9.5), S('drone', 10.5), ...SCHOOL(11.5, 8), S('torprat', 12.5), S('torprat', 13.5)] }
+      { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 2.1), S('torprat', 3), S('sharkrat', 3.8), S('torprat', 4.5), ...SCHOOL(5.2, 5), ...SCHOOL(6, 6), S('drone', 7.5), S('sharkrat', 8.5), S('torprat', 9), S('torprat', 9.8), S('ironclad', 10.5), S('drone', 11.2), ...SCHOOL(12, 5), S('torprat', 12.8), S('torprat', 13.5)] },
+      { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('sharkrat', 2.8), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), S('sharkrat', 7), ...SCHOOL(7.5, 7), S('drone', 8.2), S('drone', 9), S('torprat', 10), S('sharkrat', 10.5), ...SCHOOL(11.5, 6), S('torprat', 12), S('torprat', 12.5), S('sharkrat', 13), S('flyer', 13.5)] },
+      { name: 'WAVE 3', spawns: [S('ironclad', 0), ...SCHOOL(1, 7), S('torprat', 2), S('ironclad', 3), S('torprat', 4), S('flyer', 5), ...SCHOOL(6, 8), S('sharkrat', 6.5), S('torprat', 7), S('torprat', 7.8), S('ironclad', 8.5), S('sharkrat', 9), S('torprat', 9.5), S('drone', 10.5), ...SCHOOL(11, 8), ...SCHOOL(11.5, 8), S('torprat', 12.5), ...SCHOOL(13, 8), S('torprat', 13.5)] }
     ],
     boss: { tex: 'dreadnought', hp: 90, ai: 'dreadnought', scale: 1.5 },
     win: 'The flagship is going down in flames!\nBessie was bundled into an escape pod...\n...that crashed straight into a giant block of Swiss.'
   },
 
   8: {
-    id: 8, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
+    id: 8, hpMul: 1.58, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'Deep inside a hollow block of Swiss.\nShots ricochet. Rat-Paladins in heavy armour.',
     music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
     radius: 1100, sky: [0x0a0602, 0x4a3014], skyCols: [0x0a0602, 0x1a1006, 0x2a1a0a, 0x3a2410, 0x4a3014, 0x5a3a18], bg: '#0a0602', starTint: 0xffd890, dustAlpha: 1.5, bgDecor: 'motes',
     surface: { pal: [0x6a4a10, 0xa87a1a, 0xe0b02a, 0xf6d04a, 0xffe27a, 0xfff4c4], seed: 8484 },
@@ -312,16 +312,16 @@ const LEVELS = {
       { R: 700, ceil: 130, core: true, bessie: 1.45, outlet: 1.45, every: 2, doubles: true }
     ] },
     waves: [
-      { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 1), S('germ', 2), S('mouse', 3), S('paladin', 4), S('germ', 5), S('mouse', 6)] },
-      { name: 'WAVE 2', spawns: [S('paladin', 0), S('frog', 1), S('mouse', 2), S('paladin', 3), S('germ', 4), S('frog', 5), S('paladin', 6), S('mouse', 7)] },
-      { name: 'WAVE 3', spawns: [S('paladin', 0), S('paladin', 1), S('frog', 2), S('germ', 2.8), S('paladin', 3.8), S('mouse', 4.6), S('frog', 5.6), S('paladin', 6.4), S('paladin', 7.4)] }
+      { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 0.4), S('germ', 0.4), S('paladin', 0.4), S('germ', 0.4), S('germ', 0.4), S('germ', 0.6), S('mouse', 1.2), S('mouse', 1.8), S('germ', 2.4), S('germ', 3), S('mouse', 3.6), S('germ', 4.2), S('paladin', 4.8), S('mouse', 5.4), S('germ', 6), S('mouse', 6.6), S('mouse', 7.2)] },
+      { name: 'WAVE 2', spawns: [S('paladin', 0), S('germ', 0.4), S('frog', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('mouse', 0.4), S('germ', 0.4), S('germ', 0.6), S('frog', 1.2), S('paladin', 1.8), S('mouse', 2.4), S('mouse', 3), S('paladin', 3.6), S('germ', 4.2), S('germ', 4.8), S('paladin', 5.4), S('frog', 6), S('mouse', 6.6), S('paladin', 7.2), S('frog', 7.8), S('mouse', 8.4)] },
+      { name: 'WAVE 3', spawns: [S('paladin', 0), S('paladin', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('mouse', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('mouse', 0.4), S('germ', 0.4), S('mouse', 0.6), S('paladin', 1.2), S('paladin', 1.8), S('frog', 2.4), S('paladin', 2.9), S('germ', 3.4), S('paladin', 4), S('paladin', 4.6), S('germ', 5), S('mouse', 5.5), S('frog', 6.1), S('frog', 6.7), S('frog', 7.2), S('paladin', 7.7), S('frog', 8.3), S('paladin', 8.9)] }
     ],
-    boss: { tex: 'grandpaladin', hp: 180, ai: 'paladin', armouredTop: true },
+    boss: { tex: 'grandpaladin', hp: 360, ai: 'paladin', armouredTop: true },
     win: 'The Grand Paladin is out for the count!\nBessie squeezed out through a hole... onto the rat homeworld itself.\nOne last push, Chris.'
   },
 
   9: {
-    id: 9, name: 'Parmesan Prime', short: 'PARMESAN PRIME', blurb: 'The collapsing rat homeworld.\nThe Grand Rat-King waits at the core.',
+    id: 9, hpMul: 1.58, name: 'Parmesan Prime', short: 'PARMESAN PRIME', blurb: 'The collapsing rat homeworld.\nThe Grand Rat-King waits at the core.',
     music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY!',
     radius: 520, sky: [0x100204, 0x8a2010], skyCols: [0x100204, 0x2a0408, 0x4a080c, 0x6a1010, 0x8a2010, 0xaa3a10], bg: '#100204', starTint: 0xffb0a0, dustAlpha: 1.4, bgDecor: 'gears', lava: 10,
     surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595 },
@@ -332,17 +332,17 @@ const LEVELS = {
     props: [{ tex: 'pile_scrap', n: 6, sc: [1.2, 1.8], tint: 0xa08070 }, { tex: 'pile_bones', n: 5, sc: [1.1, 1.6], tint: 0xd8c8a0 }, { tex: 'p_skull', n: 4, sc: [1.1, 1.5], tint: 0xffd0c0 }, { tex: 'p_pipe', n: 3, sc: [0.9, 1.3] }],
     debris: { every: [0.9, 1.8] },
     waves: [
-      { name: 'WAVE 1', spawns: [S('mouse', 0), S('paladin', 1), S('flyer', 1.8), S('phantom', 2.8), S('mouse', 3.6), S('drone', 4.6), S('paladin', 5.6), S('flyer', 6.4), S('mouse', 7.2)] },
-      { name: 'WAVE 2', spawns: [S('golem', 0), S('phantom', 1), S('slicer', 2), S('paladin', 3), S('drone', 3.8), S('frog', 4.8), S('phantom', 5.6), S('slicer', 6.6), S('paladin', 7.6)] },
-      { name: 'WAVE 3', spawns: [S('paladin', 0), S('golem', 0.8), S('phantom', 1.6), S('drone', 2.4), S('slicer', 3.2), S('paladin', 4), S('frog', 5), S('phantom', 5.8), S('golem', 6.8), S('drone', 7.6), S('paladin', 8.4)] }
+      { name: 'WAVE 1', spawns: [S('mouse', 0), S('mouse', 0.4), S('phantom', 0.4), S('flyer', 0.4), S('paladin', 0.4), S('mouse', 0.6), S('paladin', 1.2), S('flyer', 1.6), S('flyer', 2.1), S('phantom', 2.7), S('phantom', 3.2), S('flyer', 3.6), S('mouse', 4.1), S('paladin', 4.7), S('drone', 5.3), S('flyer', 5.8), S('paladin', 6.4), S('drone', 6.9), S('flyer', 7.4), S('flyer', 7.9), S('mouse', 8.3)] },
+      { name: 'WAVE 2', spawns: [S('golem', 0), S('frog', 0.4), S('slicer', 0.4), S('paladin', 0.4), S('slicer', 0.4), S('paladin', 0.4), S('phantom', 0.6), S('phantom', 1.1), S('slicer', 1.7), S('slicer', 2.3), S('drone', 2.8), S('paladin', 3.4), S('paladin', 3.8), S('drone', 4.3), S('phantom', 4.9), S('frog', 5.5), S('golem', 6), S('phantom', 6.4), S('golem', 7), S('slicer', 7.5), S('drone', 8.1), S('paladin', 8.6)] },
+      { name: 'WAVE 3', spawns: [S('paladin', 0), S('phantom', 0.4), S('paladin', 0.4), S('golem', 0.4), S('drone', 0.4), S('golem', 0.4), S('frog', 0.5), S('golem', 0.9), S('phantom', 1.7), S('paladin', 2.1), S('drone', 2.6), S('phantom', 3), S('slicer', 3.5), S('golem', 4), S('paladin', 4.4), S('paladin', 5), S('frog', 5.5), S('phantom', 6.3), S('paladin', 6.8), S('golem', 7.4), S('paladin', 7.9), S('drone', 8.3), S('drone', 8.8), S('paladin', 9.2)] }
     ],
-    boss: { tex: 'ratking', hp: 240, ai: 'king', armouredTop: true },
+    boss: { tex: 'ratking', hp: 480, ai: 'king', armouredTop: true },
     win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
   },
 
   // LEVEL 10 (the finale, in progress - open on the map for testing): the Rat King's flying saucer (saucer.js)
   10: {
-    id: 10, name: "The Rat King's Saucer", short: 'THE ROYAL SAUCER', blurb: 'The top deck of the Royal Saucer, high over Parmesan Prime.\nThe Rat King is at the wheel. Do not fall off.',
+    id: 10, hpMul: 1.7, name: "The Rat King's Saucer", short: 'THE ROYAL SAUCER', blurb: 'The top deck of the Royal Saucer, high over Parmesan Prime.\nThe Rat King is at the wheel. Do not fall off.',
     music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
     radius: 1100, sky: [0x03040e, 0x1a1238], skyCols: [0x03040e, 0x070a1c, 0x0c1030, 0x141440, 0x1e164a, 0x2a1a50], bg: '#03040e', starTint: 0xc8d8ff, dustAlpha: 0.5, bgDecor: 'cosmic',
     planet: { fill: 0x4a5672, inner: 0x232a3e, rim: 0xb8c4e0, glow: 0x9fd8ff },
@@ -351,11 +351,11 @@ const LEVELS = {
     ledges: [{ theta: -0.27, half: 0.055, h: 96 }, { theta: 0, half: 0.06, h: 172 }, { theta: 0.27, half: 0.055, h: 96 }],   // (the middle one is the gantry over the dome)
     props: [],
     waves: [
-      { name: 'WAVE 1', spawns: [S('lturret', 0), S('steward', 0.5), S('steward', 1.6), S('toff', 3.2), S('lturret', 4.2), S('steward', 5), S('steward', 6.8), S('toff', 8.6), S('admiral', 10.5), S('steward', 13)] },
-      { name: 'WAVE 2', spawns: [S('lturret', 0), S('toff', 0.4), S('steward', 1.4), S('lturret', 2.2), S('admiral', 3), S('lturret', 8), S('steward', 4.6), S('toff', 6.2), S('steward', 7.8), S('toff', 9.4), S('admiral', 11.2), S('steward', 13), S('steward', 14.5)] },
-      { name: 'WAVE 3', spawns: [S('lturret', 0), S('admiral', 0.3), S('lturret', 1), S('toff', 1.4), S('lturret', 6), S('lturret', 11), S('steward', 2.6), S('steward', 3.8), S('toff', 5.2), S('admiral', 6.8), S('steward', 8.2), S('toff', 9.6), S('steward', 11), S('admiral', 12.6), S('toff', 14), S('steward', 15.4)] }
+      { name: 'WAVE 1', spawns: [S('lturret', 0), S('steward', 0.4), S('steward', 0.4), S('steward', 0.4), S('steward', 0.4), S('steward', 0.6), S('steward', 1.2), S('steward', 1.9), S('toff', 2.3), S('admiral', 2.8), S('steward', 3.3), S('toff', 3.8), S('steward', 4.4), S('lturret', 5), S('steward', 5.5), S('steward', 6), S('admiral', 6.5), S('admiral', 7.1), S('admiral', 7.6), S('steward', 8.2), S('steward', 8.7), S('steward', 9.2), S('steward', 9.8), S('toff', 10.3), S('steward', 10.9), S('toff', 11.4), S('steward', 12), S('admiral', 12.6), S('steward', 13.3), S('steward', 14.1), S('toff', 14.8), S('steward', 15.6)] },
+      { name: 'WAVE 2', spawns: [S('lturret', 0), S('steward', 0.4), S('steward', 0.4), S('toff', 0.4), S('toff', 0.5), S('toff', 1.1), S('steward', 1.7), S('steward', 2.1), S('lturret', 2.6), S('toff', 3.1), S('admiral', 3.6), S('steward', 4), S('toff', 4.5), S('admiral', 5), S('steward', 5.5), S('toff', 6), S('steward', 6.5), S('steward', 7), S('toff', 7.5), S('admiral', 8), S('toff', 8.4), S('steward', 8.9), S('steward', 9.4), S('lturret', 9.6), S('steward', 10), S('steward', 10.4), S('steward', 10.9), S('toff', 11.3), S('toff', 11.9), S('toff', 12.4), S('toff', 12.9), S('admiral', 13.5), S('steward', 14.1), S('steward', 14.6), S('steward', 15.1), S('steward', 15.6), S('steward', 16.1), S('toff', 16.5), S('toff', 16.9), S('steward', 17.4)] },
+      { name: 'WAVE 3', spawns: [S('lturret', 0), S('admiral', 0.4), S('steward', 0.4), S('steward', 0.4), S('admiral', 0.4), S('admiral', 0.4), S('toff', 0.4), S('toff', 0.4), S('admiral', 0.4), S('steward', 0.4), S('admiral', 0.4), S('steward', 0.4), S('steward', 0.4), S('lturret', 1.2), S('toff', 1.7), S('steward', 2.4), S('steward', 3.1), S('admiral', 3.8), S('steward', 4.5), S('toff', 5.3), S('toff', 6.1), S('steward', 6.6), S('lturret', 7.1), S('toff', 7.5), S('admiral', 8), S('admiral', 8.4), S('steward', 8.8), S('steward', 9.2), S('steward', 9.7), S('admiral', 10.1), S('toff', 10.6), S('toff', 11), S('toff', 11.4), S('toff', 12.2), S('admiral', 12.6), S('lturret', 13), S('steward', 13), S('steward', 13.4), S('toff', 13.9), S('admiral', 14.4), S('admiral', 14.9), S('steward', 15.4), S('steward', 15.8), S('admiral', 16.2), S('toff', 16.6), S('steward', 17.4), S('steward', 17.8), S('steward', 18.2)] }
     ],
-    boss: { tex: 'kingboss', hp: 200, ai: 'saucerking', scale: 1.15 },      // (v2.65) he smashes out of the dome; the saucer dives (saucer.js)
+    boss: { tex: 'kingboss', hp: 300, ai: 'saucerking', scale: 1.15 },      // (v2.65) he smashes out of the dome; the saucer dives (saucer.js)
     win: 'The Rat King is beaten!\n(Bessie, the ending and the credits are still to come.)'
   },
 

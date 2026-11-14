@@ -8,11 +8,11 @@
 // Everything lives in the registry under 'shop' and is wiped with the lives on game over.
 const SHOP = {
   armHp: [0, 2, 3, 4, 5],                 // gauge size per mark
-  armCost: [0, 150, 260, 400, 600],        // forging / upgrading TO this mark
-  bootCost: [0, 120, 220, 350, 500],
-  chipCost: [0, 270, 480, 750],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
-  tankCost: [0, 160, 300, 460],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
-  magnetCost: 450, setBonus: 75, lifeCost: 300, patchCost: 25, heartCost: [0, 350, 600]   // (v2.24: everything roughly 2.5x dearer)
+  armCost: [0, 135, 235, 360, 540],        // forging / upgrading TO this mark
+  bootCost: [0, 110, 200, 315, 450],
+  chipCost: [0, 245, 430, 675],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
+  tankCost: [0, 145, 270, 415],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
+  magnetCost: 405, setBonus: 75, lifeCost: 270, patchCost: 20, heartCost: [0, 315, 540]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
 const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['GUN +1', 10, 0x2a7a72], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
