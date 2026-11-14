@@ -446,13 +446,12 @@ class FreefallScene extends Phaser.Scene {
     const prevY = this.pos.y;
     this.pos.x = Math.max(16, Math.min(SW - 16, this.pos.x + this.vel.x * dt));
     this.pos.y += this.vel.y * dt;
-    // ---- grates: bump one and you bounce off it and SLIDE towards the nearest gap
+    // ---- grates: miss the gap and it's the end
     for (const r of this.rows) {
-      if (prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 12)) {
-        this.pos.y = r.y - 1; this.vel.y = -200;
-        const gx = this.nearestGapX(r, this.pos.x); this.vel.x = Math.sign(gx - this.pos.x) * 200; this.slideT = 0.25;
-        if (r.hot) { this.splat(this.pos.x, r.y - 20, 'SIZZLED ON A HOT GRATE!'); break; }
-        else { Sound.sfx('bonk'); Sound.sfx('clang'); this.chain = 0; this.timeLeft = Math.max(0, this.timeLeft - 1); this.smack(this.pos.x, r.y, ['BONK!', 'CLANG!', 'DOINK!'][Math.floor(Math.random() * 3)], '#ffe0a0'); this.pop(this.pos.x, r.y - 20, '-1s', '#ffb07a'); this.puff(this.pos.x, r.y, 8, 0xffd23f, 220, 0.25, 2); }
+      if (prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 8)) {          // (a little forgiving at the edges)
+        // (v2.75) the grates are deadly too: miss the gap and you go SPLAT on the bars
+        this.pos.y = r.y - 1;
+        this.splat(this.pos.x, r.y - 20, r.hot ? 'SIZZLED ON A HOT GRATE!' : ['GRATED!', 'GRILLED!', 'SLICED BY THE BARS!', 'CHAR-MARKED!'][Math.floor(Math.random() * 4)]);
         break;
       }
     }
