@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.77';
+const BUILD = 'v2.78';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -449,6 +449,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.ocean) this.armadaInit();              // L7: the ocean (armada.js)
     if (this.def.saucer) this.saucerInit();             // L10: the Royal Saucer's deck (saucer.js)
     if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
+    if (this.def.parm) this.parmInit();                 // L9: the Royal Rasp, crumbling ground, grenades (parmesan.js)
     this.specLights = []; this.fogFg = [];
     if (this.def.bgDecor === 'haze' && Settings.lights) {   // eerie coloured light from the anomalies, sweeping slowly over the pale ground
       for (let i = 0; i < 7; i++) { const hl = this.add.image(0, 0, 'halo').setDepth(2.45).setTint([0xd070ff, 0x5ce1ff, 0xff7ad8][i % 3]).setBlendMode(Phaser.BlendModes.ADD); hl.bsx = rnd(1.6, 2.6); hl.bsy = hl.bsx * 0.45; this.specLights.push({ spr: hl, theta: i * TAU / 7, v: rnd(-0.05, 0.05), ph: rnd(0, 6) }); }
@@ -1486,6 +1487,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.saucer) this.saucerUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L10 (saucer.js)
       if (this.def.gorge) this.gorgeUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L6 (gorge.js)
       if (this.def.mozz) this.mozzUpdate(dt);                                         // L4: volcano, boulders, golem puddles (mozz.js)
+      if (this.def.parm) this.parmUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L9 (parmesan.js)
       if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
     else if (this.state === 'rescue') {
@@ -2124,6 +2126,7 @@ class Level1 extends Phaser.Scene {
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
   hitK(e, th, h) {
     if (e.ai === 'milkmaid') return this.mmHitK(e, th, h);
+    if (e.type === 'ppguard') return this.ppHitK(e);         // L9: the Royal Guard's tower shield
     if (e.ai === 'magmagolem') return this.mgHitK(e, th, h);   // crust plates soak shots until they break   // act 2: her heart is the weak spot
     if (e.ai === 'wheel' && e.core) return 0.12;           // the gooey core shrugs off normal shots: charge up and hit the eye
     if (e.type === 'mgolem') {                          // charred crust armour: half damage, chips flying, until it cracks open
@@ -3836,6 +3839,8 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
+      } else if (ai === 'ppguard' || ai === 'ppgren' || ai === 'pptax' || ai === 'ppcav') {   // L9 (parmesan.js): the Rat Empire's finest
+        this.parmAI(e, dt, P, dirP);
       } else if (ai === 'rindtick' || ai === 'gnawer' || ai === 'grub') {   // L8 (labyrinth.js): ceiling ticks, wall gnawers, floor grubs
         this.labAI(e, dt, P, dirP);
       } else if (ai === 'lturret') {                     // L10: deck laser turrets (saucer.js)
@@ -4215,7 +4220,7 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (!fooled && !e.phased && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (!fooled && !e.phased && !e.noTouch && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt(e.type === 'boss');                       // a boss landing on him or ramming him is a HEAVY hit
         if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
       }
@@ -4235,7 +4240,7 @@ class Level1 extends Phaser.Scene {
       if (e.type !== 'boss') this.comboKill();
       Tel.kill(e);
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
@@ -4870,7 +4875,8 @@ class Level1 extends Phaser.Scene {
       this.rockT -= dt;
       if (this.rockT <= 0) {
         this.rockT = rnd(d.debris.every[0], d.debris.every[1]) * (bossUp ? 1.4 : 1);
-        const spr = this.add.image(0, 0, 'db_rock').setDepth(7); spr.bsx = spr.bsy = rnd(2, 3);
+        const dtx = d.debris.tex ? d.debris.tex[Math.floor(Math.random() * d.debris.tex.length)] : 'db_rock';   // (L9: palace rubble)
+        const spr = this.add.image(0, 0, dtx).setDepth(7); spr.bsx = spr.bsy = d.debris.tex ? rnd(1.4, 2) : rnd(2, 3);
         this.rocks.push({ theta: wrap(P.theta + rnd(-0.45, 0.45) + P.vx / R * 0.8), h: 460, vh: -200, spr, rot: 0, rv: rnd(-6, 6) });
       }
       for (let i = this.rocks.length - 1; i >= 0; i--) {
@@ -5338,6 +5344,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.saucer) this.saucerDraw();
     if (this.def.gorge) this.gorgeDraw();
     if (this.def.mozz) this.mozzDraw();                  // L4: the volcano, puddles, the golem's armour (mozz.js)
+    if (this.def.parm) this.parmDraw();                  // L9: the Royal Rasp, cracks, lettering (parmesan.js)
     if (this.def.fondue) this.fondueDraw(this.unw - (this.lagU || 0));   // L5.5: curtains, waves, party lights, the fountain (fondue.js)
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, b.blast ? b.rot : Math.atan2(-b.vh, b.vt));   // (the Swiss ball spins)
     this.drawBeam();
@@ -5478,7 +5485,8 @@ Object.assign(Level1.prototype, MozzMixin);
 Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
-Object.assign(Level1.prototype, LabMixin);           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
+Object.assign(Level1.prototype, LabMixin);
+Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)

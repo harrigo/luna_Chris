@@ -355,7 +355,8 @@ function makeToonTextures(scene) {
   if (typeof makeArmadaTextures === 'function') makeArmadaTextures(scene, toonRat);   // L7: the ocean, the ironclads, torpedo rats (armada.js)
   if (typeof makeSaucerTextures === 'function') makeSaucerTextures(scene, toonRat);   // L10: the Royal Saucer and its crew (saucer.js)
   if (typeof makeGorgeTextures === 'function') makeGorgeTextures(scene, toonRat);
-  if (typeof makeLabTextures === 'function') makeLabTextures(scene);   // L8: the labyrinth's vermin, the boulder, tumbleweeds (labyrinth.js)   // L6: the Pepper Jack, the canyon and its vermin (gorge.js)
+  if (typeof makeLabTextures === 'function') makeLabTextures(scene);
+  if (typeof makeParmTextures === 'function') makeParmTextures(scene);   // L9: the Rat Empire (parmesan.js)   // L8: the labyrinth's vermin, the boulder, tumbleweeds (labyrinth.js)   // L6: the Pepper Jack, the canyon and its vermin (gorge.js)
 }
 
 // The rat saucer is drawn by plain images in half a dozen scenes (levels, the intro, the map, the ending, the

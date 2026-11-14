@@ -1715,3 +1715,15 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - A cleared room can be replayed as a practice run: no prize, no tries used.
 - Centrifuge: if it's locked, the Triangle's warp goes straight on to the Fondue Fountain (and the Fountain opens on the map once found), so the warp road isn't lost - only the gun.
 - Test mode never uses up tries.
+
+### v2.78 — Parmesan Prime part 1 (src/parmesan.js)
+- The rats' homeworld, rebuilt: giant dotted "PARMESAN PRIME" rind lettering stamped round the planet under the surface, glinting crystals, a ruined rat empire on top (cracked statues of the King, broken marble columns, torn royal banners), a molten red sky with palace spires and wrecks on the horizon (depth ridges).
+- THE ROYAL RASP: a planet-sized grater face on cables from a mining ship sweeps right round the planet every 11-15 s. A 2 s warning (siren, blips, an arrow on the side it's coming from, a red band at its height and JUMP!/DUCK!): LOW (h 0-36, jump it) or HIGH (h 24-118, duck under it). It shreds any rat in its path (+150 each). Each full lap grates ~13 units off: THE PLANET SHRINKS (R 520 -> min 380). Retrying from a checkpoint starts it already grated down (45 per wave).
+- Crumbling ground: cracks spread ahead of Chris for 1.7 s (glowing), then the ground falls away into a chasm down to the glowing core (a 'pit' crater: fall in and you're hauled out a heart lighter) for 10-13 s before rubble fills it. At most 2 at a time.
+- Palace rubble rains down (columns, marble King heads, gold dome chunks) with the shadow warning (def.debris.tex).
+- New enemies (ENEMY + parmAI):
+  - ROYAL GUARD (hp 9): tower shield in front - shots from the front plink off (ppHitK), 1.5x from behind; slow to turn (0.6 s); halberd JAB when close (0.45 s wind-up flash, then a thrust).
+  - GRENADIER (hp 5): keeps 230-380 away, lobs rind grenades that bounce once and go off after 1.5 s (58 radius).
+  - THE TAXMAN (hp 6): runs at you and snatches up to 40 cheddar (no damage; noTouch), then legs it for 6.5 s. Splat him for a TAX REFUND of double; let him go and it's gone. If you're broke he slaps you instead.
+  - COCKROACH CAVALRY (hp 7): paws the ground (0.75 s, dust), then charges at 400 straight through; jump it. Skids, turns, again.
+- New waves built round them; the old Rat-King boss stays for now (part 2: the Parmesan Colossus and the escape).
