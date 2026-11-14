@@ -1647,3 +1647,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v2.67 — Royal Saucer: laser turrets, a proper breakout
 - LASER TURRETS (new deck enemy, saucer.js): an armoured base bolted to the deck (hazard stripes), a glass bubble with a goggled rat gunner, and a twin-barrelled gun that tracks Chris. It takes aim (a flickering red sight line, 0.55 s), then fires. They come up through the hatches, don't slide, and every wave they're tougher and quicker: wave 1 4 hp, one bolt every 2.4 s at 380; wave 2 7 hp, bursts of 2 every 1.85 s at 490; wave 3 10 hp, bursts of 3 every 1.3 s at 600; they track faster too. 2 in wave 1, 3 in wave 2, 4 in wave 3.
 - The Rat King's breakout now takes ~4.3 s: eight blows on the glass, coming faster and harder. Each one: he throws himself at it (lunge and squash), a flash, a thud, a shake that grows, a spray of shards, and a new starburst of cracks (the earlier ones keep spreading). After the third: "THE GLASS IS GIVING WAY...". Then the final smash. His full-size body stays hidden until he's out.
+
+### v2.68 — King's breakout: 3 s, fists, wrecked dome
+- Breakout shortened to ~3 s (8 blows at 0.3–2.75 s, out at 3.0 s).
+- The King now visibly pounds the glass with his fists ('kfist': mangy clawed fist, signet ring, ermine cuff) on robe-sleeve arms, alternating left/right: each fist winds back (G.windup over 0.28 s before a blow) then slams out to the crack point and swells toward the camera. Drawn above the crack layer so every punch reads.
+- Each blow: big comic word (BANG!/THUD!/CRACK!/WHAM!/CRUNCH!/SMASH!), white flash + shock ring + speed lines at the impact, hit-stop, harder shake, crash sfx.
+- 'sdome_broken' redrawn: jagged glass teeth all round the rim, buckled snapped ribs, scorched open interior, smashed console with bent yoke and hanging wires. After he leaves the wreck smokes and sparks, and glass litters the deck around it.

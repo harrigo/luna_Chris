@@ -308,11 +308,33 @@ const SaucerMixin = {
     this.place(G.king, wrap(G.tilt * 14 / R), 22 + bob, lean); G.king.setScale(G.king.scaleX * 1.0, G.king.scaleY * (1 + 0.02 * Math.sin(t * 2.2)));
     for (const m of G.minions) { this.place(m, wrap((m.sd * 62 + G.tilt * 8) / R), 20 + Math.abs(Math.sin(t * 5 + m.sd)) * 4 + (warn && m.sd === dir ? 5 : 0), 0); m.setFlipX(m.sd > 0); m.setScale(m.scaleX * 1.2, m.scaleY * 1.2); }
     this.place(G.yoke, wrap(G.tilt * 20 / R), 14, G.tilt * 0.6);
+    if (G.broken) {                                                                                    // the wreck smokes and sparks; glass all over the deck
+      if (!G.litter) { G.litter = []; for (let i = 0; i < 18; i++) { const im = this.add.image(0, 0, 'glassshard').setDepth(2.25).setAlpha(0.9); im.bsx = im.bsy = rnd(0.5, 1.1); G.litter.push({ im, px: rnd(-150, 150), rot: rnd(0, 6) }); } }
+      for (const q of G.litter) this.place(q.im, wrap(q.px / R), 2, q.rot);
+      G.smokeT = (G.smokeT || 0) - (this.lastDt || 0.016);
+      if (G.smokeT <= 0) { G.smokeT = 0.1; const im = this.add.image(0, 0, 'puff').setDepth(2.2).setTint(Math.random() < 0.5 ? 0x2a2a38 : 0x5a5a6a).setAlpha(0.55); im.bsx = im.bsy = rnd(0.3, 0.5); this.parts.push({ theta: wrap(rnd(-30, 30) / R), h: 30, vt: rnd(-20, 20), vh: rnd(50, 90), life: rnd(1.2, 1.8), noGrav: true, grow: 2, spr: im });
+        if (Math.random() < 0.35) this.burst(wrap(rnd(-25, 25) / R), 18, 'spark', 3, 0.7); }
+    }
     if (G.broken) { G.king.setVisible(false); G.yoke.setVisible(false); G.minions.forEach(m => m.setVisible(false)); if (G.domeGlass.texture.key !== 'sdome_broken') G.domeGlass.setTexture('sdome_broken'); }
     if (G.breakout) {                                                                                  // the King throwing himself at the glass
       G.lunge = Math.max(0, (G.lunge || 0) - (this.lastDt || 0.016));
-      const l = G.lunge / 0.18; G.king.x += Math.sin(t * 50) * 2 + l * 6 * Math.sin(t * 9); G.king.y -= l * 10 * z; G.king.setScale(G.king.scaleX * (1 + 0.12 * l), G.king.scaleY * (1 - 0.06 * l));
+      const l = G.lunge / 0.18; G.king.x += Math.sin(t * 50) * 3 + l * 10 * Math.sin(t * 9); G.king.y -= l * 22 * z; G.king.setScale(G.king.scaleX * (1 + 0.32 * l), G.king.scaleY * (1 - 0.14 * l));   // slamming his face into it
       for (const m of G.minions) m.x += Math.sin(t * 60 + m.sd) * 3;
+      // (v2.68) his FISTS: one winds right back, then slams into the glass at the crack; they alternate, left, right, left...
+      if (!G.fists) { G.armG = this.add.graphics().setDepth(2.41); G.fists = [-1, 1].map(() => this.add.image(0, 0, 'kfist').setDepth(2.42)); }
+      const kr = G.king.rotation, dh = G.king.displayHeight, cs = Math.cos(kr), sn = Math.sin(kr), rot = (dx, dy) => ({ x: G.king.x + dx * cs - dy * sn, y: G.king.y + dx * sn + dy * cs });
+      const last = G.impacts && G.impacts.length ? G.impacts[G.impacts.length - 1] : null, lastSide = last ? Math.sign(last.x) : 0, ext = G.lunge / 0.18;
+      G.armG.clear();
+      [-1, 1].forEach((sd, i) => {
+        const F = G.fists[i], sh = rot(sd * dh * 0.22, -dh * 0.55);                                  // shoulder
+        let p = rot(sd * dh * 0.38, -dh * 0.42), sc = 1.15 * z, ang = sd * 0.3;                         // resting, fists up by his face
+        if (G.nextSide === sd && G.windup > 0) { const w = G.windup < 0.75 ? G.windup / 0.75 : 1 - (G.windup - 0.75) / 0.25 * 1.2;   // draw it right back...
+          const b = rot(sd * dh * (0.42 + 0.15 * w), -dh * (0.5 + 0.35 * w)); p = { x: p.x + (b.x - p.x) * Math.min(1, w), y: p.y + (b.y - p.y) * Math.min(1, w) }; sc *= 1 - 0.2 * w; ang = sd * (0.3 + 0.9 * w); }
+        if (last && lastSide === sd && ext > 0) { const q = this.screenPos(wrap(last.x / R), last.h), e2 = Math.min(1, ext * 1.6);   // ...and SLAM it into the glass
+          p = { x: p.x + (q.x - p.x) * e2, y: p.y + (q.y - p.y) * e2 }; sc *= 1 + 0.55 * e2; ang = sd * 0.1 * (1 - e2); }
+        G.armG.lineStyle(14 * z, 0x4a0a1e, 1).lineBetween(sh.x, sh.y, p.x, p.y); G.armG.lineStyle(9 * z, 0xc84a6a, 1).lineBetween(sh.x, sh.y, p.x, p.y);   // the robe sleeve
+        F.setPosition(p.x, p.y).setScale(sc).setRotation(kr + ang).setFlipX(sd < 0).setVisible(true);
+      });
     }
     this.place(G.domeGlass, 0, 0, 0); G.domeGlass.setScale(G.domeGlass.scaleX * 1.25, G.domeGlass.scaleY * 1.25); G.domeGlass.setAlpha(G.broken ? 1 : 0.8);
     if (G.breakout && G.impacts) {                                                                     // a starburst of cracks at every blow, growing with each one after
@@ -328,7 +350,12 @@ const SaucerMixin = {
         }
         L.lineStyle(1 * z, 0xffffff, 0.5).strokeCircle(c.x, c.y, (8 + 6 * grow) * z);                  // the ring round the impact
       });
-      if (G.lunge > 0.1) { const q = this.screenPos(0, 70); L.fillStyle(0xffffff, 0.25).fillCircle(q.x, q.y, 60 * z); }   // a flash on each blow
+      if (G.lunge > 0.06 && G.impacts.length) {                                                          // a flash and a shock ring at each blow
+        const I = G.impacts[G.impacts.length - 1], q = this.screenPos(wrap(I.x / R), I.h), k = 1 - G.lunge / 0.18;
+        L.fillStyle(0xffffff, 0.45 * (1 - k)).fillCircle(q.x, q.y, (24 + 40 * k) * z); L.lineStyle(3 * z, 0xffffff, 0.9 * (1 - k)).strokeCircle(q.x, q.y, (20 + 70 * k) * z);
+        for (let i = 0; i < 8; i++) { const a = i * 0.785 + I.a; L.lineStyle(2.5 * z, 0xfff6c0, 1 - k).lineBetween(q.x + Math.cos(a) * 18 * z, q.y + Math.sin(a) * 18 * z, q.x + Math.cos(a) * (40 + 40 * k) * z, q.y + Math.sin(a) * (40 + 40 * k) * z); }
+      }
+
     }
     if (G.fall) for (const sd of [-1, 1]) for (let k = 0; k < 3; k++) {                               // re-entry: flames streaming up off the rims
       const q = sp(sd * (E + 20 - k * 30), -60), len = (40 + 40 * Math.random()) * z;
@@ -371,6 +398,13 @@ function makeKingTextures(scene) {
   if (scene.game.__kingTex) return; scene.game.__kingTex = true;
   const INK = 0x1a1020, FUR = [0xc4c8dc, 0x868ca6, 0x4a4f6a], MANGE = [0x9aa0b8, 0x6a7088, 0x3a3f54], PINK = [0xffb0c0, 0xe07a90, 0xa04a60];
   const GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a], ERM = [0xffffff, 0xeef2f8, 0xc8d0e0], ROBE = [0xc84a6a, 0x8a1a3a, 0x4a0a1e];
+  pixSprite(scene, 'kfist', 40, 36, a => {                                      // (v2.68) the King's big mangy fist, knuckles front-on, for hammering the dome
+    a.ell(20, 20, 16, 14, FUR); a.ell(14, 14, 6, 4, 0xe0e4f0);
+    for (const x of [9, 16, 23, 30]) { a.ell(x, 10, 4.5, 5, MANGE); a.ell(x, 9, 2.5, 2.5, PINK); a.poly([[x - 2, 6], [x, 1], [x + 2, 6]], [0xfffbe8, 0xe8dcb0, 0xa89a6a]); }   // knuckles and claws
+    a.line([[12, 15], [12, 22]], 0x4a4f6a); a.line([[19, 15], [19, 23]], 0x4a4f6a); a.line([[26, 15], [26, 22]], 0x4a4f6a);
+    a.ell(6, 22, 5, 6, FUR); a.ell(30, 13, 3, 3, GOLD); a.px(30, 12, 0xff3a2a);       // thumb, signet ring
+    a.rect(10, 30, 30, 35, ERM); a.px(14, 32, INK); a.px(22, 33, INK); a.px(27, 31, INK);   // ermine cuff
+  });
   const minirat = (a, x, y, ang, s, eyeOpen) => {                          // one of the rats in the knot: a body, a head, an eye, a tail
     const c = Math.cos(ang), sn = Math.sin(ang);
     a.ell(x, y, 6 * s, 4 * s, FUR); a.ell(x + c * 6 * s, y + sn * 6 * s, 3.6 * s, 3.2 * s, FUR);
@@ -417,10 +451,32 @@ function makeKingTextures(scene) {
     for (const x of [52, 88]) { a.rrect(x - 7, 116, x + 7, 128, 3, MANGE); for (const t2 of [-5, 0, 5]) a.ell(x + t2, 128, 2, 1.6, PINK); }
   });
   body('kingboss', 0); body('kingboss_b', 1); body('kingboss_c', 2);
-  pixSprite(scene, 'sdome_broken', 180, 124, a => {                         // what's left of the dome: the rim, jagged stubs of glass, a bent rib
-    for (let k = 0; k <= 60; k++) { const t2 = Math.PI + k / 60 * Math.PI, x = 90 + Math.cos(t2) * 80, y = 110 + Math.sin(t2) * 100; if (y > 70) { a.px(Math.round(x), Math.round(y), 0xd8f0ff); a.px(Math.round(x), Math.round(y) + 1, 0x8ac0e8); } }
-    for (const [x0, h, w] of [[16, 26, 10], [40, 16, 12], [130, 22, 12], [156, 30, 10], [96, 10, 14]]) a.poly([[x0, 110], [x0 + w * 0.3, 110 - h], [x0 + w * 0.6, 110 - h * 0.5], [x0 + w, 110 - h * 0.8], [x0 + w + 2, 110]], [0xd8f4ff, 0x8ac8f0, 0x3a7aa8]);
-    a.line([[48, 110], [60, 64], [80, 52]], 0x9ad0f0, 2);
+  pixSprite(scene, 'sdome_broken', 180, 124, a => {                         // (v2.68) what's left: a jagged ring of glass teeth, a buckled rib, scorching, a wrecked console
+    const r = rng(77), GL = [0xe8f8ff, 0x9ad0f0, 0x3a7aa8];
+    // the interior, blackened and open to the sky
+    a.ell(90, 112, 76, 30, [0x2a2a38, 0x16161e, 0x08080c]);
+    for (let k = 0; k < 9; k++) { const x = 30 + r() * 120, y = 96 + r() * 14; a.ell(x, y, 4 + r() * 8, 2 + r() * 3, 0x050508); }                   // scorch
+    // the console, smashed: the yoke snapped, a screen cracked, wires hanging out (they spark)
+    a.rrect(66, 92, 114, 108, 2, [0x5a6688, 0x2a3044, 0x141826]); a.rect(72, 95, 90, 102, 0x0a1a10); a.line([[73, 96], [80, 101], [86, 96], [89, 101]], 0x5aff8a);
+    a.rect(94, 95, 108, 102, 0x2a0a0a); a.line([[95, 101], [101, 96], [107, 100]], 0x8a2a2a); a.line([[100, 92], [104, 80], [101, 74]], 0x4a5262, 3); a.px(101, 73, 0xffb0c0);   // the yoke, bent up
+    for (const [x0, x1, c] of [[70, 62, 0xff3a2a], [78, 76, 0xffd23f], [110, 118, 0x3ad0ff]]) a.line([[x0, 106], [x0 + (x1 - x0) * 0.5, 112], [x1, 116]], c);
+    // the rim: dented, the lights out
+    a.rrect(2, 106, 177, 123, 4, [0xdfe6f0, 0x8a94a6, 0x4a5262]); a.rect(4, 115, 175, 117, 0x4a5262);
+    for (let x = 10; x < 172; x += 12) { a.px(x, 110, 0xffffff); a.rect(x + 4, 119, x + 6, 120, x % 36 === 10 ? 0xff3a2a : 0x2a2a38); }
+    a.poly([[60, 106], [70, 110], [80, 106]], [0x5a606a, 0x3a3f4a, 0x1a1e26]); a.poly([[132, 106], [138, 111], [146, 106]], [0x5a606a, 0x3a3f4a, 0x1a1e26]);   // dents
+    // glass teeth all round the rim, tall and short, some cracked
+    let x = 6;
+    while (x < 172) {
+      const w = 6 + r() * 12, h = 6 + r() * (x < 40 || x > 140 ? 40 : 26), lean = (r() - 0.5) * 8;
+      a.poly([[x, 107], [x + w * 0.25 + lean, 107 - h], [x + w * 0.5, 107 - h * (0.4 + r() * 0.3)], [x + w * 0.8 + lean * 0.5, 107 - h * (0.6 + r() * 0.3)], [x + w, 107]], GL);
+      a.line([[x + w * 0.3, 106], [x + w * 0.25 + lean, 108 - h]], 0xffffff);
+      if (r() < 0.5) a.line([[x + w * 0.5, 104], [x + w * 0.6, 107 - h * 0.5]], 0x3a7aa8);
+      x += w + r() * 6;
+    }
+    // a rib of the frame buckled up and snapped, and one still standing with a shard stuck to it
+    a.line([[30, 106], [38, 70], [52, 50], [58, 54]], 0x8a94a6, 3); a.line([[31, 104], [39, 70], [52, 51]], 0xdfe6f0, 1);
+    a.line([[150, 106], [146, 80], [136, 64]], 0x8a94a6, 3); a.poly([[140, 70], [148, 62], [150, 74]], GL);
+    a.ell(58, 54, 2, 2, 0xffd23f);
   }, 0);
   pixSprite(scene, 'glassshard', 12, 12, a => { a.poly([[1, 10], [5, 1], [11, 6], [7, 11]], [0xffffff, 0xb8e4ff, 0x6aa8d8]); }, 0);
 }
@@ -440,19 +496,23 @@ Object.assign(SaucerMixin, {
       // (v2.67) he HAMMERS on the glass: blows coming faster and harder, each one a thud, a shake, spreading cracks and a
       // spray of shards; the last one, at ~4.3 s, takes the dome out
       e.spr.setAlpha(0);                                  // (his full-size body only appears once he's out: in the dome he's the sketch)
-      const HITS = [0.5, 1.25, 1.9, 2.45, 2.9, 3.3, 3.65, 3.95];
+      const HITS = [0.3, 0.8, 1.25, 1.65, 2.0, 2.3, 2.55, 2.75];          // (v2.68: all over in 3 s)
       K.hitN = K.hitN || 0;
+      G.windup = K.hitN < HITS.length ? Math.max(0, Math.min(1, 1 - (HITS[K.hitN] - K.t) / 0.28)) : 0; G.nextSide = (K.hitN + 1) % 2 ? -1 : 1;
       if (K.hitN < HITS.length && K.t >= HITS[K.hitN]) {
         K.hitN++; G.crackLv = K.hitN; G.lunge = 0.18; const pw = K.hitN / HITS.length;
-        const hx = rnd(-30, 30), hh = rnd(50, 110); G.impacts = (G.impacts || []).concat([{ x: hx, h: hh, a: rnd(0, 6) }]);
+        const hx = (K.hitN % 2 ? -1 : 1) * rnd(10, 34), hh = rnd(60, 105); G.impacts = (G.impacts || []).concat([{ x: hx, h: hh, a: rnd(0, 6) }]);
         for (let k = 0; k < 3 + K.hitN * 2; k++) { const im = this.add.image(0, 0, 'glassshard').setDepth(8); im.bsx = im.bsy = rnd(0.5, 1.1); this.parts.push({ theta: wrap(hx / R), h: hh, vt: rnd(-160, 160), vh: rnd(80, 260), life: rnd(0.5, 0.9), spr: im, rot: 0, rv: rnd(-12, 12) }); }
-        this.cameras.main.shake(140 + 160 * pw, 0.004 + 0.01 * pw); Sound.sfx(K.hitN % 3 ? 'clunk' : 'crash'); buzz(30 + 40 * pw);
+        this.cameras.main.shake(160 + 160 * pw, 0.008 + 0.012 * pw); Sound.sfx('crash'); Sound.sfx(K.hitN % 2 ? 'clunk' : 'boom'); buzz(40 + 50 * pw);
+        this.hitStop = Math.max(this.hitStop || 0, 0.05 + 0.04 * pw); this.cameras.main.flash(70, 255, 255, 255);
+        this.addLight(wrap(hx / R), hh, 120, 0xd8f4ff, 1, 0.25);
+        this.popup(wrap(hx / R), hh + 30, ['BANG!', 'THUD!', 'BANG!', 'CRACK!', 'WHAM!', 'BANG!', 'CRUNCH!', 'SMASH!'][K.hitN - 1], K.hitN > 5 ? '#ff5a3a' : '#ffffff'); { const pp = this.popups[this.popups.length - 1]; pp.t.bsx = pp.t.bsy = 2.4 + 0.25 * K.hitN; pp.vh = 40; }
         if (K.hitN === 3) this.banner('THE GLASS IS GIVING WAY...');
       }
-      if (K.t > 4.3) {
+      if (K.t > 3.0) {
         K.st = 'land'; K.t = 0; e.phased = false; e.spr.setVisible(true).setAlpha(1); if (G.crackG) G.crackG.clear(); e.spr.setTexture('kingboss_b');
         e.h = 140; e.vh = 360; e.vt = dirP * 90;
-        G.broken = true; G.breakout = 0; G.fall = 0.001;
+        G.broken = true; G.breakout = 0; G.fall = 0.001; if (G.fists) { G.fists.forEach(f => f.destroy()); G.armG.destroy(); G.fists = null; }
         for (let k = 0; k < 40; k++) { const im = this.add.image(0, 0, 'glassshard').setDepth(8); im.bsx = im.bsy = rnd(0.7, 1.6); this.parts.push({ theta: wrap(rnd(-60, 60) / R), h: rnd(40, 140), vt: rnd(-300, 300), vh: rnd(150, 520), life: rnd(0.8, 1.4), spr: im, rot: 0, rv: rnd(-14, 14) }); }
         this.cameras.main.shake(400, 0.016); this.cameras.main.flash(200, 220, 240, 255); Sound.sfx('crash'); Sound.sfx('boom'); buzz([80, 40, 120]);
         this.banner('NOBODY AT THE WHEEL... WE\'RE GOING DOWN!');
