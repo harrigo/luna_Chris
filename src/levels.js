@@ -308,7 +308,7 @@ const LEVELS = {
 
   8: {
     id: 8, hpMul: 1.58, name: 'Lactose Labyrinth', short: 'LACTOSE LABYRINTH', blurb: 'A dead, quiet moon of Swiss.\nSomething is down there. In the dark.',
-    music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
+    music: 'level8', bossName: 'THE MILKMASTER', tip: 'YOUR SHOTS RICOCHET IN HERE!',
     radius: 1100, sky: [0x05040a, 0x2a2430], skyCols: [0x05040a, 0x0e0c14, 0x16131e, 0x1e1a28, 0x2a2430, 0x343040], bg: '#05040a', starTint: 0x8a8498, dustAlpha: 0.8, bgDecor: 'motes',
     surface: { pal: [0x3a3224, 0x54482e, 0x6e6040, 0x857652, 0x9c8e66, 0xb8ac88], seed: 8484 },
     depth: { light: [-0.5, -0.8, 0.4], dark: [10, 8, 20], shadeA: [0, 70, 125, 170], rim: [190, 184, 220], atmo: [120, 110, 160], atmoW: 0.09, atmoA: 40,
@@ -326,16 +326,23 @@ const LEVELS = {
     // (v2.71) THE LABYRINTH (src/labyrinth.js). Angles are relative to the hole in the surface. Each ring: walls split it into
     // chambers; `holes` in its floor drop to the ring below; `path` is the hole that leads on; `pipes` [from, to, flowsTo]
     // run along the roof of the true route's chambers; `spawn` [type, angle]; `loot` [kind, angle, cheddar] sits in dead ends.
-    cave: { holeOff: 0.32, fillT: 300, rings: [
+    cave: { holeOff: 0.32, fillT: 330, rings: [
       { hole: 0 },                                                                                     // the surface (a boulder plugs the hole)
       { R: 950, ceil: 112, walls: [-1.4, 1.2], holes: [-1.1, 0.5, 0.95], path: 0.95, pipes: [[-1.4, 1.2, 0.95]], valves: [0.2],
         spawn: [['rindtick', -0.35], ['grub', -0.18], ['rindtick', 0.28], ['grub', 0.66], ['gnawer', 1.1], ['paladin', -0.75], ['rindtick', -0.98], ['gnawer', -1.3]] },
-      { R: 800, ceil: 112, walls: [-1.25, -0.9, 0.3, 0.72, 1.6, 2.4], holes: [1.45, 2.0], path: 1.45, pipes: [[0.72, 1.6, 1.45]], outlet: 1.15, every: 3, valves: [0.85],
+      { R: 805, ceil: 112, walls: [-1.25, -0.9, 0.3, 0.72, 1.6, 2.4], holes: [1.45, 2.0], path: 1.45, pipes: [[0.72, 1.6, 1.45]], outlet: 1.15, every: 3, valves: [0.85],
         loot: [['stash', -1.07, 60], ['heal', 0.6], ['stash', 2.15, 120], ['heal', 2.3]],      // two dead-end pockets off ring 1, and a hoard you can only jet UP into from ring 3
         spawn: [['rindtick', -1.0], ['rindtick', -1.16], ['grub', -1.04], ['gnawer', 0.36], ['grub', 0.45], ['grub', 0.62], ['rindtick', 1.1], ['paladin', 1.3], ['gnawer', 1.55], ['grub', 1.22], ['rindtick', 1.38], ['paladin', 1.9], ['rindtick', 2.1], ['gnawer', 2.33]] },
-      { R: 650, ceil: 112, walls: [0.9, 2.95], holes: [2.6], path: 2.6, pipes: [[0.9, 2.95, 2.6]], outlet: 1.8, every: 2, doubles: true, valves: [1.3, 2.3],
+      { R: 660, ceil: 112, walls: [0.9, 2.95], holes: [2.6], path: 2.6, pipes: [[0.9, 2.95, 2.6]], outlet: 1.8, every: 2, doubles: true, valves: [1.3, 2.3],
         spawn: [['gnawer', 0.98], ['rindtick', 1.2], ['grub', 1.7], ['paladin', 1.9], ['rindtick', 2.15], ['grub', 2.35], ['gnawer', 2.86], ['rindtick', 2.5], ['paladin', 2.75]] },
-      { R: 480, ceil: 140, core: true, bessie: 3.5, outlet: 3.0, every: 2, doubles: true }
+      // (v2.86) a fourth ring: THE ROT. Three holes in the floor - two drop into sealed pockets of the ring below (a rat
+      // nest, a hoard), only the middle one leads on. The pipes show the way.
+      { R: 515, ceil: 112, walls: [1.15, 3.3], holes: [1.45, 2.15, 3.05], path: 2.15, pipes: [[1.15, 3.3, 2.15]], outlet: 2.75, every: 2, doubles: true, valves: [1.8, 2.95],
+        spawn: [['gnawer', 1.25], ['rindtick', 1.4], ['grub', 1.6], ['paladin', 1.75], ['rindtick', 1.95], ['grub', 2.3], ['gnawer', 2.45], ['rindtick', 2.6], ['paladin', 2.85], ['grub', 3.1], ['gnawer', 3.2]] },
+      // the antechamber over the core: the hatch down into the Milkmaster's churn (core.js)
+      { R: 370, ceil: 112, core: true, bessie: 2.5, walls: [1.3, 1.6, 2.9, 3.2], outlet: 2.0, every: 2, doubles: true,
+        loot: [['stash', 1.45, 150], ['stash', 3.05, 100], ['heal', 3.1]],
+        spawn: [['rindtick', 1.4], ['gnawer', 1.5], ['grub', 2.95], ['rindtick', 3.1], ['paladin', 1.9], ['gnawer', 2.2]] }
     ] },
     waves: [
       { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 0.4), S('germ', 0.4), S('paladin', 0.4), S('germ', 0.4), S('germ', 0.4), S('germ', 0.6), S('mouse', 1.2), S('mouse', 1.8), S('germ', 2.4), S('germ', 3), S('mouse', 3.6), S('germ', 4.2), S('paladin', 4.8), S('mouse', 5.4), S('germ', 6), S('mouse', 6.6), S('mouse', 7.2)] },
@@ -343,7 +350,7 @@ const LEVELS = {
       { name: 'WAVE 3', spawns: [S('paladin', 0), S('paladin', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('mouse', 0.4), S('paladin', 0.4), S('paladin', 0.4), S('mouse', 0.4), S('germ', 0.4), S('mouse', 0.6), S('paladin', 1.2), S('paladin', 1.8), S('frog', 2.4), S('paladin', 2.9), S('germ', 3.4), S('paladin', 4), S('paladin', 4.6), S('germ', 5), S('mouse', 5.5), S('frog', 6.1), S('frog', 6.7), S('frog', 7.2), S('paladin', 7.7), S('frog', 8.3), S('paladin', 8.9)] }
     ],
     boss: { tex: 'grandpaladin', hp: 360, ai: 'paladin', armouredTop: true },
-    win: 'The Grand Paladin is out for the count!\nBessie squeezed out through a hole... onto the rat homeworld itself.\nOne last push, Chris.'
+    win: 'The Milkmaster is milked out!\nBut the Rat King swooped down in his Royal Saucer\nand snatched Bessie away... to Parmesan Prime.'
   },
 
   9: {

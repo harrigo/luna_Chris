@@ -91,12 +91,13 @@ function cfVignette(scene) {
 
 class CentrifugeScene extends Phaser.Scene {
   constructor() { super('centrifuge'); }
+  init(data) { this.core = !!(data && data.core); }   // (v2.86) data.core: THE CORE of the Lactose Labyrinth (core.js) runs in this drum
 
   create() {
     buildAllTextures(this); makeMiniWheel(this);
     const RD = this.RD = 250, rnd = (a, b) => a + Math.random() * (b - a);
     this.cameras.main.setBackgroundColor('#0a0806').fadeIn(300, 0, 0, 0);
-    Sound.init(); Sound.music('level7');
+    Sound.init(); Sound.music(this.core ? 'boss' : 'level7');
     this.goalHud = null; this.jetLbl = null; this.jetArmed = false; this.holdT = 0; this.airRegenT = 0; this.fuelFlash = 0; this.prizeIm = null; this.prizeG = null; this.jetting = false; this.jumpWas = false; this.padUp = false; this.grace = 0; this.slide = 0; this.muz = null; this.leaving = false; this.done = false; this.axHeld = false; this.axFlip = 0; this.t = 0; this.timeLeft = CF_TIME; this.hp = this.hpMax = 6; this.survived = false; this.got = 0; this.penaltyT = 0; this.touchG = null; this.touchLbl = null; this.plateTxt = null; this.gaugeTxt = null;
     this.intro = 3.0; this.count = -1; this.botsIn = 0;
     // the drum: its angle D and spin w (radians/s), easing between fast and slow
@@ -150,7 +151,7 @@ class CentrifugeScene extends Phaser.Scene {
     // cheese wheels, fixed in the drum: most near the wall-ish, a few floating near the axle (slow spin needed)
     const kinds = ['miniwheel_c'], glow = [0xffc23a];     // (v2.42: cheese wheels, not cheese wheels)
     this.items = [];
-    for (let i = 0; i < this.HOLES.length; i++) {                   // one in the middle of every porthole in the drum
+    for (let i = 0; i < (this.core ? 0 : this.HOLES.length); i++) {   // one in the middle of every porthole in the drum
       const H0 = this.HOLES[i], x = H0.x, y = H0.y, ang = Math.atan2(y, x), r = Math.hypot(x, y), k = i % kinds.length;
       const im = this.add.image(x, y, kinds[k]).setScale(1.6);
       this.drum.add(im);
@@ -158,8 +159,8 @@ class CentrifugeScene extends Phaser.Scene {
     }
     this.glowG = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD); this.drum.add(this.glowG);
     // the prize waits at the hub
-    this.prize = ZeroGScene.prototype.pickPrize.call(this);
-    Bonus.begin(this, 'centrifuge');                                // (v2.77) 3 tries at the prize
+    this.prize = this.core ? null : ZeroGScene.prototype.pickPrize.call(this);
+    if (!this.core) Bonus.begin(this, 'centrifuge');                                // (v2.77) 3 tries at the prize
     // Chris
     this.rig = new ChrisRig(this); this.rig.setWeapon(WEAPONS[0]);
     this.world.add(this.rig.root);
@@ -173,8 +174,8 @@ class CentrifugeScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setDepth(20);
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20); this.curs = new MouseCursor(this);
-    this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
-    Bonus.tag(this);
+    this.msg = this.add.text(0, 0, this.core ? 'THE CORE: THE MILKMASTER\'S CHURN\nNO GRAVITY - THE SPIN HOLDS YOU TO THE WALL\nSMASH THE PUMPS TO DROP HIS SHIELD\nSAVE BESSIE!' : 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    if (!this.core) Bonus.tag(this);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -189,13 +190,14 @@ class CentrifugeScene extends Phaser.Scene {
 
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', a: 'A', d: 'D', w: 'W', z: 'Z', x: 'X', j: 'J', space: 'SPACE', shift: 'SHIFT' }) : null;
     const padOff = Pad.on(b => {
-      if (b === 'back') return this.leave();
-      if (this.done && this.t - this.doneT > 0.8) { if (b === 'a' || b === 'start') (this.wonIt ? this.onward() : this.leave()); else if (b === 'b') this.leave(); }
+      if (b === 'back') return this.core ? null : this.leave();
+      if (this.done && !this.core && this.t - this.doneT > 0.8) { if (b === 'a' || b === 'start') (this.wonIt ? this.onward() : this.leave()); else if (b === 'b') this.leave(); }
     });
     this.events.once('shutdown', padOff); this.events.once('shutdown', () => Sound.jet(false));
+    if (this.core) this.coreCreate();
     if (this.input.keyboard) {
-      this.input.keyboard.on('keydown-ESC', () => this.leave());
-      this.input.keyboard.on('keydown', e => { if (!this.done || this.t - this.doneT < 0.8) return; if (e.key === 'Enter' || e.key === ' ') (this.wonIt ? this.onward() : this.leave()); });
+      this.input.keyboard.on('keydown-ESC', () => { if (!this.core) this.leave(); });
+      this.input.keyboard.on('keydown', e => { if (!this.done || this.core || this.t - this.doneT < 0.8) return; if (e.key === 'Enter' || e.key === ' ') (this.wonIt ? this.onward() : this.leave()); });
     }
   }
 
@@ -230,6 +232,7 @@ class CentrifugeScene extends Phaser.Scene {
 
   drawFactory() {                                                 // the static back wall (the moving bits are in drawBack)
     const W = this.scale.width, H = this.scale.height, g = this.backG; g.clear();
+    if (this.core) return this.coreBack();
     for (let i = 0; i < 16; i++) g.fillStyle(Phaser.Display.Color.GetColor(14 + i, 16 + i, 22 + i * 1.4), 1).fillRect(0, H * i / 16, W, H / 16 + 1);
     for (let x = 0; x < W; x += 96) { g.fillStyle(0x0a0c10, 0.5).fillRect(x, 0, 2, H); for (let y = 30; y < H; y += 80) g.fillStyle(0x2a303c, 1).fillCircle(x + 8, y, 1.5).fillCircle(x + 88, y, 1.5); }
     const sc = this.wsc(), cx = W / 2, cy = H * 0.53;
@@ -348,14 +351,14 @@ class CentrifugeScene extends Phaser.Scene {
     if (this.intro <= 0 && !this.done) {
       this.segT -= dt;
       if (this.segT <= 0) {
-        this.spinIdx = (this.spinIdx + 1) % CF_SPIN.length; const sg = CF_SPIN[this.spinIdx]; this.segT = sg.t;
+        const SPN = this.core ? CORE_SPIN : CF_SPIN; this.spinIdx = (this.spinIdx + 1) % SPN.length; const sg = SPN[this.spinIdx]; this.segT = sg.t;
         if (sg.msg) { this.pop(W / 2, H * 0.3, sg.msg, sg.col); Sound.sfx(sg.w === 0 ? 'whoosh' : Math.abs(sg.w) < 1 ? 'whoosh' : 'charge'); }
       }
     }
-    this.w += (CF_SPIN[this.spinIdx].w - this.w) * Math.min(1, dt * 1.2);
+    this.w += ((this.core ? CORE_SPIN : CF_SPIN)[this.spinIdx].w - this.w) * Math.min(1, dt * 1.2);
     this.D += this.w * dt;
     // gravity: drowned out by the spin, but it takes over as the drum stops (none at all above ~0.45 rad/s)
-    const grav = this.grav = 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);
+    const grav = this.grav = this.core ? 0 : 560 * Math.max(0, 1 - Math.abs(this.w) / 0.45);   // (none at all in the core)
     // ---- input
     const k = this.keys, ts = this.readTouch();
     let ax = 0, jump = false, fire = false, aimAt = null, jetNow = false;
@@ -436,7 +439,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.grace = Math.max(0, (this.grace || 0) - dt);
     // ---- hatches: closed, a flashing warning, then open onto space: the air roars out and drags you along the wall towards
     // it. Get to the gap and you're SUCKED OUT. A rat on a rocket pack flies in whenever one opens.
-    if (this.intro <= 0 && !this.survived && !this.done) { this.gapT -= dt; if (this.gapT <= 0) { this.gapT = 1.4 + Math.random() * 2.4; this.openGap(); } }
+    if (!this.core && this.intro <= 0 && !this.survived && !this.done) { this.gapT -= dt; if (this.gapT <= 0) { this.gapT = 1.4 + Math.random() * 2.4; this.openGap(); } }
     for (let i = this.hatches.length - 1; i >= 0; i--) {
       const h = this.hatches[i];
       h.t -= dt;
@@ -542,6 +545,7 @@ class CentrifugeScene extends Phaser.Scene {
     for (let i = this.shots.length - 1; i >= 0; i--) {
       const b = this.shots[i]; bonusMacStep(b, dt); b.life -= dt;
       let dead = b.life <= 0 || Math.hypot(b.x, b.y) > RD;
+      if (!dead && this.core) dead = this.coreShot(b);
       for (const e of this.ens) if (!dead && !b.hit.includes(e) && Math.hypot(b.x - e.x, b.y - e.y) < (e.kind === 'ratship' ? 32 : 22)) {
         e.hp--; e.flash = 0.06; Sound.sfx('tink'); this.puff(b.x, b.y, 6, 0xffc23a, 160, 0.25, 3);
         b.hit.push(e); if (b.hit.length >= Math.max(1, b.pierce)) dead = true;      // (level 4: pierces one)
@@ -560,14 +564,16 @@ class CentrifugeScene extends Phaser.Scene {
         if (this.hp < this.hpMax) { this.hp++; this.pop(W / 2, H * 0.42, 'PATCHED UP! +1', '#7dff8a'); } else this.pop(W / 2, H * 0.42, 'YUM!', '#7dff8a');
       }
     }
+    if (this.core) this.coreUpdate(dt, cp0);
     // ---- clock
     const allGot = this.got >= this.items.length;
-    if (!this.done && this.intro <= 0 && !this.survived) { this.timeLeft = Math.max(0, this.timeLeft - dt); if (this.timeLeft <= 0 && allGot) this.survive(); }
-    if (this.survived) this.timeTxt.setText('GRAB IT!').setColor(Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
+    if (!this.core && !this.done && this.intro <= 0 && !this.survived) { this.timeLeft = Math.max(0, this.timeLeft - dt); if (this.timeLeft <= 0 && allGot) this.survive(); }
+    if (this.core) { this.timeTxt.setText(''); this.gotTxt.setText(''); }
+    else if (this.survived) this.timeTxt.setText('GRAB IT!').setColor(Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
     else if (this.timeLeft <= 0) this.timeTxt.setText('SURVIVED').setColor('#7dff8a');
     else this.timeTxt.setText(String(Math.ceil(this.timeLeft))).setColor(this.timeLeft < 10 && Math.floor(this.t * 4) % 2 ? '#7dff8a' : '#ffd23f');
-    this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'ARMOUR');
-    (this.goalHud || (this.goalHud = new GoalHud(this))).update([
+    if (!this.core) this.gotTxt.setText(this.survived ? 'JUMP THROUGH THE MIDDLE!' : this.timeLeft <= 0 ? 'NOW GET THE LAST ' + (this.items.length - this.got) + '!' : 'ARMOUR');
+    if (!this.core) (this.goalHud || (this.goalHud = new GoalHud(this))).update([
       { label: 'SURVIVE ' + CF_TIME + 's', frac: 1 - this.timeLeft / CF_TIME, right: this.timeLeft > 0 ? Math.ceil(this.timeLeft) + 's' : 'OK', done: this.timeLeft <= 0 },
       { label: 'CHEESE WHEELS', frac: this.got / this.items.length, right: this.got + '/' + this.items.length, done: allGot, hot: this.timeLeft <= 0 && !allGot },
       { label: 'GRAB THE GUN', locked: !this.survived, done: this.done && this.survived, hot: this.survived && !this.done }]);
@@ -649,11 +655,13 @@ class CentrifugeScene extends Phaser.Scene {
     if (!this.onWall && Math.random() < dt * 30) this.fx.push({ x: cp.x, y: cp.y, vx: 0, vy: 0, life: 0.4, max: 0.4, col: 0x9fd8ff });
     for (let i = this.fx.length - 1; i >= 0; i--) { const q = this.fx[i]; q.life -= dt; if (q.life <= 0) { this.fx.splice(i, 1); continue; } q.x += (q.vx || 0) * dt; q.y += (q.vy || 0) * dt; fg.fillStyle(q.col || 0x9fd8ff, q.life / q.max * 0.6).fillCircle(q.x, q.y, 4); }
     for (const b of this.ebul) {                                             // robot laser bolts: a hot streak with a white core
+      if (b.milk) continue;                                                  // (the Milkmaster's milk: core.js draws it)
       const L = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / L, uy = b.vy / L;
       fg.lineStyle(9, 0xff2a5a, 0.35).lineBetween(b.x - ux * 22, b.y - uy * 22, b.x, b.y);
       fg.lineStyle(4, 0xff6a8a, 0.9).lineBetween(b.x - ux * 16, b.y - uy * 16, b.x, b.y);
       fg.fillStyle(0xffffff, 1).fillCircle(b.x, b.y, 2.5);
     }
+    if (this.core) this.coreDraw(dt, cp);
     // ---- camera: FIXED on the whole drum, so you SEE it spin and Chris get carried round it (upside down over the top)
     // like a hamster in a wheel. A faint judder that grows with the spin.
     const sc = this.wsc(), jud = Math.max(0, Math.abs(this.w) - 0.5) * 1.6;
@@ -701,6 +709,7 @@ class CentrifugeScene extends Phaser.Scene {
   }
 
   finish(won) {
+    if (this.core) return this.coreFinish(won);
     if (this.done) return;
     this.jetting = false; Sound.jet(false);
     this.done = true; this.doneT = this.t;
@@ -730,5 +739,5 @@ class CentrifugeScene extends Phaser.Scene {
   }
   onward() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(400, 255, 255, 255); this.time.delayedCall(430, () => this.scene.start('level1', { level: 5.5, warped: true, autostart: true })); }
   again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
-  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
+  leave() { if (this.core) return; if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }

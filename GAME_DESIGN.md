@@ -1769,3 +1769,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Fixed the city flicking round: the near buildings' parallax used the WRAPPED view angle, which jumps by a full lap at 0/2pi, so the city snapped 0.9 rad sideways every lap. Now uses the unwrapped one.
 - The Royal Rasp: warning 2.6 s (was 2), starts further off, and rumbles in at 470 px/s near Chris (was 820) - it only hurries round the back of the planet. While it's off screen and coming at him, an edge arrow grows and pulses faster as it closes, with JUMP!/DUCK! and a distance in metres, blipping.
 - Visible grating: curls and flakes of Parmesan (ppshave/ppshave2) peel off the cutting edge in a constant spray, arc up and back, land and lie there; cheese dust puffs; a raw freshly-shaved strip glows on the ground behind it.
+
+### v2.86 - Lactose Labyrinth part 2: deeper, and THE CORE
+- A fourth maze ring, THE ROT (R 515): three floor holes, two drop into sealed pockets of the ring below (a rat nest, hoards), the middle one leads on. Rings re-spaced (950/805/660/515/370). The bottom ring is now an antechamber with walls and pockets, and a shuddering steel HATCH in the floor with milk pipes plunging into it and light leaking round it.
+- Stand on the hatch: it gives way, level1 sleeps, and THE CORE runs in the centrifuge scene (data.core; src/core.js mixes into CentrifugeScene). No gravity at all; its own spin programme (dead stops = float straight across).
+- THE MILKMASTER: a mad rat scientist on a hover-churn (goggles, wild hair, syringe of milk, milk tank on his back), hosed to Bessie's udders at the hub in a milking cradle. BESSIE'S MILK bar drains while he's plugged in (dry = lose).
+  1 Shield bubble powered by 3 pumps on the drum wall (each bust slows the drain); milk squirts and curd bombs that burst into rings.
+  2 Bubble pops: hover + 5-way spray, red sight-line then a CHARGE across the drum, drones. Stomp him for big damage.
+  3 MILK OVERDRIVE (<40%): hose into himself, swells and glows, spinning rings of milk with a gap; the drain resumes, faster.
+- Beat him, grab Bessie... the churn's roof tears open and the Rat King's saucer beams her away ("MWAHAHA! THE COW IS MINE!"). Back up to the labyrinth: level clear, on to Parmesan Prime. Losing in the core = a death in the labyrinth.

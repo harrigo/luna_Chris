@@ -6,8 +6,8 @@
 // hole you fell from. It is DARK: you see by Chris's lamp, the glow of cheese veins, and the eyes of what's waiting.
 // Bessie's feed pipes run along the ceilings of the chambers on the true route, and the cheese in them pulses TOWARDS the
 // way on - follow the flow. New vermin: rind-ticks on the ceiling (they drop on you), wall-gnawers clinging to the rock
-// walls (they leap), mould-grubs under the floor (they burst out). The core, Bessie's milking machine and the Milkmaster
-// come next (part 2): for now, reaching Bessie in the core wins, as before.
+// walls (they leap), mould-grubs under the floor (they burst out). (v2.86) A fourth ring, then a hatch in the antechamber
+// floor drops you into THE CORE: the Milkmaster's churn, a boss fight in zero-g (core.js, run in the centrifuge scene).
 
 function makeLabTextures(scene) {
   if (scene.game.__labTex) return; scene.game.__labTex = true;
@@ -191,12 +191,8 @@ const LabMixin = {
     const vb = (C.seen[ring] = C.seen[ring] || {}); vb[Math.floor(((this.labRel(P.theta) % TAU) + TAU) % TAU / TAU * 48)] = 1;
     if (RG.core) {
       if (P.h < C.cheeseH) { P.vx *= Math.max(0, 1 - dt * 6); if (P.vh < 0) P.vh *= 0.92; if (C.cheeseH - P.h > 14) this.hurt(); }
-      if (!C.won && Math.abs(angDiff(P.theta, this.caveAbs(RG.bessie))) * R < 40) {
-        C.won = true; this.clearEBullets(); this.bossDown = true;
-        Sound.sfx('moo'); Sound.sfx('power'); this.cameras.main.flash(300, 255, 240, 180);
-        this.banner('BESSIE UNPLUGGED!\nTHE CHEESE IS DRAINING...');
-        this.time.delayedCall(2600, () => { if (this.state === 'play') this.finishWin(); });
-      }
+      // (v2.86) the hatch down into the core: stand on it and it gives way - into the Milkmaster's churn (core.js)
+      if (!C.won && !C.inCore && P.h < 30 && Math.abs(angDiff(P.theta, this.caveAbs(RG.bessie))) * R < 34) this.labEnterCore();
     }
     if (!C.won && f >= 1 && !C.flooded) {
       C.flooded = true; this.banner('BESSIE\'S UNDER THE CHEESE!'); Sound.sfx('crash'); this.cameras.main.shake(600, 0.02);
@@ -269,7 +265,7 @@ const LabMixin = {
     if (to > 0) this.labSpawn(to);
     if (from === 0 && to === 1 && !C.musicOn) { C.musicOn = true; Sound.music(this.def.music); }
     Sound.sfx(to > from ? 'whoosh' : 'jump');
-    if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(CV.rings[to].core ? 'THE CORE!\nGET TO BESSIE!' : (to === 1 ? 'IT\'S DARK DOWN HERE...\nFOLLOW THE PIPES' : 'DEEPER...')); }
+    if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(CV.rings[to].core ? 'SHE\'S RIGHT BELOW US...\nFIND THE HATCH TO THE CORE!' : (to === 1 ? 'IT\'S DARK DOWN HERE...\nFOLLOW THE PIPES' : 'DEEPER...')); }
   },
   labSpawn(ri) {
     const RG = this.caveRing(ri), C = this.cave;
@@ -495,13 +491,49 @@ const LabMixin = {
       fg.lineStyle(2 * z, 0xffffff, 0.9).lineBetween(p.x - 6 * z, p.y, p.x + 6 * z, p.y).lineBetween(p.x, p.y - 6 * z, p.x, p.y + 6 * z);
       this.labLights.push([p.x, p.y, 40 * z, 0.5]);
     }
-    // ---- Bessie in the core (part 2 rebuilds this room)
+    // ---- (v2.86) the hatch down to the core: a riveted steel lid in the floor, milk-white light leaking round it, the
+    // milk pipes from the rings above plunging into it, a sign; it shudders, and something below MOOS
+    if (this.caveBessie) this.caveBessie.setVisible(false);
     const core = CV.rings[CV.rings.length - 1], bth = this.caveAbs(core.bessie);
-    if (ring === CV.rings.length - 1) {
-      this.caveBessie.setVisible(true); this.place(this.caveBessie, bth, C.won ? Math.abs(Math.sin(t * 8)) * 10 : Math.min(30, C.cheeseH * 0.4), 0);
-      const pp = this.screenPos(bth, 40); if (pp.vis) this.labLights.push([pp.x, pp.y, 160 * z, 1]);
-      if (pp.vis && !C.won) for (const o of [-14, 14]) { const a2 = this.screenPos(wrap(bth + o / R), 30), b2 = this.screenPos(wrap(bth + o * 2.5 / R), core.ceil); fg.lineStyle(6 * z, 0x3a3a48, 1).lineBetween(a2.x, a2.y, b2.x, b2.y); fg.lineStyle(3 * z, 0xffd23f, 0.8).lineBetween(a2.x, a2.y, b2.x, b2.y); }
-    } else if (this.caveBessie) this.caveBessie.setVisible(false);
+    if (ring === CV.rings.length - 1 && inView(bth)) {
+      const sh = Math.sin(t * 30) * (Math.sin(t * 0.9) > 0.6 ? 1.5 : 0), a = pol(wrap(bth - 30 / R + sh / R), core.R + 2), b = pol(wrap(bth + 30 / R + sh / R), core.R + 2);
+      for (let k = 0; k < 3; k++) fg.fillStyle(0xf4f8ff, 0.1 + 0.05 * Math.sin(t * 3 + k)).fillCircle((a.x + b.x) / 2, (a.y + b.y) / 2, (40 + k * 18) * z);
+      fg.lineStyle(10 * z, 0x1a1020, 1).lineBetween(a.x, a.y, b.x, b.y); fg.lineStyle(6 * z, 0x8a929e, 1).lineBetween(a.x, a.y, b.x, b.y);
+      for (let k = -2; k <= 2; k++) { const q = pol(wrap(bth + k * 12 / R + sh / R), core.R + 2); fg.fillStyle(0xd8dce4, 1).fillCircle(q.x, q.y, 1.8 * z); }
+      for (const o of [-22, 22]) { const p0 = pol(wrap(bth + o / R), core.R + core.ceil), p1 = pol(wrap(bth + o * 0.6 / R), core.R + 6);
+        fg.lineStyle(9 * z, 0x1a1020, 1).lineBetween(p0.x, p0.y, p1.x, p1.y); fg.lineStyle(5 * z, 0xd8e4f4, 1).lineBetween(p0.x, p0.y, p1.x, p1.y);
+        const f = (t * 0.7) % 1; fg.fillStyle(0xffffff, 1).fillCircle(p0.x + (p1.x - p0.x) * f, p0.y + (p1.y - p0.y) * f, 2.4 * z); }
+      const sg = pol(wrap(bth + 52 / R), core.R + 40), sp = pol(wrap(bth + 52 / R), core.R);
+      fg.lineStyle(3 * z, 0x5a3a1a, 1).lineBetween(sp.x, sp.y, sg.x, sg.y); fg.fillStyle(0xffd23f, 1).fillRect(sg.x - 14 * z, sg.y - 9 * z, 28 * z, 14 * z); fg.lineStyle(2 * z, 0x1a1020, 1).strokeRect(sg.x - 14 * z, sg.y - 9 * z, 28 * z, 14 * z);
+      fg.fillStyle(0x1a1020, 1).fillTriangle(sg.x - 5 * z, sg.y + 2 * z, sg.x + 5 * z, sg.y + 2 * z, sg.x, sg.y - 6 * z);
+      const pp = this.screenPos(bth, 20); if (pp.vis) this.labLights.push([pp.x, pp.y, 150 * z, 1]);
+      if (Math.random() < 0.004) Sound.sfx('moo');
+    }
+  },
+
+  // ---- (v2.86) down the hatch, into the core: the churn runs in the centrifuge scene (core.js); this scene sleeps
+  labEnterCore() {
+    const C = this.cave, P = this.pl; C.inCore = true;
+    Sound.sfx('clunk'); Sound.sfx('crash'); Sound.jet(false); this.cameras.main.shake(300, 0.015);
+    this.banner('THE HATCH GIVES WAY!');
+    P.vx = 0; P.vh = -200; P.invuln = 99;
+    this.cameras.main.fadeOut(700, 245, 248, 255);
+    this.time.delayedCall(760, () => { if (!this.cave || !this.cave.inCore) return; this.scene.launch('centrifuge', { core: true }); this.scene.sleep(); });
+  },
+  labCoreDone(won, score, dry) {
+    const C = this.cave, P = this.pl;
+    this.cameras.main.resetFX(); this.cameras.main.fadeIn(500, won ? 255 : 0, won ? 255 : 0, won ? 255 : 0);
+    Sound.music(this.def.music); P.vh = 0; P.vx = 0; P.h = 0; P.invuln = 2;
+    if (won) {
+      C.won = true; C.inCore = false; this.clearEBullets(); this.bossDown = true; this.addScore(score || 0);
+      for (const e of this.enemies) { e.quietKill = true; e.hp = 0; }
+      this.banner('THE KING\'S GOT BESSIE!\nAFTER THAT SAUCER!');
+      this.time.delayedCall(2200, () => { if (this.state === 'play') this.finishWin(); });
+    } else {
+      C.inCore = false; P.invuln = 0;
+      if (dry) this.banner('BESSIE\'S BEEN MILKED DRY...');
+      P.hp = 0; this.updateHearts(); this.die();
+    }
   },
 
   // ---- the dark: a black sheet over everything, with Chris's lamp (and every glow) rubbed out of it
