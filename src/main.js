@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.71';
+const BUILD = 'v2.72';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -192,7 +192,7 @@ class Level1 extends Phaser.Scene {
     this.enemies = [];
     this.pBullets = [];
     this.eBullets = [];
-    this.parts = []; this.acidPools = []; this.acidG = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null;
+    this.parts = []; this.acidPools = []; this.acidG = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null; this.caveFg = this.caveTxt = this.caveBessie = null; this.labRT = this.labStamp = this.labEyes = this.labRock = this.labSign = this.labMoon = null; this.labLights = [];   // (v2.72: a retry starts clean)
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];

@@ -75,6 +75,37 @@ function makeLabTextures(scene) {
     a.ell(17, 9, 2, 2, INK); a.px(26, 15, INK); a.rect(22, 16, 23, 19, BONE[0]);
     a.px(19, 4, 0x5a5a5a);                                                                                // the nail
   });
+  // ---- (v2.72) surface junk instead of the old cheese-wedge piles: a rusty feed pipe jutting out of the ground (a hint of
+  // what's below), a half-buried rib cage, a tipped-over mine cart
+  pixSprite(scene, 'labpipe', 46, 56, a => {
+    const RU = [0xb8784a, 0x7a4a2a, 0x3e2414];
+    a.rect(14, 26, 24, 55, RU[1]); a.rect(14, 26, 16, 55, RU[0]); a.rect(22, 26, 24, 55, RU[2]);
+    a.ell(19, 22, 9, 9, RU); a.rect(19, 14, 40, 24, RU[1]); a.rect(19, 14, 40, 16, RU[0]); a.rect(19, 22, 40, 24, RU[2]);   // the elbow
+    a.rect(38, 12, 44, 26, RU[2]); a.rect(39, 13, 43, 25, 0x2a1a0e);                                      // the open end
+    a.rect(12, 34, 26, 37, 0x5a3a20); a.rect(12, 46, 26, 49, 0x5a3a20);                                   // bands
+    a.ell(19, 6, 7, 2.5, 0x6a6a72); a.line([[19, 6], [19, 14]], 0x6a6a72, 2); a.line([[13, 6], [25, 6]], 0x9a9aa2);   // a seized valve wheel
+    a.line([[44, 27], [44, 33]], 0xe8c860); a.px(44, 36, 0xe8c860);                                       // a last drip of cheese
+    a.rect(4, 53, 34, 55, 0x54482e);
+  });
+  pixSprite(scene, 'labribs', 70, 40, a => {
+    a.ell(35, 38, 33, 4, [0x6e6040, 0x54482e, 0x3a3224]);
+    a.line([[6, 36], [62, 30]], 0xd8d0b8, 3);                                                              // spine
+    for (let k = 0; k < 6; k++) { const x = 12 + k * 9; a.line([[x, 34 - k], [x - 4, 18 - k * 1.5], [x + 3, 6 + k]], 0xe8e0c8, 2); a.line([[x + 1, 34 - k], [x + 7, 22]], 0xb8b098, 1); }
+    a.ell(64, 26, 7, 6, [0xf0e8d0, 0xd8d0b8, 0x9a9278]); a.poly([[64, 30], [70, 34], [66, 36]], [0xf0e8d0, 0xd8d0b8, 0x9a9278]); a.ell(65, 25, 2, 2, 0x1a1020);   // a rat-ish skull
+  });
+  pixSprite(scene, 'labcart', 54, 36, a => {
+    const IR = [0x8a8a92, 0x5a5a62, 0x2e2e36];
+    a.poly([[4, 8], [44, 2], [50, 26], [10, 32]], IR); a.poly([[8, 10], [42, 5], [46, 22], [12, 27]], 0x2a1a10);   // tipped on its side
+    for (const [x, y] of [[8, 4], [46, 28]]) { a.ell(x, y + 2, 6, 6, [0x6a6a72, 0x3a3a42, 0x1a1a22]); a.ell(x, y + 2, 2, 2, 0x9a9aa2); }
+    for (const [x, y] of [[20, 18], [28, 14], [34, 20], [24, 24]]) a.ell(x, y, 3, 2.5, [0xe8d890, 0xb8a860, 0x7a6a30]);   // spilled lumps of old rind
+    a.line([[2, 34], [52, 34]], 0x6a6a72, 2); a.line([[4, 35], [50, 35]], 0x3a3a42);
+  });
+  pixSprite(scene, 'labmoon', 120, 120, a => {                                                            // the dead moon hanging in the sky
+    a.ell(60, 60, 56, 56, [0xa8a4b8, 0x7a7690, 0x4a4660]);
+    for (const [x, y, r] of [[38, 40, 10], [72, 30, 7], [80, 70, 13], [46, 82, 8], [62, 56, 5], [90, 48, 5]]) { a.ell(x, y, r, r, [0x6a6680, 0x5a5670, 0x3a3650]); a.ell(x + r * 0.2, y + r * 0.2, r * 0.7, r * 0.7, 0x4a4660); }
+    a.line([[20, 54], [36, 60], [44, 74], [60, 76], [68, 96]], 0x2a2638, 2); a.line([[44, 74], [36, 90]], 0x2a2638);
+    a.ell(36, 36, 14, 10, 0xc8c4d8);
+  }, false);
   // ---- the LAMP light (erased out of the darkness): a soft white disc
   if (!scene.textures.exists('lamp')) {
     const tx = scene.textures.createCanvas('lamp', 128, 128), c = tx.getContext(), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
@@ -115,17 +146,18 @@ const LabMixin = {
       CV.rings.forEach((rg, ri) => { this.cave.alive[ri] = (rg.spawn || []).map((s, i) => i); });
     }
     const C = this.cave, ring = C.ring, RG = this.caveRing(ring);
-    this.camSlide = (this.camSlide || 0) * Math.max(0, 1 - dt * 7); if (Math.abs(this.camSlide) < 0.5) this.camSlide = 0;
+    this.camSlide = (this.camSlide || 0) * Math.max(0, 1 - dt * 3.2); if (Math.abs(this.camSlide) < 0.5) this.camSlide = 0;   // (v2.72: an easy glide after a ring change)
     { const Rz = R * this.zoom; this.cy = this.groundY + Rz + this.camSlide;
       this.visHalf = Math.min(Math.asin(Math.min(1, (this.W / 2) / Rz)), Math.acos(Math.max(-1, Math.min(1, (this.cy - this.H) / Rz)))); this.visArc = R * this.visHalf; }
-    if (ring === 0) { this.labSurface(dt); if (P.h < -14) this.caveMove(1); return; }
+    if (ring === 0) { this.labSurface(dt); if (P.h < -this.labGap(0) * 0.5 && P.vh <= 0) this.caveMove(1); return; }
     C.t += dt;
     const core = CV.rings[CV.rings.length - 1];
     if (C.won) C.vent += dt * 25;
     const f = Math.max(0, Math.min(1, (C.t - C.vent) / CV.fillT)) ** 1.6;
     C.fill = f; C.cheeseH = f * (core.ceil - 55);
-    if (ring < CV.rings.length - 1 && P.h < -14) { this.caveMove(ring + 1); return; }
-    if (ring > 0 && P.h > RG.ceil - 30 && P.vh > 0 && this.caveHoleAt(ring - 1, P.theta)) { this.caveMove(ring - 1); return; }
+    // (v2.72) one continuous fall/climb through the shaft: we swap rings halfway down it, and nothing jumps
+    if (ring < CV.rings.length - 1 && P.h < -this.labGap(ring) * 0.5 && P.vh <= 0) { this.caveMove(ring + 1); return; }
+    if (ring > 0 && P.h > RG.ceil + this.labGap(ring - 1) * 0.5 && P.vh > 0 && this.caveHoleAt(ring - 1, P.theta)) { this.caveMove(ring - 1); return; }
     // rock walls: nothing gets through them
     for (const w of (RG.walls || [])) {
       const wt = this.caveAbs(w), d = angDiff(P.theta, wt) * R;
@@ -193,6 +225,8 @@ const LabMixin = {
       if (K.flash > 0) this.labRock.setTintFill(0xffffff); else this.labRock.clearTint();
     } else this.labRock.setVisible(false);
     this.place(this.labSign, wrap(this.caveHole.theta - 130 / R), 0, -0.12);
+    if (!this.labMoon) { this.labMoon = this.add.image(0, 0, 'labmoon').setDepth(0.3).setScrollFactor(0).setAlpha(0.85); }
+    this.labMoon.setVisible(true).setPosition(this.W * 0.78 - angDiff(P.theta, 0) * 22, this.H * 0.26).setScale(this.zoom * 1.6).setRotation(t * 0.01);
     // tumbleweeds blow through every so often
     C.twT -= dt;
     if (C.twT <= 0 && C.tw.length < 2) {
@@ -202,7 +236,7 @@ const LabMixin = {
     }
     for (let i = C.tw.length - 1; i >= 0; i--) {
       const T = C.tw[i]; T.life -= dt; T.theta = wrap(T.theta + T.v / R * dt); T.r += T.v / 14 * dt;
-      T.vh -= 900 * dt; T.h += T.vh * dt; if (T.h <= 0) { T.h = 0; T.vh = rnd(120, 260); }
+      T.vh -= 900 * dt; T.h += T.vh * dt; if (T.h <= 0) { T.h = 0; T.vh = rnd(120, 260); this.burst(T.theta, 4, 'crumb', 3, 0.4); }
       this.place(T.s, T.theta, T.h + 14, T.r);
       if (T.life <= 0) { T.s.destroy(); C.tw.splice(i, 1); }
     }
@@ -213,6 +247,7 @@ const LabMixin = {
     const RG = this.caveRing(ri); if (!RG.holes || ri >= this.def.cave.rings.length - 1) return false;
     return RG.holes.some(h => Math.abs(angDiff(theta, this.caveAbs(h))) < 30 / RG.R);
   },
+  labGap(ri) { const CV = this.def.cave, top = ri === 0 ? (this.def.radius || 420) : CV.rings[ri].R, nx = CV.rings[ri + 1]; return Math.max(10, top - (nx.R + nx.ceil)); },
   caveMove(to) {
     const P = this.pl, C = this.cave, from = C.ring, CV = this.def.cave;
     const Rf = from === 0 ? (this.def.radius || 420) : CV.rings[from].R, Rt = to === 0 ? (this.def.radius || 420) : CV.rings[to].R;
@@ -221,15 +256,14 @@ const LabMixin = {
     for (const e of this.enemies) if (e.type !== 'boss') { e.quietKill = true; e.hp = 0; }
     for (const q of this.pickups) if (q.spr) q.spr.destroy(); this.pickups.length = 0;
     C.ring = to; R = Rt;
-    if (to > from) { P.h = CV.rings[to].ceil - 40; P.vh = Math.min(P.vh, -120); }
-    else { P.h = 2; P.vh = Math.max(P.vh, 380); }
+    P.h = P.h + Rf - Rt;                                                     // (v2.72) the same spot in space, measured from the new ring
     this.camSlide = (to > from ? 1 : -1) * Math.abs(Rf - Rt) * this.zoom + (this.camSlide || 0);
     this.clearEBullets(); C.next = null;
     const under = to > 0;
     if (this.planetImg) this.planetImg.setVisible(!under);
     for (const q of this.props) { q.hidden = under; q.spr.setVisible(!under); if (q.halo) q.halo.setVisible(!under); }
     for (const q of this.ledgeSprs || []) { if (q.spr) q.spr.setVisible(!under); for (const x of (q.extras || [])) if (x.setVisible) x.setVisible(!under); }
-    if (this.labSign) this.labSign.setVisible(!under);
+    if (this.labSign) this.labSign.setVisible(!under); if (this.labMoon) this.labMoon.setVisible(!under);
     for (const T of C.tw) T.s.setVisible(!under);
     if (!this.caveBessie) { this.caveBessie = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6.2); this.caveBessie.bsx = this.caveBessie.bsy = 0.9; }
     if (to > 0) this.labSpawn(to);

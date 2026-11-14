@@ -297,11 +297,15 @@ const LEVELS = {
     music: 'level8', bossName: 'THE GRAND PALADIN', tip: 'YOUR SHOTS RICOCHET IN HERE!',
     radius: 1100, sky: [0x05040a, 0x2a2430], skyCols: [0x05040a, 0x0e0c14, 0x16131e, 0x1e1a28, 0x2a2430, 0x343040], bg: '#05040a', starTint: 0x8a8498, dustAlpha: 0.8, bgDecor: 'motes',
     surface: { pal: [0x3a3224, 0x54482e, 0x6e6040, 0x857652, 0x9c8e66, 0xb8ac88], seed: 8484 },
+    depth: { light: [-0.5, -0.8, 0.4], dark: [10, 8, 20], shadeA: [0, 70, 125, 170], rim: [190, 184, 220], atmo: [120, 110, 160], atmoW: 0.09, atmoA: 40,
+      ridges: [{ style: 'spires', n: 16, off: 110, amp: 80, col: [26, 22, 36], top: [52, 46, 66], k: 0.4, depth: 0.33, seed: 81 },
+               { style: 'wrecks', n: 6, off: 40, amp: 24, col: [16, 14, 24], top: [44, 40, 56], k: 0.68, depth: 0.37, seed: 82 }],
+      fg: { col: [8, 6, 12], glow: [90, 80, 120] } },
     planet: { fill: 0x857652, inner: 0x6e6040, rim: 0xb8ac88, glow: 0x5a5066 },
     dust: [0x8a8070, 0x6a6458, 0xb8ac88, 0x5a5448], decorTint: 0xa8a090, decorAlpha: 0.6,
     gravity: 1, ledgeTypes: ['crystal', 'panini', 'crystal', 'girder', 'panini', 'crystal'], ledgeTex: 'ledge1',
     ledges: [],                                                                                       // (v2.71) a dead, flat, quiet surface
-    props: [{ tex: 'pile_rind', n: 6, sc: [1.2, 1.8], tint: 0xa89a78 }, { tex: 'p_skull', n: 6, sc: [1, 1.4], tint: 0xd8d0c0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0x8a7a50 }],
+    props: [{ tex: 'labpipe', n: 5, sc: [0.9, 1.3] }, { tex: 'labribs', n: 4, sc: [1, 1.4] }, { tex: 'labcart', n: 2, sc: [1, 1.2] }, { tex: 'p_skull', n: 6, sc: [1, 1.4], tint: 0xd8d0c0 }, { tex: 'p_tuft2', n: 10, sc: [0.8, 1.2], fg: true, tint: 0x8a7a50 }],
     ricochet: true,
     // TEST: a labyrinth inside the planet (main.js: the cave). Angles are relative to the hole in the surface.
     // Ring 1: a wall just to the right, so go LEFT round to the hole; ring 2: a wall to the left, so go RIGHT; the core: Bessie.
@@ -310,7 +314,7 @@ const LEVELS = {
     // run along the roof of the true route's chambers; `spawn` [type, angle]; `loot` [kind, angle, cheddar] sits in dead ends.
     cave: { holeOff: 0.32, fillT: 300, rings: [
       { hole: 0 },                                                                                     // the surface (a boulder plugs the hole)
-      { R: 950, ceil: 112, walls: [-1.4, 1.2], holes: [-1.1, 0.5, 0.95], path: 0.95, pipes: [[-1.4, 1.2, 0.95]], outlet: -0.25, every: 4, valves: [0.2],
+      { R: 950, ceil: 112, walls: [-1.4, 1.2], holes: [-1.1, 0.5, 0.95], path: 0.95, pipes: [[-1.4, 1.2, 0.95]], valves: [0.2],
         spawn: [['rindtick', -0.35], ['grub', -0.18], ['rindtick', 0.28], ['grub', 0.66], ['gnawer', 1.1], ['paladin', -0.75], ['rindtick', -0.98], ['gnawer', -1.3]] },
       { R: 800, ceil: 112, walls: [-1.25, -0.9, 0.3, 0.72, 1.6, 2.4], holes: [1.45, 2.0], path: 1.45, pipes: [[0.72, 1.6, 1.45]], outlet: 1.15, every: 3, valves: [0.85],
         loot: [['stash', -1.07, 60], ['heal', 0.6], ['stash', 2.15, 120], ['heal', 2.3]],      // two dead-end pockets off ring 1, and a hoard you can only jet UP into from ring 3
