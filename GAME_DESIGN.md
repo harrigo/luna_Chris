@@ -1748,3 +1748,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Giant dark statues of the King and snapped columns loom behind the horizon (L2-style composed props); rubble and broken columns sit in front of the camera.
 - New fg strip 'ruins': a snapped column, the King's toppled head, a lit lamp post, a tattered banner, a shard of the gold dome - top edges lit by the burning sky.
 - A burning wine/orange nebula. The near city sprites now parallax slightly; the old flat far-city sprite layer is gone.
+
+### v2.82 - the King's statues, sculpted
+- New `ppSculpt` painter (parmart.js): smooth canvas curves and gradients, crushed to the game palette with ordered dithering, carved dark contours and an ink outline.
+- `ppKingStatue`: the fat Rat King on a plinth - porphyry cape with ermine hem, gold-leaf crown/belt/teeth, sceptre raised, blank carved eyes under a heavy cruel lid, a wart, sagging jowls; tail draped over a laurel-and-crown relief panel. Weathered: grime streaks, gold leaf flaking, cracks, a chunk knocked out of the plinth, a chipped ear, pigeon mess on the crown.
+- Variants: ppstatue2 (intact), ppstatue3 (sceptre arm snapped off and lying on the step, Parmesan showing through the break, crown slipped), ppstatue_big (the big background silhouettes), ppb_statue (the colossal one in the city, broken and scaffolded with a ladder and jib).

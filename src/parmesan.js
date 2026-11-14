@@ -84,7 +84,8 @@ function makeParmTextures(scene) {
     a.poly([[6, 6], [32, 6], [30, 40], [24, 34], [20, 48], [14, 36], [6, 44]], RED); a.rect(6, 6, 32, 9, GOLD[1]);
     a.poly([[13, 22], [15, 16], [18, 20], [21, 16], [24, 22]], GOLD); a.rect(13, 22, 24, 24, GOLD[1]);
   });
-  if (typeof makeParmFolk === 'function') makeParmFolk(scene);       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
+  if (typeof makeParmFolk === 'function') makeParmFolk(scene);
+  if (typeof makeParmStatues === 'function') makeParmStatues(scene);   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
 }
 
 Object.assign(ENEMY, {

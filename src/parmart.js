@@ -430,3 +430,179 @@ function makeParmFolk(scene) {
     a.poly([[54, 18], [60, 10], [66, 18], [60, 26]], P.FIRE); a.crack(70, 30, 18, 1.4, { c: 0x3a2a10 });
   });
 }
+
+// ---------------------------------------------------------------- (v2.82) the statues of the King, sculpted properly
+// Drawn with smooth canvas paths and gradients (so the forms are rounded and the folds flow), then crushed back down to
+// the game's palette with ordered dithering and an ink outline, so they sit with the rest of the pixel art.
+function ppSculpt(scene, key, w, h, s, draw, opts) {
+  opts = opts || {};
+  if (typeof SPRITE_FILES !== 'undefined' && SPRITE_FILES.has(key)) return;
+  if (scene.textures.exists(key)) scene.textures.remove(key);
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  const g = cv.getContext('2d');
+  let seed = 7; for (const ch of key) seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const css = c => '#' + c.toString(16).padStart(6, '0');
+  // a smooth closed (or open) curve through the points (Catmull-Rom as beziers)
+  const path = (pts, open) => {
+    g.beginPath(); const n = pts.length, P = i => open ? pts[Math.max(0, Math.min(n - 1, i))] : pts[(i + n) % n];
+    g.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 0; i < (open ? n - 1 : n); i++) { const p0 = P(i - 1), p1 = P(i), p2 = P(i + 1), p3 = P(i + 2);
+      g.bezierCurveTo(p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6, p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6, p2[0], p2[1]); }
+    if (!open) g.closePath();
+  };
+  const bbox = pts => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const [x, y] of pts) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); } return [x0, y0, x1, y1]; };
+  // fill the current path lit from the upper left: 'round' (a radial highlight), 'cyl' (left to right), 'down' (top to bottom)
+  const grad = (b, ramp, mode) => {
+    const [x0, y0, x1, y1] = b, W = x1 - x0, H = y1 - y0; let gr;
+    if (mode === 'cyl') { gr = g.createLinearGradient(x0, 0, x1, 0); [[0, 1], [0.22, 0], [0.5, 1], [0.75, 2], [1, 4]].forEach(([t, k]) => gr.addColorStop(t, css(ramp[k]))); }
+    else if (mode === 'down') { gr = g.createLinearGradient(0, y0, 0, y1); [[0, 0], [0.35, 1], [0.7, 2], [1, 3]].forEach(([t, k]) => gr.addColorStop(t, css(ramp[k]))); }
+    else { gr = g.createRadialGradient(x0 + W * 0.32, y0 + H * 0.28, 0, x0 + W * 0.4, y0 + H * 0.4, Math.max(W, H) * 0.85); [[0, 0], [0.22, 1], [0.46, 2], [0.7, 3], [0.95, 4]].forEach(([t, k]) => gr.addColorStop(t, css(ramp[k]))); }
+    return gr;
+  };
+  const H = {
+    g, rnd, css, path,
+    ink: 0,                                                                       // when set, shapes get a carved dark contour
+    edge() { if (H.ink && arguments[0] !== false) { g.strokeStyle = css(H.ink); g.lineWidth = 0.9; g.stroke(); } },
+    shape(pts, ramp, mode, open) { path(pts, open); g.fillStyle = Array.isArray(ramp) ? grad(bbox(pts), ramp, mode) : css(ramp); g.fill(); if (Array.isArray(ramp)) H.edge(); },
+    poly(pts, ramp, mode) { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) g.lineTo(p[0], p[1]); g.closePath(); g.fillStyle = Array.isArray(ramp) ? grad(bbox(pts), ramp, mode) : css(ramp); g.fill(); },
+    ell(cx, cy, rx, ry, ramp, mode, rot) { g.beginPath(); g.ellipse(cx, cy, rx, ry, rot || 0, 0, Math.PI * 2); g.fillStyle = Array.isArray(ramp) ? grad([cx - rx, cy - ry, cx + rx, cy + ry], ramp, mode) : css(ramp); g.fill(); if (Array.isArray(ramp) && rx > 2.5) H.edge(); },
+    rect(x, y, w2, h2, ramp, mode) { g.fillStyle = Array.isArray(ramp) ? grad([x, y, x + w2, y + h2], ramp, mode) : css(ramp); g.fillRect(x, y, w2, h2); },
+    line(pts, c, wd, smooth) { if (smooth) path(pts, true); else { g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (const p of pts.slice(1)) g.lineTo(p[0], p[1]); }
+      g.strokeStyle = css(c); g.lineWidth = wd || 1; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); },
+    // a limb or a tail: a tapering tube along a smooth curve, shaded across its width
+    tube(pts, w0, w1, ramp) { const S = []; path(pts, true); // sample the curve
+      const n = 60; for (let i = 0; i <= n; i++) { const t = i / n * (pts.length - 1), k = Math.min(pts.length - 2, Math.floor(t)), f = t - k, p0 = pts[Math.max(0, k - 1)], p1 = pts[k], p2 = pts[k + 1], p3 = pts[Math.min(pts.length - 1, k + 2)];
+        const cr = (a, b, c, d) => 0.5 * ((2 * b) + (-a + c) * f + (2 * a - 5 * b + 4 * c - d) * f * f + (-a + 3 * b - 3 * c + d) * f * f * f); S.push([cr(p0[0], p1[0], p2[0], p3[0]), cr(p0[1], p1[1], p2[1], p3[1])]); }
+      if (H.ink) { g.fillStyle = css(H.ink); S.forEach(([x, y], i) => { const r = (w0 + (w1 - w0) * i / n) / 2 + 0.8; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); }); }
+      for (const [k, off] of [[4, 0.08], [3, 0], [2, -0.12], [1, -0.25], [0, -0.33]]) { g.fillStyle = css(ramp[k]);
+        S.forEach(([x, y], i) => { const r = (w0 + (w1 - w0) * i / n) / 2 * (1 - Math.max(0, 3 - k) * 0.2); g.beginPath(); g.arc(x + off * r, y + off * r, Math.max(0.4, r), 0, Math.PI * 2); g.fill(); }); }
+    },
+    // a jagged crack with a lit lower lip
+    crack(x, y, len, ang, wd) { let a = ang; const pts = [[x, y]]; for (let i = 0; i < len; i += 2.5) { a += (rnd() - 0.5) * 1.1; x += Math.cos(a) * 2.5; y += Math.sin(a) * 2.5; pts.push([x, y]); }
+      g.globalCompositeOperation = 'source-atop'; H.line(pts.map(([px, py]) => [px + 0.7, py + 0.8]), PPR.MARB[0], wd || 0.9); H.line(pts, PPR.INK, wd || 0.9); g.globalCompositeOperation = 'source-over'; return pts; },
+    // dark weathering streaks running down from a line
+    streaks(x0, x1, y, len, n, c) { g.globalCompositeOperation = 'source-atop';
+      for (let i = 0; i < n; i++) { const x = x0 + rnd() * (x1 - x0), L = len * (0.4 + rnd() * 0.8), gr = g.createLinearGradient(0, y, 0, y + L); gr.addColorStop(0, css(c)); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.globalAlpha = 0.55 + rnd() * 0.3; g.fillRect(x, y, 0.8 + rnd() * 1.6, L); }
+      g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; },
+    // flecks scattered over what's already drawn (gold leaf flaking off, bird mess, crystal glints)
+    flecks(x0, y0, x1, y1, n, c, r) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = css(c);
+      for (let i = 0; i < n; i++) { g.beginPath(); g.ellipse(x0 + rnd() * (x1 - x0), y0 + rnd() * (y1 - y0), (r || 1) * (0.5 + rnd()), (r || 1) * (0.4 + rnd() * 0.7), rnd() * 3, 0, Math.PI * 2); g.fill(); }
+      g.globalCompositeOperation = 'source-over'; },
+    cut(pts) { g.globalCompositeOperation = 'destination-out'; path(pts); g.fillStyle = '#000'; g.fill(); g.globalCompositeOperation = 'source-over'; },
+  };
+  g.save(); g.scale(s, s); draw(H); g.restore();
+  // crush to the palette with ordered dithering
+  const pal = [].concat(PPR.MARB, PPR.VEIN, PPR.GOLD, PPR.RED, PPR.PARM, PPR.RUST, PPR.STEEL.slice(1), [PPR.BLUE[1], PPR.BLUE[2], PPR.INK, 0xffffff]).map(c => [(c >> 16) & 255, (c >> 8) & 255, c & 255, c]);
+  const img = g.getImageData(0, 0, w, h), D = img.data, grid = new Int32Array(w * h).fill(-1), cache = new Map();
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (D[i + 3] < 120) continue;
+    const d = PP_BAYER[(y & 3) * 4 + (x & 3)] * 30, r = D[i] + d, gg = D[i + 1] + d, b = D[i + 2] + d, k = ((r >> 2) << 14) | ((gg >> 2) << 7) | (b >> 2);
+    let best = cache.get(k); if (best === undefined) { let bd = 1e9; for (const p of pal) { const dr = r - p[0], dg = gg - p[1], db = b - p[2], dd = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11 + Math.abs(dr - dg - (p[0] - p[1])) * 6; if (dd < bd) { bd = dd; best = p[3]; } } cache.set(k, best); }
+    grid[y * w + x] = best; }
+  const src = grid.slice(), at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h) ? -1 : src[y * w + x];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (src[y * w + x] < 0 && (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0)) grid[y * w + x] = PPR.INK;
+  const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), out = ctx.createImageData(w, h), O = out.data;
+  for (let i = 0; i < w * h; i++) { const c = grid[i]; if (c < 0) continue; O[i * 4] = (c >> 16) & 255; O[i * 4 + 1] = (c >> 8) & 255; O[i * 4 + 2] = c & 255; O[i * 4 + 3] = 255; }
+  ctx.putImageData(out, 0, 0); tex.refresh();
+}
+
+// The King on his plinth, in a 100 x 200 box, facing right: fat and imperious in a porphyry cape trimmed with ermine, a
+// gold-leaf crown, belt and teeth, the sceptre raised to the sky; blank carved eyes. Weathered: grime streaks, gold leaf
+// flaking, cracks, a chunk knocked out of the plinth, an ear chipped, bird mess on his crown. broken: his sceptre arm
+// has snapped off (it lies on the step, the Parmesan showing through the break), the crown has slipped, a big crack.
+function ppKingStatue(H, broken, scaffold) {
+  const P = PPR, M = P.MARB, G = P.GOLD, g = H.g;
+  // --- the plinth
+  H.rect(3, 187, 94, 13, M, 'down'); H.rect(8, 177, 84, 11, M, 'down');
+  H.poly([[14, 134], [86, 134], [86, 178], [14, 178]], M, 'cyl');
+  H.poly([[10, 127], [90, 127], [88, 135], [12, 135]], G, 'down');
+  for (let x = 13; x < 87; x += 5) H.rect(x, 135, 3, 3, P.VEIN[2]);
+  H.rect(22, 143, 56, 29, P.VEIN[3]); H.rect(23, 144, 54, 27, M, 'cyl');            // the relief panel
+  H.line([[23, 171], [77, 171], [77, 144]], P.VEIN[3], 1); H.line([[23, 171], [23, 144], [77, 144]], M[0], 1);
+  for (const sd of [-1, 1]) for (let k = 0; k < 7; k++) { const t = 0.5 + k * 0.33, x = 50 + sd * Math.sin(t) * 18, y = 166 - (1 - Math.cos(t)) * 14 - k * 0.6; H.ell(x, y, 3.2, 1.6, G, 'round', sd * (t + 0.9)); }   // laurels
+  H.shape([[42, 160], [42, 152], [45.5, 156], [50, 149], [54.5, 156], [58, 152], [58, 160]], G, 'round'); H.ell(50, 157, 1.6, 1.6, P.RED[1]);   // the crown emblem
+  H.line([[34, 167], [66, 167]], G[2], 1.6);
+  H.streaks(14, 86, 136, 30, 14, P.VEIN[4]); H.streaks(8, 92, 179, 12, 8, P.VEIN[4]);
+  H.flecks(10, 127, 90, 135, 18, M[2], 1);                                          // the gold leaf flaking off the cornice
+  H.crack(20, 137, 40, 1.35); H.crack(70, 178, 16, -2.2);
+  H.cut([[90, 126], [91, 152], [84, 148], [80, 140], [75, 130], [76, 126]]);           // a chunk knocked out
+  H.ell(84, 184, 4, 3, M, 'round'); H.ell(91, 186, 2.6, 2, M, 'round'); H.ell(13, 186, 3, 2, M, 'round');
+  H.ink = P.VEIN[4];
+  // --- the tail, draped over the front of the plinth
+  H.tube([[38, 118], [26, 122], [16, 132], [12, 146], [16, 160], [24, 163], [27, 156]], 6.5, 1.5, M);
+  // --- the cape (porphyry), behind him, with deep folds and an ermine hem
+  H.shape([[44, 52], [32, 60], [24, 82], [18, 106], [12, 128], [24, 125], [34, 128], [45, 125], [55, 128], [52, 90], [58, 56]], P.RED, 'round');
+  for (const f of [[[34, 66], [27, 96], [22, 124]], [[42, 72], [38, 100], [35, 126]], [[49, 80], [48, 104], [47, 125]]]) { H.line(f, P.RED[4], 1.6, true); H.line(f.map(([x, y]) => [x + 2, y]), P.RED[1], 0.9, true); }
+  H.line([[12, 128], [24, 125], [34, 128], [45, 125], [55, 128]], M[0], 4.5, true);
+  for (let x = 14; x < 55; x += 6) H.line([[x, 127], [x + 0.6, 129]], P.INK, 1.2);
+  // --- the far arm: fist on his hip (snapped stump if broken? no - that's the sceptre arm)
+  H.tube([[44, 60], [34, 74], [33, 86]], 9, 7, M);
+  // --- the robe and the great belly
+  H.shape([[46, 56], [60, 54], [68, 62], [73, 80], [77, 100], [75, 116], [70, 126], [58, 127], [46, 126], [40, 112], [38, 90], [40, 70]], M, 'round');
+  H.ell(61, 99, 15, 17, M, 'round');
+  for (const f of [[[50, 104], [48, 116], [47, 126]], [[63, 114], [64, 120], [64, 126]], [[43, 88], [42, 100], [43, 112]]]) H.line(f, P.VEIN[3], 1.1, true);
+  H.ell(66, 127.5, 8, 3, M, 'round'); H.ell(46, 127.5, 7, 3, M, 'round');
+  for (let k = 0; k < 3; k++) { H.line([[71 + k * 1.6, 127], [74 + k * 1.6, 129]], P.VEIN[3], 0.9); }
+  H.line([[39, 93], [55, 99], [74, 93]], G[1], 4.2, true); H.line([[39, 95], [55, 101], [74, 95]], G[3], 1, true);   // the belt
+  H.ell(56, 99, 4, 4, G, 'round'); H.ell(56, 99, 1.8, 1.8, P.RED[1]);
+  H.tube([[33, 86], [38, 93], [43, 95]], 7, 6, M); H.ell(44, 95, 4, 3.6, M, 'round');                 // forearm and fist on the hip
+  H.ell(54, 58, 16, 6.5, M, 'round'); for (let x = 42; x < 68; x += 5) H.line([[x, 58], [x + 0.6, 60.5]], P.INK, 1.1);   // the ermine mantle
+  // --- the sceptre arm
+  if (!broken) {
+    H.tube([[64, 60], [76, 56], [82, 44]], 10, 8, M);
+    H.rect(82.5, 6, 3, 70, G, 'cyl'); H.ell(84, 76, 2.4, 2.4, G, 'round');
+    H.ell(84, 5, 5, 5, G, 'round'); H.shape([[80.5, 1], [80.5, -4], [82.3, -2], [84, -6], [85.7, -2], [87.5, -4], [87.5, 1]], G, 'round');
+    H.ell(82, 44, 6.5, 3.2, M[0], 'round', -0.5); H.ell(84, 37, 4.8, 5, M, 'round'); H.line([[81, 35], [87, 35]], P.VEIN[3], 0.8);
+  } else {
+    H.tube([[64, 60], [74, 57]], 10, 9, M); H.shape([[72, 52], [77, 51], [79, 55], [77.5, 58], [79, 61], [73, 62]], P.PARM, 'round');   // the stump: Parmesan inside the marble
+    H.rect(40, 183, 52, 3, G, 'down'); H.ell(88, 184, 4.5, 4, G, 'round');                            // the sceptre, fallen
+    H.tube([[28, 184], [38, 182], [44, 180]], 8, 7, M); H.ell(46, 180, 4.5, 4.5, M, 'round');           // the arm, on the step
+    H.shape([[24, 180], [28, 178], [30, 182], [27, 187], [24, 186]], P.PARM, 'round');
+  }
+  // --- the head
+  H.ell(58, 50, 11, 7.5, M, 'round');                                                 // jowls / neck
+  const tilt = broken ? 0.12 : 0;
+  g.save(); g.translate(56, 38); g.rotate(tilt); g.translate(-56, -38);
+  H.ell(43, 26, 8.5, 10, M, 'round', -0.3); H.ell(43.5, 27, 4.8, 6.5, P.VEIN, 'round', -0.3);      // far ear
+  H.ell(55, 38, 13.5, 12.5, M, 'round');
+  H.shape([[58, 29], [72, 32], [83, 38], [87, 43], [82, 48], [68, 51], [57, 48]], M, 'round');      // the snout
+  H.ell(62, 46, 9, 6, M, 'round');                                                    // fat cheek
+  H.ell(86, 42, 3.2, 2.8, P.VEIN, 'round');
+  H.line([[70, 48.5], [80, 47.5]], P.INK, 0.9); H.rect(76, 47.5, 2.6, 3.4, G, 'down'); H.rect(78.8, 47.4, 2.4, 3.2, G, 'down');   // gold teeth
+  H.line([[80, 44], [92, 40]], P.VEIN[3], 0.7); H.line([[80, 46], [91, 47.5]], P.VEIN[3], 0.7);
+  H.ell(67, 36, 4.4, 3.2, P.VEIN[3]); H.ell(67.6, 36.4, 2, 1.7, P.INK);                  // the blank carved eye
+  H.shape([[61, 33.5], [66, 31.5], [72, 33], [71, 35], [66, 34.5]], M, 'down');                     // the heavy lid: bored, cruel
+  H.line([[63, 39.5], [67, 40.5], [71, 39]], P.VEIN[3], 0.8, true);                                  // a bag under it
+  H.ell(77, 40, 1.5, 1.4, M[3]); H.line([[72, 49], [76, 50.5], [80, 49]], P.VEIN[3], 0.7, true);     // a wart; the jowl sagging
+  H.streaks(64, 70, 38, 14, 3, P.VEIN[4]);
+  H.ell(65, 23, 7.5, 9, M, 'round', 0.3); H.ell(65.5, 24, 4, 5.5, P.VEIN, 'round', 0.3);            // near ear
+  H.cut([[69, 14], [72, 17], [71.5, 20], [68.5, 18]]);                                 // chipped
+  // the crown: gold leaf flaking, jewels
+  g.save(); if (broken) { g.translate(54, 26); g.rotate(-0.3); g.translate(-50, -26); }
+  H.shape([[44, 31], [44, 24], [62, 21.5], [63, 28]], G, 'down');
+  H.shape([[44, 25], [42.5, 13], [48, 20], [52, 9], [56.5, 19], [61, 10], [62, 22]], G, 'round');
+  for (const [x, y] of [[42.5, 12.5], [52, 8.5], [61, 9.5]]) H.ell(x, y, 1.7, 1.7, G, 'round');
+  H.ell(53, 26, 2, 1.8, P.RED, 'round'); H.ell(47, 27, 1.5, 1.5, [0x8ab0ff, 0x4a6ad8, 0x2a40a0, 0x18246a, 0x0c1240], 'round'); H.ell(59, 25, 1.4, 1.4, 0x4a6ad8);
+  H.flecks(42, 9, 63, 30, 7, M[1], 0.8);
+  H.flecks(48, 8, 58, 14, 3, 0xffffff, 1.1);                                          // the pigeons have been at him
+  g.restore(); g.restore();
+  // --- cracks, grime, mess
+  H.crack(44, 76, 34, 0.9, broken ? 1.3 : 0.9); if (broken) { H.crack(52, 30, 30, 1.7, 1.2); H.crack(40, 110, 20, 0.2); }
+  H.streaks(40, 76, 104, 18, 4, P.VEIN[4]);
+  H.flecks(66, 52, 76, 58, 4, 0xffffff, 1.2);
+  if (scaffold) {                                                                    // the miners' scaffold up the side
+    const R = P.RUST;
+    for (const x of [4, 96]) H.rect(x - 1.2, 20, 2.4, 167, R, 'cyl');
+    H.ink = 0; for (let y = 30; y < 180; y += 26) { H.rect(1, y, 16, 2, R, 'down'); H.rect(84, y + 9, 14, 2, R, 'down'); }
+    H.line([[96, 20], [72, 6], [84, 4]], R[2], 1); H.line([[72, 6], [72, 24]], 0x5a6272, 0.6);       // a little crane jib
+    for (let y = 40; y < 180; y += 5) H.line([[9, y], [14, y]], R[2], 0.8); H.line([[9, 36], [9, 180]], R[1], 0.9); H.line([[14, 36], [14, 180]], R[3], 0.9);   // the ladder
+  }
+}
+
+function makeParmStatues(scene) {
+  if (scene.game.__ppStatTex) return; scene.game.__ppStatTex = true;
+  ppSculpt(scene, 'ppstatue2', 100, 208, 1, H => { H.g.translate(0, 7); ppKingStatue(H, false); });
+  ppSculpt(scene, 'ppstatue3', 100, 208, 1, H => { H.g.translate(0, 7); ppKingStatue(H, true); });
+  ppSculpt(scene, 'ppstatue_big', 160, 332, 1.6, H => { H.g.translate(0, 7); ppKingStatue(H, false); });
+  ppSculpt(scene, 'ppb_statue', 130, 270, 1.3, H => { H.g.translate(0, 7); ppKingStatue(H, true, true); });
+}
