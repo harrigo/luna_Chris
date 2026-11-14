@@ -268,6 +268,9 @@ function makeParmArt(scene) {
     for (const x of [116, 164]) a.line([[x, 96], [x - 6, 109]], 0x5a6272, 2);
     a.crack(60, 70, 30, 0.2, { c: 0x361a0a }); a.crack(220, 64, 20, 0.6, { c: 0x361a0a });
   });
+  // (v2.85) Parmesan shavings off the Royal Rasp: a curled ribbon, and a flat flake
+  ppPaint(scene, 'ppshave', 16, 12, (a) => { for (let k = 0; k < 22; k++) { const t = k / 21 * 5.2, r = 5.5 - t * 0.7, x = 8 + Math.cos(t) * r, y = 6 + Math.sin(t) * r * 0.75; a.ell(x, y, 1.6, 1.4, P.PARM); } a.set(5, 3, 0xffffff); });
+  ppPaint(scene, 'ppshave2', 12, 8, (a) => { a.poly([[1, 6], [3, 1], [10, 2], [11, 6], [6, 7]], P.PARM); a.set(4, 3, 0xfff8e0); });
   // ---- the street: props you walk past
   ppPaint(scene, 'ppstatue2', 70, 130, (a) => {                                    // a statue of the King on a plinth, an arm off, cracked
     a.box(8, 104, 62, 129, P.MARB, 0.15, { vgrad: 0.6 }); a.box(4, 98, 66, 106, P.GOLD, 0.3); a.box(18, 112, 52, 118, P.GOLD, 0);

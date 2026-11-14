@@ -95,6 +95,7 @@ Object.assign(ENEMY, {
   ppcav:   { hp: 7, r: 24, ch: 20, tex: 'ppcav',   oy: 0.97, drop: 0.4, ai: 'ppcav', k: 1.25, frames: ['ppcav', 'ppcav_b'], fps: 10 },
 });
 
+const inView0 = (sc, th) => Math.abs(angDiff(th, sc.viewT())) < sc.visHalf + 0.4;
 const PP_RMIN = 380;
 const ParmMixin = {
   parmInit() {
@@ -119,13 +120,24 @@ const ParmMixin = {
     // ---- THE ROYAL RASP
     const RS = S.rasp; RS.t -= dt;
     if (RS.st === 'idle' && RS.t <= 0 && !bossUp && R > PP_RMIN + 2) {
-      RS.st = 'warn'; RS.t = 2; RS.dir = Math.random() < 0.5 ? 1 : -1; RS.kind = RS.passes % 3 === 2 ? 'high' : (Math.random() < 0.6 ? 'low' : 'high'); RS.hitDone = false;
+      RS.st = 'warn'; RS.t = 2.6; RS.dir = Math.random() < 0.5 ? 1 : -1; RS.kind = RS.passes % 3 === 2 ? 'high' : (Math.random() < 0.6 ? 'low' : 'high'); RS.hitDone = false;
       Sound.sfx('alarm'); if (!RS.passes) this.banner('THE ROYAL RASP!\nIT\'S GRATING THE PLANET!'); else this.banner(RS.kind === 'low' ? 'RASP! JUMP!' : 'RASP! DUCK!');
     } else if (RS.st === 'warn') {
       if (Math.floor(RS.t * 4) !== Math.floor((RS.t + dt) * 4)) Sound.sfx('blip');
-      if (RS.t <= 0) { RS.st = 'pass'; RS.theta = wrap(P.theta - RS.dir * (this.visHalf + 0.5)); RS.run = 0; Sound.sfx('grind'); Sound.sfx('crash'); }
+      if (RS.t <= 0) { RS.st = 'pass'; RS.theta = wrap(P.theta - RS.dir * (this.visHalf + 0.9)); RS.run = 0; Sound.sfx('grind'); Sound.sfx('crash'); }
     } else if (RS.st === 'pass') {
-      const sp = 820 / R; RS.theta = wrap(RS.theta + RS.dir * sp * dt); RS.run += sp * dt;
+      // (v2.85) it rumbles in at a steady 470 px/s near Chris (it was 820 - too fast to react to), and only speeds up
+      // round the back of the planet where you can't see it
+      const dist = Math.abs(angDiff(P.theta, RS.theta)) * R, ahead = angDiff(P.theta, RS.theta) * RS.dir > 0;
+      const sp = (dist < 900 || ahead ? 470 : 1100) / R; RS.theta = wrap(RS.theta + RS.dir * sp * dt); RS.run += sp * dt;
+      // shavings: curls of Parmesan peeling off the cutting edge, arcing up and back and raining down behind it
+      if (inView0(this, RS.theta) && (RS.shT = (RS.shT || 0) - dt) <= 0) { RS.shT = 0.014;
+        const [g0, g1] = RS.kind === 'low' ? [0, 36] : [24, 118], half = 150 / R, edge = wrap(RS.theta + RS.dir * half * 0.9);
+        const im = this.add.image(0, 0, Math.random() < 0.7 ? 'ppshave' : 'ppshave2').setDepth(Math.random() < 0.5 ? 7.2 : 4.6); im.bsx = im.bsy = rnd(1.2, 2.2);
+        this.parts.push({ theta: edge, h: RS.kind === 'low' ? rnd(0, 8) : rnd(g0, g0 + 10), vt: -RS.dir * rnd(60, 260), vh: rnd(160, 420), life: rnd(1.8, 2.8), stay: true, spr: im, rot: rnd(0, 6), rv: rnd(-14, 14) });   // they land and lie there a moment
+        if (Math.random() < 0.35) { const pf = this.add.image(0, 0, 'puff').setDepth(4.7).setTint(0xf2da92).setAlpha(0.5); pf.bsx = pf.bsy = rnd(0.4, 0.8); this.parts.push({ theta: edge, h: rnd(0, 20), vt: -RS.dir * rnd(20, 80), vh: rnd(20, 60), life: rnd(0.8, 1.3), noGrav: true, grow: 1.2, spr: pf }); }
+        S.scars = S.scars || []; S.scars.push({ theta: edge, t: 4 });                 // the freshly grated ground behind it
+      }
       R = Math.max(PP_RMIN, R - 13 * (sp * dt) / TAU);                  // every lap grates ~13 units off the planet
       const near = Math.abs(angDiff(P.theta, RS.theta)) * R;
       if (near < 500 && Math.random() < dt * 12) { this.cameras.main.shake(60, 0.006); if (Math.random() < 0.3) Sound.sfx('grind'); }
@@ -139,6 +151,7 @@ const ParmMixin = {
       }
       if (RS.run >= TAU) { RS.st = 'idle'; RS.t = rnd(11, 15); RS.passes++; this.popup(P.theta, P.h + 90, 'THE PLANET SHRANK!', '#ffb07a'); }
     }
+    if (S.scars) { for (const q of S.scars) q.t -= dt; S.scars = S.scars.filter(q => q.t > 0); }
     // ---- the ground cracks... then falls away into a chasm
     S.crackT -= dt;
     const open = S.cracks.filter(c => c.st !== 'gone').length;
@@ -259,7 +272,7 @@ const ParmMixin = {
     const inView = th => Math.abs(angDiff(th, vt)) < vh;
     // ---- (v2.80) the city on the horizon, the machines working, the braziers, the mothership
     for (const B of this.ppCity || []) {
-      const th = wrap(B.theta + vt * 0.15);                                      // (v2.81) parallax: a touch slower than the ground
+      const th = wrap(B.theta + (this.unw - (this.lagU || 0)) * 0.15);   // (v2.85: from the UNWRAPPED view angle - the wrapped one jumped by 0.9 rad every lap and flicked the whole city round)                                      // (v2.81) parallax: a touch slower than the ground
       const vis = Math.abs(angDiff(th, vt)) < vh + 0.5; B.im.setVisible(vis); if (!vis) continue;
       if (B.drill) { B.im.setTexture(Math.floor(t * 8 + B.theta * 5) % 2 ? 'ppb_drill_b' : 'ppb_drill'); if (Math.random() < 0.15) this.burst(th, 2, 'spark', 1, 0.5); }
       this.place(B.im, th, B.h, 0);
@@ -309,6 +322,21 @@ const ParmMixin = {
       if (!this.ppWarnTxt) this.ppWarnTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '12px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(20);
       this.ppWarnTxt.setVisible(true).setText(RS.kind === 'low' ? 'JUMP!' : 'DUCK!').setPosition(RS.dir > 0 ? 80 : W - 80, H * 0.5 - 44).setAlpha(0.6 + 0.4 * Math.sin(t * 20));
     } else if (this.ppWarnTxt) this.ppWarnTxt.setVisible(false);
+    if (S.scars && S.scars.length) {                              // (v2.85) a raw, freshly-shaved strip of Parmesan where it's been
+      for (const q of S.scars) { if (!inView(q.theta)) continue; const a = this.screenPos(wrap(q.theta - 9 / R), -1), b = this.screenPos(wrap(q.theta + 9 / R), -1), c = this.screenPos(wrap(q.theta + 9 / R), -9), d = this.screenPos(wrap(q.theta - 9 / R), -9);
+        g.fillStyle(0xfff4cc, Math.min(0.8, q.t / 3)).fillPoints([a, b, c, d], true); const m = this.screenPos(q.theta, -4); g.fillStyle(0xd6b66a, Math.min(0.9, q.t / 3)).fillRect(m.x - 1, m.y - 1, 3 * z, 1.5 * z); }
+    }
+    if (RS.st === 'pass' && !inView(RS.theta)) {                 // (v2.85) INCOMING: an edge marker that grows as it closes in, and the distance
+      const d = angDiff(RS.theta, P.theta), side = d > 0 ? 1 : -1, dist = Math.abs(d) * R;
+      if ((side === -RS.dir) && dist < 1400) {                     // it's coming at him
+        const k = 1 - Math.min(1, dist / 1400), sx = side > 0 ? W - 30 : 30, sy = this.groundY - (RS.kind === 'low' ? 18 : 70) * z, sz = 14 + 22 * k, a = 0.55 + 0.45 * Math.sin(t * (8 + 14 * k));
+        hg.fillStyle(0x1a1020, 0.9).fillTriangle(sx + side * (sz + 4), sy, sx - side * 4, sy - sz - 4, sx - side * 4, sy + sz + 4);
+        hg.fillStyle(0xff3a1a, a).fillTriangle(sx + side * sz, sy, sx, sy - sz, sx, sy + sz);
+        if (!this.ppWarnTxt) this.ppWarnTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '12px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(20);
+        this.ppWarnTxt.setVisible(true).setText((RS.kind === 'low' ? 'JUMP!' : 'DUCK!') + '\n' + Math.max(1, Math.round(dist / 47)) + 'm').setAlign('center').setPosition(side > 0 ? W - 80 : 80, sy - 40).setAlpha(a);
+        if (Math.floor(t * (3 + 9 * k)) !== Math.floor((t - 1 / 60) * (3 + 9 * k))) Sound.sfx('blip');
+      }
+    } else if (RS.st === 'pass' && this.ppWarnTxt) this.ppWarnTxt.setVisible(false);
     if (RS.st === 'pass' && inView(RS.theta)) {
       const half = 150 / R, n = 18, top = [], bot = [];
       for (let k = 0; k <= n; k++) { const th = wrap(RS.theta + (k / n * 2 - 1) * half); top.push(this.screenPos(th, h1)); bot.unshift(this.screenPos(th, h0)); }

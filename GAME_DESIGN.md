@@ -1764,3 +1764,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Fixed the green screen flash on L7: the ironclads' keel glow multiplied its own scale by 1.2 every frame; while a ship was round the far side place() didn't reset it, so it grew to millions of pixels and washed the screen green when it came back. Now scaled from its base scale, and hidden round the far side.
 - The ocean bands are drawn as quad strips instead of one big ring polygon (safer triangulation).
 - Toned down: fewer, smaller seabed props, nothing parked in front of the camera, dimmer reef glows and light shafts, fainter background coral.
+
+### v2.85 - Parmesan Prime: steady city, a fairer Rasp
+- Fixed the city flicking round: the near buildings' parallax used the WRAPPED view angle, which jumps by a full lap at 0/2pi, so the city snapped 0.9 rad sideways every lap. Now uses the unwrapped one.
+- The Royal Rasp: warning 2.6 s (was 2), starts further off, and rumbles in at 470 px/s near Chris (was 820) - it only hurries round the back of the planet. While it's off screen and coming at him, an edge arrow grows and pulses faster as it closes, with JUMP!/DUCK! and a distance in metres, blipping.
+- Visible grating: curls and flakes of Parmesan (ppshave/ppshave2) peel off the cutting edge in a constant spray, arc up and back, land and lie there; cheese dust puffs; a raw freshly-shaved strip glows on the ground behind it.
