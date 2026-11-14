@@ -48,7 +48,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   });
   // parallax hill rings
   (cfg.ridges || []).forEach((rg, n) => {
-    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
+    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40, skyline: 150, machines: 160 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
     const rnd = rng(rg.seed || (77 + n * 31)), steps = 720, prof = [];
     let v = 0; for (let i = 0; i < steps; i++) { v += (rnd() - 0.5) * 0.35; v *= 0.96; prof.push(v); }
     const walk = a => prof[Math.floor((a / (Math.PI * 2)) * steps + steps * 4) % steps];
@@ -70,6 +70,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           else if (f.s > 0.8 && d < 0.6) h = Math.max(h, f.h * (d < 0.35 ? 1 : 0.86)); }   // a needle
         return h;
       }
+      if (st === 'skyline' || st === 'machines') return 0.12 + 0.08 * Math.sin(a * 11 + n) + 0.06 * walk(a);   // (v2.81) rubble between the buildings
       if (st === 'wrecks' || st === 'factory' || st === 'cogs' || st === 'tiers') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
       return 0.55 + 0.25 * Math.sin(a * 7 + n) + 0.15 * Math.sin(a * 19 + n * 2) + 0.35 * walk(a);   // jagged hills
     };
@@ -124,6 +125,67 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       }
       return 0;
     };
+    // (v2.81) L9: the imperial city's skyline - domed palaces (some with a bite out of the dome), minarets (some
+    // leaning), colonnades with snapped columns, arches; little lit windows (2) and a lit rim along the tops (3)
+    const hsh = (x, y) => { let q = (Math.floor(x) * 374761393 + Math.floor(y) * 668265263 + n * 977) | 0; q = (q ^ (q >>> 13)) * 1274126177 | 0; return ((q ^ (q >>> 16)) >>> 0) / 4294967296; };
+    const skyline = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        const u0 = dA(a, f.a) * Rw / Z; if (Math.abs(u0) > 70) continue;
+        if (f.s < 0.3) {                                                       // a domed palace
+          const Wb = 34 + f.h * 34, Hb = 26 + f.h * 34, rd = Wb * 0.34, u = u0;
+          if (Math.abs(u) < Wb / 2 && v < Hb && v > -4) { const win = (Math.floor(u + 200) % 9) < 3 && (Math.floor(v) % 13) > 3 && (Math.floor(v) % 13) < 9; return win && hsh(u / 9, v / 13) < 0.7 ? 2 : (Hb - v < 1.5 ? 3 : 1); }
+          if (f.s < 0.12 && Math.hypot(u - rd * 0.55, v - Hb - rd * 0.7) < rd * 0.55) continue;   // a bite out of the dome
+          const dv = v - Hb; if (dv >= 0 && dv < rd * 1.5) { const half = rd * Math.sqrt(Math.max(0, 1 - Math.pow(dv / (rd * 1.5), 2))) * (dv < rd * 0.3 ? 0.9 + dv / rd : 1.2 - dv / (rd * 1.5) * 0.6); if (Math.abs(u) < half) return Math.abs(u) > half - 1.4 && u < 0 ? 3 : 1; }
+          if (Math.abs(u) < 1.2 && v >= Hb + rd * 1.4 && v < Hb + rd * 1.5 + 12) return 1;                 // the spike on top
+          for (const sx of [-Wb / 2 + 4, Wb / 2 - 4]) { const uu = u - sx; if (Math.abs(uu) < 4 && v < Hb + 18) return 1; if (v >= Hb + 18 && v < Hb + 26 && Math.abs(uu) < 4 * (1 - (v - Hb - 18) / 8) + 0.5) return 1; }   // corner turrets
+        } else if (f.s < 0.48) {                                               // a minaret, maybe leaning
+          const Hm = 70 + f.h * 70, u = u0 - v * f.tilt * 0.4, w = 3 + f.h * 2.5;
+          if (v < 0) continue;
+          if (v < Hm && Math.abs(u) < w) return (Math.floor(v) % 17) < 3 && Math.abs(u) < 1 ? 2 : (u < -w + 1.2 ? 3 : 1);
+          for (const bh of [Hm * 0.55, Hm * 0.82]) if (Math.abs(v - bh) < 2 && Math.abs(u) < w + 3) return 1;   // balconies
+          if (v >= Hm && v < Hm + 16 && Math.abs(u) < w * (1 - (v - Hm) / 16) + 0.4) return 1;                 // the point
+        } else if (f.s < 0.66) {                                               // a colonnade, some columns snapped
+          const Wc = 60, Hc = 30 + f.h * 12, u = u0;
+          if (Math.abs(u) > Wc / 2 + 4 || v < 0) continue;
+          const ci = Math.floor((u + Wc / 2) / 10), inCol = ((u + Wc / 2) % 10) < 4, broke = hsh(ci, f.a * 100) < 0.35;
+          if (inCol && v < (broke ? Hc * (0.4 + hsh(ci, 7) * 0.4) : Hc)) return u - (ci * 10 - Wc / 2) < 1.2 ? 3 : 1;
+          if (v >= Hc && v < Hc + 5 && Math.abs(u) < Wc / 2 + 3 && hsh(Math.floor(u / 12), 3) > 0.25) return v > Hc + 3.5 ? 3 : 1;   // the entablature (gaps where it's fallen)
+          if (v >= Hc + 5 && v < Hc + 5 + 14 * (1 - Math.abs(u) / (Wc / 2 + 3)) && hsh(Math.floor(u / 12), 3) > 0.25) return 1;      // pediment
+        } else if (f.s < 0.78) {                                               // a triumphal arch
+          const Wa = 50, Ha = 46, u = u0;
+          if (Math.abs(u) < Wa / 2 && v >= 0 && v < Ha) { if (Math.abs(u) < 10 && v < 24 + Math.sqrt(Math.max(0, 100 - u * u)) * 0.8) return 0; return Ha - v < 1.5 ? 3 : 1; }
+        }
+      }
+      return 0;
+    };
+    // (v2.81) L9: the mining machines on the horizon - lattice drill rigs (a warning lamp on top), cranes with a grater
+    // hanging off the jib, grater boxes on tracks
+    const machines = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        const u = dA(a, f.a) * Rw / Z; if (Math.abs(u) > 80) continue;
+        if (f.s < 0.35) {                                                      // drill rig
+          const Ht = 80 + f.h * 70; if (v < -10 || v > Ht + 14) continue;
+          const half = 14 * (1 - v / Ht) + 4;
+          if (v >= 0 && v < Ht && (Math.abs(Math.abs(u) - half) < 1.6)) return 1;                                        // legs
+          if (v >= 0 && v < Ht && Math.abs(u) < half && Math.abs(((v + u * (Math.floor(v / 14) % 2 ? 1 : -1) * 0.9) % 14)) < 1.2) return 1;   // bracing
+          if (v >= Ht && v < Ht + 8 && Math.abs(u) < 8) return 1;
+          if (v >= Ht + 8 && v < Ht + 12 && Math.abs(u) < 2.5) return 2;                                                  // warning lamp
+          if (v < 0 && v > -10 && Math.abs(u) < 5 * (1 + v / 10)) return 1;
+        } else if (f.s < 0.6) {                                                // crane
+          const Hc = 90 + f.h * 50, J = 50 + f.h * 30, sd = f.tilt > 0 ? 1 : -1;
+          if (v >= 0 && v < Hc && Math.abs(u) < 2.4) return 1;
+          if (v >= Hc && v < Hc + 4 && u * sd > -10 && u * sd < J) return 1;
+          if (Math.abs(u * sd - J + 6) < 0.8 && v < Hc && v > Hc - 30) return 1;                                         // cable
+          const gu = u * sd - (J - 6), gv = v - (Hc - 46); if (Math.abs(gu) < 9 - gv * 0.1 && gv >= 0 && gv < 16) return ((Math.floor(gu + 20) % 4) === 0 && (Math.floor(gv) % 4) === 1) ? 2 : 1;   // the grater on the hook
+        } else if (f.s < 0.75) {                                               // grater crawler
+          if (v >= 0 && v < 8 && Math.abs(u) < 26) return 1;
+          if (v >= 8 && v < 52 && Math.abs(u) < 20 - (v - 8) * 0.18) return ((Math.floor(u + 40) % 5) === 0 && (Math.floor(v) % 6) === 2) ? 2 : (u < -18 + (v - 8) * 0.18 + 1.2 ? 3 : 1);
+        }
+      }
+      return 0;
+    };
     const wreck = (a, dd) => {
       for (const f of feats) {
         if (f.s > 0.45) continue;                                               // (only some of them are ships)
@@ -158,6 +220,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
         else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
         else if (st === 'cogs') { const w = cogs(a, dd); if (w) col = w === 2 ? TOP : C; }
+        else if (st === 'skyline' || st === 'machines') { const w = (st === 'skyline' ? skyline : machines)(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (w === 3 ? TOP : C); }
         else if (st === 'tiers') { const w = tiers(a, dd); if (w) col = w === 3 ? (rg.cheese || TOP) : (w === 2 ? TOP : C); }
         if (!col) continue;
         D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
@@ -211,6 +274,28 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           if (GL) { set(cx, H - hh - 1, GL); set(cx - 10, H - hh * 0.75 - 1, GL); set(cx + 10, H - hh * 0.75 - 6, GL); }
         }
         for (const [cx, w, hh] of [[230, 16, 9], [370, 22, 12], [610, 18, 10]]) for (let x = cx - w; x <= cx + w; x++) { const d = (x - cx) / w, y = Math.round(H - hh * Math.sqrt(Math.max(0, 1 - d * d))); for (let yy = y; yy < H; yy++) set(x, yy, FC); if (GL) set(x, y, GL); }
+      } else if (st === 'ruins') {                                              // (v2.81) L9: the ruins of the imperial city, up close
+        const disc = (cx, cy, rx, ry) => { for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) set(cx + x, cy + y, FC); };
+        const thick = (x0, y0, x1, y1, w) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let k = 0; k <= n; k++) { const t = k / n; for (let o = -w / 2; o < w / 2; o++) set(x0 + (x1 - x0) * t + o, y0 + (y1 - y0) * t, FC); } };
+        // a snapped fluted column with a jagged top
+        for (let x = 22; x <= 44; x++) { const top = 8 + Math.round(5 * Math.abs(Math.sin(x * 1.7)) + (x > 36 ? (x - 36) * 1.5 : 0)); for (let y = top; y < H; y++) set(x, y, FC); }
+        for (let x = 16; x <= 50; x++) for (let y = H - 5; y < H; y++) set(x, y, FC);
+        // its fallen drum, rolled away
+        disc(66, H - 9, 9, 9);
+        // the toppled marble head of the King, on its side, crown and all
+        disc(120, H - 16, 20, 16); thick(134, H - 22, 160, H - 14, 9); disc(160, H - 13, 4, 4);
+        for (const [x, h] of [[100, 10], [106, 16], [112, 9], [118, 15]]) thick(x, H - 30, x - 3, H - 30 - h, 4);
+        // an ornate lamp post, its lantern still lit
+        thick(232, H, 232, 6, 3); thick(232, 10, 244, 6, 2); for (let y = 6; y < 16; y++) for (let x = 241; x < 248; x++) set(x, y, FC);
+        // rubble and a slab
+        for (const [cx, w, hh] of [[300, 26, 10], [330, 14, 16], [352, 18, 8], [600, 22, 12], [624, 12, 18]]) for (let x = cx - w; x <= cx + w; x++) { const d = (x - cx) / w, y = Math.round(H - hh * Math.sqrt(Math.max(0, 1 - d * d)) - (x % 5 === 0 ? 2 : 0)); for (let yy = y; yy < H; yy++) set(x, yy, FC); }
+        // a tattered royal banner on a pole
+        thick(420, H, 420, 2, 3); for (let x = 422; x < 446; x++) { const bot = 30 + Math.round(6 * Math.sin(x * 0.9)) + ((x % 7) < 2 ? 8 : 0); for (let y = 4; y < bot; y++) set(x, y, FC); }
+        // a shard of the gold dome, half buried, curving up
+        for (let t = 0; t <= Math.PI * 0.6; t += 0.01) for (let w = 0; w < 6; w++) set(520 - Math.cos(t) * (40 - w), H + 4 - Math.sin(t) * (40 - w), FC);
+        // the lit edges: every top edge catches the burning sky
+        if (GL) { for (let x = 0; x < W; x++) { let y = 0; while (y < H && !D[(y * W + x) * 4 + 3]) y++; if (y < H) { set(x, y, GL); if (x & 1) set(x, y + 1, GL); } }
+          for (let y = 7; y < 15; y++) for (let x = 242; x < 247; x++) set(x, y, [255, 230, 140]); }   // the lantern
       } else if (st === 'bones') {                                              // graveyard: great curved ribs and a broken grave post
         for (const [x0, span, hgt] of [[40, 60, 46], [500, 70, 52]]) for (let rib = 0; rib < 4; rib++) {
           const xs = x0 + rib * span / 4, hh = hgt * (1 - rib * 0.15);

@@ -1742,3 +1742,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Gone: the gear backdrop, the triangle spire/crag ridges, the lava pools, the old scrap/skull props and crystal/energy/girder ledges.
 - Repainted with ppPaint: the Royal Guard, Grenadier, Taxman, Cockroach Cavalry, the grenade, and the Colossus (flaking red paint over the cheese, ermine, crown and sceptre; cracked version blazing with crystals), its head and rubble.
 - Sky: wine-dark to burning orange.
+
+### v2.81 - Parmesan Prime: proper depth
+- L9 now layers like the early levels. Far parallax ring 'skyline' (depth.js): domed palaces with bites out of the domes, leaning minarets, colonnades with snapped columns, triumphal arches, lit windows. Nearer ring 'machines': lattice drill rigs with warning lamps, cranes swinging graters, grater crawlers.
+- Giant dark statues of the King and snapped columns loom behind the horizon (L2-style composed props); rubble and broken columns sit in front of the camera.
+- New fg strip 'ruins': a snapped column, the King's toppled head, a lit lamp post, a tattered banner, a shard of the gold dome - top edges lit by the burning sky.
+- A burning wine/orange nebula. The near city sprites now parallax slightly; the old flat far-city sprite layer is gone.

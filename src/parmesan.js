@@ -104,7 +104,7 @@ const ParmMixin = {
     const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
     this.ppCity = [];
     NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xf0d8c8); im.bsx = im.bsy = k === 'ppb_drill' ? 1.25 : 1.45; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
-    FAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(0.97).setTint(0x6a2a30).setAlpha(0.9); im.bsx = im.bsy = 1.55; im.flipX = i % 2 === 1; this.ppCity.push({ im, theta: i * TAU / FAR.length + 0.6, h: -150, drill: k === 'ppb_drill' }); });
+    // (the far skyline is a parallax ring now: depth.js 'skyline' / 'machines')
     this.ppFire = [];
     for (let i = 0; i < 6; i++) {
       const th = i * TAU / 6 + 0.42, base = this.add.image(0, 0, 'ppbrazier').setOrigin(0.5, 1).setDepth(2.55), fl = this.add.image(0, 0, 'ppflame0').setOrigin(0.5, 1).setDepth(2.56), gl = this.add.image(0, 0, 'puff').setDepth(2.54).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff9a3a);
@@ -258,9 +258,10 @@ const ParmMixin = {
     const inView = th => Math.abs(angDiff(th, vt)) < vh;
     // ---- (v2.80) the city on the horizon, the machines working, the braziers, the mothership
     for (const B of this.ppCity || []) {
-      const vis = Math.abs(angDiff(B.theta, vt)) < vh + 0.5; B.im.setVisible(vis); if (!vis) continue;
-      if (B.drill) { B.im.setTexture(Math.floor(t * 8 + B.theta * 5) % 2 ? 'ppb_drill_b' : 'ppb_drill'); if (Math.random() < 0.15) this.burst(B.theta, 2, 'spark', 1, 0.5); }
-      this.place(B.im, B.theta, B.h, 0);
+      const th = wrap(B.theta + vt * 0.15);                                      // (v2.81) parallax: a touch slower than the ground
+      const vis = Math.abs(angDiff(th, vt)) < vh + 0.5; B.im.setVisible(vis); if (!vis) continue;
+      if (B.drill) { B.im.setTexture(Math.floor(t * 8 + B.theta * 5) % 2 ? 'ppb_drill_b' : 'ppb_drill'); if (Math.random() < 0.15) this.burst(th, 2, 'spark', 1, 0.5); }
+      this.place(B.im, th, B.h, 0);
     }
     for (const F of this.ppFire || []) {
       const vis = Math.abs(angDiff(F.th, vt)) < vh; [F.base, F.fl, F.gl].forEach(o => o.setVisible(vis)); if (!vis) continue;

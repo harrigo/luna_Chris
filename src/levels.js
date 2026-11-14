@@ -341,9 +341,22 @@ const LEVELS = {
     dust: [0xff6a3a, 0xffb03a, 0xd8c8a0, 0xff3a3a], decorTint: 0xc8a8a0, decorAlpha: 0.6,
     gravity: 1, ledgeTypes: ['marble'], ledgeTex: 'ledge3',
     ledges: [{ theta: 0.6, half: 0.09, h: 90 }, { theta: 1.5, half: 0.08, h: 170 }, { theta: 2.6, half: 0.09, h: 90 }, { theta: 3.6, half: 0.08, h: 170 }, { theta: 4.6, half: 0.09, h: 90 }, { theta: 5.5, half: 0.08, h: 170 }],
-    props: [{ tex: 'ppstatue2', n: 3, sc: [1, 1.2] }, { tex: 'ppcol2', n: 5, sc: [0.9, 1.2] }, { tex: 'ppcolbroke', n: 4, sc: [1, 1.3] }, { tex: 'ppbanner2', n: 5, sc: [0.9, 1.1] }, { tex: 'ppfountain', n: 2, sc: [1, 1.1] }, { tex: 'pprubble', n: 5, sc: [0.9, 1.3] }],
+    props: [
+      // (v2.81) composed like L2: big dark statues and columns looming behind the horizon, and rubble right in front of the camera
+      { tex: 'ppstatue2', at: [[0.6, 2.3], [2.9, 2.1, 1], [5.0, 2.4]], depth: 0.95, tint: 0x6a2a2a, alpha: 0.75, h: -22 },
+      { tex: 'ppcolbroke', at: [[1.5, 2.2, 1], [3.9, 2.0], [5.8, 2.3, 1]], depth: 0.95, tint: 0x5a2228, alpha: 0.72, h: -20 },
+      { tex: 'pprubble', at: [[0.95, 1.7], [2.2, 1.9, 1], [3.4, 1.6], [4.6, 2.0, 1], [5.5, 1.7]], fg: true, h: -8, tint: 0x9a7a6a },
+      { tex: 'ppcolbroke', at: [[1.8, 1.3], [4.2, 1.4, 1]], fg: true, h: -10, tint: 0xa08070 },
+      { tex: 'ppstatue2', n: 3, sc: [1, 1.2] }, { tex: 'ppcol2', n: 5, sc: [0.9, 1.2] }, { tex: 'ppcolbroke', n: 4, sc: [1, 1.3] }, { tex: 'ppbanner2', n: 5, sc: [0.9, 1.1] }, { tex: 'ppfountain', n: 2, sc: [1, 1.1] }, { tex: 'pprubble', n: 5, sc: [0.9, 1.3] }],
     debris: { every: [1.3, 2.4], tex: ['pp_column', 'pp_head', 'pp_dome', 'db_rock'] },          // (v2.78) palace rubble
-    depth: { light: [-0.5, -0.8, 0.4], dark: [40, 8, 6], shadeA: [0, 60, 110, 150], rim: [255, 220, 160], atmo: [255, 140, 60], atmoW: 0.1, atmoA: 60, ridges: [] },   // (v2.80: the city on the horizon is drawn by parmesan.js)
+    nebula: { pal: [0x12040c, 0x3a0a18, 0x6a1a1a, 0xb0461a, 0xffa040], n: 3, sparkles: [0xffffff, 0xffd8a0, 0xff9a5a, 0xffe8c0] },   // (v2.81) a burning nebula
+    // (v2.81) parallax like the early levels: the imperial city's skyline far off (domes, minarets, colonnades, arches, lit
+    // windows), the mining machines nearer (drill rigs with warning lamps, cranes swinging graters, grater crawlers), and the
+    // ruins up close in front (a snapped column, the King's toppled head, a lit lamp post, a banner, a shard of the dome)
+    depth: { light: [-0.5, -0.8, 0.4], dark: [40, 8, 6], shadeA: [0, 60, 110, 150], rim: [255, 220, 160], atmo: [255, 140, 60], atmoW: 0.1, atmoA: 60,
+      ridges: [{ style: 'skyline', n: 26, off: 40, amp: 26, col: [44, 10, 22], top: [255, 170, 110], glow: [255, 214, 120], k: 0.3, depth: 0.33, seed: 93, size: 2.0 },
+               { style: 'machines', n: 11, off: 10, amp: 18, col: [22, 5, 10], top: [255, 130, 70], glow: [255, 80, 40], k: 0.55, depth: 0.36, seed: 94, size: 1.4 }],
+      fg: { style: 'ruins', col: [26, 6, 10], glow: [255, 150, 70] } },
     waves: [                                                                                          // (v2.78) the Rat Empire's finest
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('ppguard', 0.3), S('mouse', 0.6), S('pptax', 1.2), S('flyer', 1.6), S('ppgren', 2.2), S('mouse', 2.8), S('mouse', 3.2), S('ppguard', 4), S('flyer', 4.6), S('mouse', 5.2), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7.2), S('ppguard', 8), S('mouse', 8.5), S('mouse', 9)] },
       { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('flyer', 1.2), S('ppguard', 1.8), S('mouse', 2.2), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('flyer', 4.4), S('ppguard', 5), S('mouse', 5.4), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8), S('mouse', 8.4), S('paladin', 9), S('mouse', 9.6)] },
