@@ -1699,3 +1699,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v2.75 — Freefall: the grates are deadly
 - Missing the gap in a grate (plain or hot) is now a SPLAT death like the other hazards ("GRATED!", "GRILLED!", "SLICED BY THE BARS!", "CHAR-MARKED!", hot: "SIZZLED ON A HOT GRATE!"). The gap test is a little more forgiving at the edges (8 px each side, was 12). Grease drips and smoke still don't kill.
+
+### v2.76 — Freefall made flyable (bot-tested)
+- Tuned with a bot that only reacts to what's on screen, with a ~0.2 s reaction delay (scratchpad botff.py, 14 runs each): reaching the bottom went 1/14 -> 8/14; grate deaths 4/14 -> ~0.
+- See further: on short (landscape phone) screens the world camera zooms out (zoom = H/600) so ~2 grates are visible; the HUD is drawn by its own unzoomed camera (objects are sorted onto a camera by scroll factor in 'prerender'). Chris rides high on the screen (24% down, higher at speed).
+- WHERE NEXT: chevrons mark the next grate's gap (blue on BRAKE rows); while it's still below the screen they sit on the bottom edge right above it, with a faint second marker for the grate after.
+- Turn in time: steering 300 -> 370 px/s and snappier; cruise fall 470 -> 410 (plunge 560 -> 480), boost cap 760 -> 700. Gaps wider (124-150 -> 142-168); switchbacks have more room (270-300 -> 330-360 below).
+- Lethal hazards made fair: skewers sit BESIDE the line (150-190 px off it), shorter (len 105) and a bit slower, so their tips sweep across it; spatulas slower and shorter; wall flare-ups warn for 1.1 s (was 0.8) and reach 230 (was 270); sausages rarer and slower. The cage needs 75% of the cheese (was 85%).
+- Fixed: AGAIN after a splat left Chris frozen (splat state now reset in create).

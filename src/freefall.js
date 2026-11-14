@@ -135,6 +135,7 @@ class FreefallScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#06100a').fadeIn(300, 0, 0, 0);
     Sound.init(); Sound.music('level4');
     this.goalHud = null; this.leaving = false; this.done = false; this.cageOpen = false; this.touchG = null; this.touchLbl = null; this.wingK = 0; this.wingOn = false; this.faceS = undefined; this.wingWas = false; this.poseL = undefined; this.smokeG = null; this.t = 0; this.timeLeft = 27; this.timeMax = 27; this.fuel = 1; this.penaltyT = 0;
+    this.splatted = false; this.bits = null; this.drips = null; this.lastWhy = '';   // (v2.76: AGAIN after a splat left him frozen)
     this.chain = 0; this.chainT = 0; this.gotCheese = 0; this.hitStop = 0; this.squash = 0; this.zoomK = 1; this.plungeOn = false; this.roarT = 0;
     this.P = { h: 60, floor: 0, vh: -200, vx: 0, thrusting: false, firing: 0, aimA: 0, power: 0, duck: false, facing: 1 };
     this.pos = { x: SW / 2, y: -260 }; this.vel = { x: 0, y: 140 };
@@ -145,11 +146,11 @@ class FreefallScene extends Phaser.Scene {
     this.rows = [];
     let lastGap = SW / 2;
     for (let y = 560, i = 0; y < SH - 360; i++) {
-      const w = rnd(124, 150), deepHalf = y > SH * 0.5;
+      const w = rnd(142, 168), deepHalf = y > SH * 0.5;                // (v2.76: wider gaps)
       // every third grate is a SWITCHBACK: close under the last one and right over on the far side. At full speed you
       // can't get across in time: brake (the trail there is blue cheese, and a BRAKE! sign hangs over it)
       const sw = i % 3 === 2;
-      if (sw) y = this.rows[this.rows.length - 1].y + rnd(270, 300);
+      if (sw) y = this.rows[this.rows.length - 1].y + rnd(330, 360);    // (v2.76: a little more room to brake across)
       let gx = sw ? (lastGap > SW / 2 ? rnd(25, 60) : SW - w - rnd(25, 60))
         : Math.max(30, Math.min(SW - w - 30, lastGap + (Math.random() < 0.5 ? -1 : 1) * rnd(120, 300) - w / 2));
       const gaps = [{ x: gx, w }];
@@ -193,8 +194,8 @@ class FreefallScene extends Phaser.Scene {
       if (b.sw || b.y - a < 560 || Math.random() < 0.12) continue;
       const y = (a + b.y) / 2 + rnd(-40, 40), lx = this.lineXAt(y), type = ['spin', 'swing', 'smoke', 'spin', 'swing', 'patty'][Math.floor(Math.random() * 6)];
       if (this.vents.some(v => Math.abs(v.y - y) < 160)) continue;
-      if (type === 'spin') this.haz.push({ type, x: Math.max(150, Math.min(SW - 150, lx + rnd(-50, 50))), y, len: 140, ang: rnd(0, 6), w: (Math.random() < 0.5 ? -1 : 1) * rnd(1.3, 1.9) * (y > SH / 2 ? 1.25 : 1) });
-      else if (type === 'swing') { const side = lx > SW / 2 ? 1 : -1; this.haz.push({ type, side, y, px: side < 0 ? 0 : SW, py: y - 230, len: 300, ph: rnd(0, 6), sp: rnd(1.5, 2) }); }
+      if (type === 'spin') { const sd = lx > SW / 2 ? -1 : 1; this.haz.push({ type, x: Math.max(120, Math.min(SW - 120, lx + sd * rnd(150, 190))), y, len: 105, ang: rnd(0, 6), w: (Math.random() < 0.5 ? -1 : 1) * rnd(1.1, 1.5) * (y > SH / 2 ? 1.2 : 1) }); }   // (v2.76) beside the line, its tip sweeping across it: time it
+      else if (type === 'swing') { const side = lx > SW / 2 ? 1 : -1; this.haz.push({ type, side, y, px: side < 0 ? 0 : SW, py: y - 230, len: 260, ph: rnd(0, 6), sp: rnd(1.1, 1.4) }); }   // (v2.76: slower, a bit shorter)
       else if (type === 'patty') { const side = lx > SW / 2 ? -1 : 1; this.haz.push({ type, side, y: y - 120, x: side < 0 ? 30 : SW - 30, on: false, t: rnd(0, 1.5) }); }
       else this.haz.push({ type, x: rnd(150, SW - 150), y, r: 150, ph: rnd(0, 6) });
     }
@@ -208,7 +209,7 @@ class FreefallScene extends Phaser.Scene {
       this.rats.push({ r, a: seg[0] + 20, b: seg[1] - 20, x: rnd(seg[0] + 20, seg[1] - 20), v: (Math.random() < 0.5 ? -1 : 1) * rnd(90, 150), im });
     }
     this.isTouch = (navigator.maxTouchPoints || 0) > 0 || ('ontouchstart' in window);
-    this.need = Math.ceil(this.trail.length * 0.85);
+    this.need = Math.ceil(this.trail.length * 0.75);   // (v2.76: 85% -> 75% now that hazards kill)
     this.buildShaft();
 
     // ---- the prize: a gun floating over the pizza stone at the bottom (an extra life once every gun's won)
@@ -246,6 +247,9 @@ class FreefallScene extends Phaser.Scene {
     this.exitBtn.on('pointerdown', () => this.leave());
     this.layout(); this.scale.on('resize', this.layout, this); this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
 
+    this.hudCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
+    this.events.on('prerender', () => { for (const o of this.children.list) if (!o.__camSet) { o.__camSet = 1; if (o.scrollFactorX === 0) this.cameras.main.ignore(o); else this.hudCam.ignore(o); } });
+    this.events.once('shutdown', () => this.events.off('prerender'));
     this.keys = this.input.keyboard ? this.input.keyboard.addKeys({ left: 'LEFT', right: 'RIGHT', up: 'UP', down: 'DOWN', a: 'A', d: 'D', w: 'W', s: 'S', x: 'X', z: 'Z', space: 'SPACE' }) : null;
     const padOff = Pad.on(b => {
       if (b === 'back') return this.leave();
@@ -277,6 +281,7 @@ class FreefallScene extends Phaser.Scene {
   // (hat, moustache, boots, an arm, his head), eyeballs bouncing, a splat on the lens that slides down, then the result
   splat(x, y, why) {
     if (this.done) return;
+    this.lastWhy = why;
     this.done = true; this.doneT = this.t; this.splatted = true; this.vel.x = this.vel.y = 0;
     this.hitStop = 0.18; Sound.sfx('crash'); Sound.sfx('squelch'); Sound.sfx('ouchBig'); buzz && buzz([80, 40, 160]);
     this.cameras.main.shake(520, 0.022); this.cameras.main.flash(160, 255, 90, 50);
@@ -344,6 +349,21 @@ class FreefallScene extends Phaser.Scene {
     for (let i = 0; i < 14; i++) this.flames.push({ im: this.add.image(rnd(10, SW - 10), SH + rnd(-6, 20), 'ffflame0').setOrigin(0.5, 1).setDepth(2.1).setScale(rnd(1.8, 2.8)).setBlendMode(Phaser.BlendModes.ADD), ph: rnd(0, 6), sp: rnd(9, 15) });
     this.add.image(SW / 2, SH - 4, 'ffstone').setOrigin(0.5, 1).setScale(2).setDepth(2.2);
   }
+  // (v2.76) WHERE NEXT: chevrons over the next grate's gap; if it's still below the screen, they sit on the bottom edge
+  // right above where the gap is, pulsing (blue = brake for this one)
+  drawNextGap(viewTop, viewH) {
+    const g = this.nextG || (this.nextG = this.add.graphics().setScrollFactor(0).setDepth(19)), z = this.zoomK, W = this.scale.width, H = this.scale.height, cam = this.cameras.main;
+    g.clear(); if (this.done || this.intro > 0.6) return;
+    const toScreenX = x => (x - (cam.scrollX + W / 2 - W / 2 / z)) * z;
+    const rs = this.rows.filter(q => q.y > this.pos.y).slice(0, 2);
+    rs.forEach((r, n) => {
+      const tt = (r.y - this.pos.y) / Math.max(120, this.vel.y), gp = this.gapsAt(r, this.t + tt).find(q => Math.abs(q.x + q.w / 2 - r.lineX) < 140) || this.gapsAt(r, this.t)[0];
+      const sx = toScreenX(gp.x + gp.w / 2), below = r.y > viewTop + viewH - 20, sy = below ? H - 16 : (r.y - 30 - viewTop) * z, col = r.sw ? 0x6ad0ff : 0xffd23f, a = (n ? 0.45 : 1) * (0.65 + 0.35 * Math.sin(this.t * 10));
+      if (n && !below) return;
+      for (let k = 0; k < (n ? 1 : 2); k++) { const y = sy - k * 9 + (below ? 0 : Math.sin(this.t * 8) * 3); g.fillStyle(0x1a1020, a).fillTriangle(sx - 13, y - 7, sx + 13, y - 7, sx, y + 7); g.fillStyle(col, a).fillTriangle(sx - 9, y - 5, sx + 9, y - 5, sx, y + 4); }
+      if (below && !n) { g.fillStyle(col, 0.25 * a).fillRect(sx - gp.w * z / 2, H - 4, gp.w * z, 4); }
+    });
+  }
   drawSlidingGrates() {
     for (const r of this.rows) if (r.slide) {
       const near = Math.abs(r.y - this.pos.y) < this.scale.height * 1.6, segs = near ? this.solidSegs(r, this.t) : [];
@@ -390,6 +410,7 @@ class FreefallScene extends Phaser.Scene {
     if (this.countTxt) this.countTxt.setPosition(W / 2, H * 0.68);
     this.exitBtn.setPosition(10, 10);
     if (this.heat) this.heat.setSize(W, H);
+    if (this.hudCam) this.hudCam.setSize(W, H);
   }
   puff(x, y, n, col, spd, life, size) { ZeroGScene.prototype.puff.call(this, x, y, n, col, spd, life, size); }
   pop(x, y, txt, col) { ZeroGScene.prototype.pop.call(this, x, y, txt, col); }
@@ -431,14 +452,14 @@ class FreefallScene extends Phaser.Scene {
     if (plunge && !this.plungeOn) { this.plungeOn = true; Sound.sfx('fan'); Sound.sfx('crash'); this.cameras.main.shake(400, 0.01); this.pop(this.pos.x, this.pos.y + 80, 'THE COALS! PLUNGE!', '#ffb03a'); }
     // ---- move: snappy steering, a fall you can control
     if (this.slideT > 0) this.slideT -= dt;
-    else this.vel.x += (ax * 300 - this.vel.x) * Math.min(1, dt * 10);
+    else this.vel.x += (ax * 370 - this.vel.x) * Math.min(1, dt * 14);    // (v2.76: snappier, faster steering)
     if (ax) P.facing = ax > 0 ? 1 : -1;
-    const braking = brake, boosting = !brake && boost && this.fuel > 0, cruise = plunge ? 560 : 470;
+    const braking = brake, boosting = !brake && boost && this.fuel > 0, cruise = plunge ? 480 : 410;   // (v2.76: a touch slower: time to read the grates)
     if (braking && !this.wingOn) { Sound.sfx('swish'); Sound.sfx('flap'); this.puff(this.pos.x, this.pos.y - 40, 8, 0xffffff, 200, 0.25, 2); }   // the cape snaps open: WHUMP
     this.wingOn = braking;
     this.wingK = (this.wingK || 0) + ((braking ? 1 : 0) - (this.wingK || 0)) * Math.min(1, dt * 9);
     if (braking) this.vel.y = Math.max(110, this.vel.y - 1300 * dt);
-    else if (boosting) { this.fuel = Math.max(0, this.fuel - dt / 2.2); this.vel.y = Math.min(760, this.vel.y + 1500 * dt); }
+    else if (boosting) { this.fuel = Math.max(0, this.fuel - dt / 2.2); this.vel.y = Math.min(700, this.vel.y + 1500 * dt); }
     else this.vel.y = this.vel.y > cruise ? Math.max(cruise, this.vel.y - 600 * dt) : Math.min(cruise, this.vel.y + 900 * dt);
     if (!boosting) this.fuel = Math.min(1, this.fuel + dt * 0.1);
     if (braking && Math.random() < dt * 6) Sound.sfx('flap');
@@ -459,12 +480,12 @@ class FreefallScene extends Phaser.Scene {
     for (const v of this.vents) {
       v.t -= dt;
       if (v.t <= 0) {
-        if (v.st === 'idle') { v.st = 'warn'; v.t = 0.8; }
+        if (v.st === 'idle') { v.st = 'warn'; v.t = 1.1; }   // (v2.76: a longer warning)
         else if (v.st === 'warn') { v.st = 'fire'; v.t = 0.8; v.hitDone = false; if (Math.abs(v.y - this.pos.y) < H) { Sound.sfx('fan'); this.cameras.main.shake(120, 0.005); } }
         else { v.st = 'idle'; v.t = (v.y > SH / 2 ? 1.8 : 2.5) + Math.random() * 2; }
       }
       if (v.st === 'fire' && !v.hitDone) {
-        const reach = 270, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > SW - reach;
+        const reach = 230, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > SW - reach;
         if (inX && Math.abs(this.pos.y - v.y) < 40) { v.hitDone = true; this.splat(this.pos.x, this.pos.y - 30, 'TOASTED BY A FLARE-UP!'); }
       }
     }
@@ -499,9 +520,9 @@ class FreefallScene extends Phaser.Scene {
     // ---- burnt sausages: roll off the grates ahead and tumble down
     this.sausT -= dt;
     if (this.sausT <= 0 && !this.done && this.sausages.length < 7) {
-      this.sausT = (deep > 0.5 ? 0.9 : 1.6) + Math.random();
+      this.sausT = (deep > 0.5 ? 2 : 3) + Math.random() * 1.5;
       const r = this.rows.find(q => q.y > this.pos.y + H * 0.35 && q.y < this.pos.y + H * 1.2 && !q.slide);
-      if (r) { const sd = Math.random() < 0.5 ? -1 : 1; this.sausages.push({ x: sd < 0 ? 20 : SW - 20, y: r.y - 6, vx: -sd * (110 + Math.random() * 60), vy: 0, rot: 0, im: this.add.image(0, 0, 'ffsausage').setDepth(3.3).setScale(1.6) }); }
+      if (r) { const sd = Math.random() < 0.5 ? -1 : 1; this.sausages.push({ x: sd < 0 ? 20 : SW - 20, y: r.y - 6, vx: -sd * (70 + Math.random() * 40), vy: 0, rot: 0, im: this.add.image(0, 0, 'ffsausage').setDepth(3.3).setScale(1.6) }); }
     }
     for (let i = this.sausages.length - 1; i >= 0; i--) {
       const S = this.sausages[i];
@@ -550,11 +571,14 @@ class FreefallScene extends Phaser.Scene {
 
     // ---- camera: Chris in the upper third, looking further ahead the faster he falls
     // (the faster you go, the further ahead the camera looks; braking lets it settle back)
-    const lead = this.done ? 0 : Math.min(130, Math.max(0, this.vel.y - 150) * 0.28);
-    this.zoomK = 1; cam.scrollX = SW / 2 - W / 2;
-    const ty = this.pos.y - H * 0.32 + lead;
+    // (v2.76) the world is zoomed out on short (landscape phone) screens so you can see ~2 grates ahead; Chris rides
+    // high on the screen, a little higher the faster he falls
+    const z = Math.min(1, H / 600); this.zoomK = z; cam.setZoom(z); cam.scrollX = SW / 2 - W / 2;
+    const fTop = this.done ? 0.3 : 0.24 - Math.min(0.06, Math.max(0, this.vel.y - 300) / 4000);
+    const ty = this.pos.y - fTop * H / z - H / 2 + H / (2 * z);
     cam.scrollY += (ty - cam.scrollY) * Math.min(1, dt * 7);
     const viewTop = cam.scrollY + H / 2 - H / 2 / this.zoomK, viewH = H / this.zoomK;
+    this.drawNextGap(viewTop, viewH);
 
     // ---- draw
     this.drawSlidingGrates();
@@ -563,7 +587,7 @@ class FreefallScene extends Phaser.Scene {
     for (const h of this.haz) {
       if (Math.abs(h.y - this.pos.y) > H * 1.3) { if (h.im) h.im.setVisible(false); if (h.arm) h.arm.setVisible(false); continue; }
       if (h.type === 'spin') {
-        if (!h.im) h.im = this.add.image(h.x, h.y, 'ffskewer').setDepth(3.1).setScale(2 * h.len / 150, 2);
+        if (!h.im) h.im = this.add.image(h.x, h.y, 'ffskewer').setDepth(3.1).setScale(2 * h.len / 150, 1.7);
         h.im.setVisible(true).setRotation(h.ang);
         dg.fillStyle(0x1a1012, 1).fillCircle(h.x, h.y, 12); dg.fillStyle(0x6a7080, 1).fillCircle(h.x, h.y, 9); dg.fillStyle(0xd8dce6, 1).fillCircle(h.x - 2, h.y - 2, 3);
       } else if (h.type === 'swing' && h.hx !== undefined) {
@@ -600,7 +624,7 @@ class FreefallScene extends Phaser.Scene {
       const x0 = v.side < 0 ? 0 : SW;
       if (v.st === 'warn') { g.fillStyle(0xff7a1a, 0.3 + 0.3 * Math.sin(this.t * 30)).fillCircle(x0, v.y, 30); if (Math.random() < 0.4) this.fx.push({ x: x0 - v.side * 10, y: v.y + (Math.random() - 0.5) * 30, vx: -v.side * 60, vy: -40, life: 0.4, max: 0.4, col: 0xffa020, size: 2 }); }
       if (v.st === 'fire') for (let i = 0; i < 12; i++) {
-        const u = i / 12, len = 270 * (0.85 + 0.15 * Math.sin(this.t * 40 + i)), x = x0 - v.side * len * u, r = 16 + 22 * u;
+        const u = i / 12, len = 230 * (0.85 + 0.15 * Math.sin(this.t * 40 + i)), x = x0 - v.side * len * u, r = 16 + 22 * u;
         g.fillStyle(u < 0.25 ? 0xffffff : u < 0.55 ? 0xffd23f : 0xff5a1a, 0.8 - u * 0.45).fillCircle(x, v.y + Math.sin(this.t * 30 + i) * 6 * u, r);
       }
     }
@@ -709,6 +733,6 @@ class FreefallScene extends Phaser.Scene {
     btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#ffb07a');
     this.exitBtn.setVisible(false);
   }
-  again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
-  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
+  again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
+  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }
