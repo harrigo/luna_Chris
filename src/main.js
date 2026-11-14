@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.68';
+const BUILD = 'v2.69';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -196,6 +196,7 @@ class Level1 extends Phaser.Scene {
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];
+    Tel.begin(this);                // (v2.69) the playtest recorder
     this.waveT = 0;
     this.clearT = 0;
     this.spawnSide = 1;
@@ -843,6 +844,7 @@ class Level1 extends Phaser.Scene {
 
   // End of the level: the Croque Monsieur's wreck drops Bessie, she dodges the falling debris by a whisker.
   startRescue() {
+    Tel.end(this, 'won');
     const P = this.pl;
     const T0 = wrap(P.theta + 0.3);
     const cow = { spr: this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6), theta: T0, h: 330, rot: 0 };
@@ -1176,7 +1178,7 @@ class Level1 extends Phaser.Scene {
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
-    this.deaths++;
+    this.deaths++; Tel.end(this, 'died');
     this.registry.set('lives', this.lives - 1); this.registry.set('gunLv', {});          // the guns go back to level 1
     if (this.lives <= 0) { this.hideOverlay(); this.gameOver(); return; }
     const quips = ['The rats got away with Bessie.', 'Chris has been grated.', 'That was cheesy.', 'Bessie is NOT impressed.', 'Squeak squeak. (The rats are laughing.)', 'Brie-lliant effort. Not really.', 'You got Camem-BURNT.'];
@@ -1423,6 +1425,7 @@ class Level1 extends Phaser.Scene {
     const rawDt = Math.min(delta / 1000, 0.05);
     const inp = this.readInput();
     this.lastDt = rawDt;
+    Tel.tick(this, rawDt);
     if (this.coarse && this.H > this.W) { this.render(inp); return; }   // paused while the "rotate your phone" prompt shows
     if (this.paused) { this.render(inp); return; }
     if (this.hitStop > 0) { this.hitStop -= rawDt; this.fxTick(rawDt); this.render(inp); return; }   // hit-stop: freeze for a few frames on big impacts
@@ -4194,6 +4197,7 @@ class Level1 extends Phaser.Scene {
       }
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type !== 'boss') this.comboKill();
+      Tel.kill(e);
       this.rig.grin();                                   // (v2.59) a smug grin
       const pts = ({ mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);

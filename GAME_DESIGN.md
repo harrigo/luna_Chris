@@ -1653,3 +1653,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The King now visibly pounds the glass with his fists ('kfist': mangy clawed fist, signet ring, ermine cuff) on robe-sleeve arms, alternating left/right: each fist winds back (G.windup over 0.28 s before a blow) then slams out to the crack point and swells toward the camera. Drawn above the crack layer so every punch reads.
 - Each blow: big comic word (BANG!/THUD!/CRACK!/WHAM!/CRUNCH!/SMASH!), white flash + shock ring + speed lines at the impact, hit-stop, harder shake, crash sfx.
 - 'sdome_broken' redrawn: jagged glass teeth all round the rim, buckled snapped ribs, scorched open interior, smashed console with bent yoke and hanging wires. After he leaves the wreck smokes and sparks, and glass litters the deck around it.
+
+### v2.69 — Playtest recorder (balancing groundwork)
+- New src/telemetry.js (loaded after shop.js). Every level attempt is logged on the device (localStorage 'lc_tel_v1', last 80): level, difficulty, build, Chris's kit on arrival (gun levels, chips, max hearts, armour mark/plates, boots, tank, magnet, burgers, lives, cheddar), result (won / died / quit), and per segment (W1..W3, BOSS): time, hearts lost, armour plates lost, kills, cheddar picked up, average and peak enemies on screen and enemy shots in flight, gun level in/out, boss HP and how much was left.
+- ?tel in the URL shows a small panel (live wave stats + EXPORT / CLEAR / HIDE); it stays on until ?tel=0 or HIDE. EXPORT shares the JSON file on phones, downloads it on desktop, and copies it to the clipboard.
+- Hooks: Tel.begin in create, Tel.tick in update, Tel.kill on enemy death, Tel.end on die()/startRescue(); Shop.earn is wrapped to count cheddar.
+- The Balance Lab (an artifact) models Chris's expected power per level from the shop and cheddar income, scores every enemy's threat, compares each level's wave pressure to a target curve (power × "surpass"), and reads these exports.
