@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.78';
+const BUILD = 'v2.79';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -13,7 +13,7 @@ const TAU = Math.PI * 2;
 let R = 420; // planet radius in world units (set per level from LEVELS[n].radius)
 
 const CFG = {
-  finalLevel: 9,          // Bessie only stays rescued after this level; before it the rats always snatch her back
+  finalLevel: 10,         // Bessie only stays rescued after this level; before it the rats always snatch her back
   gravity: 1500,
   jumpV: 560,
   runSpeed: 230,
@@ -199,7 +199,8 @@ class Level1 extends Phaser.Scene {
   init(data) {
     this.autostart = !!(data && data.autostart);
     this.warped = !!(data && data.warped);                       // arrived through a warp hole
-    this.direct = !!(data && data.direct);                       // arrived from the level-select screen
+    this.direct = !!(data && data.direct);
+    this.fromPrime = !!(data && data.fromPrime);                 // (v2.79) arrived hanging off the Royal Saucer's ladder from Parmesan Prime                       // arrived from the level-select screen
     this.levelId = (data && data.level) || 1;
     this.cp = (data && data.cp) || null;                         // checkpoint to resume from after dying: { wave, score }
     this.deaths = (data && data.deaths) || 0;                    // deaths this attempt (counts against the level rank)
@@ -224,7 +225,7 @@ class Level1 extends Phaser.Scene {
     this.enemies = [];
     this.pBullets = [];
     this.eBullets = [];
-    this.parts = []; this.acidPools = []; this.acidG = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null; this.caveFg = this.caveTxt = this.caveBessie = null; this.labRT = this.labStamp = this.labEyes = this.labRock = this.labSign = this.labMoon = null; this.labLights = [];   // (v2.72: a retry starts clean)
+    this.parts = []; this.acidPools = []; this.acidG = null; this.ppEsc = null; this.pp = null; this.ppWarnTxt = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null; this.caveFg = this.caveTxt = this.caveBessie = null; this.labRT = this.labStamp = this.labEyes = this.labRock = this.labSign = this.labMoon = null; this.labLights = [];   // (v2.72: a retry starts clean)
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];
@@ -448,6 +449,7 @@ class Level1 extends Phaser.Scene {
     this.pinT = 0; this.gravMul = 1;
     if (this.def.ocean) this.armadaInit();              // L7: the ocean (armada.js)
     if (this.def.saucer) this.saucerInit();             // L10: the Royal Saucer's deck (saucer.js)
+    if (this.fromPrime) this.time.delayedCall(1400, () => this.banner('HANGING ON BY A RUNG...\nTIME TO GET BESSIE BACK!'));
     if (this.def.gorge) this.gorgeInit();               // L6: snappers in the salsa pits, rind shards (gorge.js)
     if (this.def.parm) this.parmInit();                 // L9: the Royal Rasp, crumbling ground, grenades (parmesan.js)
     this.specLights = []; this.fogFg = [];
@@ -1125,7 +1127,7 @@ class Level1 extends Phaser.Scene {
     this.waveText.setText(this.waveIdx < this.waves.length - 1 ? 'WAVE ' + (this.waveIdx + 1) + '/' + (this.waves.length - 1) : 'BOSS');
   }
 
-  win() { this.startRescue(); }
+  win() { if (this.def.parm) { this.parmEscape(); return; } this.startRescue(); }   // (L9: the planet splits - run for the Royal Saucer)
   // which arrangement of the level tune a wave gets: 0 the first wave, 2 the last before the boss, 1 the ones between
   musicTier(i) { const n = this.def.waves.length; return i <= 0 ? 0 : i >= n - 1 ? 2 : 1; }
 
@@ -1493,7 +1495,7 @@ class Level1 extends Phaser.Scene {
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp);
       if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
-      this.updateRescue(dt);
+      if (this.ppEsc) this.parmEscapeUpdate(dt); else this.updateRescue(dt);
     }
     if (this.nap) this.updateNap(dt);
     if (this.warp) this.updateWarp(dt);
@@ -1714,7 +1716,7 @@ class Level1 extends Phaser.Scene {
         if (Math.abs(rel) < 15) { const side = Math.sign(rel) || -(P.facing || 1); P.theta = wrap(C.theta + side * 15 / R); if (Math.sign(P.vx) === -side) P.vx = 0; this.pinT = 0.15; this.pinSide = side; }
       }
     }
-    if (this.craters && this.craters.length && this.state === 'play') {
+    if (this.craters && this.craters.length && (this.state === 'play' || this.ppEsc)) {
       const onGround = P.h <= 0.5 && !(P.floor > 0);
       const cr = this.craters.find(c => Math.abs(angDiff(P.theta, c.theta)) < c.half * (c.kind === 'pit' ? 0.8 : 1));
       P.bump = !!(cr && cr.kind === 'bump' && onGround);
@@ -2126,7 +2128,8 @@ class Level1 extends Phaser.Scene {
   // how much damage a hit does: rat-frogs are slime-shielded (0) except when attacking / pouncing / stunned (x2)
   hitK(e, th, h) {
     if (e.ai === 'milkmaid') return this.mmHitK(e, th, h);
-    if (e.type === 'ppguard') return this.ppHitK(e);         // L9: the Royal Guard's tower shield
+    if (e.type === 'ppguard') return this.ppHitK(e);
+    if (e.ai === 'colossus') return this.colHitK(e, th, h);         // L9: the Royal Guard's tower shield
     if (e.ai === 'magmagolem') return this.mgHitK(e, th, h);   // crust plates soak shots until they break   // act 2: her heart is the weak spot
     if (e.ai === 'wheel' && e.core) return 0.12;           // the gooey core shrugs off normal shots: charge up and hit the eye
     if (e.type === 'mgolem') {                          // charred crust armour: half damage, chips flying, until it cracks open
@@ -3706,6 +3709,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.def.ocean) this.armadaSetup(e, kind);
     if (type === 'boss' && this.def.boss.ai === 'saucerking') this.kingSetup(e);
+    if (type === 'boss' && this.def.boss.ai === 'colossus') this.colossusSetup(e);
     if (type === 'lturret') this.turretSetup(e);
     return e;
   }
@@ -3933,6 +3937,7 @@ class Level1 extends Phaser.Scene {
         // slow, heavy drifting: Chris (230 units/s) can run clean past it, turn round and shoot back
         if (e.ai === 'dreadnought') this.armadaAI(e, dt, P);   // L7's boss steers itself (armada.js)
         else if (e.ai === 'saucerking') this.kingAI(e, dt, P);  // L10: the Rat King on the deck (saucer.js)
+        else if (e.ai === 'colossus') this.colossusAI(e, dt, P);  // L9: the Parmesan Colossus (parmesan.js)
         else if (e.ai !== 'wheel' && !e.mmLock && !((e.ai === 'croque' || e.ai === 'baron') && e.stage >= 2)) {
           const baron = e.ai === 'baron';
           const target = P.theta + (baron ? Math.sin(e.t * 0.9) * 75 / R : Math.sin(e.t * 0.5) * 0.3);      // the Baron hunts you down, weaving over your head

@@ -129,7 +129,7 @@ class EndingScene extends IntroScene {
         this.dust(this.cx, GY, 8, 'ix_dust', 20, 14); this.shake(150, 0.005);
       }
     });
-    this.say('MEANWHILE, ON THE SMOKING RUINS OF PARMESAN PRIME...');
+    this.say('MEANWHILE, IN THE SMOKING WRECK OF THE ROYAL SAUCER...');
     this.at(2600, () => { this.say('...LUNA CHRIS FOUND HER.'); this.bubble(this.cx + 4, GY - 104, 'BESSIE!!!', 1600, '#d0302a'); });
     this.at(3600, () => { Sound.sfx('moo'); this.bubble(30, GY - 72, 'MOO?!', 1400); this.tweens.killTweensOf(this.bessie); });
     this.at(4800, () => {                                          // pew pew: smash the glass
@@ -352,7 +352,8 @@ class EndingScene extends IntroScene {
       ['BURGER CONSULTANT', '#9fd8ff'], ['THE DOG AGAIN', '#ffffff'], ['', ''],
       ['ALL CHEESE SUPPLIED BY', '#9fd8ff'], ['BESSIE', '#ffffff'], ['', ''],
       ['NO RATS WERE HARMED', '#9fd8ff'], ['MOST OF THEM WERE CURED', '#ffffff'], ['', ''],
-      ['MADE BY', '#9fd8ff'], ['HARRIGO', '#ffd23f'], ['', ''], ['MOO.', '#ffd23f']
+      ['MADE BY', '#9fd8ff'], ['HARRIGO', '#ffd23f'], ['', ''],
+      ['CODE, ART AND CHEESE WRANGLING', '#9fd8ff'], ['CLAUDE', '#ffffff'], ['GEMINI', '#ffffff'], ['', ''], ['MOO.', '#ffd23f']
     ];
     const roll = this.add2(this.add.container(0, 150));
     lines.forEach(([t, c], i) => { if (t) roll.add(this.add.text(0, i * 16, t, { fontFamily: PIXEL, fontSize: '8px', color: c, stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setResolution(res)); });

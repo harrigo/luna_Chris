@@ -334,7 +334,7 @@ const LEVELS = {
 
   9: {
     id: 9, hpMul: 1.58, name: 'Parmesan Prime', short: 'PARMESAN PRIME', parm: true, blurb: 'The rats\' homeworld: one colossal wheel of Parmesan,\nand they\'re grating it to bits.',
-    music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY AND THE GROUND!',
+    music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY AND THE GROUND!',
     radius: 520, sky: [0x100204, 0x8a2010], skyCols: [0x100204, 0x2a0408, 0x4a080c, 0x6a1010, 0x8a2010, 0xaa3a10], bg: '#100204', starTint: 0xffb0a0, dustAlpha: 1.4, bgDecor: 'gears', lava: 10,
     surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595 },
     planet: { fill: 0xdcd0a0, inner: 0xc0b07a, rim: 0xfff8e0, glow: 0xffb070 },
@@ -352,14 +352,14 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('flyer', 1.2), S('ppguard', 1.8), S('mouse', 2.2), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('flyer', 4.4), S('ppguard', 5), S('mouse', 5.4), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8), S('mouse', 8.4), S('paladin', 9), S('mouse', 9.6)] },
       { name: 'WAVE 3', spawns: [S('ppguard', 0), S('ppguard', 0.4), S('ppcav', 1), S('mouse', 1.3), S('ppgren', 1.8), S('ppgren', 2.2), S('flyer', 2.6), S('pptax', 3.2), S('mouse', 3.6), S('ppcav', 4.4), S('paladin', 5), S('mouse', 5.4), S('flyer', 5.8), S('ppguard', 6.4), S('ppgren', 7), S('mouse', 7.4), S('ppcav', 8.2), S('mouse', 8.6), S('flyer', 9), S('ppguard', 9.6), S('mouse', 10)] },
     ],
-    boss: { tex: 'ratking', hp: 480, ai: 'king', armouredTop: true },
+    boss: { tex: 'ratking', hp: 480, ai: 'colossus', scale: 1.35 },                                // (v2.79) THE PARMESAN COLOSSUS (parmesan.js; its own textures)
     win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
   },
 
   // LEVEL 10 (the finale, in progress - open on the map for testing): the Rat King's flying saucer (saucer.js)
   10: {
     id: 10, hpMul: 1.7, name: "The Rat King's Saucer", short: 'THE ROYAL SAUCER', blurb: 'The top deck of the Royal Saucer, high over Parmesan Prime.\nThe Rat King is at the wheel. Do not fall off.',
-    music: 'level9', bossMusic: 'final', bossName: 'THE GRAND RAT-KING', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
+    music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
     radius: 1100, sky: [0x03040e, 0x1a1238], skyCols: [0x03040e, 0x070a1c, 0x0c1030, 0x141440, 0x1e164a, 0x2a1a50], bg: '#03040e', starTint: 0xc8d8ff, dustAlpha: 0.5, bgDecor: 'cosmic',
     planet: { fill: 0x4a5672, inner: 0x232a3e, rim: 0xb8c4e0, glow: 0x9fd8ff },
     dust: [0xffffff, 0x9fd8ff, 0xffd8a0, 0xc8d8ff], decorTint: 0x8a94a6, decorAlpha: 0.5,
@@ -1023,7 +1023,7 @@ class SelectScene extends Phaser.Scene {
       { id: 'centrifuge', x: 0.4, y: 0.99, kind: 'bonus', name: 'WARP: CENTRIFUGE FERMENTER', blurb: 'The warp from the Triangle drops you in a spinning drum.\nSurvive 30s, grab every cheese wheel, then jump for the gun.' }
     ];
   }
-  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 'centrifuge'], ['centrifuge', 5.5], [5.5, 7]]; }
+  mapLinks() { return [[1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], [3, 'zerog'], ['zerog', 4], [6, 'freefall'], ['freefall', 7], [3, 'centrifuge'], ['centrifuge', 5.5], [5.5, 7]]; }
   // pick a stop: Chris boosts there along the route (straight across if they aren't joined)
   travel(id) {
     const from = this.sel; if (from === id) return;
@@ -1039,7 +1039,8 @@ class SelectScene extends Phaser.Scene {
   }
   isOpen(id) {
     const best = Progress.best;
-    if (id === 1 || id === 10 || Progress.testMode) return true;   // (10 is open while it's being built)
+    if (id === 1 || Progress.testMode) return true;
+    if (id === 10) return best >= 9;                               // (v2.79) the finale: straight on from Parmesan Prime
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
     if (id === 'centrifuge') return Progress.found(5.5);          // (v2.40) the warp road: Triangle -> CENTRIFUGE -> Fondue Fountain -> level 7
@@ -1189,7 +1190,7 @@ class SelectScene extends Phaser.Scene {
         if (n.id === 3) this.flair.push({ kind: 'ring', x: p.x, y: p.y, r, open });
         if (n.id === 2 && open) this.flair.push({ kind: 'drips', x: p.x, y: p.y, r });
         if (n.id === 7 && open) { const s = this.add.image(p.x, p.y, 'ratship').setScale(0.16); this.ui.add(s); this.flair.push({ kind: 'orbit', x: p.x, y: p.y, r, s }); }
-        if (n.id === 9) {                                          // Bessie's UFO, hovering over the last world: the goal
+        if (n.id === 10) {                                         // Bessie's UFO (the Royal Saucer), hovering over the last world: the goal (v2.79: was 9)
           const beam = this.add.image(p.x, p.y - r - 30, 'beam0').setOrigin(0.5, 0).setScale(0.32, 0.22).setAlpha(0.7);
           const cow = this.add.image(p.x, p.y - r - 14, 'bessie').setScale(0.26);
           const ufo = this.add.image(p.x, p.y - r - 34, 'ratship').setScale(0.5);

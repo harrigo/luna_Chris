@@ -165,6 +165,7 @@ const ParmMixin = {
     }
     S.taxmen = S.taxmen.filter(e => !e.refunded);
     S.sparkle += dt;
+    this.colUpdate(dt);
   },
   // ---- the empire's finest
   parmAI(e, dt, P, dirP) {
@@ -237,8 +238,9 @@ const ParmMixin = {
 
   parmDraw() {
     const S = this.pp; if (!S) return;
-    const g = this.ppG, bg = this.ppBack, hg = this.ppHud, z = this.zoom, t = this.t, P = this.pl, vt = this.viewT(), vh = this.visHalf + 0.15;
-    g.clear(); bg.clear(); hg.clear();
+    const g = this.ppG, bg = this.ppBack, hg = this.ppHud;
+    this.ppG.clear(); this.colDraw(this.ppG); this.parmEscapeDraw(this.ppG); const _ = 0, z = this.zoom, t = this.t, P = this.pl, vt = this.viewT(), vh = this.visHalf + 0.15;
+    bg.clear(); hg.clear();
     const inView = th => Math.abs(angDiff(th, vt)) < vh;
     // ---- the rind's giant dotted lettering, stamped round the planet just under the surface; crystals glinting
     const FONT = { P: ['1110', '1001', '1110', '1000', '1000'], A: ['0110', '1001', '1111', '1001', '1001'], R: ['1110', '1001', '1110', '1010', '1001'], M: ['10001', '11011', '10101', '10001', '10001'],
@@ -311,3 +313,270 @@ const ParmMixin = {
     }
   },
 };
+
+// ===== L9 part 2 (v2.79): THE PARMESAN COLOSSUS, and the ESCAPE to the Royal Saucer =====
+// A giant marble-and-Parmesan statue of the Rat-King comes alive in the palace plaza.
+//  1 (full to 65%): it plods after you. STOMP: a foot lifts (the tell), slams, and a shockwave runs round the ground both
+//    ways: jump it. CROWN LASER: a red sight-line from the crown, then a beam that sweeps across the ground through where
+//    you are. Shots chip lumps off it.
+//  2 (65% to 30%): it cracks open: three glowing crystals (knee, chest, crown). Only shots near a crystal hurt it
+//    properly (1.6x); the rest of it shrugs them off (0.3x). Faster stomps, double lasers.
+//  3 (below 30%): its HEAD snaps off and comes after you on its own, bouncing round the planet in big arcs (each landing
+//    a shockwave), spitting rubble and firing the crown laser. The body stays behind as a crumbled heap.
+// When it falls the real King flies over in his Royal Saucer, laughing, Bessie in the dome, and the planet SPLITS:
+// run (the ground collapsing behind you, chasms opening ahead, palace rubble raining) and grab the saucer's dangling
+// ladder as it lifts off. Then straight on board: Level 10.
+function makeColossusTextures(scene) {
+  if (scene.game.__colTex) return; scene.game.__colTex = true;
+  const MARB = [0xfff8ec, 0xe0d8c8, 0x9a9282], PARM = [0xf4e6b4, 0xd8c488, 0x9a864a], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a], CRY = [0xffffff, 0xfff0a0, 0xffb03a], INK = 0x1a1020;
+  const crown = (a, x, y, w) => { a.poly([[x - w, y], [x - w + 2, y - 12], [x - w / 2, y - 5], [x, y - 15], [x + w / 2, y - 5], [x + w - 2, y - 12], [x + w, y]], GOLD); a.rect(x - w, y - 2, x + w, y + 2, GOLD[1]); a.ell(x, y - 9, 2.5, 2.5, 0xd62828); };
+  const head = (a, x, y, cr) => {                                     // the statue's rat head facing right
+    a.ell(x, y, 22, 19, PARM); a.poly([[x + 12, y - 8], [x + 42, y + 4], [x + 12, y + 14]], PARM); a.ell(x + 42, y + 4, 4, 3.5, 0xc89a8a);
+    a.ell(x - 10, y - 18, 8, 10, PARM); a.ell(x - 10, y - 18, 4, 6, PARM[2]);
+    a.ell(x + 6, y - 4, 5, 4, 0x3a2a10); a.ell(x + 7, y - 4, 2.5, 2.5, cr ? 0xff3a1a : 0x9a864a);       // the eye: dead, or glowing
+    a.line([[x + 26, y + 10], [x + 32, y + 14]], 0x6a5a2a); a.rect(x + 30, y + 10, x + 32, y + 15, MARB[0]);
+    for (const [dx, dy] of [[-12, 6], [2, 10], [-4, -6], [14, 4]]) a.ell(x + dx, y + dy, 2, 1.5, 0xb8a464);   // parmesan pits
+  };
+  for (const v of [0, 1]) pixSprite(scene, v ? 'colossus_b' : 'colossus', 120, 160, a => {
+    a.rect(20, 146, 100, 159, MARB[2]); a.rect(16, 142, 104, 148, MARB); a.rect(30, 150, 90, 154, GOLD[1]);   // plinth
+    a.rect(38, 112, 52, 142, PARM[1]); a.rect(66, 112, 80, 142, PARM[1]); a.ell(46, 140, 12, 5, PARM); a.ell(74, 140, 12, 5, PARM);   // legs + feet
+    a.poly([[30, 60], [90, 60], [100, 120], [20, 120]], [0xd84a5a, 0xa01a2a, 0x5a0a14]);                       // the robe (painted)
+    a.poly([[26, 66], [34, 60], [40, 120], [26, 120]], MARB); a.poly([[94, 66], [86, 60], [80, 120], [94, 120]], MARB);   // ermine trim
+    for (const [x, y] of [[30, 80], [32, 100], [90, 84], [88, 106]]) a.px(x, y, INK);
+    a.line([[90, 70], [106, 50], [110, 30]], PARM[1], 7); a.ell(110, 26, 6, 6, GOLD);                          // sceptre arm
+    a.line([[30, 70], [18, 90], [22, 104]], PARM[1], 7);
+    head(a, 56, 40, v); crown(a, 50, 22, 16);
+    if (v) {                                                                                                  // cracked open: the crystals glow through
+      for (const [x, y] of [[44, 120], [62, 78], [50, 16]]) { a.poly([[x - 8, y], [x - 3, y - 9], [x + 4, y - 7], [x + 8, y + 2], [x + 2, y + 9], [x - 6, y + 6]], CRY); a.px(x - 2, y - 4, 0xffffff); }
+      a.line([[30, 64], [40, 80], [36, 96]], 0x3a2a10, 2); a.line([[84, 66], [76, 90]], 0x3a2a10, 2); a.line([[60, 30], [66, 44]], 0x3a2a10, 2);
+      a.line([[46, 112], [40, 126]], 0x3a2a10, 2);
+    } else for (const [x0, y0, x1, y1] of [[34, 70, 40, 84], [80, 72, 86, 88]]) a.line([[x0, y0], [x1, y1]], 0x9a864a);
+  });
+  pixSprite(scene, 'colhead', 84, 70, a => {
+    head(a, 30, 36, 1); crown(a, 26, 18, 15);
+    a.poly([[6, 50], [12, 58], [22, 54], [30, 62], [40, 56], [46, 62], [50, 50]], CRY);                        // the snapped neck, glowing
+    a.line([[10, 30], [18, 40]], 0x3a2a10, 2); a.line([[40, 24], [46, 32]], 0x3a2a10, 2);
+  });
+  pixSprite(scene, 'colrubble', 120, 70, a => {
+    a.rect(20, 56, 100, 69, MARB[2]); a.rect(16, 52, 104, 58, MARB);
+    a.poly([[24, 52], [34, 22], [52, 30], [60, 14], [78, 26], [92, 20], [100, 52]], PARM);
+    a.poly([[36, 40], [48, 34], [56, 44]], [0xd84a5a, 0xa01a2a, 0x5a0a14]); for (const [x, y] of [[44, 26], [70, 34], [84, 30]]) a.ell(x, y, 5, 4, PARM[2]);
+    a.poly([[54, 18], [60, 12], [66, 18], [60, 24]], CRY);
+  });
+}
+
+Object.assign(ParmMixin, {
+  colossusSetup(e) {
+    makeColossusTextures(this);
+    e.h = 0; e.vh = 0; e.ch = 92; e.r = 60; e.spr.setOrigin(0.5, 0.97).setTexture('colossus'); e.spr.bsx = e.spr.bsy = 1.35;
+    e.cs = { st: 'wake', t: 0, ph: 1, stompCd: 2.5, laserCd: 4, walkDir: 1, lift: 0 };
+    e.theta = wrap(this.pl.theta + 0.6);
+    this.pp.waves = []; this.pp.beams = [];
+  },
+  colHitK(e, th, h) {
+    const C = e.cs; if (!C || C.st === 'wake' || C.st === 'snap') return 0;
+    if (C.ph === 1) { if (Math.random() < 0.5) this.burst(e.theta, h, 'crumb', 3, 0.6); return 1; }
+    if (C.ph === 2) {
+      const sc = e.spr.bsy / 1.35, cry = [40, 95, 150].map(v => v * sc), near = cry.some(c => Math.abs(h - c) < 18);
+      if (near) { this.burst(e.theta, h, 'spark', 4, 0.8); return 1.6; }
+      this.burst(e.theta, h, 'crumb', 2, 0.4); return 0.3;
+    }
+    return 1;
+  },
+  colStomp(theta) {
+    this.pp.waves.push({ theta, d: 0, dirs: [-1, 1], hit: false });
+    this.bang(theta, 4, 40); this.burst(theta, 4, 'crumb', 18, 1.3); this.cameras.main.shake(260, 0.016); Sound.sfx('boom'); Sound.sfx('crash'); buzz([60, 30, 60]);
+  },
+  colLaser(e, crownH) {
+    const P = this.pl, sd = Math.sign(angDiff(P.theta, e.theta)) || 1;
+    this.pp.beams.push({ from: e, crownH, a0: wrap(P.theta - sd * 130 / R), a1: wrap(P.theta + sd * 130 / R), t: 0, warn: 0.85, dur: 0.75, hit: false });
+    Sound.sfx('charge');
+  },
+  colossusAI(e, dt, P) {
+    const C = e.cs || (this.colossusSetup(e), e.cs), toP = angDiff(P.theta, e.theta), side = Math.sign(toP) || 1;
+    C.t += dt;
+    const frac = e.hp / e.maxHp;
+    if (C.st === 'wake') {                                                 // the statue shudders, cracks, its eye lights up
+      e.spr.x += 0; if (Math.random() < dt * 12) this.burst(e.theta, rnd(20, 180), 'crumb', 2, 0.6);
+      if (C.t > 2.2) { C.st = 'fight'; e.spr.setTexture('colossus'); Sound.sfx('growl'); this.banner('IT\'S ALIVE!'); this.cameras.main.shake(400, 0.012); }
+      return;
+    }
+    if (C.ph === 1 && frac < 0.65) { C.ph = 2; e.spr.setTexture('colossus_b'); this.cameras.main.shake(500, 0.02); Sound.sfx('crash'); this.banner('IT\'S CRACKING!\nSHOOT THE GLOWING CRYSTALS!'); for (let k = 0; k < 10; k++) this.burst(e.theta, rnd(20, 190), 'crumb', 3, 1); }
+    if (C.ph === 2 && frac < 0.3 && C.st !== 'snap') {
+      C.st = 'snap'; C.t = 0; this.clearEBullets(); this.pp.beams = [];
+      Sound.sfx('crash'); Sound.sfx('boom'); this.cameras.main.shake(700, 0.025); this.banner('ITS HEAD CAME OFF!\n...AND IT\'S STILL COMING!');
+      const im = this.add.image(0, 0, 'colrubble').setOrigin(0.5, 0.97).setDepth(4.9); im.bsx = im.bsy = 1.35; this.place(im, e.theta, 0, 0); this.pp.rubble = { im, theta: e.theta };
+      e.spr.setTexture('colhead'); e.spr.setOrigin(0.5, 0.6); e.h = 150; e.vh = 420; e.ch = 30; e.r = 40; e.spr.bsx = e.spr.bsy = 1.5;
+    }
+    if (C.st === 'snap') { e.vh -= 900 * dt; e.h += e.vh * dt; if (e.h <= 30 && e.vh < 0) { e.h = 30; C.st = 'head'; C.ph = 3; C.hopCd = 0.6; C.spitCd = 1.5; this.colStomp(e.theta); } e.dir = side; e.spr.setFlipX(side < 0); return; }
+    if (C.ph < 3) {
+      // ---- the statue: plods after you, stomps, crown laser
+      const fast = C.ph === 2;
+      C.stompCd -= dt; C.laserCd -= dt;
+      if (C.lift > 0) {                                                  // a foot's up: the tell
+        C.lift -= dt; e.spr.rotation = -side * 0.08 * Math.sin(C.lift * 20);
+        if (C.lift <= 0) { e.spr.rotation = 0; this.colStomp(wrap(e.theta + side * 30 / R)); }
+      } else {
+        if (Math.abs(toP) * R > 170) e.theta = wrap(e.theta + side * (fast ? 55 : 40) / R * dt);
+        if (C.stompCd <= 0) { C.lift = 0.6; C.stompCd = fast ? 2.4 : 3.3; Sound.sfx('grind'); }
+        else if (C.laserCd <= 0) { this.colLaser(e, 150 * e.spr.bsy / 1.35); if (fast) this.time.delayedCall(900, () => { if (e.hp > 0 && e.cs.ph === 2) this.colLaser(e, 150 * e.spr.bsy / 1.35); }); C.laserCd = fast ? 3.8 : 4.6; }
+      }
+      e.dir = side; e.spr.setFlipX(side < 0); e.h = 0;
+    } else {
+      // ---- the head: bounces after you in big arcs, a shockwave each landing, spits rubble, crown laser
+      e.vh -= 900 * dt; e.h += e.vh * dt; e.theta = wrap(e.theta + (C.vt || 0) / R * dt); e.spr.rotation += (C.vt || 0) / 200 * dt;
+      if (e.h <= 30 && e.vh < 0) {
+        e.h = 30; e.vh = 0; C.vt = 0; e.spr.rotation = 0;
+        if (!C.landed) { C.landed = true; this.colStomp(e.theta); }
+        C.hopCd -= dt;
+        if (C.hopCd <= 0) { C.landed = false; e.vh = rnd(520, 640); C.vt = side * Math.min(330, Math.abs(toP) * R * 0.9 + 60); C.hopCd = rnd(0.5, 0.9); Sound.sfx('jump'); }
+      }
+      C.spitCd -= dt;
+      if (C.spitCd <= 0) {
+        C.spitCd = rnd(1.4, 2);
+        for (let k = -1; k <= 1; k++) { const b = this.addEBullet('db_rock', e.theta, e.h + 20, side * (230 + k * 60), 260 + k * 60, 11, 3); b.grav = 700; b.spinV = 8; }
+        Sound.sfx('swish');
+      }
+      C.laserCd -= dt; if (C.laserCd <= 0 && e.h <= 31) { this.colLaser(e, 60); C.laserCd = 4.2; }
+      e.dir = side; e.spr.setFlipX(side < 0);
+    }
+  },
+  // shockwaves and the crown laser (called from parmUpdate; they need to run during the boss)
+  colUpdate(dt) {
+    const S = this.pp, P = this.pl; if (!S.waves) return;
+    for (const W of S.waves) {
+      W.d += 330 * dt;
+      for (const sd of W.dirs) { const th = wrap(W.theta + sd * W.d / R); if (!W.hit && Math.abs(angDiff(P.theta, th)) * R < 16 && P.h < 24 && P.invuln <= 0) { W.hit = true; this.hurt(); } }
+    }
+    S.waves = S.waves.filter(W => W.d < 520);
+    for (const B of S.beams) {
+      B.t += dt;
+      if (B.t > B.warn && B.t < B.warn + B.dur && !B.hit) {
+        const u = (B.t - B.warn) / B.dur, at = wrap(B.a0 + angDiff(B.a1, B.a0) * u);
+        if (Math.abs(angDiff(P.theta, at)) * R < 20 && P.h < 60 && P.invuln <= 0) { B.hit = true; this.hurt(); }
+        if (Math.random() < dt * 30) this.burst(at, 2, 'spark', 2, 0.5);
+      }
+    }
+    S.beams = S.beams.filter(B => B.t < B.warn + B.dur + 0.1 && B.from.hp > 0);
+  },
+  colDraw(g) {
+    const S = this.pp, z = this.zoom, t = this.t; if (!S.waves) return;
+    for (const W of S.waves) for (const sd of W.dirs) {                    // a rolling ridge of cracked ground
+      const th = wrap(W.theta + sd * W.d / R), k = 1 - W.d / 520, a = this.screenPos(th, 0), b = this.screenPos(th, 24 * k + 6);
+      g.lineStyle(10 * z, 0xc8a860, 0.9 * k).lineBetween(a.x, a.y, b.x, b.y); g.lineStyle(4 * z, 0xfff0c0, k).lineBetween(a.x, a.y, b.x, b.y);
+      if (Math.random() < 0.5) this.burst(th, 4, 'crumb', 1, 0.4);
+    }
+    for (const B of S.beams) {
+      const e = B.from, c = this.screenPos(e.theta, e.h + B.crownH);
+      if (B.t < B.warn) { const q = this.screenPos(B.a0, 0); g.lineStyle(1.5 * z, 0xff3a1a, 0.5 + 0.5 * Math.sin(t * 40)).lineBetween(c.x, c.y, q.x, q.y); g.fillStyle(0xff3a1a, 0.6).fillCircle(c.x, c.y, (5 + 3 * Math.sin(t * 30)) * z); }
+      else if (B.t < B.warn + B.dur) {
+        const u = (B.t - B.warn) / B.dur, at = wrap(B.a0 + angDiff(B.a1, B.a0) * u), q = this.screenPos(at, 0);
+        g.lineStyle(12 * z, 0xff3a1a, 0.5).lineBetween(c.x, c.y, q.x, q.y); g.lineStyle(5 * z, 0xfff0a0, 1).lineBetween(c.x, c.y, q.x, q.y);
+        g.fillStyle(0xffffff, 0.9).fillCircle(q.x, q.y, 9 * z); g.fillStyle(0xff7a1a, 0.6).fillCircle(q.x, q.y, 16 * z);
+      }
+    }
+    if (S.rubble) this.place(S.rubble.im, S.rubble.theta, 0, 0);
+  },
+
+  // ================= THE ESCAPE =================
+  parmEscape() {
+    Tel.end(this, 'won');
+    const P = this.pl, dir = P.facing || 1, S = this.pp;
+    this.state = 'rescue'; this.rescue = null; this.clearEBullets(); Sound.jet(false); Sound.music('tense');
+    for (const e of this.enemies) { e.quietKill = true; e.hp = 0; }
+    S.waves = []; S.beams = [];
+    const ship = this.add.image(0, 0, 'ratship').setDepth(6.5); ship.bsx = ship.bsy = 2.4;
+    const cow = this.add.image(0, 0, 'bessie').setDepth(6.4).setOrigin(0.5, 1); cow.bsx = cow.bsy = 0.55;
+    this.ppEsc = { t: 0, dir, front: wrap(P.theta - dir * 340 / R), ship, cow, st: 'intro', sTheta: wrap(P.theta + dir * 520 / R), sH: 520, ladder: 0, crackT: 2, rockT: 0.6, rocks: [], grab: 0 };
+    this.banner('A STATUE?! HA HA HA!\nTOODLE-OO, CHEF!');
+    Sound.sfx('ufoFly'); Sound.sfx('moo');
+  },
+  escHurt() {                                                                // (hurt() is off after a boss: this costs a heart, never the last)
+    const P = this.pl; if (P.invuln > 0) return;
+    P.hp = Math.max(1, P.hp - 1); this.updateHearts(); P.invuln = 1.2; this.rig.ouch(true); Sound.sfx('hurt'); Sound.sfx(['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]); this.cameras.main.shake(150, 0.01); buzz(60);
+  },
+  parmEscapeUpdate(dt) {
+    const E = this.ppEsc, P = this.pl, S = this.pp; E.t += dt;
+    const dir = E.dir;
+    if (E.st === 'intro') {                                                  // the saucer swoops in low, Bessie in the dome
+      E.sH += (190 - E.sH) * Math.min(1, dt * 2);
+      if (E.t > 2.6) {
+        E.st = 'run'; E.t = 0; Sound.music('final'); Sound.sfx('crash'); Sound.sfx('boom'); this.cameras.main.shake(900, 0.02);
+        this.banner('THE PLANET\'S SPLITTING!\nCATCH THAT SAUCER!');
+      }
+    } else if (E.st === 'run') {
+      // the saucer pulls away slower than you can run; its ladder dangles down
+      E.sTheta = wrap(E.sTheta + dir * 150 / R * dt); E.ladder = Math.min(1, E.ladder + dt);
+      E.sH = 190 + Math.sin(this.t * 2) * 10;
+      // the collapse front chases you
+      const gap = angDiff(P.theta, E.front) * dir * R, sp = gap > 260 ? 260 : gap > 140 ? 210 : 170;
+      E.front = wrap(E.front + dir * sp / R * dt);
+      if (gap < 0 && P.invuln <= 0) {                                         // it caught you: down you go... and you're thrown clear, a heart lighter
+        this.escHurt(); this.banner('AAAARGH!'); P.theta = wrap(E.front + dir * 140 / R); P.h = 60; P.vh = 420; P.invuln = Math.max(P.invuln, 1.4);
+      }
+      if (Math.random() < dt * 30) this.burst(E.front, 4, 'crumb', 2, 1.2);
+      if (Math.random() < dt * 4) this.cameras.main.shake(80, 0.008);
+      // chasms open up ahead, rubble rains down
+      E.crackT -= dt;
+      if (E.crackT <= 0) {
+        E.crackT = rnd(2, 3);
+        const th = wrap(P.theta + dir * rnd(220, 340) / R);
+        if (Math.abs(angDiff(th, E.sTheta)) * R > 120) S.cracks.push({ theta: th, half: 30 / R, st: 'crack', t: 0.9 });
+      }
+      for (const C of S.cracks) {
+        C.t -= dt;
+        if (C.st === 'crack' && C.t <= 0) { C.st = 'open'; C.t = 99; C.cr = { theta: C.theta, half: C.half, kind: 'pit', pp: true }; this.craters.push(C.cr); this.burst(C.theta, 6, 'crumb', 16, 1.2); Sound.sfx('crash'); this.cameras.main.shake(150, 0.01); }
+      }
+      E.rockT -= dt;
+      if (E.rockT <= 0) {
+        E.rockT = rnd(0.5, 0.9);
+        const tx = ['pp_column', 'pp_head', 'pp_dome', 'db_rock'][Math.floor(Math.random() * 4)], spr = this.add.image(0, 0, tx).setDepth(7); spr.bsx = spr.bsy = rnd(1.3, 1.9);
+        E.rocks.push({ theta: wrap(P.theta + dir * rnd(60, 360) / R), h: 460, vh: -150, spr, rot: 0, rv: rnd(-6, 6) });
+      }
+      for (let i = E.rocks.length - 1; i >= 0; i--) {
+        const K = E.rocks[i]; K.vh -= 600 * dt; K.h += K.vh * dt; K.rot += K.rv * dt; this.place(K.spr, K.theta, K.h, K.rot);
+        if (K.h <= 0) { this.burst(K.theta, 4, 'crumb', 10, 1); this.bang(K.theta, 6, 20); Sound.sfx('clunk'); if (Math.abs(angDiff(P.theta, K.theta)) * R < 30 && P.h < 40 && P.invuln <= 0) this.escHurt(); K.spr.destroy(); E.rocks.splice(i, 1); }
+      }
+      // grab the ladder!
+      const lx = Math.abs(angDiff(P.theta, E.sTheta)) * R, ladBot = E.sH - 60 - 70 * E.ladder;
+      if (lx < 34 && P.h + 40 > ladBot) {
+        E.st = 'grab'; E.t = 0; Sound.sfx('power'); Sound.say && Sound.say('woohoo', { force: true });
+        this.banner('GOT YOU!\nHANG ON, BESSIE!'); this.cameras.main.flash(200, 255, 240, 200);
+      }
+    } else if (E.st === 'grab') {                                             // up and away, Chris hanging off the ladder
+      E.sH += (120 + E.t * 260) * dt; E.sTheta = wrap(E.sTheta + dir * 260 / R * dt);
+      P.theta = E.sTheta; P.h = E.sH - 60 - 70; P.vh = 0; P.vx = 0; P.invuln = 5;
+      if (E.t > 0.5 && !E.split) { E.split = true; Sound.sfx('boom'); Sound.sfx('crash'); this.cameras.main.shake(1500, 0.03); }
+      if (E.t > 2.4 && !E.out) {
+        E.out = true;
+        Progress.beat(this.levelId); const RK = this.levelRank(); Progress.setRank(this.levelId, RK.r);
+        this.cameras.main.fadeOut(700, 255, 255, 255);
+        this.time.delayedCall(750, () => this.scene.restart({ level: 10, autostart: true, fromPrime: true }));
+      }
+    }
+    // draw the saucer + Bessie + the ladder
+    this.place(E.ship, E.sTheta, E.sH, Math.sin(this.t * 3) * 0.06);
+    this.place(E.cow, E.sTheta, E.sH + 10, 0);
+    if (E.cow.depth > E.ship.depth) E.cow.setDepth(E.ship.depth - 0.1);
+  },
+  parmEscapeDraw(g) {
+    const E = this.ppEsc; if (!E) return;
+    const z = this.zoom, t = this.t, vt = this.viewT(), vh = this.visHalf + 0.2;
+    // behind the collapse front: the ground's gone - a great dark rift down to the glowing core
+    if (E.st !== 'intro') {
+      const n = 24, top = [], bot = [];
+      for (let k = 0; k <= n; k++) { const th = wrap(E.front - E.dir * (k / n) * 1.2); top.push(this.screenPos(th, 2)); bot.unshift(this.screenPos(th, -160)); }
+      g.fillStyle(0x0a0204, 1).fillPoints(top.concat(bot), true);
+      const glow = []; for (let k = 0; k <= n; k++) glow.push(this.screenPos(wrap(E.front - E.dir * (k / n) * 1.2), -120 + Math.sin(t * 3 + k) * 6));
+      g.lineStyle(10 * z, 0xff5a1a, 0.5).strokePoints(glow, false); g.lineStyle(3 * z, 0xffd23f, 0.7).strokePoints(glow, false);
+      const e0 = this.screenPos(E.front, 0), e1 = this.screenPos(E.front, -50); g.lineStyle(4 * z, 0xffb03a, 0.9).lineBetween(e0.x, e0.y, e1.x, e1.y);
+    }
+    // the ladder
+    if (E.ladder > 0) {
+      const a = this.screenPos(E.sTheta, E.sH - 30), b = this.screenPos(E.sTheta, E.sH - 60 - 70 * E.ladder), sw = Math.sin(t * 3) * 6 * z;
+      g.lineStyle(3 * z, 0x8a94a6, 1).lineBetween(a.x - 6 * z, a.y, b.x - 6 * z + sw, b.y).lineBetween(a.x + 6 * z, a.y, b.x + 6 * z + sw, b.y);
+      for (let k = 1; k < 8; k++) { const u = k / 8, x = a.x + (b.x + sw - a.x) * u, y = a.y + (b.y - a.y) * u; g.lineStyle(2 * z, 0xc8d0dc, 1).lineBetween(x - 6 * z, y, x + 6 * z, y); }
+      if (E.st === 'run' && Math.floor(t * 4) % 2) { g.lineStyle(2 * z, 0xffd23f, 0.9).strokeCircle(b.x + sw, b.y, 14 * z); }
+    }
+  },
+});
