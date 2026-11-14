@@ -134,6 +134,7 @@ function makeArmadaTextures(scene, toonRat) {
     for (const [x, y] of [[20, 30], [52, 32], [68, 34]]) a.ell(x, y, 2.6, 2.6, 0x0a0806);
     a.line([[10, 22], [12, 30], [8, 38]], 0x3a8a3a); a.line([[60, 28], [64, 36]], 0x3a8a3a);
   });
+  if (typeof makeSeaArt === 'function') makeSeaArt(scene);   // (v2.83) the sculpted deep-sea art (seaart.js)
   pixSprite(scene, 'clam', 36, 24, a => {
     a.poly([[2, 22], [6, 10], [18, 4], [30, 10], [34, 22]], [0xd8b8c8, 0xa8889a, 0x6a4a5a]); for (const x of [10, 18, 26]) a.line([[18, 5], [x, 22]], 0x6a4a5a);
     a.ell(18, 21, 15, 3, [0xffe0f0, 0xd8a8c0, 0x8a5a70]); a.ell(18, 19, 3, 2.6, [0xffffff, 0xe8f0ff, 0xb8c8e0]); a.px(17, 18, 0xffffff);

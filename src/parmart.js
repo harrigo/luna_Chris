@@ -493,7 +493,7 @@ function ppSculpt(scene, key, w, h, s, draw, opts) {
   };
   g.save(); g.scale(s, s); draw(H); g.restore();
   // crush to the palette with ordered dithering
-  const pal = [].concat(PPR.MARB, PPR.VEIN, PPR.GOLD, PPR.RED, PPR.PARM, PPR.RUST, PPR.STEEL.slice(1), [PPR.BLUE[1], PPR.BLUE[2], PPR.INK, 0xffffff]).map(c => [(c >> 16) & 255, (c >> 8) & 255, c & 255, c]);
+  const pal = (opts.pal || [].concat(PPR.MARB, PPR.VEIN, PPR.GOLD, PPR.RED, PPR.PARM, PPR.RUST, PPR.STEEL.slice(1), [PPR.BLUE[1], PPR.BLUE[2], PPR.INK, 0xffffff])).map(c => [(c >> 16) & 255, (c >> 8) & 255, c & 255, c]);
   const img = g.getImageData(0, 0, w, h), D = img.data, grid = new Int32Array(w * h).fill(-1), cache = new Map();
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (D[i + 3] < 120) continue;
     const d = PP_BAYER[(y & 3) * 4 + (x & 3)] * 30, r = D[i] + d, gg = D[i + 1] + d, b = D[i + 2] + d, k = ((r >> 2) << 14) | ((gg >> 2) << 7) | (b >> 2);

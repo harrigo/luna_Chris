@@ -1753,3 +1753,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - New `ppSculpt` painter (parmart.js): smooth canvas curves and gradients, crushed to the game palette with ordered dithering, carved dark contours and an ink outline.
 - `ppKingStatue`: the fat Rat King on a plinth - porphyry cape with ermine hem, gold-leaf crown/belt/teeth, sceptre raised, blank carved eyes under a heavy cruel lid, a wart, sagging jowls; tail draped over a laurel-and-crown relief panel. Weathered: grime streaks, gold leaf flaking, cracks, a chunk knocked out of the plinth, a chipped ear, pigeon mess on the crown.
 - Variants: ppstatue2 (intact), ppstatue3 (sceptre arm snapped off and lying on the step, Parmesan showing through the break, crown slipped), ppstatue_big (the big background silhouettes), ppb_statue (the colossal one in the city, broken and scaffolded with a ladder and jib).
+
+### v2.83 - the Armada goes deep
+- New src/seaart.js: sculpted (ppSculpt) deep-sea props in a sea palette - orange and pink staghorn coral with lit polyps, a lacy purple sea fan, brain coral, an anemone with glowing tentacle tips, tall kelp with gold bladders, a giant clam with a glowing pearl, and a sunken rat ironclad snapped in two (rusting rivets, ghostly cyan portholes, toppled funnel, drooping gun, a gilded crowned rat figurehead, coral and barnacles growing over it). Replaces the old kelp/wreck/clam/scrap pixel sprites.
+- Deep-sea parallax (depth.js): a far 'reef' ring (coral towers, sea fans, kelp ribbons, rock arches, glowing tips), sunken ships nearer, a nearer reef with pink glows; the water bands wash over them so the far layers fade blue. Big blue-tinted wrecks and coral loom behind the core. New fg strip 'coral' in front of the camera.
+- The map node and the HUD radar now show L7 as an ocean world (oceanglobe texture; drawMiniPlanet id 7).
+- ppSculpt takes an optional palette (opts.pal).

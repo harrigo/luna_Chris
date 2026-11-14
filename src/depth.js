@@ -48,7 +48,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   });
   // parallax hill rings
   (cfg.ridges || []).forEach((rg, n) => {
-    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40, skyline: 150, machines: 160 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
+    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40, skyline: 150, machines: 160, reef: 140 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
     const rnd = rng(rg.seed || (77 + n * 31)), steps = 720, prof = [];
     let v = 0; for (let i = 0; i < steps; i++) { v += (rnd() - 0.5) * 0.35; v *= 0.96; prof.push(v); }
     const walk = a => prof[Math.floor((a / (Math.PI * 2)) * steps + steps * 4) % steps];
@@ -70,6 +70,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           else if (f.s > 0.8 && d < 0.6) h = Math.max(h, f.h * (d < 0.35 ? 1 : 0.86)); }   // a needle
         return h;
       }
+      if (st === 'reef') return 0.1 + 0.07 * Math.sin(a * 13 + n) + 0.05 * walk(a) + 0.05 * Math.max(0, Math.sin(a * 31 + n * 2));   // (v2.83) the seabed: rubble and brain-coral mounds
       if (st === 'skyline' || st === 'machines') return 0.12 + 0.08 * Math.sin(a * 11 + n) + 0.06 * walk(a);   // (v2.81) rubble between the buildings
       if (st === 'wrecks' || st === 'factory' || st === 'cogs' || st === 'tiers') return 0.16 + 0.1 * Math.sin(a * 6 + n) + 0.06 * walk(a);
       return 0.55 + 0.25 * Math.sin(a * 7 + n) + 0.15 * Math.sin(a * 19 + n * 2) + 0.35 * walk(a);   // jagged hills
@@ -186,6 +187,36 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       }
       return 0;
     };
+    // (v2.83) L7: the deep reef - branching coral towers, lacy sea fans, tall kelp ribbons with bladders, rock arches;
+    // the coral tips and the anemones glow (2)
+    const reef = (a, dd) => {
+      const Z = rg.size || 1, v = (dd - (Rw + rg.off)) / Z;
+      for (const f of feats) {
+        const u = dA(a, f.a) * Rw / Z; if (Math.abs(u) > 70 || v < -4) continue;
+        if (f.s < 0.28) {                                                      // a branching coral tower
+          const Ht = 50 + f.h * 60; if (v > Ht + 30) continue;
+          if (v < Ht && Math.abs(u) < 3.5 - v / Ht * 1.5) return 1;
+          for (let b = 0; b < 4; b++) { const by = Ht * (0.3 + b * 0.18), sd = b % 2 ? 1 : -1, L = 18 + (3 - b) * 5 + f.h * 8;
+            const t = (u * sd) / L; if (t < 0 || t > 1) continue; const cy = by + t * L * 0.9 + t * t * 6; if (Math.abs(v - cy) < 2.4 - t) return t > 0.93 ? 2 : 1;
+            if (t > 0.94 && Math.hypot(u - sd * L, v - cy) < 2.6) return 2; }
+          if (Math.hypot(u, v - Ht) < 3) return 2;
+        } else if (f.s < 0.5) {                                                // a sea fan: a lacy half-disc on a stalk
+          const Rf = 26 + f.h * 22, cy = 12;
+          if (v < cy && Math.abs(u) < 1.6) return 1;
+          const r = Math.hypot(u, (v - cy) * 1.05), an = Math.atan2(v - cy, u);
+          if (v >= cy && r < Rf) { if (Math.abs(r - Rf) < 1.4) return 2; if ((Math.abs(((an * 9) % 1 + 1) % 1 - 0.5) > 0.42) || Math.abs(r % 7 - 3.5) > 3)return 1; }
+        } else if (f.s < 0.78) {                                               // kelp: a tall wavy ribbon with bladders
+          const Hk = 80 + f.h * 90; if (v > Hk) continue;
+          const cx = Math.sin(v * 0.07 + f.a * 9) * 7 * (v / Hk), w = 2.2 + Math.sin(v * 0.31 + f.a) * 1.2;
+          if (Math.abs(u - cx) < w) return 1;
+          if ((Math.floor(v) % 22) > 15 && Math.abs(u - cx - (Math.floor(v / 22) % 2 ? 5 : -5)) < 2.6) return (Math.floor(v) % 22) === 19 ? 2 : 1;
+        } else {                                                               // a rock arch
+          const Wa = 34 + f.h * 20, Ha = 30 + f.h * 26;
+          if (Math.abs(u) < Wa && v < Ha * (1 - Math.pow(u / Wa, 6)) && !(Math.abs(u) < Wa * 0.55 && v < Ha * 0.62 * Math.sqrt(Math.max(0, 1 - Math.pow(u / (Wa * 0.55), 2))))) return 1;
+        }
+      }
+      return 0;
+    };
     const wreck = (a, dd) => {
       for (const f of feats) {
         if (f.s > 0.45) continue;                                               // (only some of them are ships)
@@ -220,6 +251,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
         else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
         else if (st === 'cogs') { const w = cogs(a, dd); if (w) col = w === 2 ? TOP : C; }
+        else if (st === 'reef') { const w = reef(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : C; }
         else if (st === 'skyline' || st === 'machines') { const w = (st === 'skyline' ? skyline : machines)(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (w === 3 ? TOP : C); }
         else if (st === 'tiers') { const w = tiers(a, dd); if (w) col = w === 3 ? (rg.cheese || TOP) : (w === 2 ? TOP : C); }
         if (!col) continue;
@@ -274,6 +306,20 @@ function makeDepthTextures(scene, id, Rw, cfg) {
           if (GL) { set(cx, H - hh - 1, GL); set(cx - 10, H - hh * 0.75 - 1, GL); set(cx + 10, H - hh * 0.75 - 6, GL); }
         }
         for (const [cx, w, hh] of [[230, 16, 9], [370, 22, 12], [610, 18, 10]]) for (let x = cx - w; x <= cx + w; x++) { const d = (x - cx) / w, y = Math.round(H - hh * Math.sqrt(Math.max(0, 1 - d * d))); for (let yy = y; yy < H; yy++) set(x, yy, FC); if (GL) set(x, y, GL); }
+      } else if (st === 'coral') {                                              // (v2.83) L7: the reef, right up against the glass
+        const disc = (cx, cy, rx, ry) => { for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) set(cx + x, cy + y, FC); };
+        const thick = (x0, y0, x1, y1, w) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let k = 0; k <= n; k++) { const t = k / n, ww = w * (1 - t * 0.35); for (let o = -ww / 2; o < ww / 2; o++) { set(x0 + (x1 - x0) * t + o, y0 + (y1 - y0) * t, FC); } } };
+        const tips = [];
+        const br = (x, y, ang, len, w, d) => { const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len; thick(x, y, ex, ey, w); if (d > 0) { br(ex, ey, ang - 0.5, len * 0.72, w * 0.7, d - 1); br(ex, ey, ang + 0.45, len * 0.68, w * 0.7, d - 1); } else tips.push([ex, ey]); };
+        br(20, H, -1.75, 22, 7, 3); br(42, H, -1.25, 18, 6, 2);                      // staghorn coral, left
+        disc(86, H - 4, 20, 13); disc(112, H - 2, 12, 8);                             // brain coral domes
+        for (let k = 0; k < 9; k++) { const a = -Math.PI + 0.25 + k / 8 * (Math.PI - 0.5), L = 20 + (k % 3) * 6; thick(236, H - 6, 236 + Math.cos(a) * L, H - 6 + Math.sin(a) * L * 1.1, 3.5); tips.push([236 + Math.cos(a) * L, H - 6 + Math.sin(a) * L * 1.1]); }   // an anemone
+        disc(236, H - 3, 9, 6);
+        for (const [x0, hk] of [[330, 58], [344, 46], [358, 62], [600, 50], [612, 64]]) for (let k = 0; k < hk; k++) { const x = x0 + Math.sin(k * 0.12 + x0) * 4 * k / hk; set(x, H - 1 - k, FC); set(x + 1, H - 1 - k, FC); if (k % 14 > 9) { set(x + 2, H - 1 - k, FC); set(x - 1, H - 1 - k, FC); } }   // kelp
+        for (let r = 6; r < 30; r += 1) for (let t = 0; t < Math.PI; t += 0.02) { const x = 450 + Math.cos(t) * r, y = H - 4 - Math.sin(t) * r * 1.1; if (r > 27 || (Math.round(t * 30) % 4 === 0) || r % 6 === 0) set(x, y, FC); }   // a sea fan
+        for (let y = H - 6; y < H; y++) for (let x = 444; x < 457; x++) set(x, y, FC);
+        for (const [cx, w, hh] of [[160, 26, 9], [520, 22, 11], [400, 16, 6]]) for (let x = cx - w; x <= cx + w; x++) { const d = (x - cx) / w, y = Math.round(H - hh * Math.sqrt(Math.max(0, 1 - d * d))); for (let yy = y; yy < H; yy++) set(x, yy, FC); }   // rocks
+        if (GL) { for (const [x, y] of tips) { set(x, y, GL); set(x + 1, y, GL); set(x, y - 1, [255, 140, 220]); } for (let k = 0; k < 7; k++) set(80 + k * 5, H - 14 + (k % 2) * 3, GL); }
       } else if (st === 'ruins') {                                              // (v2.81) L9: the ruins of the imperial city, up close
         const disc = (cx, cy, rx, ry) => { for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) set(cx + x, cy + y, FC); };
         const thick = (x0, y0, x1, y1, w) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)); for (let k = 0; k <= n; k++) { const t = k / n; for (let o = -w / 2; o < w / 2; o++) set(x0 + (x1 - x0) * t + o, y0 + (y1 - y0) * t, FC); } };

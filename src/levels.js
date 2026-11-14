@@ -282,7 +282,22 @@ const LEVELS = {
     dust: [0x5ce1ff, 0x6a8cff, 0xff9a5a, 0xffffff], decorTint: 0xffffff, decorAlpha: 1,
     gravity: 1, ledgeTypes: ['girder', 'energy', 'girder', 'energy', 'girder', 'energy', 'girder'], ledgeTex: 'ledge3',
     ledges: [{ theta: 1.1, half: 0.2, h: 350 }, { theta: 3.2, half: 0.2, h: 365 }, { theta: 5.2, half: 0.2, h: 350 }],   // (floating wreckage, high above the waves)
-    props: [{ tex: 'kelp', n: 12, sc: [0.9, 1.5] }, { tex: 'wreck', at: [[0.6, 1.2], [3.9, 1.0, 1]] }, { tex: 'clam', n: 3, sc: [1, 1.3] }, { tex: 'pile_scrap', n: 3, sc: [1, 1.4], tint: 0x6a8a9a }],
+    // (v2.83) a deep-sea parallax: a far reef (coral towers, sea fans, kelp, rock arches; the coral tips glow), sunken
+    // ships nearer, a nearer reef; the water washes over them all so the far ones fade blue. Coral right in front of the
+    // camera. On the seabed, sculpted coral, sea fans, anemones, kelp, giant clams, and a sunken ironclad.
+    depth: { light: [-0.5, -0.8, 0.4], dark: [6, 10, 24], shadeA: [0, 60, 110, 150], rim: [150, 230, 255], atmo: [80, 200, 255], atmoW: 0.04, atmoA: 30,
+      ridges: [{ style: 'reef', n: 34, off: 2, amp: 10, col: [14, 46, 92], top: [40, 110, 160], glow: [140, 250, 255], k: 0.25, depth: 0.33, seed: 71, size: 1.5 },
+               { style: 'wrecks', n: 8, off: 4, amp: 10, col: [8, 26, 56], top: [30, 70, 110], k: 0.45, depth: 0.35, seed: 72, size: 1.2 },
+               { style: 'reef', n: 22, off: 0, amp: 8, col: [4, 14, 32], top: [30, 90, 120], glow: [255, 120, 200], k: 0.65, depth: 0.37, seed: 73, size: 1.0 }],
+      fg: { style: 'coral', col: [2, 8, 20], glow: [120, 240, 255] } },
+    props: [
+      { tex: 'sea_wreck', at: [[2.2, 1.5], [5.1, 1.3, 1]], depth: 0.95, tint: 0x3a6a9a, alpha: 0.8, h: -14 },
+      { tex: 'sea_coral', at: [[0.9, 1.9], [3.6, 2.1, 1], [5.8, 1.8]], depth: 0.95, tint: 0x4a7aa8, alpha: 0.75, h: -10 },
+      { tex: 'sea_wreck', at: [[0.6, 0.85], [3.9, 0.75, 1]], h: -6 },
+      { tex: 'sea_kelp', n: 7, sc: [0.55, 0.75], sway: true }, { tex: 'sea_coral', n: 3, sc: [0.6, 0.8] }, { tex: 'sea_coral2', n: 3, sc: [0.6, 0.8] },
+      { tex: 'sea_fan', n: 4, sc: [0.6, 0.8], sway: true }, { tex: 'sea_brain', n: 4, sc: [0.6, 0.8] }, { tex: 'sea_anem', n: 4, sc: [0.6, 0.75], sway: true },
+      { tex: 'sea_clam', n: 3, sc: [0.6, 0.75] },
+      { tex: 'sea_coral2', at: [[1.6, 0.7], [4.5, 0.75, 1]], fg: true, h: -10 }, { tex: 'sea_brain', at: [[2.8, 0.8], [0.3, 0.7]], fg: true, h: -6 }],
     waves: [
       { name: 'WAVE 1', spawns: [S('ironclad', 0), ...SCHOOL(1.2, 5), S('torprat', 2.1), S('torprat', 3), S('sharkrat', 3.8), S('torprat', 4.5), ...SCHOOL(5.2, 5), ...SCHOOL(6, 6), S('drone', 7.5), S('sharkrat', 8.5), S('torprat', 9), S('torprat', 9.8), S('ironclad', 10.5), S('drone', 11.2), ...SCHOOL(12, 5), S('torprat', 12.8), S('torprat', 13.5)] },
       { name: 'WAVE 2', spawns: [S('ironclad', 0), S('torprat', 1), ...SCHOOL(2, 6), S('sharkrat', 2.8), S('flyer', 3.5), S('torprat', 4.5), S('torprat', 5.5), S('ironclad', 6.5), S('sharkrat', 7), ...SCHOOL(7.5, 7), S('drone', 8.2), S('drone', 9), S('torprat', 10), S('sharkrat', 10.5), ...SCHOOL(11.5, 6), S('torprat', 12), S('torprat', 12.5), S('sharkrat', 13), S('flyer', 13.5)] },
@@ -1184,7 +1199,7 @@ class SelectScene extends Phaser.Scene {
       } else {                                                     // a real little planet: the level's own surface, shaded into a sphere
         g.fillStyle(L.planet.glow, open ? 0.22 : 0.06).fillCircle(p.x, p.y, r + 7);
         this.ui.add(g);
-        const img = this.add.image(p.x, p.y, 'surf' + n.id).setDisplaySize(r * 2, r * 2);
+        const ocean = LEVELS[n.id] && LEVELS[n.id].ocean && this.textures.exists('oceanglobe'), img = this.add.image(p.x, p.y, ocean ? 'oceanglobe' : 'surf' + n.id).setDisplaySize(r * 2, r * 2);   // (v2.83) the ocean world looks like one
         if (!open) img.setTint(0x2a3050);
         this.ui.add(img);
         this.ui.add(this.add.image(p.x, p.y, 'map_shade').setDisplaySize(r * 2 + 1, r * 2 + 1));
@@ -1286,7 +1301,7 @@ class SelectScene extends Phaser.Scene {
     // left: a framed thumbnail of the world, its name, blurb, rank and wheels
     const ts = Math.min(ph - 16, 54), tx = 16, ty = y0 + (ph - ts) / 2;
     const fr = this.add.graphics(); fr.fillStyle(0x070a1c, 1).fillRect(tx, ty, ts, ts); fr.lineStyle(2, 0xb9c4e8, 1).strokeRect(tx, ty, ts, ts); this.infoBox.add(fr);
-    if (!n.kind) { this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'surf' + n.id).setDisplaySize(ts - 12, ts - 12)); this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'map_shade').setDisplaySize(ts - 11, ts - 11)); }
+    if (!n.kind) { this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, (LEVELS[n.id] && LEVELS[n.id].ocean && this.textures.exists('oceanglobe')) ? 'oceanglobe' : 'surf' + n.id).setDisplaySize(ts - 12, ts - 12)); this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'map_shade').setDisplaySize(ts - 11, ts - 11)); }
     else this.infoBox.add(this.add.text(tx + ts / 2, ty + ts / 2, n.kind === 'bonus' ? 'BONUS' : 'WARP', f(8, '#ffd23f')).setOrigin(0.5));
     const name = n.name || ('LV ' + n.id + ': ' + L.short), blurb = n.blurb || L.blurb, x1 = tx + ts + 12;
     this.infoBox.add(this.add.text(x1, y0 + 10, name, f(10, '#ffd23f', { stroke: '#1a1020', strokeThickness: 4 })));

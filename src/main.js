@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.82';
+const BUILD = 'v2.83';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -5575,6 +5575,12 @@ Level1.prototype.drawMiniPlanet = function (g, x, y, r, rot) {
     g.fillStyle(0xd8402a, 1).fillCircle(x, y, r - 3);
     dots([[0.4, 0.5, 3], [1.8, 0.35, 2.5], [2.9, 0.62, 3], [4.6, 0.45, 3], [5.6, 0.2, 2]], 0xf6ead2);   // mozzarella
     dots([[1.1, 0.6, 2], [3.6, 0.3, 2], [5.1, 0.7, 2]], 0x7a1a14);                                  // pepperoni
+  } else if (id === 7) {                // (v2.83) The Astro-Rat Armada: an ocean world - deep blue, rolling crests, foam, a ship on top
+    g.fillStyle(0x0c2840, 1).fillCircle(x, y, r); g.fillStyle(0x18507a, 1).fillCircle(x - 1, y - 1, r - 1.5); g.fillStyle(0x2a8ab8, 1).fillCircle(x - 2, y - 2, r - 4);
+    g.fillStyle(0x342c40, 0.8).fillCircle(x + 1, y + 3, r * 0.42);
+    for (let k = 0; k < 3; k++) { const yy = y - r * 0.45 + k * r * 0.4, hw = Math.sqrt(Math.max(0, r * r - (yy - y) * (yy - y))) - 2; for (let xx = -hw; xx < hw; xx += 4) g.fillStyle(0xc8faff, 0.7).fillRect(Math.round(x + xx + ((t * 6 + k * 2) % 4)), Math.round(yy + Math.sin(xx + t * 3) * 0.8), 2, 1); }
+    for (let k = 0; k < 14; k++) { const [px, py] = at(k / 14 * 6.283 + t * 0.3, r); g.fillStyle(0xffffff, 0.9).fillCircle(px, py, 1.2); }
+    const [sx, sy] = at(0.0, r + 1.5); g.fillStyle(0x52606e, 1).fillRect(sx - 4, sy - 2, 8, 3); g.fillStyle(0xc0763e, 1).fillRect(sx - 1, sy - 5, 2, 3);
   } else if (id === 3) {                // The Brie-muda Triangle: a soft, slightly squashed wheel of brie in purple haze
     g.fillStyle(0x8a5ad8, 0.25 + 0.1 * Math.sin(t * 2)).fillEllipse(x, y + 1, (r + 5) * 2, (r + 3) * 2);
     g.fillStyle(0xd8d4e0, 1).fillEllipse(x, y + 1, r * 2 + 2, r * 2 - 2);
