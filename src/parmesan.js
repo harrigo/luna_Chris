@@ -14,6 +14,7 @@
 // Part 2 brings the Parmesan Colossus and the escape to the Royal Saucer.
 
 function makeParmTextures(scene) {
+  if (typeof makeParmArt === 'function') makeParmArt(scene);         // (v2.80) the city, the machines, the props (parmart.js)
   if (scene.game.__parmTex) return; scene.game.__parmTex = true;
   const INK = 0x1a1020, FUR = [0xc4c8dc, 0x868ca6, 0x4a4f6a], PINK = [0xffb0c0, 0xe07a90, 0xa04a60], GOLD = [0xfff0a0, 0xffc83a, 0xb07a1a],
     RED = [0xff5a4a, 0xc81e2a, 0x6a0a14], MARB = [0xfff8ec, 0xe0d8c8, 0x9a9282], STEEL = [0xe8eef8, 0xa8b0c0, 0x5a6272], ROACH = [0xb8703a, 0x7a3e18, 0x3a1a08];
@@ -83,6 +84,7 @@ function makeParmTextures(scene) {
     a.poly([[6, 6], [32, 6], [30, 40], [24, 34], [20, 48], [14, 36], [6, 44]], RED); a.rect(6, 6, 32, 9, GOLD[1]);
     a.poly([[13, 22], [15, 16], [18, 20], [21, 16], [24, 22]], GOLD); a.rect(13, 22, 24, 24, GOLD[1]);
   });
+  if (typeof makeParmFolk === 'function') makeParmFolk(scene);       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
 }
 
 Object.assign(ENEMY, {
@@ -97,6 +99,18 @@ const ParmMixin = {
   parmInit() {
     this.pp = { rasp: { st: 'idle', t: 9, theta: 0, dir: 1, kind: 'low', hitDone: false, passes: 0, run: 0 }, cracks: [], crackT: 7, nades: [], taxmen: [], R0: R, sparkle: 0 };
     if (this.cp && this.cp.wave) R = Math.max(PP_RMIN, R - 45 * this.cp.wave);   // (a retry from a checkpoint: the planet's already been grated down)
+    // (v2.80) THE CITY on the horizon (behind the planet's curve: their feet are hidden by it), two layers, plus the
+    // mining machines chewing at it; braziers burning in the street; the mining mothership up in the sky
+    const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
+    this.ppCity = [];
+    NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xf0d8c8); im.bsx = im.bsy = k === 'ppb_drill' ? 1.25 : 1.45; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
+    FAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(0.97).setTint(0x6a2a30).setAlpha(0.9); im.bsx = im.bsy = 1.55; im.flipX = i % 2 === 1; this.ppCity.push({ im, theta: i * TAU / FAR.length + 0.6, h: -150, drill: k === 'ppb_drill' }); });
+    this.ppFire = [];
+    for (let i = 0; i < 6; i++) {
+      const th = i * TAU / 6 + 0.42, base = this.add.image(0, 0, 'ppbrazier').setOrigin(0.5, 1).setDepth(2.55), fl = this.add.image(0, 0, 'ppflame0').setOrigin(0.5, 1).setDepth(2.56), gl = this.add.image(0, 0, 'puff').setDepth(2.54).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff9a3a);
+      base.bsx = base.bsy = 1.2; fl.bsx = fl.bsy = 1.3; gl.bsx = gl.bsy = 1.8; this.ppFire.push({ th, base, fl, gl, ph: i * 1.7 });
+    }
+    this.ppShip = this.add.image(0, 0, 'ppb_ship').setDepth(0.6).setScrollFactor(0).setAlpha(0.95);
     this.ppG = this.add.graphics().setDepth(7.7); this.ppBack = this.add.graphics().setDepth(2.9); this.ppHud = this.add.graphics().setDepth(19);
   },
   parmUpdate(dt, bossUp) {
@@ -242,16 +256,18 @@ const ParmMixin = {
     this.ppG.clear(); this.colDraw(this.ppG); this.parmEscapeDraw(this.ppG); const _ = 0, z = this.zoom, t = this.t, P = this.pl, vt = this.viewT(), vh = this.visHalf + 0.15;
     bg.clear(); hg.clear();
     const inView = th => Math.abs(angDiff(th, vt)) < vh;
-    // ---- the rind's giant dotted lettering, stamped round the planet just under the surface; crystals glinting
-    const FONT = { P: ['1110', '1001', '1110', '1000', '1000'], A: ['0110', '1001', '1111', '1001', '1001'], R: ['1110', '1001', '1110', '1010', '1001'], M: ['10001', '11011', '10101', '10001', '10001'],
-      E: ['1111', '1000', '1110', '1000', '1111'], S: ['0111', '1000', '0110', '0001', '1110'], N: ['1001', '1101', '1011', '1001', '1001'], I: ['1', '1', '1', '1', '1'], ' ': ['00', '00', '00', '00', '00'] };
-    const word = 'PARMESAN PRIME   ', dot = 14;
-    let cols = []; for (const ch of word) { const F = FONT[ch]; for (let c = 0; c < F[0].length; c++) cols.push(F.map(r => r[c] === '1')); cols.push([false, false, false, false, false]); }
-    const span = cols.length * dot;
-    for (let x = Math.floor((angDiff(vt, 0) - vh) * R / dot) * dot; x < (angDiff(vt, 0) + vh) * R; x += dot) {
-      const ci = ((Math.round(x / dot) % cols.length) + cols.length) % cols.length, col = cols[ci], th = wrap(x / R);
-      for (let r = 0; r < 5; r++) if (col[r]) { const p = this.screenPos(th, -18 - r * dot); bg.fillStyle(0x5a3a10, 0.9).fillCircle(p.x, p.y, 5 * z); bg.fillStyle(0x8a6a2a, 1).fillCircle(p.x + 0.6 * z, p.y + 0.6 * z, 3.4 * z); bg.fillStyle(0xf0dca0, 0.7).fillCircle(p.x - 1.4 * z, p.y - 1.4 * z, 1.4 * z); }
+    // ---- (v2.80) the city on the horizon, the machines working, the braziers, the mothership
+    for (const B of this.ppCity || []) {
+      const vis = Math.abs(angDiff(B.theta, vt)) < vh + 0.5; B.im.setVisible(vis); if (!vis) continue;
+      if (B.drill) { B.im.setTexture(Math.floor(t * 8 + B.theta * 5) % 2 ? 'ppb_drill_b' : 'ppb_drill'); if (Math.random() < 0.15) this.burst(B.theta, 2, 'spark', 1, 0.5); }
+      this.place(B.im, B.theta, B.h, 0);
     }
+    for (const F of this.ppFire || []) {
+      const vis = Math.abs(angDiff(F.th, vt)) < vh; [F.base, F.fl, F.gl].forEach(o => o.setVisible(vis)); if (!vis) continue;
+      this.place(F.base, F.th, 0, 0); this.place(F.fl, F.th, 52 * 1.2 / 1.2 - 4, Math.sin(t * 6 + F.ph) * 0.08); F.fl.setTexture('ppflame' + (Math.floor(t * 12 + F.ph) % 3));
+      this.place(F.gl, F.th, 56, 0); F.gl.setAlpha(0.35 + 0.15 * Math.sin(t * 9 + F.ph));
+    }
+    if (this.ppShip) this.ppShip.setPosition(this.W * 0.42 + Math.sin(t * 0.13) * 30, this.H * 0.3 + Math.sin(t * 0.4) * 4).setScale(z * 0.75).setTint(0xc89080);
     for (let k = 0; k < 90; k++) {
       const th = wrap(k * 0.0698 + Math.sin(k * 7.1) * 0.02); if (!inView(th)) continue;
       const tw = Math.sin(t * 3 + k * 1.7); if (tw < 0.6) continue;

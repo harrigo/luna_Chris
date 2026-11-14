@@ -335,18 +335,15 @@ const LEVELS = {
   9: {
     id: 9, hpMul: 1.58, name: 'Parmesan Prime', short: 'PARMESAN PRIME', parm: true, blurb: 'The rats\' homeworld: one colossal wheel of Parmesan,\nand they\'re grating it to bits.',
     music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY AND THE GROUND!',
-    radius: 520, sky: [0x100204, 0x8a2010], skyCols: [0x100204, 0x2a0408, 0x4a080c, 0x6a1010, 0x8a2010, 0xaa3a10], bg: '#100204', starTint: 0xffb0a0, dustAlpha: 1.4, bgDecor: 'gears', lava: 10,
-    surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595 },
+    radius: 520, sky: [0x12040c, 0xe0782a], skyCols: [0x12040c, 0x2a0818, 0x4a1020, 0x7a1e1e, 0xb0401a, 0xe0782a], bg: '#12040c', starTint: 0xffd0b0, dustAlpha: 1.2, bgDecor: 'none',
+    surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595, parm: true },          // (v2.80: painted in parmart.js)
     planet: { fill: 0xdcd0a0, inner: 0xc0b07a, rim: 0xfff8e0, glow: 0xffb070 },
     dust: [0xff6a3a, 0xffb03a, 0xd8c8a0, 0xff3a3a], decorTint: 0xc8a8a0, decorAlpha: 0.6,
-    gravity: 1, ledgeTypes: ['girder', 'energy', 'crystal', 'girder', 'energy', 'crystal'], ledgeTex: 'ledge3',
+    gravity: 1, ledgeTypes: ['marble'], ledgeTex: 'ledge3',
     ledges: [{ theta: 0.6, half: 0.09, h: 90 }, { theta: 1.5, half: 0.08, h: 170 }, { theta: 2.6, half: 0.09, h: 90 }, { theta: 3.6, half: 0.08, h: 170 }, { theta: 4.6, half: 0.09, h: 90 }, { theta: 5.5, half: 0.08, h: 170 }],
-    props: [{ tex: 'ppstatue', n: 4, sc: [1, 1.3] }, { tex: 'ppcol', n: 6, sc: [0.9, 1.3] }, { tex: 'ppbanner', n: 5, sc: [0.9, 1.2] }, { tex: 'p_skull', n: 4, sc: [1.1, 1.5], tint: 0xffd0c0 }, { tex: 'pile_scrap', n: 3, sc: [1.2, 1.6], tint: 0xd8b060 }],
+    props: [{ tex: 'ppstatue2', n: 3, sc: [1, 1.2] }, { tex: 'ppcol2', n: 5, sc: [0.9, 1.2] }, { tex: 'ppcolbroke', n: 4, sc: [1, 1.3] }, { tex: 'ppbanner2', n: 5, sc: [0.9, 1.1] }, { tex: 'ppfountain', n: 2, sc: [1, 1.1] }, { tex: 'pprubble', n: 5, sc: [0.9, 1.3] }],
     debris: { every: [1.3, 2.4], tex: ['pp_column', 'pp_head', 'pp_dome', 'db_rock'] },          // (v2.78) palace rubble
-    depth: { light: [-0.5, -0.8, 0.4], dark: [40, 8, 6], shadeA: [0, 70, 125, 170], rim: [255, 220, 160], atmo: [255, 120, 60], atmoW: 0.1, atmoA: 50,
-      ridges: [{ style: 'spires', n: 18, off: 120, amp: 90, col: [60, 14, 12], top: [140, 60, 30], k: 0.4, depth: 0.33, seed: 91 },
-               { style: 'wrecks', n: 7, off: 46, amp: 28, col: [36, 8, 8], top: [120, 50, 24], k: 0.68, depth: 0.37, seed: 92 }],
-      fg: { col: [20, 4, 4], glow: [255, 120, 50] } },
+    depth: { light: [-0.5, -0.8, 0.4], dark: [40, 8, 6], shadeA: [0, 60, 110, 150], rim: [255, 220, 160], atmo: [255, 140, 60], atmoW: 0.1, atmoA: 60, ridges: [] },   // (v2.80: the city on the horizon is drawn by parmesan.js)
     waves: [                                                                                          // (v2.78) the Rat Empire's finest
       { name: 'WAVE 1', spawns: [S('mouse', 0), S('ppguard', 0.3), S('mouse', 0.6), S('pptax', 1.2), S('flyer', 1.6), S('ppgren', 2.2), S('mouse', 2.8), S('mouse', 3.2), S('ppguard', 4), S('flyer', 4.6), S('mouse', 5.2), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7.2), S('ppguard', 8), S('mouse', 8.5), S('mouse', 9)] },
       { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('flyer', 1.2), S('ppguard', 1.8), S('mouse', 2.2), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('flyer', 4.4), S('ppguard', 5), S('mouse', 5.4), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8), S('mouse', 8.4), S('paladin', 9), S('mouse', 9.6)] },
@@ -1402,6 +1399,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   opts = opts || {};
   if (opts.grater) return makeMetalPlanet(scene, key, Rw, pal, seed);
   if (opts.fountain) return makeFountainPlanet(scene, key, Rw, pal, seed);   // L5.5 (fondue.js)
+  if (opts.parm) return makeParmPlanet(scene, key, Rw);                        // L9 (parmart.js): the Parmesan wheel itself
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, r = S / 2;                  // texture is Rw x Rw, shown at 2x = full diameter
   let sd = seed || 1;
@@ -1932,7 +1930,8 @@ const PLATFORMS = {
   carnival: { key: 'pl_carnival', top: 4 },
   bone:     { key: 'pl_bone', top: 5 },
   crouton:  { key: 'pl_crouton', top: 4 },         // L5.5 (fondue.js): soggy - sinks if you stand on it
-  skewer:   { key: 'pl_skewer', top: 2 }
+  skewer:   { key: 'pl_skewer', top: 2 },
+  marble:   { key: 'pl_marble', top: 3 }          // L9 (parmart.js): a marble balcony slab
 };
 function makePlatformTextures(scene) {
   if (madeTex(scene, 'pl_girder')) return;
