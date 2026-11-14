@@ -46,13 +46,12 @@ function makeFreefallTextures(scene) {
     }
     for (let k = 0; k < 16; k++) {                                       // soot dribbling down from the band
       const x = Math.round(R() * w), len = 30 + R() * 190, ww = 1 + Math.round(R() * 3);
-      c.fillStyle = 'rgba(4,6,4,0.75)'; c.fillRect(x, 14, ww, len); c.fillRect(x - 1, 14 + len - 2, ww + 2, 4);
-      if (R() < 0.5) { c.fillStyle = 'rgba(4,6,4,0.5)'; c.fillRect(x + ww, 14, 1, len * 0.6); }
+      const y0 = Math.round(R() * h); c.fillStyle = 'rgba(4,6,4,0.7)'; c.fillRect(x, y0, ww, len); c.fillRect(x - 1, y0 + len - 2, ww + 2, 4);
+      if (R() < 0.5) { c.fillStyle = 'rgba(4,6,4,0.45)'; c.fillRect(x + ww, y0, 1, len * 0.6); }
     }
-    for (let x = 0; x < w; x++) {                                          // the steel band, bowing down in the middle
-      const yb = Math.round(3 + 7 * Math.sin(Math.PI * x / w));
-      c.fillStyle = '#1a1012'; c.fillRect(x, yb - 1, 1, 11); c.fillStyle = '#6a7080'; c.fillRect(x, yb, 1, 9); c.fillStyle = '#b8c0cc'; c.fillRect(x, yb, 1, 2); c.fillStyle = '#3a3e48'; c.fillRect(x, yb + 7, 1, 2);
-      if (x % 18 === 9) { c.fillStyle = '#2a2e38'; c.fillRect(x - 1, yb + 3, 3, 3); c.fillStyle = '#d8dce6'; c.fillRect(x - 1, yb + 3, 1, 1); }
+    for (let k = 0; k < 9; k++) {                                          // (v2.74) glaze runs instead of steel bands: long glossy drips down the shell
+      const x = Math.round(R() * w), y0 = Math.round(R() * h), len = 40 + R() * 120;
+      c.fillStyle = 'rgba(90,150,100,0.35)'; c.fillRect(x, y0, 2, len); c.fillStyle = 'rgba(170,220,180,0.5)'; c.fillRect(x, y0, 1, len * 0.7); c.fillRect(x - 1, y0 + len - 2, 4, 3);
     }
   });
   // ---- the side wall sweeping round towards us (the left one; the right is the same flipped): dark at the far edge,
@@ -67,9 +66,8 @@ function makeFreefallTextures(scene) {
     c.putImageData(img, 0, 0);
     for (let k = 0; k < 30; k++) { let x = R() * 200, y = R() * h; c.strokeStyle = k % 2 ? 'rgba(4,10,6,0.85)' : 'rgba(160,210,170,0.4)'; c.beginPath(); c.moveTo(Math.round(x), Math.round(y)); for (let s = 0; s < 4; s++) { x += (R() - 0.5) * 30; y += R() * 24; c.lineTo(Math.round(x), Math.round(y)); } c.stroke(); }
     for (let k = 0; k < 5; k++) { const y = Math.round(R() * h); c.fillStyle = '#2a1a10'; c.fillRect(210, y, 6, 3 + Math.round(R() * 4)); c.fillStyle = '#c8b090'; c.fillRect(211, y + 1, 3, 2); }   // chips in the lip
-    for (let x = 0; x < w; x++) { const yb = Math.round(3 + 4 * Math.pow(x / w, 3));
-      c.fillStyle = '#1a1012'; c.fillRect(x, yb - 1, 1, 13); c.fillStyle = '#6a7080'; c.fillRect(x, yb, 1, 11); c.fillStyle = '#d0d6e0'; c.fillRect(x, yb, 1, 2); c.fillStyle = '#3a3e48'; c.fillRect(x, yb + 8, 1, 3);
-      if (x % 22 === 11) { c.fillStyle = '#2a2e38'; c.fillRect(x - 2, yb + 3, 4, 4); c.fillStyle = '#e8ecf4'; c.fillRect(x - 2, yb + 3, 2, 1); } }
+    for (let y = 6; y < h; y += 30) { c.fillStyle = '#0a160e'; c.fillRect(176, y, 4, 4); c.fillStyle = '#7ab088'; c.fillRect(176, y, 2, 1); }   // (v2.74) a vertical seam of rivets, not a band
+    c.fillStyle = 'rgba(6,14,9,0.8)'; c.fillRect(181, 0, 1, h);
   });
   // ---- cast-iron grate bars (shown 2x): a thick slab with a lit top, char, burnt-on grease; and a red-hot one
   const grate = (key, hot) => canvas(key, 32, 15, (c, w, h) => {
@@ -115,6 +113,15 @@ function makeFreefallTextures(scene) {
     a.poly([[9 - sw, 9], [13, 20], [11, 28], [7, 28], [5, 20]], [0xfff0a0, 0xffd23f, 0xffa020]);
     a.ell(9, 25, 2.5, 3, 0xffffff);
   }, false);
+  // (v2.74) the SPLAT: a burst of sauce with splashes thrown out round it, lumps of cheese in it; and a loose eyeball
+  pixSprite(scene, 'ffsplat', 72, 64, a => {
+    const SAU = [0xff6a4a, 0xd62828, 0x7a0a0a];
+    a.ell(36, 32, 20, 17, SAU); a.ell(24, 26, 11, 9, SAU); a.ell(48, 38, 12, 10, SAU); a.ell(40, 18, 9, 7, SAU);
+    for (let k = 0; k < 11; k++) { const an = k * 0.57 + 0.3, r = 24 + (k * 7) % 9, x = 36 + Math.cos(an) * r, y = 32 + Math.sin(an) * r * 0.85; a.ell(x, y, 2.5 + (k % 3), 2 + (k % 2), SAU); a.line([[36 + Math.cos(an) * 16, 32 + Math.sin(an) * 14], [x, y]], SAU[1], 2); }
+    for (const [x, y, r] of [[30, 30, 4], [44, 34, 3], [36, 22, 2.5], [26, 38, 2]]) a.ell(x, y, r, r * 0.8, [0xfff0a0, 0xffd23f, 0xd8901a]);   // cheese lumps
+    a.ell(30, 24, 4, 2, 0xffb0a0); a.px(29, 23, 0xffffff); a.px(46, 30, 0xffffff);
+  });
+  pixSprite(scene, 'ffeye', 14, 14, a => { a.ell(7, 7, 6, 6, [0xffffff, 0xf0e8e0, 0xc8b8b0]); a.line([[1, 7], [4, 6]], 0xd62828); a.line([[7, 13], [6, 10]], 0xd62828); a.ell(8, 6, 3, 3, 0x3a8ad8); a.ell(8.5, 6, 1.5, 1.5, 0x0a0a14); a.px(7, 5, 0xffffff); });
   pixSprite(scene, 'ffstone', 150, 18, a => { a.rrect(0, 2, 149, 16, 4, [0xf0dcb4, 0xc8a878, 0x7a5a30]); for (const [x, r] of [[30, 6], [74, 9], [112, 5], [130, 4]]) a.ell(x, 9, r, 3, [0x6a4a20, 0x4a3010, 0x2a1a08]); a.line([[6, 4], [140, 4]], 0xfff4dc); });
   pixSprite(scene, 'ffvent', 44, 44, a => { a.ell(22, 22, 21, 21, [0xf4f8ff, 0xc8dcff, 0x8ab0e0]); a.ell(22, 22, 12, 12, 0xffffff); for (const x of [10, 18, 26, 34]) a.rect(x, 2, x + 2, 42, 0x2a2e38); });
 }
@@ -266,6 +273,34 @@ class FreefallScene extends Phaser.Scene {
     const t = this.add.text(x + (Math.random() - 0.5) * 40, y - 50, word, { fontFamily: PIXEL, fontSize: heavy ? '20px' : '16px', color: col || '#ffffff', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setDepth(12).setRotation((Math.random() - 0.5) * 0.5).setScale(0.2);
     this.tweens.add({ targets: t, scale: 1.25, duration: 110, ease: 'Back.out', yoyo: false, onComplete: () => this.tweens.add({ targets: t, scale: 1, y: t.y - 30, alpha: 0, delay: 250, duration: 450, onComplete: () => t.destroy() }) });
   }
+  // (v2.74) hitting a hazard is the end: Chris goes SPLAT - a burst of sauce on whatever got him, bits of him flying
+  // (hat, moustache, boots, an arm, his head), eyeballs bouncing, a splat on the lens that slides down, then the result
+  splat(x, y, why) {
+    if (this.done) return;
+    this.done = true; this.doneT = this.t; this.splatted = true; this.vel.x = this.vel.y = 0;
+    this.hitStop = 0.18; Sound.sfx('crash'); Sound.sfx('squelch'); Sound.sfx('ouchBig'); buzz && buzz([80, 40, 160]);
+    this.cameras.main.shake(520, 0.022); this.cameras.main.flash(160, 255, 90, 50);
+    this.rig.root.setVisible(false);
+    const sp = this.add.image(x, y, 'ffsplat').setDepth(3.4).setScale(0.3).setRotation(Math.random() * 6);
+    this.tweens.add({ targets: sp, scale: 3.2, duration: 160, ease: 'Back.out' });
+    this.drips = [];
+    for (let k = 0; k < 7; k++) this.drips.push({ x: x + (Math.random() - 0.5) * 120, y: y + (Math.random() - 0.3) * 50, len: 0, max: 40 + Math.random() * 140, w: 3 + Math.random() * 5, sp: 50 + Math.random() * 70 });
+    this.bits = [];
+    const parts = ['c_hat', 'c_head_hurt', 'c_tache', 'c_boot', 'c_boot', 'c_arm', 'c_hand_open', 'c_leg', 'c_apron', 'ffeye', 'ffeye', 'ffcheese', 'ffcheese'];
+    for (const key of parts) {
+      if (!this.textures.exists(key)) continue;
+      const im = this.add.image(x, y, key).setDepth(5.5).setScale(key === 'ffeye' ? 1.6 : 1.3);
+      this.bits.push({ im, vx: (Math.random() - 0.5) * 640, vy: -220 - Math.random() * 520, vr: (Math.random() - 0.5) * 22, eye: key === 'ffeye', bounce: key === 'ffeye' ? 3 : 1, floor: y + 140 + Math.random() * 120 });
+    }
+    this.puff(x, y, 30, 0xd62828, 420, 0.7, 4); this.puff(x, y, 14, 0xffd23f, 300, 0.6, 3); this.puff(x, y, 10, 0xffffff, 200, 0.3, 2);
+    const W = this.scale.width, H = this.scale.height;
+    const lens = this.add.image(W * (0.35 + Math.random() * 0.3), H * 0.42, 'ffsplat').setScrollFactor(0).setDepth(19).setScale(0.5).setAlpha(0.85).setRotation(Math.random() * 6);
+    this.tweens.add({ targets: lens, scale: 3.6, duration: 140, delay: 120, ease: 'Back.out', onComplete: () => this.tweens.add({ targets: lens, y: H * 0.75, alpha: 0, duration: 2600, ease: 'Sine.in' }) });
+    const tx = this.add.text(W / 2, H * 0.3, 'SPLAT!', { fontFamily: PIXEL, fontSize: '44px', color: '#ff5a3a', stroke: '#1a1020', strokeThickness: 10 }).setOrigin(0.5).setScrollFactor(0).setDepth(21).setScale(0.1).setRotation(-0.15);
+    this.tweens.add({ targets: tx, scale: 1, rotation: 0.06, duration: 260, ease: 'Back.out' });
+    this.pop(x, y - 60, why, '#ffb07a');
+    this.time.delayedCall(1900, () => { tx.destroy(); this.endScreen(false, false, why); });
+  }
   bonk(x, y, why, pushX) {
     if (this.penaltyT > 0 || this.done) return;
     this.penaltyT = 0.6; this.timeLeft = Math.max(0, this.timeLeft - 1); this.chain = 0;
@@ -319,36 +354,34 @@ class FreefallScene extends Phaser.Scene {
   inGap(r, x, half) { return this.gapsAt(r, this.t).some(g => x - half >= g.x && x + half <= g.x + g.w); }
   nearestGapX(r, x) { let best = null, bd = 1e9; for (const g of this.gapsAt(r, this.t)) { const c = g.x + g.w / 2, d = Math.abs(c - x); if (d < bd) { bd = d; best = c; } } return best; }
 
-  // on-screen buttons for phones: steer left / right (bottom left), BRAKE (bottom right). Hidden when a controller's in use.
-  touchBtns() {
-    const W = this.scale.width, H = this.scale.height, r = Math.max(28, Math.min(44, H * 0.1));
-    return { r, L: { x: 20 + r, y: H - 20 - r }, Rt: { x: 20 + r * 3.4, y: H - 20 - r }, B: { x: W - 30 - r * 2.2, y: H - 20 - r * 1.2 }, D: { x: W - 30 - r * 4.6, y: H - 20 - r * 0.9 } };
-  }
-  drawTouch(state) {
-    const g = this.touchG || (this.touchG = this.add.graphics().setScrollFactor(0).setDepth(22)), T = this.touchBtns();
-    g.clear();
-    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
-    if (this.touchLbl) this.touchLbl.forEach(t => t.setVisible(show));
-    if (!show) return;
-    const btn = (p, on, col, rr) => { g.fillStyle(0x000000, 0.35).fillCircle(p.x + 3, p.y + 3, rr); g.fillStyle(on ? col : 0x1a1020, on ? 0.85 : 0.5).fillCircle(p.x, p.y, rr); g.lineStyle(3, col, 0.9).strokeCircle(p.x, p.y, rr); };
-    btn(T.L, state.l, 0xffd23f, T.r); btn(T.Rt, state.r, 0xffd23f, T.r); btn(T.B, state.b, 0xff5a5a, T.r * 1.25); btn(T.D, state.d, 0x39c6ff, T.r * 0.85);
-    const tri = (p, d) => g.fillStyle(0xffffff, 1).fillTriangle(p.x + d * T.r * 0.45, p.y, p.x - d * T.r * 0.3, p.y - T.r * 0.45, p.x - d * T.r * 0.3, p.y + T.r * 0.45);
-    tri(T.L, -1); tri(T.Rt, 1);
-    const lab = t => this.add.text(0, 0, t, { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setScrollFactor(0).setDepth(23);
-    if (!this.touchLbl) this.touchLbl = [lab('BRAKE'), lab('BOOST')];
-    this.touchLbl[0].setPosition(T.B.x, T.B.y); this.touchLbl[1].setPosition(T.D.x, T.D.y);
-  }
+  // (v2.74) the same touch controls as the rest of the game: a floating MOVE stick wherever the thumb lands. Steer left
+  // and right; push UP = brake (jet, like jumping); pull DOWN = boost (drop fast, like ducking).
   readTouch() {
-    const T = this.touchBtns(), st = { l: false, r: false, b: false, d: false };
+    const st = { l: false, r: false, b: false, d: false, live: null }, H = this.scale.height;
     if (!this.isTouch) return st;
     for (const p of this.input.manager.pointers) {
-      if (!p.isDown) continue;
-      if (Math.hypot(p.x - T.L.x, p.y - T.L.y) < T.r * 1.3) st.l = true;
-      else if (Math.hypot(p.x - T.Rt.x, p.y - T.Rt.y) < T.r * 1.3) st.r = true;
-      else if (Math.hypot(p.x - T.B.x, p.y - T.B.y) < T.r * 1.5) st.b = true;
-      else if (Math.hypot(p.x - T.D.x, p.y - T.D.y) < T.r * 1.1) st.d = true;
+      if (!p || !p.isDown || (p === this.input.manager.mousePointer && !p.wasTouch)) continue;
+      const ox = p.downX, oy = p.downY; if (oy < H * 0.2) continue;
+      const vx = Math.max(-1, Math.min(1, (p.x - ox) / 46)), vy = Math.max(-1, Math.min(1, (p.y - oy) / 46));
+      st.live = { ox, oy, vx, vy };
+      if (vx < -0.3) st.l = true; else if (vx > 0.3) st.r = true;
+      if (vy < -0.5) st.b = true; else if (vy > 0.55) st.d = true;
+      st.ax = Math.abs(vx) > 0.15 ? vx : 0;
+      break;
     }
     return st;
+  }
+  drawTouch(state) {
+    const g = this.touchG || (this.touchG = this.add.graphics().setScrollFactor(0).setDepth(22)), H = this.scale.height;
+    g.clear();
+    const show = this.isTouch && !(Pad.state.connected && typeof LAST_INPUT !== 'undefined' && LAST_INPUT !== 'touch') && !this.done;
+    if (!this.touchLbl) this.touchLbl = [this.add.text(0, 0, 'STEER\nUP: BRAKE   DOWN: BOOST', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3, align: 'center' }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(23)];
+    this.touchLbl[0].setVisible(show && !state.live).setPosition(92, H - 26);
+    if (!show) return;
+    const live = state.live, r = 52, bx = live ? live.ox : 92, by = live ? live.oy : H - 86;
+    g.fillStyle(0xffffff, live ? 0.12 : 0.06).fillCircle(bx, by, r); g.lineStyle(3, 0xffffff, live ? 0.6 : 0.25).strokeCircle(bx, by, r);
+    const kx = bx + (live ? live.vx * r * 0.75 : 0), ky = by + (live ? live.vy * r * 0.75 : 0);
+    g.fillStyle(state.b ? 0xff8a5a : state.d ? 0x39c6ff : 0xffffff, live ? 0.5 : 0.18).fillCircle(kx, ky, r * 0.42); g.lineStyle(2, 0x1a1020, live ? 0.6 : 0.2).strokeCircle(kx, ky, r * 0.42);
   }
 
   layout() {
@@ -377,14 +410,9 @@ class FreefallScene extends Phaser.Scene {
     if (k) { ax += (k.right.isDown || k.d.isDown ? 1 : 0) - (k.left.isDown || k.a.isDown ? 1 : 0); brake = k.up.isDown || k.w.isDown || k.z.isDown || k.space.isDown; boost = (k.down && k.down.isDown) || (k.s && k.s.isDown) || (k.x && k.x.isDown); }
     if (Pad.state.connected) { if (Pad.state.left || Pad.state.lx < -0.3) ax = -1; if (Pad.state.right || Pad.state.lx > 0.3) ax = 1; if (Pad.state.jump) brake = true; if (Pad.state.down || Pad.state.ly > 0.5) boost = true; }
     const ts = this.readTouch();
-    if (ts.l) ax = -1; if (ts.r) ax = 1; if (ts.b) brake = true; if (ts.d) boost = true;
+    if (ts.live) { ax = ts.ax; } if (ts.b) brake = true; if (ts.d) boost = true;
     this.drawTouch(ts);
-    const ptr = this.input.activePointer, eb = this.exitBtn.getBounds();
-    if (ptr.isDown && !this.done && !eb.contains(ptr.downX, ptr.downY) && !this.isTouch) {
-      const wp = cam.getWorldPoint(ptr.x, ptr.y), dx = wp.x - this.pos.x;
-      ax = Math.abs(dx) > 14 ? Math.max(-1, Math.min(1, dx / 60)) : 0;
-      if (wp.y < this.pos.y - 50) brake = true;
-    }
+    if (Pad.state.connected && (Pad.state.lt || Pad.state.jet)) brake = true;          // (the jetpack trigger brakes too)
     if (this.done) { ax = 0; brake = false; boost = false; }
     if (this.intro > 0) {
       this.intro -= dt;
@@ -414,6 +442,7 @@ class FreefallScene extends Phaser.Scene {
     else this.vel.y = this.vel.y > cruise ? Math.max(cruise, this.vel.y - 600 * dt) : Math.min(cruise, this.vel.y + 900 * dt);
     if (!boosting) this.fuel = Math.min(1, this.fuel + dt * 0.1);
     if (braking && Math.random() < dt * 6) Sound.sfx('flap');
+    if (this.splatted) { this.vel.x = this.vel.y = 0; }
     const prevY = this.pos.y;
     this.pos.x = Math.max(16, Math.min(SW - 16, this.pos.x + this.vel.x * dt));
     this.pos.y += this.vel.y * dt;
@@ -422,7 +451,7 @@ class FreefallScene extends Phaser.Scene {
       if (prevY <= r.y && this.pos.y >= r.y && !this.inGap(r, this.pos.x, 12)) {
         this.pos.y = r.y - 1; this.vel.y = -200;
         const gx = this.nearestGapX(r, this.pos.x); this.vel.x = Math.sign(gx - this.pos.x) * 200; this.slideT = 0.25;
-        if (r.hot) this.penalty(this.pos.x, r.y, 'SIZZLE!');
+        if (r.hot) { this.splat(this.pos.x, r.y - 20, 'SIZZLED ON A HOT GRATE!'); break; }
         else { Sound.sfx('bonk'); Sound.sfx('clang'); this.chain = 0; this.timeLeft = Math.max(0, this.timeLeft - 1); this.smack(this.pos.x, r.y, ['BONK!', 'CLANG!', 'DOINK!'][Math.floor(Math.random() * 3)], '#ffe0a0'); this.pop(this.pos.x, r.y - 20, '-1s', '#ffb07a'); this.puff(this.pos.x, r.y, 8, 0xffd23f, 220, 0.25, 2); }
         break;
       }
@@ -437,7 +466,7 @@ class FreefallScene extends Phaser.Scene {
       }
       if (v.st === 'fire' && !v.hitDone) {
         const reach = 270, inX = v.side < 0 ? this.pos.x < reach : this.pos.x > SW - reach;
-        if (inX && Math.abs(this.pos.y - v.y) < 40) { v.hitDone = true; this.vel.x = -v.side * 360; this.slideT = 0.3; this.penalty(this.pos.x, this.pos.y, 'FLARE-UP!'); }
+        if (inX && Math.abs(this.pos.y - v.y) < 40) { v.hitDone = true; this.splat(this.pos.x, this.pos.y - 30, 'TOASTED BY A FLARE-UP!'); }
       }
     }
     // ---- skewers, spatulas, smoke, greasy patties
@@ -447,11 +476,11 @@ class FreefallScene extends Phaser.Scene {
       if (h.type === 'spin') {
         h.ang += h.w * dt;
         const dx = Math.cos(h.ang), dy = Math.sin(h.ang), rx = this.pos.x - h.x, ry = cy - h.y, along = Math.max(-h.len, Math.min(h.len, rx * dx + ry * dy));
-        if (Math.hypot(rx - dx * along, ry - dy * along) < 20) this.bonk(this.pos.x, cy, 'SKEWERED', Math.sign(rx - dx * along || 1) * 260);
+        if (Math.hypot(rx - dx * along, ry - dy * along) < 20) this.splat(this.pos.x, cy, 'SKEWERED!');
       } else if (h.type === 'swing') {
         const a = 0.65 + 0.6 * Math.sin(this.t * h.sp + h.ph);
         h.hx = h.px - h.side * Math.sin(a) * h.len; h.hy = h.py + Math.cos(a) * h.len; h.a = a;
-        if (Math.hypot(this.pos.x - h.hx, cy - h.hy) < 38) this.bonk(this.pos.x, cy, 'THWACK', h.side * -300);
+        if (Math.hypot(this.pos.x - h.hx, cy - h.hy) < 38) this.splat(this.pos.x, cy, 'FLIPPED LIKE A BURGER!');
       } else if (h.type === 'patty') {
         h.t -= dt; if (h.t <= 0) { h.on = !h.on; h.t = h.on ? 1.3 : 1.6; if (h.on && Math.abs(h.y - this.pos.y) < H) Sound.sfx('squelch'); }
         if (h.on && Math.random() < dt * 22) this.drops.push({ x: h.x - h.side * (14 + Math.random() * 40), y: h.y + 14, vy: 120 + Math.random() * 60 });
@@ -466,7 +495,7 @@ class FreefallScene extends Phaser.Scene {
     for (const R2 of this.rats) {
       R2.x += R2.v * dt; if (R2.x < R2.a || R2.x > R2.b) { R2.v = -R2.v; R2.x = Math.max(R2.a, Math.min(R2.b, R2.x)); }
       R2.im.setPosition(R2.x, R2.r.y - 2).setFlipX(R2.v < 0).setTexture(Math.floor(this.t * 12 + R2.a) % 2 ? 'ffbaconrat_b' : 'ffbaconrat');
-      if (Math.abs(R2.x - this.pos.x) < 30 && Math.abs(R2.r.y - 14 - cy) < 40) this.bonk(this.pos.x, cy, 'NIBBLED', Math.sign(this.pos.x - R2.x || 1) * 260);
+      if (Math.abs(R2.x - this.pos.x) < 30 && Math.abs(R2.r.y - 14 - cy) < 40) this.splat(this.pos.x, cy, 'EATEN BY A BACON RAT!');
     }
     // ---- burnt sausages: roll off the grates ahead and tumble down
     this.sausT -= dt;
@@ -481,7 +510,7 @@ class FreefallScene extends Phaser.Scene {
       if (S.x < 12 || S.x > SW - 12) { S.vx = -S.vx; S.x = Math.max(12, Math.min(SW - 12, S.x)); }
       for (const r of this.rows) if (py <= r.y - 6 && S.y >= r.y - 6 && !this.inGap(r, S.x, 10)) { S.y = r.y - 6; S.vy = 0; break; }
       S.im.setPosition(S.x, S.y).setRotation(S.rot);
-      if (Math.abs(S.x - this.pos.x) < 28 && Math.abs(S.y - cy) < 34) { this.bonk(this.pos.x, cy, 'SAUSAGED', Math.sign(this.pos.x - S.x || 1) * 260); S.vy = -260; S.vx = -S.vx; }
+      if (Math.abs(S.x - this.pos.x) < 28 && Math.abs(S.y - cy) < 34) this.splat(this.pos.x, cy, 'SAUSAGED!');
       if (S.y < cam.scrollY - 200 || S.y > SH) { S.im.destroy(); this.sausages.splice(i, 1); }
     }
     // ---- grease flare-ups through the grates just ahead: a sizzle, then a sheet of flame up through the bars
@@ -492,7 +521,7 @@ class FreefallScene extends Phaser.Scene {
     for (let i = this.flares.length - 1; i >= 0; i--) {
       const F = this.flares[i]; F.t -= dt;
       if (F.t <= 0) { if (F.st === 'warn') { F.st = 'fire'; F.t = 0.55; Sound.sfx('fan'); } else { this.flares.splice(i, 1); continue; } }
-      if (F.st === 'fire' && !F.hit && this.pos.x > F.x - 8 && this.pos.x < F.x + F.w + 8 && cy > F.r.y - 150 && cy < F.r.y + 10) { F.hit = true; this.vel.y = -260; this.penalty(this.pos.x, cy, 'FLAMBEED!'); }
+      if (F.st === 'fire' && !F.hit && this.pos.x > F.x - 8 && this.pos.x < F.x + F.w + 8 && cy > F.r.y - 150 && cy < F.r.y + 10) { F.hit = true; this.splat(this.pos.x, cy, 'FLAMBEED!'); }
     }
     // ---- the cheese trail: each bit is the next note up the scale while the chain lasts
     this.chainT -= dt; if (this.chainT <= 0) this.chain = 0;
@@ -551,6 +580,11 @@ class FreefallScene extends Phaser.Scene {
         for (let k2 = 0; k2 < 9; k2++) { const a = this.t * 0.5 + k2 * 0.7 + h.ph, rr = h.r * (0.35 + 0.45 * ((k2 * 37) % 10) / 10); sm.fillStyle(k2 % 2 ? 0x4a4248 : 0x6a6268, 0.38).fillCircle(h.x + Math.cos(a) * rr * 0.6, h.y + Math.sin(a * 1.3) * rr * 0.5, h.r * 0.5); }
       }
     }
+    if (this.bits) for (const b of this.bits) {                           // bits of Chris tumbling away; the eyeballs bounce
+      b.vy += 1100 * dt; b.im.x += b.vx * dt; b.im.y += b.vy * dt; b.im.rotation += b.vr * dt;
+      if (b.im.y > b.floor && b.vy > 0 && b.bounce > 0) { b.bounce--; b.vy = -b.vy * 0.55; b.vx *= 0.7; b.vr *= 0.6; Sound.sfx('bonk'); }
+    }
+    if (this.drips) for (const d of this.drips) { d.len = Math.min(d.max, d.len + d.sp * dt); dg.fillStyle(0x7a0a0a, 1).fillRect(d.x - d.w / 2 - 1, d.y, d.w + 2, d.len); dg.fillStyle(0xd62828, 1).fillRect(d.x - d.w / 2, d.y, d.w, d.len); dg.fillStyle(0xd62828, 1).fillCircle(d.x, d.y + d.len, d.w * 0.8); dg.fillStyle(0xff8a6a, 1).fillRect(d.x - d.w / 2 + 1, d.y, 1, d.len * 0.8); }
     for (const d of this.drops) { dg.fillStyle(0x1a1012, 1).fillEllipse(d.x, d.y, 9, 14); dg.fillStyle(0xe8c860, 1).fillEllipse(d.x, d.y, 6, 11); dg.fillStyle(0xfff4c0, 1).fillRect(d.x - 1, d.y - 3, 2, 2); }
     const g = this.fxG; g.clear();
     for (const r of this.rows) if (Math.abs(r.y - this.pos.y) < H * 1.5) {
@@ -648,6 +682,10 @@ class FreefallScene extends Phaser.Scene {
   finish(won, bottom) {
     if (this.done) return;
     this.done = true; this.doneT = this.t;
+    this.endScreen(won, bottom, null);
+  }
+  endScreen(won, bottom, splat) {
+    this.doneT = this.t;
     let body;
     if (won) {
       Sound.sfx('power'); Sound.music('win'); Sound.say('woohoo', { force: true });
@@ -657,10 +695,11 @@ class FreefallScene extends Phaser.Scene {
       this.puff(this.gunImg.x, this.gunImg.y, 40, 0xffd23f, 320, 0.8, 4);
       this.tweens.add({ targets: this.gunImg, y: this.gunY - 90, scale: 3, angle: 360, duration: 800, ease: 'Back.out' });
     } else if (bottom) { Sound.music('lose'); body = 'THE CAGE IS STILL SHUT!\n\nCHEESE ' + this.gotCheese + ' / ' + this.need + ': FOLLOW THE TRAIL'; }
+    else if (splat) { Sound.music('lose'); body = splat + '\n\nMIND THE GRILL. HAVE ANOTHER GO.'; }
     else { Sound.music('lose'); body = 'OUT OF TIME!\n\nSO CLOSE TO THE BOTTOM...'; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
-    this.add.text(W / 2, H * 0.22, won ? 'BONUS CLEAR!' : bottom ? 'SO CLOSE!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
+    this.add.text(W / 2, H * 0.22, won ? 'BONUS CLEAR!' : splat ? 'SPLATTED!' : bottom ? 'SO CLOSE!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
     this.add.text(W / 2, H * 0.34, body, { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(D + 1);
     const pad = typeof inputDevice === 'function' && inputDevice() === 'pad';
     const btn = (x, label, fn, col) => {

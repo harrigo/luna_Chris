@@ -1691,3 +1691,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Hazards: BACON RATS patrol the grates (35%/60% of rows), burnt SAUSAGES roll off grates ahead and tumble down, a greasy PATTY on the wall drips streams of grease (GREASED, -1s), GREASE FLARE-UPS sizzle then burst up through a grate (-2s). The second half has faster sliding grates and skewers, more flare-ups and vents.
 - Finale: the last 15% is THE PLUNGE - cruise speed up, flames off the walls, roaring, stronger heat haze.
 - The foil sheets and the BOOST! sign were removed (unused).
+
+### v2.74 — Freefall: standard controls, no confusing bands, SPLAT deaths
+- Controls match the main game: touch is one floating MOVE stick wherever the thumb lands (steer left/right, push UP = brake like jumping/jetting, pull DOWN = boost like ducking); the old custom circle buttons and mouse click-steering are gone. Keyboard and pad unchanged (jump = brake, down = boost; LT jetpack also brakes).
+- The grey steel bands across the walls (they read like grates) are gone: glossy glaze runs and soot dribbles on the back wall, a vertical rivet seam on the side walls.
+- Hazards now KILL: skewer, spatula, bacon rat, sausage, grate flare-up, wall flare-up vent, hot grate. Chris goes SPLAT: hit-stop, red flash, big shake, a burst of sauce (ffsplat) on the spot with drips running down, his hat, head, moustache, boots, an arm, a hand, a leg and his apron tumbling away, two eyeballs bouncing (ffeye), a splat on the lens that slides off, "SPLAT!", then a SPLATTED! results screen naming what got him (AGAIN / MAP). Plain grates still just bounce you (-1s); grease drips just slick you sideways (-1s); smoke just slows you.
