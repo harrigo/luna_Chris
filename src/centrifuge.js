@@ -159,6 +159,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.glowG = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD); this.drum.add(this.glowG);
     // the prize waits at the hub
     this.prize = ZeroGScene.prototype.pickPrize.call(this);
+    Bonus.begin(this, 'centrifuge');                                // (v2.77) 3 tries at the prize
     // Chris
     this.rig = new ChrisRig(this); this.rig.setWeapon(WEAPONS[0]);
     this.world.add(this.rig.root);
@@ -173,6 +174,7 @@ class CentrifugeScene extends Phaser.Scene {
     this.spinTxt = this.add.text(0, 0, '', f(9, '#9fd8ff')).setOrigin(1, 0).setDepth(20);
     this.hudG = this.add.graphics().setDepth(20); this.curs = new MouseCursor(this);
     this.msg = this.add.text(0, 0, 'CENTRIFUGE FERMENTER\nSURVIVE 30 SECONDS AND GRAB EVERY CHEESE WHEEL\nKEEP AWAY FROM THE GAPS, SHOOT THE DRONES\nTHEN THE PRIZE APPEARS IN THE MIDDLE: JUMP FOR IT', Object.assign(f(10, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setDepth(20);
+    Bonus.tag(this);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2600, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d10', padding: { x: 8, y: 7 } })).setDepth(25).setInteractive({ useHandCursor: true });
@@ -707,9 +709,11 @@ class CentrifugeScene extends Phaser.Scene {
       Sound.sfx('power'); Sound.music('win'); Sound.say('woohoo', { force: true });
       if (this.prizeIm) this.tweens.add({ targets: this.prizeIm, scale: 0, angle: 360, duration: 300 });
       if (!Progress.testMode) try { localStorage.setItem('lc_cbeat', '1'); } catch (e) { /* ignore */ }     // the warp road onwards: the Fondue Fountain
-      if (this.prize) { Progress.giveGun(this.prize.id); body = 'SURVIVED THE SPIN!\n\nNEW GUN: ' + this.prize.name; }
+      if (this.practice) body = 'SURVIVED THE SPIN!\n\nPRACTICE RUN CLEARED';
+      else if (this.prize) { Progress.giveGun(this.prize.id); body = 'SURVIVED THE SPIN!\n\nNEW GUN: ' + this.prize.name; }
       else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'SURVIVED THE SPIN!\n\n+1 LIFE'; }
-    } else { Sound.music('lose'); body = 'WRECKED!\n\nYOU LASTED ' + Math.floor(CF_TIME - this.timeLeft) + 's OF ' + CF_TIME; }
+      body += Bonus.win(this);
+    } else { Sound.music('lose'); body = 'WRECKED!\n\nYOU LASTED ' + Math.floor(CF_TIME - this.timeLeft) + 's OF ' + CF_TIME + Bonus.lose(this); }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setDepth(D);
     this.add.text(W / 2, H * 0.24, won ? 'BONUS CLEAR!' : 'KNOCKED OUT', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setDepth(D + 1);
@@ -725,6 +729,6 @@ class CentrifugeScene extends Phaser.Scene {
     this.exitBtn.setVisible(false);
   }
   onward() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(400, 255, 255, 255); this.time.delayedCall(430, () => this.scene.start('level1', { level: 5.5, warped: true, autostart: true })); }
-  again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
+  again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
   leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }

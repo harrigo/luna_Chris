@@ -1039,7 +1039,7 @@ class SelectScene extends Phaser.Scene {
     if (id === 'zerog') return best >= 3;
     if (id === 'freefall') return best >= 6;
     if (id === 'centrifuge') return Progress.found(5.5);          // (v2.40) the warp road: Triangle -> CENTRIFUGE -> Fondue Fountain -> level 7
-    if (id === 5.5) return Progress.centBeat;
+    if (id === 5.5) return Progress.centBeat || (Progress.bonusLocked('centrifuge') && Progress.found(5.5));
     if (id === 7 && Progress.secretBeat(5.5)) return true;
     return typeof id === 'number' && best >= id - 1;
   }
@@ -1066,6 +1066,7 @@ class SelectScene extends Phaser.Scene {
   go(n) {
     if (this.going) return;
     if (!this.isOpen(n)) { Sound.sfx('clunk'); this.cameras.main.shake(80, 0.004); return; }
+    if ((n === 'centrifuge' || n === 'freefall' || /^zerog/.test(n)) && Progress.bonusLocked(n)) { Sound.sfx('clunk'); this.cameras.main.shake(120, 0.006); this.toastLocked && this.toastLocked(); return; }   // (v2.77) out of tries
     if (n === 'centrifuge') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('centrifuge')); return; }
     if (n === 'freefall') { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('freefall')); return; }
     if (/^zerog/.test(n)) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('zerog', { room: n })); return; }
@@ -1197,6 +1198,11 @@ class SelectScene extends Phaser.Scene {
       const name = n.kind === 'bonus' ? (n.id === 'centrifuge' ? 'CENTRIFUGE' : n.id === 'freefall' ? 'GRILL FREEFALL' : 'ZERO-G ROOM') : n.kind === 'warp' ? 'FONDUE FOUNTAIN' : open ? L.short : '???';
       this.ui.add(this.add.text(lx, ly, top1, f(7, open ? '#ffd23f' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
       this.ui.add(this.add.text(lx, ly + 11, name, f(6, open ? '#ffffff' : '#5a6488', { stroke: '#1a1020', strokeThickness: 3, align: side ? 'left' : 'center', lineSpacing: 3, wordWrap: { width: side ? 80 : Math.max(60, W * 0.1) } })).setOrigin(org, 0));
+      if (n.kind === 'bonus' && open) {                                  // (v2.77) the bonus rooms' tries: dots, or CLEARED / LOCKED
+        const won = Progress.bonusWon(n.id), lk = Progress.bonusLocked(n.id), used = Progress.bonusTries(n.id);
+        this.ui.add(this.add.text(lx, ly + 33, won ? 'CLEARED' : lk ? 'LOCKED' : 'TRIES ' + (3 - Math.min(3, used)) + '/3', f(6, won ? '#7dff8a' : lk ? '#ff6a5a' : '#ffd23f', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(org, 0));
+        if (lk) { const lg = this.add.graphics(); lg.lineStyle(4, 0x1a1020, 1).lineBetween(p.x - r * 0.6, p.y - r * 0.6, p.x + r * 0.6, p.y + r * 0.6).lineBetween(p.x - r * 0.6, p.y + r * 0.6, p.x + r * 0.6, p.y - r * 0.6); lg.lineStyle(2, 0xff5a3a, 1).lineBetween(p.x - r * 0.6, p.y - r * 0.6, p.x + r * 0.6, p.y + r * 0.6).lineBetween(p.x - r * 0.6, p.y + r * 0.6, p.x + r * 0.6, p.y - r * 0.6); this.ui.add(lg); }
+      }
       const rk = typeof n.id === 'number' && Progress.rank(n.id);
       if (rk) this.ui.add(this.add.text(p.x + r * 0.85, p.y - r * 0.85, rk, f(9, { S: '#ffd23f', A: '#7dff8a', B: '#5ce1ff', C: '#ffffff', D: '#ff9db8' }[rk], { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5));
       const z = this.add.zone(p.x - r - 10, p.y - r - 10, r * 2 + 20, r * 2 + 36).setOrigin(0).setInteractive({ useHandCursor: true });

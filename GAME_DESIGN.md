@@ -1707,3 +1707,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Turn in time: steering 300 -> 370 px/s and snappier; cruise fall 470 -> 410 (plunge 560 -> 480), boost cap 760 -> 700. Gaps wider (124-150 -> 142-168); switchbacks have more room (270-300 -> 330-360 below).
 - Lethal hazards made fair: skewers sit BESIDE the line (150-190 px off it), shorter (len 105) and a bit slower, so their tips sweep across it; spatulas slower and shorter; wall flare-ups warn for 1.1 s (was 0.8) and reach 230 (was 270); sausages rarer and slower. The cage needs 75% of the cheese (was 85%).
 - Fixed: AGAIN after a splat left Chris frozen (splat state now reset in create).
+
+### v2.77 — Bonus rooms: 3 tries
+- Each bonus room (Zero-G, Grill Freefall, Centrifuge) gives 3 goes at its prize gun. A go is counted when the room starts (quitting out still uses it). Progress: lc_btry_<id> (goes used), lc_bwon_<id> (cleared); Progress.bonusLocked(id) = not cleared and 3 used. Shared rules in the Bonus helper (main.js).
+- Clear it with goes to spare and each spare go is +50 cheddar (first try = +100). Fail the 3rd and the room LOCKS: the results screen says the gun is gone, there's no AGAIN, and the map node shows a red cross and LOCKED (tapping it just clunks).
+- The intro message shows TRY n OF 3 (LAST CHANCE! on the 3rd). The map shows TRIES n/3, CLEARED or LOCKED under each bonus room.
+- A cleared room can be replayed as a practice run: no prize, no tries used.
+- Centrifuge: if it's locked, the Triangle's warp goes straight on to the Fondue Fountain (and the Fountain opens on the map once found), so the warp road isn't lost - only the gun.
+- Test mode never uses up tries.

@@ -214,6 +214,7 @@ class FreefallScene extends Phaser.Scene {
 
     // ---- the prize: a gun floating over the pizza stone at the bottom (an extra life once every gun's won)
     this.prize = ZeroGScene.prototype.pickPrize.call(this);
+    Bonus.begin(this, 'freefall');                                  // (v2.77) 3 tries at the prize
     this.gunY = SH - 80;
     this.gunImg = this.add.image(SW / 2, this.gunY, this.prize ? this.prize.gunTex : 'burger').setDepth(3).setScale(2.2);
     this.cage = this.add.graphics().setDepth(3.1);
@@ -241,6 +242,7 @@ class FreefallScene extends Phaser.Scene {
     this.depthG = this.add.graphics().setScrollFactor(0).setDepth(20);
     this.msg = this.add.text(0, 0, 'CERAMIC GRILL FREEFALL\nFOLLOW THE CHEESE TRAIL DOWN!\nMOST OF IT OPENS THE CAGE AT THE BOTTOM\nBLUE CHEESE = BRAKE   DOWN = BOOST',
       Object.assign(f(11, '#ffcf9a'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
+    Bonus.tag(this);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 2800, duration: 500 });
     this.countTxt = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setScrollFactor(0).setDepth(21);
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#3a1a1a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
@@ -712,27 +714,30 @@ class FreefallScene extends Phaser.Scene {
     let body;
     if (won) {
       Sound.sfx('power'); Sound.music('win'); Sound.say('woohoo', { force: true });
-      if (this.prize) { Progress.giveGun(this.prize.id); body = 'GOT IT!\n\nNEW GUN: ' + this.prize.name; }
+      if (this.practice) body = 'PRACTICE RUN CLEARED!';
+      else if (this.prize) { Progress.giveGun(this.prize.id); body = 'GOT IT!\n\nNEW GUN: ' + this.prize.name; }
       else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'MADE IT TO THE BOTTOM!\n\n+1 LIFE'; }
-      body += '\n\nCHEESE ' + this.gotCheese + ' / ' + this.trail.length + '   (' + Math.ceil(this.timeLeft) + 's TO SPARE)';
+      body += '\n\nCHEESE ' + this.gotCheese + ' / ' + this.trail.length + '   (' + Math.ceil(this.timeLeft) + 's TO SPARE)' + Bonus.win(this);
       this.puff(this.gunImg.x, this.gunImg.y, 40, 0xffd23f, 320, 0.8, 4);
       this.tweens.add({ targets: this.gunImg, y: this.gunY - 90, scale: 3, angle: 360, duration: 800, ease: 'Back.out' });
     } else if (bottom) { Sound.music('lose'); body = 'THE CAGE IS STILL SHUT!\n\nCHEESE ' + this.gotCheese + ' / ' + this.need + ': FOLLOW THE TRAIL'; }
-    else if (splat) { Sound.music('lose'); body = splat + '\n\nMIND THE GRILL. HAVE ANOTHER GO.'; }
+    else if (splat) { Sound.music('lose'); body = splat + (Bonus.canAgain(this) ? '\n\nMIND THE GRILL.' : ''); }
     else { Sound.music('lose'); body = 'OUT OF TIME!\n\nSO CLOSE TO THE BOTTOM...'; }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
     this.add.text(W / 2, H * 0.22, won ? 'BONUS CLEAR!' : splat ? 'SPLATTED!' : bottom ? 'SO CLOSE!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
-    this.add.text(W / 2, H * 0.34, body, { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(D + 1);
+    this.resBody = this.add.text(W / 2, H * 0.34, body, { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', align: 'center', lineSpacing: 8 }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(D + 1);
     const pad = typeof inputDevice === 'function' && inputDevice() === 'pad';
     const btn = (x, label, fn, col) => {
       const b = this.add.text(x, H * 0.8, label, { fontFamily: PIXEL, fontSize: '11px', color: '#1a1020', backgroundColor: col, padding: { x: 12, y: 10 } }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 2).setInteractive({ useHandCursor: true });
       b.on('pointerup', () => { if (this.t - this.doneT > 0.5) fn(); });
     };
-    btn(W / 2 - 80, pad ? 'A: MAP' : 'MAP', () => this.leave(), '#ffd23f');
-    btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#ffb07a');
+    body += won ? '' : Bonus.lose(this); this.resBody.setText(body);
+    const more = Bonus.canAgain(this);
+    btn(more ? W / 2 - 80 : W / 2, pad ? 'A: MAP' : 'MAP', () => this.leave(), '#ffd23f');
+    if (more) btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#ffb07a');
     this.exitBtn.setVisible(false);
   }
-  again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
+  again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
   leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.76';
+const BUILD = 'v2.77';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -136,7 +136,39 @@ const Progress = {           // remembered on the device: highest level beaten
   wheelCount(n) { const m = this.wheels(n); return (m & 1) + ((m >> 1) & 1) + ((m >> 2) & 1); },
   // guns won from the bonus rooms' crates (the Zero-G Recoil Room): owned for good, on every level
   hasGun(id) { try { return localStorage.getItem('lc_gun_' + id) === '1'; } catch (e) { return false; } },
-  giveGun(id) { if (this.testMode) return; try { localStorage.setItem('lc_gun_' + id, '1'); } catch (e) { /* ignore */ } }
+  giveGun(id) { if (this.testMode) return; try { localStorage.setItem('lc_gun_' + id, '1'); } catch (e) { /* ignore */ } },
+  // (v2.77) the bonus rooms give you 3 goes at their prize: tries used, cleared, locked for good
+  bonusTries(id) { try { return +(localStorage.getItem('lc_btry_' + id) || 0); } catch (e) { return 0; } },
+  bonusWon(id) { try { return localStorage.getItem('lc_bwon_' + id) === '1'; } catch (e) { return false; } },
+  bonusLocked(id) { return !this.testMode && !this.bonusWon(id) && this.bonusTries(id) >= 3; },
+  bonusStart(id) { const n = this.bonusTries(id) + 1; if (this.testMode) return Math.min(3, n); try { localStorage.setItem('lc_btry_' + id, String(n)); } catch (e) { /* ignore */ } return n; },
+  bonusWin(id) { if (this.testMode) return; try { localStorage.setItem('lc_bwon_' + id, '1'); } catch (e) { /* ignore */ } }
+};
+// (v2.77) shared bonus-room rules: 3 tries at the prize. Clear it with goes to spare and each spare go is +50 cheddar.
+// Use them all up and the room LOCKS: its gun is gone. A room you've cleared can be replayed as practice (no prize).
+const BONUS_TRIES = 3, BONUS_SPARE = 50;
+const Bonus = {
+  begin(sc, id) {
+    sc.bonusId = id; sc.practice = !Progress.testMode && Progress.bonusWon(id);
+    sc.tryNo = sc.practice ? 0 : Progress.bonusStart(id);
+    if (sc.practice) sc.prize = null;
+  },
+  label(sc) { return sc.practice ? 'PRACTICE RUN: YOU\'VE CLEARED THIS ONE' : 'TRY ' + sc.tryNo + ' OF ' + BONUS_TRIES + (sc.tryNo === BONUS_TRIES ? ': LAST CHANCE!' : ''); },
+  tag(sc) { if (sc.msg) sc.msg.setText(sc.msg.text + '\n\n' + this.label(sc)); },
+  // returns the extra lines for the results screen
+  win(sc) {
+    if (sc.practice) return '';
+    Progress.bonusWin(sc.bonusId);
+    const spare = Math.max(0, BONUS_TRIES - sc.tryNo);
+    if (spare > 0) { Shop.earn(sc.registry, spare * BONUS_SPARE); return '\n' + (sc.tryNo === 1 ? 'FIRST TRY! ' : '') + '+' + spare * BONUS_SPARE + ' CHEDDAR (' + spare + ' SPARE GO' + (spare > 1 ? 'ES' : '') + ' x ' + BONUS_SPARE + ')'; }
+    return '\nON THE LAST GO!';
+  },
+  lose(sc) {
+    if (sc.practice) return '';
+    const left = BONUS_TRIES - sc.tryNo;
+    return left > 0 ? '\n\n' + left + ' TR' + (left > 1 ? 'IES' : 'Y') + ' LEFT' : '\n\nNO TRIES LEFT: THE ROOM IS LOCKED' + (sc.prize ? '\nTHE ' + sc.prize.name + ' IS GONE' : '');
+  },
+  canAgain(sc) { return sc.practice || Progress.testMode || sc.tryNo < BONUS_TRIES; },
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || Progress.testMode || w.unlock <= 1 || Progress.hasGun(w.id);     // the Spinner and the Swiss-Shot come out of the bonus rooms' crates
 
@@ -1063,7 +1095,7 @@ class Level1 extends Phaser.Scene {
     this.banner('WARP ZONE!');
     this.cameras.main.shake(1400, 0.006);
     this.time.delayedCall(1300, () => this.cameras.main.fadeOut(450, 255, 255, 255));
-    const viaDrum = W.def.to === 5.5 && !Progress.centBeat;          // (v2.40) the warp drops you in the CENTRIFUGE first; beat it and it carries on to the Fondue Fountain
+    const viaDrum = W.def.to === 5.5 && !Progress.centBeat && !Progress.bonusLocked('centrifuge');   // (locked after 3 failed goes: the warp goes straight on)          // (v2.40) the warp drops you in the CENTRIFUGE first; beat it and it carries on to the Fondue Fountain
     this.time.delayedCall(1800, () => viaDrum ? this.scene.start('centrifuge', { warp: true }) : this.scene.restart({ level: W.def.to, warped: true, autostart: true }));
   }
 

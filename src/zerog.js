@@ -169,6 +169,7 @@ class ZeroGScene extends Phaser.Scene {
 
     // the prize: a crate in the middle of the room, chained shut until the last cheese wheel is in
     this.prize = this.pickPrize();
+    Bonus.begin(this, this.room);                                   // (v2.77) 3 tries at the prize
     this.crate = this.add.container(RW / 2, RH / 2).setDepth(2);
     const box = this.add.graphics();
     box.fillStyle(0x1a1020, 1).fillRect(-30, -24, 60, 48); box.fillStyle(0x6a4a2a, 1).fillRect(-27, -21, 54, 42);
@@ -192,6 +193,7 @@ class ZeroGScene extends Phaser.Scene {
     this.gotTxt = this.add.text(0, 0, '', f(9, '#ffffff')).setOrigin(0.5, 0).setScrollFactor(0).setDepth(20);
     this.msg = this.add.text(0, 0, (V.title || 'ZERO-G RECOIL ROOM') + '\nYOU FLY AWAY FROM WHERE YOU SHOOT!\nGRAB ALL 12 CHEESE WHEELS, THEN FLY INTO THE GUN\nMIND THE ZAP-BARS AND RAT MINES' + (this.prize ? '\nPRIZE: ' + this.prize.name : ''),
       Object.assign(f(11, '#9fd8ff'), { align: 'center', lineSpacing: 8 })).setOrigin(0.5).setScrollFactor(0).setDepth(20);
+    Bonus.tag(this);
     this.tweens.add({ targets: this.msg, alpha: 0, delay: 3600, duration: 600 });
     // an always-there way out: tapping it never fires the gun
     this.exitBtn = this.add.text(0, 0, '< MAP', Object.assign(f(10, '#ffffff'), { backgroundColor: '#2a1d4a', padding: { x: 8, y: 7 } })).setScrollFactor(0).setDepth(25).setInteractive({ useHandCursor: true });
@@ -527,11 +529,12 @@ class ZeroGScene extends Phaser.Scene {
     let body;
     if (won) {
       Sound.sfx('power'); Sound.music('win');
-      if (this.prize) { Progress.giveGun(this.prize.id); body = 'THE CRATE IS OPEN!\n\nNEW GUN: ' + this.prize.name; }
+      if (this.practice) body = 'PRACTICE RUN CLEARED!';
+      else if (this.prize) { Progress.giveGun(this.prize.id); body = 'THE CRATE IS OPEN!\n\nNEW GUN: ' + this.prize.name; }
       else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 CHEESE WHEELS!\n\n+1 LIFE'; }
-      body += '\n(' + Math.ceil(this.timeLeft) + 's TO SPARE)';
+      body += '\n(' + Math.ceil(this.timeLeft) + 's TO SPARE)' + Bonus.win(this);
       this.crateGun.setVisible(false); this.puff(this.crate.x, this.crate.y - 40, 30, 0xffd23f, 300, 0.7, 4);
-    } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' CHEESE WHEELS'; }
+    } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' CHEESE WHEELS' + Bonus.lose(this); }
     const W = this.scale.width, H = this.scale.height, D = 30;
     this.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setScrollFactor(0).setDepth(D);
     this.add.text(W / 2, H * 0.24, won ? 'BONUS CLEAR!' : 'TIME UP', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
@@ -542,10 +545,11 @@ class ZeroGScene extends Phaser.Scene {
       b.on('pointerup', () => { if (this.t - this.doneT > 0.5) fn(); });
       return b;
     };
-    btn(W / 2 - 80, pad ? 'A: MAP' : 'MAP', () => this.leave(), '#ffd23f');
-    btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#9fd8ff');
+    const more = Bonus.canAgain(this);
+    btn(more ? W / 2 - 80 : W / 2, pad ? 'A: MAP' : 'MAP', () => this.leave(), '#ffd23f');
+    if (more) btn(W / 2 + 80, pad ? 'X: AGAIN' : 'AGAIN', () => this.again(), '#9fd8ff');
     this.exitBtn.setVisible(false);
   }
-  again() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
+  again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
   leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
 }
