@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.90';
+const BUILD = 'v2.91';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3843,7 +3843,7 @@ class Level1 extends Phaser.Scene {
         e.spr.setAlpha(e.phase === 'ghost' ? 0.22 : (e.phase === 'flicker' ? (Math.floor(e.t * 20) % 2 ? 0.9 : 0.3) : 1));
         e.roll = Math.sin(e.t * 3) * 0.25;
 
-      } else if (ai === 'ppguard' || ai === 'ppgren' || ai === 'pptax' || ai === 'ppcav') {   // L9 (parmesan.js): the Rat Empire's finest
+      } else if (ai === 'ppguard' || ai === 'ppgren' || ai === 'pptax' || ai === 'ppcav' || ai === 'ppminer' || ai === 'ppdyna' || ai === 'ppcart' || ai === 'ppmite' || ai === 'ppslug' || ai === 'ppgolem') {   // L9 (parmesan.js): the Rat Empire's finest
         this.parmAI(e, dt, P, dirP);
       } else if (ai === 'rindtick' || ai === 'gnawer' || ai === 'grub') {   // L8 (labyrinth.js): ceiling ticks, wall gnawers, floor grubs
         this.labAI(e, dt, P, dirP);
@@ -4242,10 +4242,11 @@ class Level1 extends Phaser.Scene {
         e.spr.destroy(); this.enemies.splice(i, 1); continue;
       }
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
+      if (e.type === 'ppmite' && this.ppMiteBurst) this.ppMiteBurst(e);   // (v2.91) bursts into crystal shards
       if (e.type !== 'boss') this.comboKill();
       Tel.kill(e);
       this.rig.grin();                                   // (v2.59) a smug grin
-      const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
+      const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, ppminer: 350, ppdyna: 350, ppcart: 400, ppmite: 150, ppslug: 300, ppgolem: 700, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
       this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);

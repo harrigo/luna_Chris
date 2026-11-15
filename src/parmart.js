@@ -129,8 +129,8 @@ function makeParmPlanet(scene, key, Rw, opt) {
       }
       if (d > RB - 3) t += 0.8;
       col = RIND[Math.max(0, Math.min(4, Math.round(t)))];
-    } else if (r < (LY === 2 ? 92 : 64)) {                           // the molten core
-      const t = r / (LY === 2 ? 92 : 64) * 3.4 + (noise(x, y, 6) - 0.5) * 1.2 + b; col = CORE[Math.max(0, Math.min(4, Math.round(t)))];
+    } else if (r < (LY === 3 ? rad * 0.78 : LY === 2 ? 92 : 64)) {     // the molten core
+      const t = r / (LY === 3 ? rad * 0.78 : LY === 2 ? 92 : 64) * 3.4 + (noise(x, y, 6) - 0.5) * 1.2 + b; col = CORE[Math.max(0, Math.min(4, Math.round(t)))];
     } else {                                                          // the hard, granular paste
       const n = noise(x, y, 2), n2 = noise(x + 300, y, 7);
       let t = 1.4 + (n - 0.5) * 2 + (n2 - 0.5) * 1.2 + b * 0.9 + (hash(x, y) - 0.5) * 0.9;

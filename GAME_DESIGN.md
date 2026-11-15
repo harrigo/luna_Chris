@@ -1800,3 +1800,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Fewer rats: the waves are about half the size (8/12/13), the hazards do more of the work.
 - Planet texture variants (makeParmPlanet layer 1/2), new sculpted props (makeParmDeep), shading re-made for each size. Fixed: when R shrank, the planet's centre wasn't re-anchored (layout() only sets it on resize), so the ground slid down the screen; parmDraw now re-anchors it every frame.
 - Checkpoint retries start on the right layer.
+
+### v2.91 - Parmesan Prime: a crowd for every layer, everyone repainted, one more drop
+- src/parmfolk.js: every L9 enemy re-sculpted (ppSculpt, 1.5x density, k/r/ch rescaled to keep the hit boxes): palace guard (gold breastplate, plumed helm, crown shield, halberd), grenadier (shako, bomb belt; a lit bomb raised), the Taxman (top hat, monocle, gold waistcoat, money sack), cavalry (a helmed knight with a lance on an armoured, caparisoned war-rat).
+- New folk, each with its own AI (parmAI) and their own layer:
+  THE MINES: miner (burrows under you as a moving mound, bursts up beneath you, swings a pickaxe, digs off again), dynamiter (lobs a lit stick with a long fuse: a bigger blast that blows a sinkhole in the ground), runaway mine cart (charges round and round the planet with a goggled rat driver - jump it).
+  THE CRYSTAL CORE: crystal mite (hops at you, bursts into falling crystal shards when killed), molten slug (oozes after you leaving a burning trail), crystal golem (rises out of the crystal, slams the ground: shockwaves run both ways - jump them).
+- Waves back up to 14-15 each, themed per layer (city / mines / core).
+- A third drop: clearing wave 3 cracks the core open into THE MOLTEN HEART (radius 250, a planet that's mostly glowing molten core) - the boss's arena.

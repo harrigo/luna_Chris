@@ -86,7 +86,8 @@ function makeParmTextures(scene) {
   });
   if (typeof makeParmFolk === 'function') makeParmFolk(scene);
   if (typeof makeParmStatues === 'function') makeParmStatues(scene);
-  if (typeof makeParmDeep === 'function') makeParmDeep(scene);   // (v2.90) the mines and the crystal core   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
+  if (typeof makeParmDeep === 'function') makeParmDeep(scene);
+  if (typeof makeParmFolk2 === 'function') makeParmFolk2(scene);   // (v2.91) everyone repainted, and the new folk of the mines and the core   // (v2.90) the mines and the crystal core   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
 }
 
 Object.assign(ENEMY, {
@@ -105,10 +106,11 @@ const PP_LAYERS = [
   { R: 520, name: 'THE IMPERIAL CITY' },
   { R: 420, name: 'THE MINES', sub: 'DOWN WHERE THE GRATERS DIG' },
   { R: 320, name: 'THE CRYSTAL CORE', sub: 'THE HEART OF PARMESAN PRIME' },
+  { R: 250, name: 'THE MOLTEN HEART', sub: 'THE BOTTOM OF EVERYTHING' },     // (v2.91) the boss's arena: one more drop
 ];
 const ParmMixin = {
   parmInit() {
-    this.pp = { rasp: { st: 'idle', t: 9, theta: 0, dir: 1, kind: 'low', hitDone: false, passes: 0, run: 0 }, cracks: [], crackT: 7, nades: [], taxmen: [], R0: R, sparkle: 0, layer: 0, rmin: PP_LAYERS[0].R - 70, geysers: [], drop: null };
+    this.pp = { rasp: { st: 'idle', t: 9, theta: 0, dir: 1, kind: 'low', hitDone: false, passes: 0, run: 0 }, cracks: [], crackT: 7, nades: [], taxmen: [], R0: R, sparkle: 0, layer: 0, rmin: PP_LAYERS[0].R - 70, geysers: [], drop: null, trails: [], gwaves: [] };
     // (v2.80) THE CITY on the horizon (behind the planet's curve: their feet are hidden by it), two layers, plus the
     // mining machines chewing at it; braziers burning in the street; the mining mothership up in the sky
     const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
@@ -126,7 +128,7 @@ const ParmMixin = {
     this.ppDark = this.add.graphics().setDepth(0.5).setScrollFactor(0).setVisible(false);
     this.ppRoof = this.add.graphics().setDepth(2.85); this.ppShaft = this.add.graphics().setDepth(2.86).setBlendMode(Phaser.BlendModes.ADD);
     this.ppDropFx = this.add.graphics().setDepth(18).setScrollFactor(0);
-    if (this.cp && this.cp.wave) this.pp.pending = Math.min(2, this.cp.wave);      // a retry from a checkpoint: already down there (applied on the first draw, once the props exist)
+    if (this.cp && this.cp.wave) this.pp.pending = Math.min(3, this.cp.wave);      // a retry from a checkpoint: already down there (applied on the first draw, once the props exist)
   },
 
   // ---- (v2.90) swap the world to layer n
@@ -143,9 +145,10 @@ const ParmMixin = {
       const add = (tex, n2, sc, tint, h, depth) => { for (let i = 0; i < n2; i++) { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth || 2.5); if (tint) spr.setTint(tint); spr.bsx = spr.bsy = rnd(sc[0], sc[1]) * 1.35; if (Math.random() < 0.5) spr.setFlipX(true);
         this.props.push({ spr, halo: null, theta: wrap((i + rnd(0.1, 0.9)) * TAU / n2 + n * 0.37), h: h === undefined ? -2 : h, sway: -1, ph: rnd(0, 6) }); } };
       if (n === 1) { add('ppmine_prop', 7, [0.75, 0.95]); add('ppmine_cart', 4, [0.6, 0.75]); add('ppmine_wheel', 3, [0.8, 1], 0x9a8070, -6, 0.97); add('ppcrys2', 4, [0.45, 0.6]); add('pprubble', 4, [0.9, 1.2]); add('ppcolbroke', 3, [0.9, 1.1], 0x8a7a6a); }
+      else if (n === 3) { add('ppcrys3', 3, [0.8, 1.1], 0xc06040); add('ppcrys1', 3, [1.2, 1.5], 0x8a3a20, -10, 0.97); add('pprubble', 3, [0.9, 1.1], 0xa06a4a); }
       else { add('ppcrys1', 6, [0.7, 1]); add('ppcrys3', 4, [0.6, 0.85]); add('ppcrys2', 6, [0.5, 0.7]); add('ppcrys1', 4, [1.4, 1.8], 0x8a6a40, -10, 0.97); add('ppcolbroke', 2, [0.8, 1], 0x7a6a5a); }
       for (const C of S.cracks) { const i = this.craters.indexOf(C.cr); if (i >= 0) this.craters.splice(i, 1); } S.cracks = [];
-      S.geysers = Array.from({ length: n === 1 ? 3 : 5 }, (_, i) => ({ theta: wrap(i * TAU / (n === 1 ? 3 : 5) + 0.6), st: 'idle', t: 4 + i * 2.3 }));
+      const ng = [0, 3, 5, 4][n]; S.geysers = Array.from({ length: ng }, (_, i) => ({ theta: wrap(i * TAU / ng + 0.6), st: 'idle', t: 4 + i * 2.3 }));
       S.rasp.st = 'idle'; S.rasp.t = 10;
       this.ppDark.setVisible(true);
     }
@@ -155,7 +158,7 @@ const ParmMixin = {
     const S = this.pp; if (!S) return false;
     if (S.drop) return true;
     const next = this.waveIdx + 1;
-    if ((next === 1 || next === 2) && S.layer < next) { this.ppStartDrop(next); return true; }
+    if ((next === 1 || next === 2 || next === 3) && S.layer < next) { this.ppStartDrop(next); return true; }
     return false;
   },
   ppStartDrop(n) {
@@ -211,6 +214,13 @@ const ParmMixin = {
         if (G.t <= 0) { G.st = 'idle'; G.t = rnd(4, 7); }
       }
     }
+    // ---- (v2.91) the slugs' burning trails, the golems' shockwaves
+    for (const T of S.trails) { T.t -= dt; if (T.t > 0.5 && Math.abs(angDiff(P.theta, T.theta)) * R < 14 && P.h < 4 && P.invuln <= 0) { this.hurt(); this.popup(P.theta, P.h + 60, 'HOT HOT HOT!', '#ffb52a'); P.vh = 300; } }
+    S.trails = S.trails.filter(T => T.t > 0);
+    for (const Wv of S.gwaves) { const v = 320 * dt; Wv.run += v; Wv.theta = wrap(Wv.theta + Wv.dir * v / R);
+      if (!Wv.hit && Math.abs(angDiff(P.theta, Wv.theta)) * R < 18 && P.h < 14 && P.invuln <= 0) { Wv.hit = true; this.hurt(); P.vh = 420; this.popup(P.theta, P.h + 60, 'SHOCKWAVE!', '#9fd8ff'); }
+      if (Math.random() < dt * 30 && inView0(this, Wv.theta)) this.burst(Wv.theta, 2, 'spark', 1, 0.6); }
+    S.gwaves = S.gwaves.filter(Wv => Wv.run < 340);
     // ---- THE ROYAL RASP
     const RS = S.rasp; RS.t -= dt;
     if (RS.st === 'idle' && RS.t <= 0 && !bossUp && !S.drop && R > S.rmin + 2) {
@@ -275,7 +285,9 @@ const ParmMixin = {
       this.place(N.spr, N.theta, N.h + 6, N.rot);
       if (N.fuse <= 0) {
         this.bang(N.theta, N.h + 6, 30); this.burst(N.theta, N.h + 6, 'spark', 12, 1); this.burst(N.theta, N.h + 6, 'crumb', 10, 1); Sound.sfx('boom'); this.cameras.main.shake(120, 0.008);
-        if (dist2(N.theta, N.h, P.theta, P.h + 20) < 58 * 58 && P.invuln <= 0) this.hurt();
+        if (dist2(N.theta, N.h, P.theta, P.h + 20) < (N.dyn ? 80 : 58) ** 2 && P.invuln <= 0) this.hurt();
+        if (N.dyn) { this.bang(N.theta, N.h + 6, 50); this.burst(N.theta, 4, 'crumb', 20, 1.6); this.cameras.main.shake(260, 0.014);   // (v2.91) dynamite: blows a hole in the ground
+          if (N.h < 10 && !this.craters.some(c => Math.abs(angDiff(c.theta, N.theta)) < 0.15)) S.cracks.push({ theta: N.theta, half: 30 / R, st: 'crack', t: 0.05 }); }
         N.spr.destroy(); S.nades.splice(i, 1);
       }
     }
@@ -349,7 +361,69 @@ const ParmMixin = {
       } else if (e.st === 'skid') { e.theta = wrap(e.theta + e.chDir * 400 * Math.max(0, 1 - e.stT * 2.2) / R * dt); if (e.stT > 0.55) { set('walk'); e.cd = rnd(2, 3); } }
       ground();
     }
+    // ======== (v2.91) the folk of the mines and the core ========
+    else if (e.type === 'ppminer') {                                    // burrows up under you, swings the pick, digs off again
+      if (e.st === 'walk' && !e.dug) { e.dug = true; set('under'); }
+      if (e.st === 'under') {
+        e.phased = true; e.noTouch = true; e.spr.setAlpha(0); e.h = 0; e.dir = side;
+        e.theta = wrap(e.theta + side * Math.min(130, distP * 3) / R * dt);
+        if (Math.random() < dt * 14) this.burst(e.theta, 2, 'crumb', 1, 0.5);
+        if (distP < 26 && e.stT > 1) { set('pop'); Sound.sfx('crash'); this.burst(e.theta, 4, 'crumb', 16, 1.2); this.cameras.main.shake(100, 0.006); }
+      } else if (e.st === 'pop') {
+        e.spr.setAlpha(1); e.phased = false; e.h = Math.min(0, -30 + e.stT * 120); e.vh = 0;
+        if (e.stT < 0.25 && distP < 28 && P.h < 30 && P.invuln <= 0) { this.hurt(); P.vh = 360; }
+        if (e.stT > 0.35) { e.h = 0; set('walk2'); e.noTouch = false; e.digT = rnd(5, 7); }
+      } else if (e.st === 'walk2') {
+        e.dir = side; if (distP > 40) e.theta = wrap(e.theta + side * 70 / R * dt);
+        e.spr.setTexture('ppminer');
+        if (distP < 70 && e.cd <= 0 && P.h < 60) { set('swing'); Sound.sfx('swish'); }
+        if ((e.digT -= dt) <= 0) { set('under'); this.burst(e.theta, 4, 'crumb', 12, 1); Sound.sfx('clunk'); }
+        ground();
+      } else if (e.st === 'swing') {
+        e.spr.setTexture(e.stT > 0.3 ? 'ppminer_b' : 'ppminer');
+        if (e.stT > 0.3 && !e.hit && distP < 80 && P.h < 50 && P.invuln <= 0) { e.hit = true; this.hurt(); this.burst(P.theta, P.h + 20, 'spark', 6, 0.8); Sound.sfx('clang'); }
+        if (e.stT > 0.6) { set('walk2'); e.cd = 1.4; e.hit = false; }
+        ground();
+      }
+    } else if (e.type === 'ppdyna') {                                  // lobs lit dynamite: a big bang that blows a hole in the ground
+      e.dir = side;
+      if (e.st === 'walk') {
+        if (distP < 260) e.theta = wrap(e.theta - side * 70 / R * dt); else if (distP > 420) e.theta = wrap(e.theta + side * 60 / R * dt);
+        if (e.cd <= 0 && distP < 560) { set('wind'); e.spr.setTexture('ppdyna_b'); Sound.sfx('hiss'); }
+      } else if (e.st === 'wind' && e.stT > 0.7) {
+        const vt = side * Math.max(120, Math.min(380, distP * 0.85)), im = this.add.image(0, 0, 'ppdynamite').setDepth(6.2); im.bsx = im.bsy = 0.9;
+        this.pp.nades.push({ theta: e.theta, h: e.h + 60, vt, vh: 440, fuse: 2.2, rot: 0, spr: im, dyn: true }); Sound.sfx('swish');
+        set('walk'); e.cd = rnd(3, 4); e.spr.setTexture('ppdyna');
+      }
+      ground();
+    } else if (e.type === 'ppcart') {                                  // a runaway mine cart: round and round the planet, jump it
+      if (!e.cartDir) { e.cartDir = side; Sound.sfx('grind'); }
+      e.dir = e.cartDir; e.theta = wrap(e.theta + e.cartDir * 300 / R * dt);
+      if (Math.random() < dt * 12) this.burst(wrap(e.theta - e.cartDir * 14 / R), 2, 'spark', 1, 0.4);
+      if (distP < 400 && Math.random() < dt * 3) Sound.sfx('grind');
+      ground();
+    } else if (e.type === 'ppmite') {                                  // scuttles at you in hops; bursts into shards
+      e.dir = side; e.theta = wrap(e.theta + side * 150 / R * dt);
+      if (e.h <= 0 && e.cd <= 0 && distP < 140) { e.vh = 360; e.cd = rnd(1, 1.6); Sound.sfx('squeak'); }
+      ground();
+    } else if (e.type === 'ppslug') {                                  // oozes after you, leaving a burning trail
+      e.dir = side; e.theta = wrap(e.theta + side * 38 / R * dt);
+      if ((e.trT = (e.trT || 0) - dt) <= 0) { e.trT = 0.25; this.pp.trails.push({ theta: e.theta, t: 5 }); }
+      ground();
+    } else if (e.type === 'ppgolem') {                                 // rises out of the crystal, lumbers, slams: a shockwave to jump
+      if (!e.risen) { e.risen = true; set('rise'); Sound.sfx('crash'); }
+      if (e.st === 'rise') { e.h = Math.min(0, -60 + e.stT * 80); e.noTouch = e.stT < 0.6; if (Math.random() < dt * 20) this.burst(e.theta, 2, 'spark', 1, 0.6); if (e.stT > 0.75) { e.h = 0; set('walk'); e.noTouch = false; } }
+      else if (e.st === 'walk') {
+        e.dir = side; if (distP > 60) e.theta = wrap(e.theta + side * 32 / R * dt);
+        if (e.cd <= 0 && distP < 230) { set('raise'); e.spr.setTexture('ppgolem_b'); Sound.sfx('charge'); }
+        ground();
+      } else if (e.st === 'raise' && e.stT > 0.8) {
+        set('walk'); e.cd = rnd(3, 4.2); e.spr.setTexture('ppgolem'); Sound.sfx('boom'); this.cameras.main.shake(250, 0.014); this.burst(e.theta, 4, 'spark', 14, 1.2);
+        for (const d of [-1, 1]) this.pp.gwaves.push({ theta: e.theta, dir: d, run: 0, hit: false });
+      }
+    }
   },
+  ppMiteBurst(e) { for (let k = 0; k < 6; k++) { const a = -0.2 + k / 5 * (Math.PI + 0.4); const b = this.addEBullet('ppshard', e.theta, e.h + 12, Math.cos(a) * 220, Math.sin(a) * 260 + 80, 7, 1.2); b.grav = 600; } Sound.sfx('tink'); },
   // the guard's shield: shots from in front plink off (unless he's mid-jab), from behind they bite
   ppHitK(e) {
     if (e.type !== 'ppguard') return 1;
@@ -392,7 +466,7 @@ const ParmMixin = {
     const rf = this.ppRoof, sh = this.ppShaft; rf.clear(); sh.clear();
     if (S.layer > 0) {
       const W = this.W, H = this.H, dk = this.ppDark; dk.clear();
-      for (let i = 0; i < 12; i++) dk.fillStyle(S.layer === 1 ? Phaser.Display.Color.GetColor(22 + i * 3, 10 + i * 2, 8 + i) : Phaser.Display.Color.GetColor(30 + i * 8, 10 + i * 4, 6 + i), 0.93).fillRect(0, H * i / 12, W, H / 12 + 1);
+      for (let i = 0; i < 12; i++) dk.fillStyle(S.layer === 3 ? Phaser.Display.Color.GetColor(40 + i * 12, 8 + i * 3, 4 + i) : S.layer === 1 ? Phaser.Display.Color.GetColor(22 + i * 3, 10 + i * 2, 8 + i) : Phaser.Display.Color.GetColor(30 + i * 8, 10 + i * 4, 6 + i), 0.93).fillRect(0, H * i / 12, W, H / 12 + 1);
       const step = 0.02, a0 = vt - vh - 0.1, n = Math.ceil((vh * 2 + 0.2) / step), base = 300, holes = [0.4, 1.9, 3.3, 4.6, 5.8].map(x => wrap(x + S.layer));
       for (let i = 0; i < n; i++) {
         const th = wrap(a0 + i * step), th2 = wrap(th + step), hole = holes.some(hh => Math.abs(angDiff(th, hh)) < 0.09);
@@ -414,6 +488,9 @@ const ParmMixin = {
           const top = this.screenPos(G.theta, hT); g.fillStyle(0xffb52a, 1).fillCircle(top.x, top.y, 22 * z); g.fillStyle(0xfff0a0, 1).fillCircle(top.x, top.y - 4 * z, 12 * z); }
       }
     }
+    for (const T of S.trails) { if (!inView(T.theta)) continue; const a = this.screenPos(wrap(T.theta - 9 / R), 0), b = this.screenPos(wrap(T.theta + 9 / R), 0), c = this.screenPos(T.theta, 6 * Math.min(1, T.t)); g.fillStyle(0xffa030, Math.min(0.9, T.t)).fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y); if (Math.random() < 0.05) this.burst(T.theta, 4, 'spark', 1, 0.3); }
+    for (const Wv of S.gwaves) { if (!inView(Wv.theta)) continue; const k = 1 - Wv.run / 340; for (const [w, hh, col] of [[18, 26, 0x9fd8ff], [10, 14, 0xffffff]]) { const a = this.screenPos(wrap(Wv.theta - w / R), 0), b = this.screenPos(wrap(Wv.theta + w / R), 0), c = this.screenPos(Wv.theta, hh * k); g.fillStyle(col, 0.8 * k + 0.2).fillTriangle(a.x, a.y, b.x, b.y, c.x, c.y); } }
+    for (const e of this.enemies) if (e.type === 'ppminer' && e.st === 'under' && inView(e.theta)) { const p = this.screenPos(e.theta, 0); g.fillStyle(0x5a4028, 1).fillEllipse(p.x, p.y, 34 * z, 14 * z); g.fillStyle(0x8a6a48, 1).fillEllipse(p.x - 3 * z, p.y - 2 * z, 22 * z, 8 * z); }
     { const fx = this.ppDropFx; fx.clear(); const D = S.drop;                // the fall: the screen goes dark, rubble whooshing up past
       if (D && (D.st === 'fall' || (D.st === 'land' && D.t < 0.8))) {
         const a = D.st === 'fall' ? Math.min(1, D.t / 0.8) : 1 - D.t / 0.8, W = this.W, H = this.H;

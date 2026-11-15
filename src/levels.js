@@ -368,7 +368,7 @@ const LEVELS = {
 
   9: {
     id: 9, hpMul: 1.58, name: 'Parmesan Prime', short: 'PARMESAN PRIME', parm: true, blurb: 'The rats\' homeworld: one colossal wheel of Parmesan,\nand they\'re grating it to bits.',
-    music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'THE PLANET IS FALLING APART - WATCH THE SKY AND THE GROUND!',
+    music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'THE PLANET IS FALLING APART UNDER YOU - HOLD ON!',
     radius: 520, sky: [0x12040c, 0xe0782a], skyCols: [0x12040c, 0x2a0818, 0x4a1020, 0x7a1e1e, 0xb0401a, 0xe0782a], bg: '#12040c', starTint: 0xffd0b0, dustAlpha: 1.2, bgDecor: 'none',
     surface: { pal: [0x5a4a2a, 0x8a7a4a, 0xc0b07a, 0xdcd0a0, 0xeee6c4, 0xfff8e0], seed: 9595, parm: true },          // (v2.80: painted in parmart.js)
     planet: { fill: 0xdcd0a0, inner: 0xc0b07a, rim: 0xfff8e0, glow: 0xffb070 },
@@ -391,10 +391,10 @@ const LEVELS = {
       ridges: [{ style: 'skyline', n: 26, off: 40, amp: 26, col: [44, 10, 22], top: [255, 170, 110], glow: [255, 214, 120], k: 0.3, depth: 0.33, seed: 93, size: 2.0 },
                { style: 'machines', n: 11, off: 10, amp: 18, col: [22, 5, 10], top: [255, 130, 70], glow: [255, 80, 40], k: 0.55, depth: 0.36, seed: 94, size: 1.4 }],
       fg: { style: 'ruins', col: [26, 6, 10], glow: [255, 150, 70] } },
-    waves: [                                                                                          // (v2.78) the Rat Empire's finest
-      { name: 'WAVE 1', spawns: [S('ppguard', 0.3), S('pptax', 1.2), S('flyer', 1.6), S('ppgren', 2.2), S('ppguard', 4), S('ppgren', 6), S('flyer', 7.2), S('ppguard', 8)] },
-      { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('ppguard', 1.8), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('ppguard', 5), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8)] },
-      { name: 'WAVE 3', spawns: [S('ppguard', 0), S('ppguard', 0.4), S('ppcav', 1), S('mouse', 1.3), S('ppgren', 2.2), S('pptax', 3.2), S('ppcav', 4.4), S('paladin', 5), S('ppguard', 6.4), S('ppgren', 7), S('mouse', 7.4), S('ppcav', 8.2), S('ppguard', 9.6)] },
+    waves: [                                                                                          // (v2.91) a crowd for each layer
+      { name: 'THE IMPERIAL CITY', spawns: [S('ppguard', 0), S('ppgren', 0.6), S('ppguard', 1.2), S('pptax', 1.8), S('ppcav', 2.6), S('ppgren', 3.2), S('ppguard', 3.8), S('flyer', 4.4), S('ppcav', 5.2), S('pptax', 5.8), S('ppguard', 6.4), S('ppgren', 7), S('ppguard', 7.6), S('ppcav', 8.4)] },
+      { name: 'THE MINES', spawns: [S('ppminer', 0), S('ppdyna', 0.8), S('ppminer', 1.6), S('ppcart', 2.4), S('ppminer', 3.2), S('ppdyna', 3.8), S('ppguard', 4.4), S('ppminer', 5), S('ppcart', 5.8), S('ppdyna', 6.4), S('ppminer', 7), S('ppminer', 7.6), S('ppcart', 8.4), S('ppdyna', 9)] },
+      { name: 'THE CRYSTAL CORE', spawns: [S('ppmite', 0), S('ppmite', 0.3), S('ppslug', 1), S('ppmite', 1.8), S('ppgolem', 2.6), S('ppmite', 3.2), S('ppmite', 3.5), S('ppslug', 4.2), S('ppmite', 5), S('ppgolem', 5.8), S('ppmite', 6.4), S('ppslug', 7), S('ppmite', 7.6), S('ppmite', 7.9), S('ppgolem', 8.8)] },
     ],
     boss: { tex: 'ratking', hp: 480, ai: 'colossus', scale: 1.35 },                                // (v2.79) THE PARMESAN COLOSSUS (parmesan.js; its own textures)
     win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
