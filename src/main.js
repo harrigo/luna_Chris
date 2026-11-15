@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.02';
+const BUILD = 'v3.03';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4273,6 +4273,7 @@ class Level1 extends Phaser.Scene {
             if (!this.potTip) { this.potTip = true; this.banner('THAT POT\'S BOILING!\nSHOOT HIM OFF IT!'); }
             continue;
           }
+          if (e.ai === 'magmagolem') { this.mgGrab(e); continue; }       // (v3.03) jump on the Magma Golem's head and he grabs you and throws you
           if (e.type === 'boss' && this.def.boss.armouredTop) {           // armour plating: Chris just bounces off
             P.vh = 380; P.h = top + 1; P.jetArmed = false; P.invuln = Math.max(P.invuln, 0.2);
             this.burst(P.theta, top, 'spark', 12, 1.1); this.cameras.main.shake(80, 0.005);

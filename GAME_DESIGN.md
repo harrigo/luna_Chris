@@ -1857,3 +1857,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The Parmesan Power-Up (the gun's temporary level-up) lasts 10 s (was 15); after the guaranteed first one, later big enemies drop one 1 in 20 (was 1 in 8).
 - Timed power-ups: a wave's first medium/big kill now drops one only half the time (was always); 1 in 25 after that (was 1 in 12).
 - Shop prices +20% (armour 160/280/430/650, boots 130/240/380/540, chips 295/515/810, tanks 175/325/500, magnet 485, life 325, patch 25, hearts 380/650).
+
+### v3.03 - The Magma Golem: no free stomps, a fair breath, and he moves
+- Jumping on his head no longer hurts him: he GRABS Chris, hoists him overhead (shaking), and after a second THROWS him (half a heart, flung away) - "GRABBED! DON'T JUMP ON HIS HEAD!" the first time. Shoot the crust plates, then the core.
+- The breath (the stream of magma globs sweeping high to low) never comes down to the floor any more: it bottoms out just above crouching height, so DUCK under it - or get in close, where the whole sweep goes over your head. A "DUCK! OR GET IN CLOSE!" hint the first time.
+- He's animated: a lumbering 4-frame walk (legs lift, body bobs, arms swing, each step shakes the ground and kicks up crumbs), fists raised overhead for the pound wind-up and while holding Chris, and the maw gaping wide for the breath and the roar.

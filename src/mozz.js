@@ -110,22 +110,33 @@ function makeMozzTextures(scene) {
   const MOL = [0xfff6d0, 0xffc25a, 0xd0601a], CR = [0x7a4422, 0x40200e, 0x1c0c06], DARK = 0x2a0804;
   const crackIt = (p, pts) => p.line(pts, 0xff6a1a, 1);
   // ---- the boss: a lumpy giant of molten mozzarella, fanged maw, burning eyes, dripping arms
-  pixSprite(scene, 'magmagolem', 150, 132, p => {
-    p.ell(52, 122, 17, 10, MOL); p.ell(98, 122, 17, 10, MOL);                                       // stumpy legs
-    p.ell(75, 74, 52, 48, MOL);                                                                     // the body
-    p.poly([[30, 50], [12, 70], [6, 86], [22, 90], [36, 72]], MOL); p.ell(14, 90, 14, 12, MOL);      // left arm and fist
-    p.poly([[120, 48], [138, 60], [146, 76], [130, 80], [114, 66]], MOL); p.ell(136, 80, 14, 12, MOL);   // right arm and fist
-    p.ell(75, 34, 33, 27, MOL);                                                                     // head
+  // (v3.03) he moves now: a lumbering 4-frame walk (legs lift, the body bobs, the arms swing), fists raised overhead (the
+  // pound, and holding Chris up to throw him), and the maw gaping (the breath)
+  const golem = (key, o) => pixSprite(scene, key, 150, 132, p => {
+    const lL = o.lL || 0, lR = o.lR || 0, b = o.bob || 0, aL = o.aL || 0, aR = o.aR || 0, up = !!o.up, gape = o.gape || 0;
+    p.ell(52, 122 - lL, 17, 10, MOL); p.ell(98, 122 - lR, 17, 10, MOL);                                       // stumpy legs
+    p.ell(75, 74 + b, 52, 48, MOL);                                                                     // the body
+    if (up) { p.poly([[34, 50 + b], [22, 30], [26, 8], [42, 10], [44, 44 + b]], MOL); p.ell(32, 10, 14, 12, MOL); }
+    else { p.poly([[30, 50 + b], [12 - aL, 70 + b], [6 - aL, 86 + b], [22 - aL, 90 + b], [36, 72 + b]], MOL); p.ell(14 - aL, 90 + b, 14, 12, MOL); }      // left arm and fist
+    if (up) { p.poly([[116, 50 + b], [128, 30], [124, 8], [108, 10], [106, 44 + b]], MOL); p.ell(118, 10, 14, 12, MOL); }
+    else { p.poly([[120, 48 + b], [138 + aR, 60 + b], [146 + aR, 76 + b], [130 + aR, 80 + b], [114, 66 + b]], MOL); p.ell(136 + aR, 80 + b, 14, 12, MOL); }   // right arm and fist
+    p.ell(75, 34 + b, 33, 27, MOL);                                                                     // head
     for (const [x, y, r] of [[48, 70, 4], [100, 92, 5], [62, 100, 3], [110, 60, 3], [40, 96, 3], [86, 112, 3], [20, 92, 2], [132, 84, 3]]) p.ell(x, y, r, r * 0.8, [0x8a3a14, 0x5a2008, 0x2a0c04]);   // charred spots
     crackIt(p, [[60, 60], [66, 72], [62, 84]]); crackIt(p, [[96, 66], [90, 78], [96, 90], [92, 100]]); crackIt(p, [[34, 64], [26, 76]]); crackIt(p, [[118, 62], [128, 72]]);
     for (const [x, y, l] of [[10, 100, 10], [20, 100, 6], [132, 90, 12], [140, 90, 7], [56, 110, 8], [92, 116, 6], [74, 120, 9]]) { p.line([[x, y], [x, y + l]], MOL[1], 2); p.ell(x, y + l + 1, 2, 2, MOL); }   // drips
     p.poly([[50, 22], [68, 30], [66, 34], [48, 28]], DARK); p.poly([[100, 22], [82, 30], [84, 34], [102, 28]], DARK);   // furious brows
     p.ell(60, 33, 5, 4, [0xffffd0, 0xff8a1a, 0xc02a0a]); p.ell(90, 33, 5, 4, [0xffffd0, 0xff8a1a, 0xc02a0a]);     // burning eyes
-    p.ell(75, 48, 18, 11, DARK); p.ell(75, 52, 11, 6, [0xffe080, 0xff7a1a, 0xc02a0a]);              // the maw, glowing inside
+    p.ell(75, 48 + gape / 2, 18 + gape / 2, 11 + gape, DARK); p.ell(75, 52 + gape, 11 + gape / 2, 6 + gape / 2, [0xffe080, 0xff7a1a, 0xc02a0a]);              // the maw, glowing inside
     for (const x of [61, 68, 75, 82, 89]) p.poly([[x - 2, 38], [x + 2, 38], [x, 44]], 0xfff8e8);    // top fangs
-    for (const x of [65, 75, 85]) p.poly([[x - 2, 59], [x + 2, 59], [x, 54]], 0xfff8e8);            // bottom fangs
+    for (const x of [65, 75, 85]) p.poly([[x - 2, 59 + gape * 1.6], [x + 2, 59 + gape * 1.6], [x, 54 + gape * 1.6]], 0xfff8e8);            // bottom fangs
     for (const [x, y] of [[50, 16], [96, 14], [36, 44], [112, 40], [70, 90]]) p.ell(x, y, 2, 1.5, 0xffffff);   // bubbles on the cheese
   });
+  golem('magmagolem', {});
+  golem('magmagolem_w1', { lL: 7, bob: -2, aL: -4, aR: 5 });
+  golem('magmagolem_w2', { bob: 1 });
+  golem('magmagolem_w3', { lR: 7, bob: -2, aL: 5, aR: -4 });
+  golem('magmagolem_up', { up: true, bob: -3 });
+  golem('magmagolem_roar', { gape: 7, bob: 1, aL: 6, aR: 6 });
   // ---- his charred crust armour plates (break them to expose the core)
   const plate = (key, w, h, shape) => pixSprite(scene, key, w, h, p => {
     p.poly(shape, [0xb8743a, 0x6a3418, 0x2a1008]);                                                   // baked golden on top, burnt black underneath
@@ -398,7 +409,7 @@ const MozzMixin = {
   },
   mgAI(e, dt, P, phase2) {
     const S = e.mgS || this.mgInit(e);
-    S.t += dt; S.mouth = Math.max(0, S.mouth - dt);
+    S.t += dt; S.mouth = Math.max(0, S.mouth - dt); S.walking = false;
     const d = angDiff(P.theta, e.theta), dist = Math.abs(d) * R;
     if (phase2 && !S.p2) {                                                      // BOILING OVER
       S.p2 = true; S.st = 'roar'; S.t = 0;
@@ -410,7 +421,7 @@ const MozzMixin = {
       const want = wrap(P.theta - Math.sign(d || 1) * 150 / R), dd = angDiff(want, e.theta);
       e.theta = wrap(e.theta + Math.sign(dd) * Math.min(Math.abs(dd), spd / R * dt));
       e.h = MG.footH + Math.abs(Math.sin(S.t * 3.2)) * 5;
-      e.dir = Math.sign(d) || 1;
+      e.dir = Math.sign(d) || 1; S.walking = true;
     };
     switch (S.st) {
       case 'walk': {
@@ -447,14 +458,16 @@ const MozzMixin = {
         break;
       }
       case 'breath': {                                                          // a sweep of molten cheese from his maw, high to low
+        // (v3.03) ...but it never comes down to the floor: DUCK under it, or get in close where it all goes over your head
         S.mouth = 0.2;
+        if (S.t < 0.05 && !this.mgDuckTip) { this.mgDuckTip = true; this.banner('DUCK! OR GET IN CLOSE!'); }
         if (S.t < 0.6) { if (Math.random() < 0.5) { const m = this.mPt(e, MG.mouth[0], MG.mouth[1]); this.burst(m.theta, m.h, 'spark', 1, 0.3); } }
         else if (S.t < 2.0) {
           S.bt = (S.bt || 0) - dt;
           if (S.bt <= 0) {
             S.bt = 0.06;
             const k = (S.t - 0.6) / 1.4, m = this.mPt(e, MG.mouth[0], MG.mouth[1]), dir = Math.sign(d) || 1;
-            const a = (0.75 - 1.15 * k), v = 330;                                // from above his head down to the ground at your feet
+            const a = (0.75 - 0.86 * k), v = 330;                                // from above his head down to just above crouching height
             const b = this.addEBullet('mg_glob', m.theta, m.h, dir * v * Math.cos(a), v * Math.sin(a), 8, 2.2);
             b.spr.bsx = b.spr.bsy = 0.75;
             if (Math.random() < 0.3) Sound.sfx('hiss');
@@ -469,12 +482,33 @@ const MozzMixin = {
         if (S.t > 2.4) this.mgWalk(e);
         break;
       }
+      case 'grab': {                                                            // (v3.03) he caught Chris on his head: hoisted overhead... and THROWN
+        const hold = this.mPt(e, 0, -60);
+        P.theta = hold.theta; P.h = Math.max(0, hold.h + Math.sin(S.t * 40) * 2); P.vh = 0; P.vx = 0; P.invuln = Math.max(P.invuln, 0.2);
+        e.theta = wrap(e.theta + Math.sin(S.t * 50) * 1 / R);
+        if (S.t > 0.25 && !S.n) { S.n = 1; Sound.sfx('boom'); }
+        if (S.t > 0.95) {
+          const dir = (Math.sign(angDiff(P.theta, e.theta)) || S.throwDir || 1);
+          P.invuln = 0; this.hurt(); P.vx = dir * 520; P.vh = 520; P.jetArmed = false; P.h = Math.max(P.h, hold.h);
+          this.cameras.main.shake(220, 0.012); Sound.sfx('whoosh'); buzz([40, 20, 80]); this.popup(P.theta, P.h + 40, 'YEEEET!', '#ff8a3a', true);
+          this.mgWalk(e, 1.2);
+        }
+        break;
+      }
       case 'roar': {
         S.mouth = 0.2; e.theta = wrap(e.theta + Math.sin(S.t * 70) * 2 / R);
         if (S.t > 1.4) { S.i = 0; this.mgWalk(e, 0.4); }
         break;
       }
     }
+  },
+  // (v3.03) landing on his head: no free stomp - he grabs you
+  mgGrab(e) {
+    const S = e.mgS; if (!S || S.st === 'grab' || S.st === 'roar') return false;
+    S.st = 'grab'; S.t = 0; S.n = 0; S.lean = 0; S.throwDir = this.pl.facing || 1;
+    Sound.sfx('squelch'); this.cameras.main.shake(120, 0.008);
+    if (!this.mgGrabTip) { this.mgGrabTip = true; this.banner('GRABBED! DON\'T JUMP ON HIS HEAD!'); }
+    return true;
   },
   mgWalk(e, cd) { const S = e.mgS; S.st = 'walk'; S.t = 0; S.cd = cd !== undefined ? cd : (S.p2 ? rnd(0.9, 1.4) : rnd(1.4, 2)); S.lean = 0; },
   mgBreak(e, pl, quiet) {
@@ -513,6 +547,10 @@ const MozzMixin = {
     const S = e.mgS; if (!S) return;
     const vis = e.spr.visible, rot = e.spr.rotation, sx = e.spr.scaleX, sy = e.spr.scaleY;
     e.spr.setRotation(rot + (S.lean || 0) * (e.dir || 1));
+    S.wp = (S.wp || 0) + (S.walking ? (this.lastDt || 0.016) * (S.p2 ? 7 : 5) : 0);
+    const fr = S.st === 'grab' || (S.st === 'pound' && S.t < 0.8) ? 'magmagolem_up' : (S.st === 'breath' || S.st === 'roar') ? 'magmagolem_roar' : S.walking ? ['magmagolem', 'magmagolem_w1', 'magmagolem_w2', 'magmagolem_w3'][Math.floor(S.wp) % 4] : 'magmagolem';
+    if (e.spr.texture.key !== fr) e.spr.setTexture(fr);
+    if (S.walking && Math.floor(S.wp) !== S.lastStep && Math.floor(S.wp) % 2 === 1) { S.lastStep = Math.floor(S.wp); this.cameras.main.shake(60, 0.003); this.burst(e.theta, 2, 'crumb', 3, 0.5); }
     const dt = this.lastDt || 0.016;
     for (const pl of S.plates) if (pl.im) {
       const p = this.mScreen(e, pl.off); pl.flash = Math.max(0, (pl.flash || 0) - dt);
