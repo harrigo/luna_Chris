@@ -69,6 +69,24 @@ function makeParmFolk2(scene) {
   };
   const W4 = (key, w, h, fn, extra) => { for (let f = 0; f < 4; f++) pixSprite(scene, key + (f ? '_w' + f : ''), w, h, a => fn(a, f)); if (extra) for (const [suf, fn2] of extra) pixSprite(scene, key + suf, w, h, fn2); };
 
+  // (v2.95) a fountain that plays, sat flat on the street: a stepped marble basin, a little rat cherub on a pedestal
+  // spitting an arc of molten cheese, ripples, the cracked rim dribbling over
+  const MARBF = [0xf6f1e8, 0xc6beb2, 0x8a8278];
+  for (let f = 0; f < 4; f++) pixSprite(scene, 'ppfountain' + (f ? '_' + f : ''), 78, 60, a => {
+    a.rect(4, 55, 73, 59, MARBF[1]); a.rect(4, 55, 73, 55, MARBF[0]); a.rect(4, 59, 73, 59, MARBF[2]);                                // the step, flat on the ground
+    a.poly([[8, 54], [70, 54], [66, 42], [12, 42]], MARBF); a.rect(8, 41, 70, 43, MARBF[0]); a.rect(8, 44, 70, 44, MARBF[2]);            // the basin
+    a.rect(11, 38, 67, 41, LAVA[1]); for (let x = 12 + (f % 2) * 3; x < 66; x += 6) a.rect(x, 38 + ((x + f) % 2), x + 2, 38 + ((x + f) % 2), LAVA[0]);   // molten cheese, rippling
+    for (const x of [20, 34, 48, 60]) a.px(x, 49, GOLD[1]);
+    a.line([[58, 44], [60, 48], [58, 52]], MARBF[2]); a.line([[61, 44], [61, 47 + f]], LAVA[1]); if (f === 3) a.px(61, 53, LAVA[0]);            // the cracked rim dribbles
+    a.rect(34, 24, 43, 40, MARBF[1]); a.rect(34, 24, 36, 40, MARBF[0]); a.rect(32, 22, 45, 24, MARBF[0]);                               // the pedestal
+    a.ell(38, 15, 6, 7, MARBF); a.ell(39, 6, 5.5, 5, MARBF); a.poly([[42, 4], [50, 6], [51, 9], [42, 10]], MARBF); a.ell(34, 2, 2.6, 3.4, MARBF); a.px(41, 5, DARK);   // the cherub
+    a.line([[33, 12], [28, 8], [26, 12]], MARBF[1], 2); a.line([[38, 22], [44, 20]], PINK[1]);
+    const arc = []; for (let k = 0; k <= 8; k++) { const u = k / 8; arc.push([51 + u * 13, 8 - Math.sin(u * 2.6) * 6 + u * u * 28]); }
+    a.line(arc, LAVA[1], 2); for (let k = (f % 2); k < 8; k += 2) a.px(arc[k][0], arc[k][1], LAVA[0]);                                 // the arc, shimmering
+    for (const [dx, dy] of [[-4, -2 - f % 2], [3, -3 + f % 3], [0, -5 + f % 2], [6, -1]]) a.px(64 + dx, 38 + dy, LAVA[0]);              // the splash
+    a.ell(64, 39, 4 + f % 2, 1.5, LAVA[0]);
+  });
+
   // ======== THE IMPERIAL CITY ========
   // palace guard: a dented gold breastplate and a plumed helm jammed down over his ears, a crown-crested shield, a halberd
   W4('ppguard', 60, 62, (a, f) => rat(a, { f, by: 60, coat: RED, mouth: 0,

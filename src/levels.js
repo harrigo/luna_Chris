@@ -379,9 +379,8 @@ const LEVELS = {
       // (v2.81) composed like L2: big dark statues and columns looming behind the horizon, and rubble right in front of the camera
       { tex: 'ppstatue_big', at: [[0.6, 1.4], [2.9, 1.3, 1], [5.0, 1.45]], depth: 0.95, tint: 0x7a3434, alpha: 0.8, h: -22 },
       { tex: 'ppcolbroke', at: [[1.5, 2.2, 1], [3.9, 2.0], [5.8, 2.3, 1]], depth: 0.95, tint: 0x5a2228, alpha: 0.72, h: -20 },
-      { tex: 'pprubble', at: [[0.95, 1.7], [2.2, 1.9, 1], [3.4, 1.6], [4.6, 2.0, 1], [5.5, 1.7]], fg: true, h: -8, tint: 0x9a7a6a },
-      { tex: 'ppcolbroke', at: [[1.8, 1.3], [4.2, 1.4, 1]], fg: true, h: -10, tint: 0xa08070 },
-      { tex: 'ppstatue2', n: 2, sc: [0.85, 0.95] }, { tex: 'ppstatue3', n: 2, sc: [0.85, 0.95] }, { tex: 'ppcol2', n: 5, sc: [0.9, 1.2] }, { tex: 'ppcolbroke', n: 4, sc: [1, 1.3] }, { tex: 'ppbanner2', n: 5, sc: [0.9, 1.1] }, { tex: 'ppfountain', n: 2, sc: [1, 1.1] }, { tex: 'pprubble', n: 5, sc: [0.9, 1.3] }],
+      // (v2.95) nothing parked in front of the camera any more (it hid the enemies); the street furniture is smaller and sits behind the action
+      { tex: 'ppstatue2', n: 2, sc: [0.62, 0.7] }, { tex: 'ppstatue3', n: 2, sc: [0.62, 0.7] }, { tex: 'ppcol2', n: 4, sc: [0.8, 1] }, { tex: 'ppcolbroke', n: 3, sc: [0.8, 1] }, { tex: 'ppbanner2', n: 4, sc: [0.8, 0.95] }, { tex: 'ppfountain', n: 3, sc: [1.2, 1.3], h: 0 }, { tex: 'pprubble', n: 3, sc: [0.6, 0.8] }],
     debris: { every: [1.3, 2.4], tex: ['pp_column', 'pp_head', 'pp_dome', 'db_rock'] },          // (v2.78) palace rubble
     nebula: { pal: [0x12040c, 0x3a0a18, 0x6a1a1a, 0xb0461a, 0xffa040], n: 3, sparkles: [0xffffff, 0xffd8a0, 0xff9a5a, 0xffe8c0] },   // (v2.81) a burning nebula
     // (v2.81) parallax like the early levels: the imperial city's skyline far off (domes, minarets, colonnades, arches, lit

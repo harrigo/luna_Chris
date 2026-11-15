@@ -115,14 +115,16 @@ const ParmMixin = {
     // mining machines chewing at it; braziers burning in the street; the mining mothership up in the sky
     const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
     this.ppCity = [];
-    NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xf0d8c8); im.bsx = im.bsy = k === 'ppb_drill' ? 1.25 : 1.45; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
+    NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xd8a890); im.bsx = im.bsy = k === 'ppb_drill' ? 1.25 : 1.45; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
     // (the far skyline is a parallax ring now: depth.js 'skyline' / 'machines')
-    this.ppFire = [];
+    this.ppFire = []; this.ppSmoke = [];
     for (let i = 0; i < 6; i++) {
       const th = i * TAU / 6 + 0.42, base = this.add.image(0, 0, 'ppbrazier').setOrigin(0.5, 1).setDepth(2.55), fl = this.add.image(0, 0, 'ppflame0').setOrigin(0.5, 1).setDepth(2.56), gl = this.add.image(0, 0, 'puff').setDepth(2.54).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff9a3a);
       base.bsx = base.bsy = 1.2; fl.bsx = fl.bsy = 1.3; gl.bsx = gl.bsy = 1.8; this.ppFire.push({ th, base, fl, gl, ph: i * 1.7 });
     }
     this.ppShip = this.add.image(0, 0, 'ppb_ship').setDepth(0.6).setScrollFactor(0).setAlpha(0.95);
+    this.ppShip2 = this.add.image(0, 0, 'ppb_ship').setDepth(0.34).setScrollFactor(0).setAlpha(0.7).setTint(0x7a3a40);     // (v2.95) a second one, far off
+    this.ppHaze = this.add.graphics().setDepth(1.02);                                // (v2.95) heat-haze at the horizon: pushes the palaces back behind the street
     this.ppG = this.add.graphics().setDepth(7.7); this.ppBack = this.add.graphics().setDepth(2.9); this.ppHud = this.add.graphics().setDepth(19);
     // (v2.90) the underground: a dark sheet over the sky, the cavern roof (the underside of the layer above), shafts of light
     this.ppDark = this.add.graphics().setDepth(0.5).setScrollFactor(0).setVisible(false);
@@ -140,7 +142,7 @@ const ParmMixin = {
       if (this.planetShade) { const sk = 'shade9_' + n; if (!this.textures.exists(sk)) makePlanetShade(this, sk, L.R, this.def.surface.rimLight, this.def.surface.dark); this.planetShade.setTexture(sk); }   // (sized for the new radius)
       for (const B of this.ppCity || []) B.im.destroy(); this.ppCity = [];
       for (const F of this.ppFire || []) [F.base, F.fl, F.gl].forEach(o => o.destroy()); this.ppFire = [];
-      if (this.ppShip) { this.ppShip.destroy(); this.ppShip = null; }
+      if (this.ppShip) { this.ppShip.destroy(); this.ppShip = null; } if (this.ppShip2) { this.ppShip2.destroy(); this.ppShip2 = null; } if (this.ppHaze) this.ppHaze.clear();
       for (const p of this.props || []) { p.spr.destroy(); if (p.halo) p.halo.destroy(); } this.props = [];
       const add = (tex, n2, sc, tint, h, depth) => { for (let i = 0; i < n2; i++) { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth || 2.5); if (tint) spr.setTint(tint); spr.bsx = spr.bsy = rnd(sc[0], sc[1]) * 1.35; if (Math.random() < 0.5) spr.setFlipX(true);
         this.props.push({ spr, halo: null, theta: wrap((i + rnd(0.1, 0.9)) * TAU / n2 + n * 0.37), h: h === undefined ? -2 : h, sway: -1, ph: rnd(0, 6) }); } };
@@ -456,7 +458,22 @@ const ParmMixin = {
       this.place(F.base, F.th, 0, 0); this.place(F.fl, F.th, 52 * 1.2 / 1.2 - 4, Math.sin(t * 6 + F.ph) * 0.08); F.fl.setTexture('ppflame' + (Math.floor(t * 12 + F.ph) % 3));
       this.place(F.gl, F.th, 56, 0); F.gl.setAlpha(0.35 + 0.15 * Math.sin(t * 9 + F.ph));
     }
-    if (this.ppShip) this.ppShip.setPosition(this.W * 0.42 + Math.sin(t * 0.13) * 30, this.H * 0.3 + Math.sin(t * 0.4) * 4).setScale(z * 0.75).setTint(0xc89080);
+    // (v2.95) the blimps actually FLY: they cruise across the sky (and slide with the camera), bobbing, nosing up and
+    // down, trailing smoke; when one's gone off one side it comes back the other way
+    const unw = this.unw - (this.lagU || 0);
+    for (const [im, sp, par, yy, sc, ph] of [[this.ppShip, 26, 260, 0.27, 0.75, 0], [this.ppShip2, -14, 120, 0.16, 0.36, 400]]) {
+      if (!im) continue; const span = this.W + 520, raw = t * sp + ph - unw * par, cyc = Math.floor(raw / span), u = ((raw % span) + span) % span, fwd = (((cyc % 2) + 2) % 2 === 0) === (sp > 0);
+      const x = (fwd ? u : span - u) - 260, bobv = Math.sin(t * 0.7 + ph) * 6;
+      im.setPosition(x, this.H * yy + bobv).setScale(z * sc).setFlipX(!fwd).setRotation(Math.cos(t * 0.7 + ph) * 0.03 * (fwd ? 1 : -1)); if (im === this.ppShip) im.setTint(0xc89080);
+      if (im === this.ppShip && Math.random() < 0.25 && x > -100 && x < this.W + 100) this.ppSmoke.push({ x: x - (fwd ? 1 : -1) * 120 * z * sc, y: this.H * yy + bobv + 14 * z, r: 4, a: 0.5 });
+    }
+    { const hz = this.ppHaze; hz.clear();
+      if (S.layer === 0) {
+        for (const q of this.ppSmoke) { q.y -= 0.25; q.r += 0.12; q.a -= 0.006; hz.fillStyle(0x3a1418, Math.max(0, q.a)).fillCircle(q.x + this.cameras.main.scrollX, q.y + this.cameras.main.scrollY, q.r * z); } this.ppSmoke = this.ppSmoke.filter(q => q.a > 0);
+        const n = 40, a0 = vt - vh - 0.05, st = (vh * 2 + 0.1) / n;
+        for (const [h0, h1, al] of [[-30, 26, 0.34], [26, 70, 0.2], [70, 130, 0.09]]) for (let i = 0; i < n; i++) { const p1 = this.screenPos(wrap(a0 + i * st), h0), p2 = this.screenPos(wrap(a0 + (i + 1) * st), h0), p3 = this.screenPos(wrap(a0 + (i + 1) * st), h1), p4 = this.screenPos(wrap(a0 + i * st), h1); hz.fillStyle(0xff8a3a, al).fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y).fillTriangle(p1.x, p1.y, p3.x, p3.y, p4.x, p4.y); }
+      } }
+    for (const p of this.props) if (p.spr.texture.key.startsWith('ppfountain')) p.spr.setTexture('ppfountain' + ['', '_1', '_2', '_3'][Math.floor(t * 9 + p.ph * 3) % 4]);   // the fountains play
     for (let k = 0; k < 90; k++) {
       const th = wrap(k * 0.0698 + Math.sin(k * 7.1) * 0.02); if (!inView(th)) continue;
       const tw = Math.sin(t * 3 + k * 1.7); if (tw < 0.6) continue;

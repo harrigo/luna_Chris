@@ -1820,3 +1820,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v2.94 - The Parmesan Colossus redrawn: the King's statue, alive
 - src/parmboss.js (makeColossus3): the boss is now the same fat marble Rat King as the city's statues, alive and grotesque in the house pixel style - one huge bloodshot eyeball rolling in a marble socket, the other a blank cracked stone eye (it glows once he's wrecked), a stone scowl, a long warty snout, a maw of crooked gold teeth with a slab of tongue and molten cheese dribbling, big round rat ears (one chipped), a flaking gold crown with pigeon mess, porphyry cape with ermine hem, gold belt, sceptre for a walking stick. 132x180 at 1.35.
 - Animated: a 4-frame lumbering walk (footfalls shake the screen), a stomp wind-up (leg hauled up, sceptre raised like a club), a laser frame (maw wide, the eye blazing white-hot - the beam now comes from the eye). Phase 2 has its own full set: an arm snapped off to a crystal stump, glowing fissures, crystal clusters bursting out at the three weak points. Phase 3 head: two frames (screams through the air and when spitting). New rubble heap (cape, a leg sole-up, the sceptre).
+
+### v2.95 - Parmesan Prime city: layering pass
+- Nothing parked in front of the camera any more (the big foreground rubble and columns hid the enemies): the only foreground is the thin parallax ruins silhouette at the bottom.
+- Street furniture smaller and fewer (statues 0.62-0.7, columns, banners, rubble) so it reads as set-dressing behind the action.
+- The palaces behind the horizon are dimmer and sit behind a band of orange heat-haze (ppHaze, depth 1.02), so the street and the fight stand out in front.
+- The blimp flies: it cruises across the sky, slides with the camera, bobs, noses up and down, trails smoke, and turns round when it's gone off the side. A second, smaller, darker one flies the other way far off.
+- New fountain in the house pixel style, sat flat on the street, 4 frames: a rat cherub spitting an arc of molten cheese, ripples, splash, the cracked rim dribbling.
