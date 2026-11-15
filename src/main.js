@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.00';
+const BUILD = 'v3.01';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1476,6 +1476,7 @@ class Level1 extends Phaser.Scene {
       this.updateHazards(dt * ek);
       this.updateWorld(dt);
       if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
+      if (this.pl.pit) this.pitUpdate(dt);
       if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
@@ -1493,7 +1494,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
     else if (this.state === 'rescue') {
-      this.updatePlayer(dt, inp);
+      this.updatePlayer(dt, inp); if (this.pl.pit) this.pitUpdate(dt);
       if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
       if (this.ppEsc) this.parmEscapeUpdate(dt); else this.updateRescue(dt);
     }
@@ -1664,6 +1665,47 @@ class Level1 extends Phaser.Scene {
     return d;
   }
 
+  // ---- (v3.01) DOWN A PIT, AND OUT AGAIN - one smooth move instead of a sink-and-teleport:
+  //  fall    he slides to the middle of the hole and drops in, arms up, accelerating, gone below the lip
+  //  bottom  a muffled THUD down there, a puff of dust out of the hole (a heart lighter)
+  //  pop     his rocket boots light up red-hot and he BLASTS out in one smooth arc - a somersault - and lands on the far side
+  //          (the side he was heading), boots trailing fire; a moment's grace after
+  pitUpdate(dt) {
+    const P = this.pl, S = P.pit; if (!S) return;
+    S.t += dt; P.vx = 0; P.duck = false; P.thrusting = false; P.firing = 0;
+    const C = S.cr, half = C.half * R, eio = u => u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+    if (S.st === 'fall') {
+      const u = Math.min(1, S.t / 0.42);
+      P.theta = wrap(S.x0 + angDiff(C.theta, S.x0) * eio(Math.min(1, u * 1.6)));
+      P.h = 0; P.vh = 0; P.sink = 64 * u * u;
+      if (u >= 1) { S.st = 'bottom'; S.t = 0; Sound.sfx('bonk'); this.cameras.main.shake(140, 0.008); this.burst(C.theta, -6, 'crumb', 10, 0.9); this.hurt(); P.invuln = Math.max(P.invuln, 2.2); }
+    } else if (S.st === 'bottom') {
+      P.theta = C.theta; P.h = 0; P.vh = 0; P.sink = 64;
+      if (Math.random() < dt * 20) this.burst(C.theta, 0, 'puff', 1, 0.6);
+      if (S.t > 0.38) {
+        S.st = 'pop'; S.t = 0; Sound.sfx('jump'); Sound.sfx('power'); buzz([30, 20, 60]);
+        const dir = Math.sign(angDiff(C.theta, S.x0)) || (P.facing || 1);          // out the far side: the way he was going
+        const away = this.chaser ? (Math.sign(angDiff(C.theta, this.chaser.theta)) || dir) : dir;
+        S.to = wrap(C.theta + away * (half + 34) / R); S.dir = away; P.facing = away;
+      }
+    } else if (S.st === 'pop') {
+      const D = 0.78, u = Math.min(1, S.t / D), e = eio(u);
+      P.theta = wrap(C.theta + angDiff(S.to, C.theta) * e);
+      // out of the hole (sink 64 -> 0 over the first third), up over an arc, down onto the far side
+      P.sink = 64 * Math.max(0, 1 - u * 3) ** 2;
+      P.h = Math.max(0, 118 * Math.sin(Math.PI * Math.min(1, u * 1.05)) * (u < 0.33 ? u / 0.33 : 1));
+      P.vh = u < 0.5 ? 200 : -260; P.thrusting = u < 0.55; { const s = Math.max(0, Math.min(1, (u - 0.18) / 0.62)); P.spinA = S.dir * TAU * eio(s); }   // a somersault at the top
+      if (Math.random() < dt * 40) this.burst(P.theta, Math.max(0, P.h - P.sink + 2), 'flame', 1, 0.5);
+      if (u >= 1) { P.pit = null; P.sink = 0; P.h = 0; P.vh = 0; P.spinA = 0; P.spr.setAlpha(1); P.thrusting = false; this.burst(P.theta, 2, 'crumb', 6, 0.6); Sound.sfx('clunk'); }
+    }
+    // the boots glow red-hot while he's down there and on the way out
+    if (this.rig && this.rig.parts) {
+      const hot = S && (S.st === 'bottom' || (S.st === 'pop' && S.t < 0.6)), k = hot ? 0.5 + 0.5 * Math.sin(this.t * 30) : 0;
+      if (hot) { const c = Phaser.Display.Color.GetColor(255, 120 + 80 * k, 100 + 60 * k); for (const p of this.rig.parts) p.setTint(c); this.rig.__pitTint = true; }
+      else if (this.rig.__pitTint) { this.rig.__pitTint = false; for (const p of this.rig.parts) { if (this.rig.tinted) p.setTint(0xffe9a0); else p.clearTint(); } }
+    }
+  }
+
   updatePlayer(dt, inp) {
     const P = this.pl;
     if (this.fullCam) {                                         // FULL camera: on a SIDE of the planet, holding DOWN walks him down it (like RIGHT),
@@ -1720,7 +1762,7 @@ class Level1 extends Phaser.Scene {
       const onGround = P.h <= 0.5 && !(P.floor > 0);
       const cr = this.craters.find(c => Math.abs(angDiff(P.theta, c.theta)) < c.half * (c.kind === 'pit' ? 0.8 : 1));
       P.bump = !!(cr && cr.kind === 'bump' && onGround);
-      if (cr && cr.kind === 'pit' && onGround && !P.pitFall && P.invuln <= 0) { P.pitFall = 0.6; Sound.sfx('whoosh'); this.banner('AAAAARGH!'); }
+      if (cr && cr.kind === 'pit' && onGround && !P.pitFall && !P.pit && P.invuln <= 0) { P.pit = { st: 'fall', t: 0, cr, x0: P.theta }; Sound.sfx('whoosh'); buzz(40); }   // (v3.01) see pitUpdate
     }
     if (P.pitFall > 0) {                                 // down the bottomless pit... then hauled out further along, a heart lighter
       P.pitFall -= dt; P.vx = 0; P.sink = (P.sink || 0) + dt * 160;
@@ -3041,6 +3083,29 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // (v3.01) a pit: a ragged crumbling lip with chunks breaking off, layered strata walls going down into the dark, crumbs
+  // trickling in; the parmesan chasms glow molten at the bottom
+  drawPit(g, C) {
+    const z = this.zoom, t = this.t, n = 22, hsh = k => { const v = Math.sin(C.theta * 977 + k * 12.9898) * 43758.5453; return v - Math.floor(v); };
+    const pp = !!C.pp, pal = pp ? [0xd8b86a, 0xa8823a, 0x6e4e1e, 0x3a2410, 0x140a04] : this.def.gorge ? [0xc86a1a, 0x8a3a0e, 0x5a1e08, 0x2e0c04, 0x0e0402] : [0xc88a3a, 0x8a5418, 0x5a300c, 0x2e1606, 0x0c0402];
+    const lip = []; for (let k = 0; k <= n; k++) { const u = k / n; lip.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half), 0.5 + (k % 3 === 1 ? hsh(k) * 3 : 0))); }
+    const depth = 58;
+    // the layers of wall, each a little deeper, narrower and darker
+    for (let L = 0; L < 5; L++) {
+      const w0 = 1 - L * 0.07, d0 = depth * (L + 1) / 5, pts = [];
+      for (let k = 0; k <= n; k++) { const u = k / n, s = Math.sin(u * Math.PI), j = (hsh(k + L * 31) - 0.5) * 4; pts.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * w0), -(d0 * Math.pow(s, 0.6)) + j * s)); }
+      g.fillStyle(pal[L], 1).fillPoints(lip.concat(pts.reverse()), true);
+      if (L > 0 && L < 4) { g.lineStyle(1.4 * z, pal[Math.max(0, L - 1)], 0.6).strokePoints(pts.slice(3, n - 2), false); }   // a strata line
+    }
+    if (pp) { const p = this.screenPos(C.theta, -depth * 0.85); g.fillStyle(0xff6a1a, 0.55 + 0.2 * Math.sin(t * 4 + C.theta)).fillEllipse(p.x, p.y, C.half * R * 1.1 * z, 18 * z); g.fillStyle(0xffd23f, 0.6).fillEllipse(p.x, p.y + 2 * z, C.half * R * 0.5 * z, 7 * z); }
+    // the lip: a pale crust with a ragged dark underside, chunks hanging over the edge
+    g.lineStyle(4 * z, pal[0], 1).strokePoints(lip, false); g.lineStyle(1.6 * z, 0xffffff, 0.35).strokePoints(lip.slice(2, n - 1), false);
+    for (let k = 1; k < n; k += 3) { const u = k / n, a = wrap(C.theta + (u * 2 - 1) * C.half * 0.98), s = 3 + hsh(k) * 5, p = this.screenPos(a, -s * 0.4); g.fillStyle(pal[1], 1).fillTriangle(p.x - s * z, p.y - s * 0.4 * z, p.x + s * z, p.y - s * 0.4 * z, p.x + (hsh(k + 9) - 0.5) * 3 * z, p.y + s * z); }
+    for (const sd of [-1, 1]) { for (let k = 0; k < 3; k++) { const p = this.screenPos(wrap(C.theta + sd * (C.half + (4 + k * 6 + hsh(k + sd * 7) * 4) / R)), 1 + k % 2 * 2), s = (4 - k) * z; g.fillStyle(pal[k % 2], 1).fillRect(p.x - s, p.y - s, s * 2, s * 1.6); } }   // rubble at the edges
+    // crumbs trickling down off the edges
+    for (let k = 0; k < 4; k++) { const ph = (t * 0.9 + k * 0.29 + C.theta) % 1, sd = k % 2 ? 1 : -1, p = this.screenPos(wrap(C.theta + sd * C.half * (0.9 - ph * 0.15)), -ph * depth * 0.8); g.fillStyle(pal[0], 1 - ph).fillRect(p.x - 1.5 * z, p.y - 1.5 * z, 3 * z, 3 * z); }
+  }
+
   drawCraters() {
     if (!this.craters || !this.craters.length) return;
     if (!this.crG) this.crG = this.add.graphics().setDepth(7.6);
@@ -3052,17 +3117,21 @@ class Level1 extends Phaser.Scene {
         const u = k / n, a = wrap(C.theta + (u * 2 - 1) * C.half), sag = Math.sin(u * Math.PI);
         top.push(this.screenPos(a, 0.5)); bot.unshift(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * (pit ? 0.82 : 0.9)), -depth * sag - (pit ? 6 : 0)));
       }
-      g.fillStyle(pit ? 0x0a0204 : 0xc87a1a, 1).fillPoints(top.concat(bot), true);
-      if (pit) { const mid = []; for (let k = 0; k <= n; k++) { const u = k / n; mid.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.92), -8 * Math.sin(u * Math.PI) - 2)); } g.fillStyle(0x3a1206, 1).fillPoints(top.concat(mid.reverse()), true); }
-      else { g.fillStyle(0xe89a3a, 1).fillPoints(top.concat(bot.slice(0, Math.ceil(bot.length / 2))), true); }
+      if (pit) { this.drawPit(g, C); if (!this.def.gorge) continue; }
+      else {
+        g.fillStyle(0xc87a1a, 1).fillPoints(top.concat(bot), true);
+        g.fillStyle(0xe89a3a, 1).fillPoints(top.concat(bot.slice(0, Math.ceil(bot.length / 2))), true);
+      }
       if (pit && this.def.gorge) {                         // (v2.61) L6: the pits are full of SALSA: a red pool part-way down, a hot skin on it, bubbles
         const lvl = [], n2 = 12;
         for (let k = 0; k <= n2; k++) { const u = k / n2; lvl.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.86), -16 - 3 * Math.sin(u * Math.PI) + Math.sin(this.t * 3 + k * 0.9) * 1.2)); }
-        g.fillStyle(0xa81808, 1).fillPoints(lvl.concat(bot.slice(1, -1)), true);
+        const bowl = []; for (let k = n2; k >= 0; k--) { const u = k / n2, s = Math.sin(u * Math.PI); bowl.push(this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.74), -16 - 40 * Math.pow(s, 0.6))); }
+        g.fillStyle(0xa81808, 1).fillPoints(lvl.concat(bowl), true);
         g.lineStyle(3 * z, 0xff6a2a, 1).strokePoints(lvl, false); g.lineStyle(1.5 * z, 0xffc23a, 0.8).strokePoints(lvl.slice(2, 6), false);
         for (let k = 0; k < 3; k++) { const ph = (this.t * 0.8 + k * 0.37 + C.theta) % 1, q = this.screenPos(wrap(C.theta + (k - 1) * C.half * 0.45), -19); g.fillStyle(0xff8a4a, 1 - ph).fillCircle(q.x, q.y, (1.5 + 3 * ph) * z); }
         for (const [u, c] of [[0.3, 0x3a9a2a], [0.62, 0xffe08a], [0.8, 0x3a9a2a]]) { const q = this.screenPos(wrap(C.theta + (u * 2 - 1) * C.half * 0.8), -18 + Math.sin(this.t * 2 + u * 9)); g.fillStyle(c, 1).fillRect(q.x - 1.5 * z, q.y - 1 * z, 3 * z, 2 * z); }   // bits of pepper and chip bobbing in it
       }
+      if (pit) { const lp = []; for (let k = 0; k <= 22; k++) lp.push(this.screenPos(wrap(C.theta + (k / 22 * 2 - 1) * C.half), 0.5)); g.lineStyle(3 * z, 0xc86a1a, 1).strokePoints(lp, false); continue; }   // (re-draw the lip over the salsa)
       g.lineStyle(3.5 * z, 0xffc860, 1).strokePoints(top, false);                       // the bright crusty lip
       for (const e of [top[0], top[n]]) g.fillStyle(0xa85a10, 1).fillCircle(e.x, e.y, 3.5 * z);
     }
@@ -5264,7 +5333,7 @@ class Level1 extends Phaser.Scene {
 
     this.place(P.spr, P.theta, P.h, 0);
     P.spr.setFlipX(P.facing < 0);
-    P.spr.setAlpha(P.invuln > 0 && Math.floor(this.t * 20) % 2 ? 0.35 : 1);
+    P.spr.setAlpha(P.pit ? Math.max(0.05, 1 - (P.sink || 0) / 56) : (P.invuln > 0 && Math.floor(this.t * 20) % 2 ? 0.35 : 1));   // (v3.01: swallowed by the pit's dark)
 
     // sparkles: Chris while powered up, power-up pickups and Bessie's trail
     this.glintT = (this.glintT || 0) + (this.lastDt || 0.016);
@@ -5282,6 +5351,7 @@ class Level1 extends Phaser.Scene {
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
     this.rig.root.setRotation(this.camLag || 0);                       // (camera swing: he stands square to the planet, wherever it's turned)
+    if (P.spinA) { const a = P.spinA, ch = 26 * this.zoom, r = this.rig.root, px = r.x, py = r.y - ch; r.setPosition(px - Math.sin(a) * ch, py + Math.cos(a) * ch).setRotation((this.camLag || 0) + a); }   // (v3.01) the somersault out of a pit, round his middle
     this.netTick();
     this.drawBuff();
     if (this.ko) {                                           // game over: flat on his back (rotates about his feet), little stars circling

@@ -1847,3 +1847,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v3.00 - No more vibrate warning on Chrome Android
 - Chrome blocks navigator.vibrate (and logs an [Intervention] warning) until the page has been tapped, and while it's hidden. All vibration now goes through safeVibrate() (pad.js), which skips it before the first tap (navigator.userActivation.hasBeenActive) and while document.hidden. Used by buzz() (main.js), buzzAll() (menu.js) and the cheat toggle.
+
+### v3.01 - Pits: a better look, and a smooth way out
+- drawPit (main.js): every pit (L6 Cheddar Gorge, L9 Parmesan Prime's chasms, any 'pit' crater) is now a crumbling well - a ragged lip with chunks hanging over, rubble at the edges, five layers of strata wall going down into the dark, crumbs trickling in; Parmesan chasms glow molten at the bottom, Gorge pits keep their salsa (now a proper pool across the bowl).
+- pitUpdate (main.js) replaces the old sink-then-teleport: FALL (he slides to the middle and drops in, fading into the dark), BOTTOM (a thud, dust puffs out of the hole, a heart lighter, he glows red-hot), POP (rocket boots fire and he blasts out in one eased arc, a somersault at the top, fire trailing, landing smoothly on the far side - the way he was heading - with a moment's grace). The Saucer's overboard fall is unchanged.

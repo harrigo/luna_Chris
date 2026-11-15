@@ -526,10 +526,7 @@ const ParmMixin = {
         const k = 1 - Math.max(0, C.t) / 1.7, n = 6;
         for (let i = 0; i < n; i++) { const a0 = wrap(C.theta + (i / (n - 1) * 2 - 1) * C.half * k), a = this.screenPos(C.theta, 1), b = this.screenPos(a0, -14 * k - (i % 2) * 8), c2 = this.screenPos(wrap(a0 + 0.01), 0.5); g.lineStyle(2.5 * z, 0x2a1406, 1).lineBetween(a.x, a.y, b.x, b.y).lineBetween(b.x, b.y, c2.x, c2.y); }
         if (Math.floor(t * 10) % 2) { const p = this.screenPos(C.theta, 2); g.fillStyle(0xff6a2a, 0.4 * k).fillEllipse(p.x, p.y, 60 * z * k, 8 * z); }
-      } else if (C.st === 'open') {
-        const p = this.screenPos(C.theta, -40); g.fillStyle(0xff5a1a, 0.35 + 0.15 * Math.sin(t * 4)).fillEllipse(p.x, p.y, C.half * R * 1.4 * z, 26 * z);
-        g.fillStyle(0xffd23f, 0.3).fillEllipse(p.x, p.y + 4 * z, C.half * R * 0.8 * z, 10 * z);
-      }
+      }   // (v3.01: the open chasm is drawn by drawPit, main.js)
     }
     // ---- grenades' fuses fizz
     for (const N of S.nades) { const p = this.screenPos(N.theta, N.h + 14); if (Math.floor(t * 16) % 2) g.fillStyle(0xffd23f, 1).fillCircle(p.x, p.y, 2.5 * z); }
