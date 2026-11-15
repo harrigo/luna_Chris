@@ -1808,3 +1808,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   THE CRYSTAL CORE: crystal mite (hops at you, bursts into falling crystal shards when killed), molten slug (oozes after you leaving a burning trail), crystal golem (rises out of the crystal, slams the ground: shockwaves run both ways - jump them).
 - Waves back up to 14-15 each, themed per layer (city / mines / core).
 - A third drop: clearing wave 3 cracks the core open into THE MOLTEN HEART (radius 250, a planet that's mostly glowing molten core) - the boss's arena.
+
+### v2.92 - The Rasp no longer clears your waves
+- The Royal Rasp used to flatten every enemy it passed, wiping wave 1 for you. It's the Empire's own machine: the rats now hop the low pass (or flatten under the high one) and carry on. It only hurts Chris.

@@ -250,9 +250,11 @@ const ParmMixin = {
         const top = P.h + (P.duck ? 19 : 34), bot = P.h + (P.duck ? 1 : 10);
         if (bot < h1 && top > h0 && P.invuln <= 0) { RS.hitDone = true; this.hurt(); this.popup(P.theta, P.h + 70, 'GRATED!', '#ffd23f'); P.vh = 300; }
       }
-      for (const e of this.enemies) if (e.type !== 'boss' && !e.phased && e.hp > 0 && Math.abs(angDiff(e.theta, RS.theta)) * R < 150 && e.h < h1 && e.h + (e.ch || 20) > h0) {
-        e.hp = 0; this.burst(e.theta, e.h + 20, 'crumb', 16, 1.3); this.addScore(150); Sound.sfx('splat');
+      // (v2.92) it's the Empire's own machine: the rats know the drill and hop it (or flatten under it) - it doesn't clear your waves for you
+      for (const e of this.enemies) if (e.type !== 'boss' && !e.phased && e.hp > 0 && Math.abs(angDiff(e.theta, RS.theta)) * R < 220 && !e.raspDodge) {
+        e.raspDodge = 0.8; if (RS.kind === 'low' && e.h <= 1 && e.type !== 'ppcart') e.vh = 420;
       }
+      for (const e of this.enemies) if (e.raspDodge) { e.raspDodge -= dt; if (e.raspDodge <= 0) e.raspDodge = 0; }
       if (RS.run >= TAU) { RS.st = 'idle'; RS.t = rnd(11, 15); RS.passes++; this.popup(P.theta, P.h + 90, 'THE PLANET SHRANK!', '#ffb07a'); }
     }
     if (S.scars) { for (const q of S.scars) q.t -= dt; S.scars = S.scars.filter(q => q.t > 0); }
