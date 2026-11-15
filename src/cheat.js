@@ -20,7 +20,7 @@ const Cheat = (() => {
     try { localStorage.setItem('lc_cheat', v ? '1' : '0'); } catch (e) { /* ignore */ }
     toast(v ? 'CHEAT MODE!' : 'CHEAT MODE OFF');
     if (typeof Sound !== 'undefined') { Sound.init(); Sound.sfx(v ? 'power' : 'zing'); }
-    try { if (navigator.vibrate) navigator.vibrate(v ? [40, 60, 40, 60, 120] : 60); } catch (e) { /* ignore */ }
+    if (typeof safeVibrate === 'function') safeVibrate(v ? [40, 60, 40, 60, 120] : 60);
     emit('mode');
   }
   // keyboard: the secret word, and H for a heart

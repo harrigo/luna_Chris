@@ -1,3 +1,12 @@
+// (v3.00) Chrome on Android blocks navigator.vibrate (and logs a warning) until the player has tapped the page, and when the
+// page is hidden - so only buzz once there's been a tap and while the game is on screen.
+function safeVibrate(p) {
+  try {
+    if (!navigator.vibrate || document.hidden) return;
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+    navigator.vibrate(p);
+  } catch (e) { /* not supported */ }
+}
 // Gamepad support (Xbox / standard-mapping controllers) using the browser Gamepad API.
 // Pad.state  = buttons held right now (left/right/up/down/jump/fire/start/back...)
 // Pad.on(fn) = fn(name) is called once when a button is first pressed; returns an "off" function.

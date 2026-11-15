@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.99';
+const BUILD = 'v3.00';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -175,7 +175,7 @@ const weaponUnlocked = (w, levelId) => CFG.allWeapons || Progress.testMode || w.
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble
   if (typeof Settings !== 'undefined' && !Settings.rumble) return;
-  try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ }
+  safeVibrate(p);
   try { if (typeof Pad !== 'undefined' && Pad.state.connected) Pad.rumble(p); } catch (e) { /* not supported */ }
 };
 

@@ -83,7 +83,7 @@ function controlItems(dev, I) {
 }
 
 function buzzAll(ms) {
-  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignore */ }
+  safeVibrate(ms);
   try { if (typeof Pad !== 'undefined' && Pad.state.connected) Pad.rumble(ms); } catch (e) { /* ignore */ }
 }
 

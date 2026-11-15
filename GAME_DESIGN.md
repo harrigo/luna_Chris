@@ -1844,3 +1844,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v2.99 - Sprites no longer vanish after switching apps
 - Cause: all art is drawn on canvases (packed onto 2048px atlas pages). Phaser's pixel-art canvases are created with willReadFrequently: false, so phones put them on the GPU - and a GPU-backed 2D canvas is discarded when the app is backgrounded; on return Phaser re-uploads blank canvases.
 - Fix (src/canvasfix.js, loaded first): TextureManager.createCanvas makes a fresh canvas with willReadFrequently: true, which stays in ordinary memory and survives backgrounding. Safety net: on WebGL context restore, every canvas texture is re-uploaded. Tested: forced WebGL context loss + restore (WEBGL_lose_context) - everything redraws.
+
+### v3.00 - No more vibrate warning on Chrome Android
+- Chrome blocks navigator.vibrate (and logs an [Intervention] warning) until the page has been tapped, and while it's hidden. All vibration now goes through safeVibrate() (pad.js), which skips it before the first tap (navigator.userActivation.hasBeenActive) and while document.hidden. Used by buzz() (main.js), buzzAll() (menu.js) and the cheat toggle.
