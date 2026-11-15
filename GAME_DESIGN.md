@@ -1791,3 +1791,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Dead ends: a pocket by the start, a rat nest at the bottom of ring 4, and a secret shaft by the start that plunges three rings to a big hoard (+ another stash off it). Hoards and wedges in the pockets.
 - The roof pipes on the true route pulse towards the way on; the compass now points at the hatch to the core, NOT at the exit of the chamber (that solved the maze for you).
 - No more pump surges or valves. Many more vermin: ~16/21/17/19 per ring + the antechamber. Bessie's drowning clock 520 s (was 330) for the longer route.
+
+### v2.90 - Parmesan Prime: the collapsing layers
+- The planet now caves in, layer by layer. After wave 1 the crust gives way: the ground quakes harder and harder, rubble (columns, domes, the King's head) rains down, the city sinks and tilts, then the ground splits under Chris - AAAAARGH - the screen goes dark with rubble whooshing up past, and he drops onto THE MINES (radius 420): raw grated paste, timber pit-props with lanterns, mine carts heaped with grated cheese, grater-wheel gantries, crystal seams. After wave 2 the mines cave in too: THE CRYSTAL CORE (radius 320) - a crust of crystal facets, great glowing crystal clusters, a bigger molten core - for wave 3 and the boss.
+- Underground: a dark sheet over the sky (no skyline), the cavern roof far overhead (the underside of the layer above: jagged, dripping old cheese, crystals glinting) with the holes you fell through and shafts of light coming down them.
+- Molten-cheese geysers in the mines (3) and the core (5): they bubble (1.3 s warning), then blast a scalding column 230 high for 1.5 s. Kills vermin too.
+- The Rasp keeps grinding each layer down (~30 units a lap, up to 70 below the layer's size), so it never stops shrinking. Cracks/sinkholes keep opening (up to 3 at once down below).
+- Fewer rats: the waves are about half the size (8/12/13), the hazards do more of the work.
+- Planet texture variants (makeParmPlanet layer 1/2), new sculpted props (makeParmDeep), shading re-made for each size. Fixed: when R shrank, the planet's centre wasn't re-anchored (layout() only sets it on resize), so the ground slid down the screen; parmDraw now re-anchors it every frame.
+- Checkpoint retries start on the right layer.

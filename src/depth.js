@@ -444,6 +444,7 @@ const DepthMixin = {
     const F = this.depthFx; if (!F) return;
     { const under = !!(this.cave && this.cave.ring > 0);                       // (v2.72) down in the L8 labyrinth: none of it
       for (const o of [F.shade, F.rim, F.crack, F.orn, F.fg, ...F.ridges.map(r => r.im)]) if (o) o.setVisible(!under);
+      if (this.pp && this.pp.layer > 0) for (const o of [F.fg, F.rim, F.shade, F.crack, F.orn, ...F.ridges.map(r => r.im)]) if (o) o.setVisible(false);   // (v2.90) under Parmesan Prime's crust: no skyline
       if (under) return; }
     const S = F.shade.width, ps = (2 * Rz) / S;
     F.shade.setPosition(cx, cy).setScale(ps);

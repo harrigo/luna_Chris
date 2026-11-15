@@ -85,7 +85,8 @@ function makeParmTextures(scene) {
     a.poly([[13, 22], [15, 16], [18, 20], [21, 16], [24, 22]], GOLD); a.rect(13, 22, 24, 24, GOLD[1]);
   });
   if (typeof makeParmFolk === 'function') makeParmFolk(scene);
-  if (typeof makeParmStatues === 'function') makeParmStatues(scene);   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
+  if (typeof makeParmStatues === 'function') makeParmStatues(scene);
+  if (typeof makeParmDeep === 'function') makeParmDeep(scene);   // (v2.90) the mines and the crystal core   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
 }
 
 Object.assign(ENEMY, {
@@ -97,10 +98,17 @@ Object.assign(ENEMY, {
 
 const inView0 = (sc, th) => Math.abs(angDiff(th, sc.viewT())) < sc.visHalf + 0.4;
 const PP_RMIN = 380;
+// (v2.90) THE COLLAPSING LAYERS. Parmesan Prime is grated so hard the crust gives way: after wave 1 the Imperial City
+// collapses and Chris drops through to THE MINES; after wave 2 they cave in too and he falls to THE CRYSTAL CORE (wave 3
+// and the boss). Each layer is smaller (520 -> 420 -> 320), and the Rasp keeps shaving it down in between.
+const PP_LAYERS = [
+  { R: 520, name: 'THE IMPERIAL CITY' },
+  { R: 420, name: 'THE MINES', sub: 'DOWN WHERE THE GRATERS DIG' },
+  { R: 320, name: 'THE CRYSTAL CORE', sub: 'THE HEART OF PARMESAN PRIME' },
+];
 const ParmMixin = {
   parmInit() {
-    this.pp = { rasp: { st: 'idle', t: 9, theta: 0, dir: 1, kind: 'low', hitDone: false, passes: 0, run: 0 }, cracks: [], crackT: 7, nades: [], taxmen: [], R0: R, sparkle: 0 };
-    if (this.cp && this.cp.wave) R = Math.max(PP_RMIN, R - 45 * this.cp.wave);   // (a retry from a checkpoint: the planet's already been grated down)
+    this.pp = { rasp: { st: 'idle', t: 9, theta: 0, dir: 1, kind: 'low', hitDone: false, passes: 0, run: 0 }, cracks: [], crackT: 7, nades: [], taxmen: [], R0: R, sparkle: 0, layer: 0, rmin: PP_LAYERS[0].R - 70, geysers: [], drop: null };
     // (v2.80) THE CITY on the horizon (behind the planet's curve: their feet are hidden by it), two layers, plus the
     // mining machines chewing at it; braziers burning in the street; the mining mothership up in the sky
     const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
@@ -114,12 +122,98 @@ const ParmMixin = {
     }
     this.ppShip = this.add.image(0, 0, 'ppb_ship').setDepth(0.6).setScrollFactor(0).setAlpha(0.95);
     this.ppG = this.add.graphics().setDepth(7.7); this.ppBack = this.add.graphics().setDepth(2.9); this.ppHud = this.add.graphics().setDepth(19);
+    // (v2.90) the underground: a dark sheet over the sky, the cavern roof (the underside of the layer above), shafts of light
+    this.ppDark = this.add.graphics().setDepth(0.5).setScrollFactor(0).setVisible(false);
+    this.ppRoof = this.add.graphics().setDepth(2.85); this.ppShaft = this.add.graphics().setDepth(2.86).setBlendMode(Phaser.BlendModes.ADD);
+    this.ppDropFx = this.add.graphics().setDepth(18).setScrollFactor(0);
+    if (this.cp && this.cp.wave) this.pp.pending = Math.min(2, this.cp.wave);      // a retry from a checkpoint: already down there (applied on the first draw, once the props exist)
+  },
+
+  // ---- (v2.90) swap the world to layer n
+  ppApplyLayer(n) {
+    const S = this.pp, L = PP_LAYERS[n]; S.layer = n; S.rmin = L.R - 70; R = L.R;
+    if (n > 0) {
+      const key = 'surf9_' + n; if (!this.textures.exists(key)) makeParmPlanet(this, key, L.R, { layer: n });
+      if (this.planetImg) this.planetImg.setTexture(key);
+      if (this.planetShade) { const sk = 'shade9_' + n; if (!this.textures.exists(sk)) makePlanetShade(this, sk, L.R, this.def.surface.rimLight, this.def.surface.dark); this.planetShade.setTexture(sk); }   // (sized for the new radius)
+      for (const B of this.ppCity || []) B.im.destroy(); this.ppCity = [];
+      for (const F of this.ppFire || []) [F.base, F.fl, F.gl].forEach(o => o.destroy()); this.ppFire = [];
+      if (this.ppShip) { this.ppShip.destroy(); this.ppShip = null; }
+      for (const p of this.props || []) { p.spr.destroy(); if (p.halo) p.halo.destroy(); } this.props = [];
+      const add = (tex, n2, sc, tint, h, depth) => { for (let i = 0; i < n2; i++) { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth || 2.5); if (tint) spr.setTint(tint); spr.bsx = spr.bsy = rnd(sc[0], sc[1]) * 1.35; if (Math.random() < 0.5) spr.setFlipX(true);
+        this.props.push({ spr, halo: null, theta: wrap((i + rnd(0.1, 0.9)) * TAU / n2 + n * 0.37), h: h === undefined ? -2 : h, sway: -1, ph: rnd(0, 6) }); } };
+      if (n === 1) { add('ppmine_prop', 7, [0.75, 0.95]); add('ppmine_cart', 4, [0.6, 0.75]); add('ppmine_wheel', 3, [0.8, 1], 0x9a8070, -6, 0.97); add('ppcrys2', 4, [0.45, 0.6]); add('pprubble', 4, [0.9, 1.2]); add('ppcolbroke', 3, [0.9, 1.1], 0x8a7a6a); }
+      else { add('ppcrys1', 6, [0.7, 1]); add('ppcrys3', 4, [0.6, 0.85]); add('ppcrys2', 6, [0.5, 0.7]); add('ppcrys1', 4, [1.4, 1.8], 0x8a6a40, -10, 0.97); add('ppcolbroke', 2, [0.8, 1], 0x7a6a5a); }
+      for (const C of S.cracks) { const i = this.craters.indexOf(C.cr); if (i >= 0) this.craters.splice(i, 1); } S.cracks = [];
+      S.geysers = Array.from({ length: n === 1 ? 3 : 5 }, (_, i) => ({ theta: wrap(i * TAU / (n === 1 ? 3 : 5) + 0.6), st: 'idle', t: 4 + i * 2.3 }));
+      S.rasp.st = 'idle'; S.rasp.t = 10;
+      this.ppDark.setVisible(true);
+    }
+  },
+  // the wave gate (main.js updateWaves): before wave 2 and wave 3, the crust gives way first
+  parmGate() {
+    const S = this.pp; if (!S) return false;
+    if (S.drop) return true;
+    const next = this.waveIdx + 1;
+    if ((next === 1 || next === 2) && S.layer < next) { this.ppStartDrop(next); return true; }
+    return false;
+  },
+  ppStartDrop(n) {
+    const S = this.pp; S.drop = { to: n, st: 'quake', t: 0 };
+    this.banner('THE CRUST IS GIVING WAY!'); Sound.sfx('alarm'); Sound.sfx('grind');
+    S.rasp.st = 'idle'; S.rasp.t = 99;
+  },
+  // while he's falling, this runs instead of updatePlayer
+  parmDropPlayer(dt) {
+    const P = this.pl, D = this.pp.drop; P.vx = 0; P.invuln = Math.max(P.invuln, 1);
+    if (D.st === 'fall') P.sink = (P.sink || 0) + dt * (120 + D.t * 600);
+  },
+  ppDropUpdate(dt) {
+    const S = this.pp, D = S.drop, P = this.pl; if (!D) return; D.t += dt;
+    if (D.st === 'quake') {
+      const k = Math.min(1, D.t / 3.2);
+      if (Math.random() < dt * (4 + 10 * k)) this.cameras.main.shake(120, 0.004 + 0.012 * k);
+      if (Math.random() < dt * (3 + 8 * k)) { const th = wrap(P.theta + rnd(-1, 1) * this.visHalf), im = this.add.image(0, 0, ['pp_column', 'pp_head', 'pp_dome', 'db_rock', 'pprubble'][Math.floor(Math.random() * 5)]).setDepth(6.5); im.bsx = im.bsy = rnd(0.8, 1.6);
+        this.parts.push({ theta: th, h: rnd(380, 520), vt: rnd(-30, 30), vh: rnd(-200, -60), life: 3, stay: true, spr: im, rot: rnd(0, 6), rv: rnd(-4, 4) }); }
+      if (Math.random() < dt * 6) { const th = wrap(P.theta + rnd(-1, 1) * this.visHalf); this.burst(th, 2, 'crumb', 6, 0.8); }
+      if (Math.random() < dt * 2.5) Sound.sfx(Math.random() < 0.5 ? 'crash' : 'grind');
+      for (const B of this.ppCity || []) { B.h -= dt * 30 * k; B.im.setRotation((B.im.rotation || 0) + dt * 0.05 * (B.theta % 1 < 0.5 ? 1 : -1)); }
+      if (D.t > 3.2 && P.h <= 0.5) {                                                      // the ground under him splits
+        D.st = 'fall'; D.t = 0; Sound.sfx('crash'); Sound.sfx('whoosh'); buzz([60, 30, 120]); this.cameras.main.shake(400, 0.02);
+        this.burst(P.theta, 4, 'crumb', 40, 2); this.banner('AAAAAAARGH!');
+        for (const e of this.enemies) if (e.type !== 'boss') { e.quietKill = true; e.hp = 0; }
+      }
+    } else if (D.st === 'fall') {
+      if (D.t > 1.1 && !D.swapped) {
+        D.swapped = true; this.ppApplyLayer(D.to); P.sink = 0; P.h = 420; P.vh = -120; P.pitFall = 0;
+        D.st = 'land'; D.t = 0; Sound.sfx('whoosh');
+      }
+    } else if (D.st === 'land') {
+      if (P.h <= 0.5 || D.t > 4) {
+        this.cameras.main.shake(300, 0.016); Sound.sfx('crash'); this.burst(P.theta, 4, 'crumb', 24, 1.4);
+        const L = PP_LAYERS[D.to]; this.banner(L.name + '\n' + L.sub);
+        S.drop = null; this.nextWave();
+      }
+    }
   },
   parmUpdate(dt, bossUp) {
     const S = this.pp, P = this.pl; if (!S || this.state !== 'play') return;
+    if (S.drop) this.ppDropUpdate(dt);
+    // ---- (v2.90) molten-cheese geysers down in the mines and the core: bubbling... then a scalding column
+    for (const G of S.geysers) {
+      G.t -= dt;
+      if (G.st === 'idle' && G.t <= 0) { G.st = 'warn'; G.t = 1.3; if (inView0(this, G.theta)) Sound.sfx('hiss'); }
+      else if (G.st === 'warn') { if (Math.random() < dt * 14) this.burst(G.theta, 2, 'spark', 1, 0.5); if (G.t <= 0) { G.st = 'blow'; G.t = 1.5; if (inView0(this, G.theta)) { Sound.sfx('boom'); this.cameras.main.shake(150, 0.006); } } }
+      else if (G.st === 'blow') {
+        if (Math.random() < dt * 30) { const im = this.add.image(0, 0, 'puff').setDepth(6.6).setTint(Math.random() < 0.5 ? 0xffb52a : 0xffe08a); im.bsx = im.bsy = rnd(0.5, 1); this.parts.push({ theta: wrap(G.theta + rnd(-12, 12) / R), h: rnd(150, 230), vt: rnd(-60, 60), vh: rnd(-40, 120), life: 0.8, spr: im }); }
+        if (Math.abs(angDiff(P.theta, G.theta)) * R < 22 && P.h < 230 && P.invuln <= 0 && !S.drop) { this.hurt(); this.popup(P.theta, P.h + 60, 'SCALDED!', '#ffb52a'); P.vh = 380; P.vx = (Math.sign(angDiff(P.theta, G.theta)) || 1) * 300; }
+        for (const e of this.enemies) if (e.type !== 'boss' && e.hp > 0 && Math.abs(angDiff(e.theta, G.theta)) * R < 22 && e.h < 230) { e.hp = 0; this.addScore(100); }
+        if (G.t <= 0) { G.st = 'idle'; G.t = rnd(4, 7); }
+      }
+    }
     // ---- THE ROYAL RASP
     const RS = S.rasp; RS.t -= dt;
-    if (RS.st === 'idle' && RS.t <= 0 && !bossUp && R > PP_RMIN + 2) {
+    if (RS.st === 'idle' && RS.t <= 0 && !bossUp && !S.drop && R > S.rmin + 2) {
       RS.st = 'warn'; RS.t = 2.6; RS.dir = Math.random() < 0.5 ? 1 : -1; RS.kind = RS.passes % 3 === 2 ? 'high' : (Math.random() < 0.6 ? 'low' : 'high'); RS.hitDone = false;
       Sound.sfx('alarm'); if (!RS.passes) this.banner('THE ROYAL RASP!\nIT\'S GRATING THE PLANET!'); else this.banner(RS.kind === 'low' ? 'RASP! JUMP!' : 'RASP! DUCK!');
     } else if (RS.st === 'warn') {
@@ -138,7 +232,7 @@ const ParmMixin = {
         if (Math.random() < 0.35) { const pf = this.add.image(0, 0, 'puff').setDepth(4.7).setTint(0xf2da92).setAlpha(0.5); pf.bsx = pf.bsy = rnd(0.4, 0.8); this.parts.push({ theta: edge, h: rnd(0, 20), vt: -RS.dir * rnd(20, 80), vh: rnd(20, 60), life: rnd(0.8, 1.3), noGrav: true, grow: 1.2, spr: pf }); }
         S.scars = S.scars || []; S.scars.push({ theta: edge, t: 4 });                 // the freshly grated ground behind it
       }
-      R = Math.max(PP_RMIN, R - 13 * (sp * dt) / TAU);                  // every lap grates ~13 units off the planet
+      R = Math.max(S.rmin, R - 30 * (sp * dt) / TAU);                   // (v2.90) every lap grates ~30 units off this layer
       const near = Math.abs(angDiff(P.theta, RS.theta)) * R;
       if (near < 500 && Math.random() < dt * 12) { this.cameras.main.shake(60, 0.006); if (Math.random() < 0.3) Sound.sfx('grind'); }
       const [h0, h1] = RS.kind === 'low' ? [0, 36] : [24, 118];
@@ -155,7 +249,7 @@ const ParmMixin = {
     // ---- the ground cracks... then falls away into a chasm
     S.crackT -= dt;
     const open = S.cracks.filter(c => c.st !== 'gone').length;
-    if (S.crackT <= 0 && open < 2 && !bossUp) {
+    if (S.crackT <= 0 && open < (S.layer ? 3 : 2) && !bossUp && !S.drop) {
       S.crackT = rnd(5.5, 9);
       const th = wrap(P.theta + (P.facing || 1) * rnd(0.12, 0.45) + rnd(-0.08, 0.08));
       if (!this.craters.some(c => Math.abs(angDiff(c.theta, th)) < 0.2) && !S.cracks.some(c => c.st !== 'gone' && Math.abs(angDiff(c.theta, th)) < 0.25)) {
@@ -266,6 +360,10 @@ const ParmMixin = {
 
   parmDraw() {
     const S = this.pp; if (!S) return;
+    if (S.pending !== undefined) { const n = S.pending; S.pending = undefined; this.ppApplyLayer(n); }
+    // (v2.90) keep the planet's top where Chris stands as it shrinks (layout() only sets the centre on a resize)
+    if (!this.fullCam) { const Rz = R * this.zoom, W = this.W, H = this.H; this.cy = this.groundY + Rz + (this.camSlide || 0);
+      this.visHalf = Math.min(Math.asin(Math.min(1, (W / 2) / Rz)), Math.acos(Math.max(-1, Math.min(1, (this.cy - H) / Rz)))); this.visArc = R * this.visHalf; }
     const g = this.ppG, bg = this.ppBack, hg = this.ppHud;
     this.ppG.clear(); this.colDraw(this.ppG); this.parmEscapeDraw(this.ppG); const _ = 0, z = this.zoom, t = this.t, P = this.pl, vt = this.viewT(), vh = this.visHalf + 0.15;
     bg.clear(); hg.clear();
@@ -288,6 +386,40 @@ const ParmMixin = {
       const tw = Math.sin(t * 3 + k * 1.7); if (tw < 0.6) continue;
       const p = this.screenPos(th, -4 - (k * 13) % 40), s = (tw - 0.6) * 6 * z;
       bg.fillStyle(0xffffff, 0.9).fillRect(p.x - s, p.y - 0.6 * z, s * 2, 1.2 * z).fillRect(p.x - 0.6 * z, p.y - s, 1.2 * z, s * 2);
+    }
+    // ---- (v2.90) underground: the dark, the cavern roof far above (the underside of the layer you fell through, with the
+    // holes you came down by and shafts of light through them), and the geysers
+    const rf = this.ppRoof, sh = this.ppShaft; rf.clear(); sh.clear();
+    if (S.layer > 0) {
+      const W = this.W, H = this.H, dk = this.ppDark; dk.clear();
+      for (let i = 0; i < 12; i++) dk.fillStyle(S.layer === 1 ? Phaser.Display.Color.GetColor(22 + i * 3, 10 + i * 2, 8 + i) : Phaser.Display.Color.GetColor(30 + i * 8, 10 + i * 4, 6 + i), 0.93).fillRect(0, H * i / 12, W, H / 12 + 1);
+      const step = 0.02, a0 = vt - vh - 0.1, n = Math.ceil((vh * 2 + 0.2) / step), base = 300, holes = [0.4, 1.9, 3.3, 4.6, 5.8].map(x => wrap(x + S.layer));
+      for (let i = 0; i < n; i++) {
+        const th = wrap(a0 + i * step), th2 = wrap(th + step), hole = holes.some(hh => Math.abs(angDiff(th, hh)) < 0.09);
+        if (hole) continue;
+        const j = Math.sin(th * 37) * 10 + Math.sin(th * 91) * 6, j2 = Math.sin(th2 * 37) * 10 + Math.sin(th2 * 91) * 6;
+        const p1 = this.screenPos(th, base + j), p2 = this.screenPos(th2, base + j2), p3 = this.screenPos(th2, base + 240), p4 = this.screenPos(th, base + 240);
+        rf.fillStyle(S.layer === 1 ? 0x3a2414 : 0x4a2a18, 1).fillPoints([p1, p2, p3, p4], true);
+        const q1 = this.screenPos(th, base + j + 8), q2 = this.screenPos(th2, base + j2 + 8); rf.fillStyle(0x6a4a2a, 1).fillPoints([p1, p2, q2, q1], true);
+        if ((Math.floor(th * 300) % 7) === 0) { const s1 = this.screenPos(th, base + j), s2 = this.screenPos(wrap(th + 0.006), base + j - 30 - (Math.floor(th * 100) % 3) * 12), s3 = this.screenPos(wrap(th + 0.012), base + j); rf.fillStyle(0x6a4a2a, 1).fillTriangle(s1.x, s1.y, s2.x, s2.y, s3.x, s3.y); }   // drips of old cheese
+        if (S.layer === 2 && (Math.floor(th * 300) % 11) === 0) { const c = this.screenPos(th, base + j - 6); rf.fillStyle(0xfff6d0, 1).fillCircle(c.x, c.y, 2 * z); }
+      }
+      for (const hh of holes) { if (!inView(hh)) continue; const a = this.screenPos(wrap(hh - 0.07), base), b = this.screenPos(wrap(hh + 0.07), base), c = this.screenPos(wrap(hh + 0.11), 0), d = this.screenPos(wrap(hh - 0.11), 0);
+        sh.fillStyle(0xffc070, 0.08 + 0.03 * Math.sin(t * 1.3 + hh)).fillPoints([a, b, c, d], true); }
+      for (const G of S.geysers) {
+        if (!inView(G.theta) || G.st === 'idle') continue;
+        const p0 = this.screenPos(G.theta, 0);
+        if (G.st === 'warn') { g.fillStyle(0xffb52a, 0.5 + 0.4 * Math.sin(t * 30)).fillEllipse(p0.x, p0.y, 40 * z, 10 * z); for (let k = 0; k < 3; k++) { const q = this.screenPos(wrap(G.theta + (k - 1) * 8 / R), 6 + ((t * 40 + k * 9) % 20)); g.fillStyle(0xffe08a, 1).fillCircle(q.x, q.y, 3 * z); } }
+        else { const hT = 230 * Math.min(1, (1.5 - G.t) * 5); for (const [w, col, al] of [[24, 0xe0601a, 0.9], [17, 0xffb52a, 1], [8, 0xfff0a0, 1]]) { const a = this.screenPos(wrap(G.theta - w / R), 0), b = this.screenPos(wrap(G.theta + w / R), 0), c = this.screenPos(wrap(G.theta + w * 0.7 / R), hT), d = this.screenPos(wrap(G.theta - w * 0.7 / R), hT); g.fillStyle(col, al).fillPoints([a, b, c, d], true); }
+          const top = this.screenPos(G.theta, hT); g.fillStyle(0xffb52a, 1).fillCircle(top.x, top.y, 22 * z); g.fillStyle(0xfff0a0, 1).fillCircle(top.x, top.y - 4 * z, 12 * z); }
+      }
+    }
+    { const fx = this.ppDropFx; fx.clear(); const D = S.drop;                // the fall: the screen goes dark, rubble whooshing up past
+      if (D && (D.st === 'fall' || (D.st === 'land' && D.t < 0.8))) {
+        const a = D.st === 'fall' ? Math.min(1, D.t / 0.8) : 1 - D.t / 0.8, W = this.W, H = this.H;
+        fx.fillStyle(0x1a0c06, a * 0.92).fillRect(0, 0, W, H);
+        for (let k = 0; k < 26; k++) { const x = (k * 97.3) % W, y = H - ((t * 900 + k * 173) % (H + 80)); fx.fillStyle(k % 3 ? 0x6a4a2a : 0xd8c890, a).fillRect(x, y, 6 + (k % 4) * 4, 10 + (k % 5) * 6); }
+      }
     }
     // ---- cracks spreading before the ground gives way; the chasms' glowing core
     for (const C of S.cracks) {

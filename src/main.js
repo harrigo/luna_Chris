@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.89';
+const BUILD = 'v2.90';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1475,7 +1475,7 @@ class Level1 extends Phaser.Scene {
       this.updateBuff(dt);
       this.updateHazards(dt * ek);
       this.updateWorld(dt);
-      this.updatePlayer(dt, inp);
+      if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
       if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
@@ -3628,7 +3628,7 @@ class Level1 extends Phaser.Scene {
         const more = this.waveIdx >= 0 && this.waveIdx + 1 < this.waves.length;   // not before the first wave: the level starts snappily
         if (!more || !Sound.fill(() => { this.fillDone = true; }, this.musicTier(this.waveIdx + 1), this.waveIdx + 1 === this.waves.length - 1)) this.fillDone = 'none';   // the last fill leads into the boss
       }
-      if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) this.nextWave();
+      if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) { if (!(this.def.parm && this.parmGate())) this.nextWave(); }   // (v2.90: L9's crust may give way first)
     } else {
       this.clearT = 0;
     }

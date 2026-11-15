@@ -95,7 +95,8 @@ function ppPaint(scene, key, w, h, paint, opts) {
 }
 
 // ---------------------------------------------------------------- the planet itself
-function makeParmPlanet(scene, key, Rw) {
+function makeParmPlanet(scene, key, Rw, opt) {
+  const LY = (opt && opt.layer) || 0;   // (v2.90) 0 the city crust, 1 the mines (raw grated paste), 2 the crystal core
   if (scene.textures.exists(key)) return;
   const S = Math.round(Rw), c = S / 2, rad = S / 2 - 1;
   const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
@@ -117,7 +118,7 @@ function makeParmPlanet(scene, key, Rw) {
     const dx = x + 0.5 - c, dy = y + 0.5 - c, r = Math.hypot(dx, dy); if (r > rad) continue;
     const d = rad - r, a = Math.atan2(dy, dx), b = PP_BAYER[(y & 3) * 4 + (x & 3)], i = (y * S + x) * 4;
     let col;
-    if (d < RB) {                                                     // the RIND, with the stamped dotted lettering
+    if (d < RB && LY === 0) {                                         // the RIND, with the stamped dotted lettering
       const n = noise(x, y, 3);
       let t = 1.3 + (d < 3 ? -1.2 : 0) + (n - 0.5) * 1.6 + b * 0.9 + (hash(x, y) < 0.06 ? 1.2 : 0);
       const ci = Math.floor(((a + Math.PI) / pitchA)) % cols.length, aC = (Math.floor((a + Math.PI) / pitchA) + 0.5) * pitchA - Math.PI;
@@ -128,25 +129,28 @@ function makeParmPlanet(scene, key, Rw) {
       }
       if (d > RB - 3) t += 0.8;
       col = RIND[Math.max(0, Math.min(4, Math.round(t)))];
-    } else if (r < 64) {                                              // the molten core
-      const t = r / 64 * 3.4 + (noise(x, y, 6) - 0.5) * 1.2 + b; col = CORE[Math.max(0, Math.min(4, Math.round(t)))];
+    } else if (r < (LY === 2 ? 92 : 64)) {                           // the molten core
+      const t = r / (LY === 2 ? 92 : 64) * 3.4 + (noise(x, y, 6) - 0.5) * 1.2 + b; col = CORE[Math.max(0, Math.min(4, Math.round(t)))];
     } else {                                                          // the hard, granular paste
       const n = noise(x, y, 2), n2 = noise(x + 300, y, 7);
       let t = 1.4 + (n - 0.5) * 2 + (n2 - 0.5) * 1.2 + b * 0.9 + (hash(x, y) - 0.5) * 0.9;
       if (Math.abs(((d - RB) % 26) - 13) < 0.7) t += 0.7;               // strata
-      for (const [sa, sw] of scars) { const da = Math.abs(((a - sa + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da < sw && d < RB + 34) { t = 1 + ((Math.floor(d) % 3) === 0 ? 2.2 : 0) + b * 0.6; } }
+      if (LY === 1 && d < RB + 40) t = 1.2 + ((Math.floor(d + Math.sin(a * 40) * 2) % 4) === 0 ? 2.2 : 0) + (n - 0.5) * 1.2 + b * 0.6;   // the mines: the whole surface raw and grooved by the graters
+      if (LY === 2 && d < RB + 26) { const cell = hash(Math.floor((a + 4) * 60), Math.floor(d / 7)); t = cell < 0.5 ? 0.2 + b * 0.8 : 2 + cell * 2; }   // the core: a crust of crystal facets
+      if (LY === 0) for (const [sa, sw] of scars) { const da = Math.abs(((a - sa + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da < sw && d < RB + 34) { t = 1 + ((Math.floor(d) % 3) === 0 ? 2.2 : 0) + b * 0.6; } }
       if (r < 96) t += (96 - r) / 32 * 1.5 * (1 - b * 0.3);               // darkening towards the core
       col = PARM[Math.max(0, Math.min(4, Math.round(t)))];
       if (r < 90 && hash(x, y) < (90 - r) / 400) col = CORE[3];
       const h = hash(x * 3, y * 7);
-      if (h < 0.0045) col = [255, 255, 255]; else if (h < 0.009) col = [255, 246, 214];   // crunchy crystals
+      const cd = LY === 2 ? 0.05 : LY === 1 ? 0.016 : 0.0045;
+      if (h < cd) col = [255, 255, 255]; else if (h < cd * 2) col = [255, 246, 214];   // crunchy crystals
     }
     D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
   // fissures from the core towards the surface, glowing deep down
   ctx.lineCap = 'square';
-  for (let k = 0; k < 16; k++) {
+  for (let k = 0; k < (LY === 2 ? 34 : LY === 1 ? 24 : 16); k++) {
     let a = rnd() * Math.PI * 2, r0 = 66 + rnd() * 20, len = 60 + rnd() * (rad - RB - 110);
     let px = c + Math.cos(a) * r0, py = c + Math.sin(a) * r0;
     for (let s = 0; s < len; s += 3) {
@@ -608,4 +612,50 @@ function makeParmStatues(scene) {
   ppSculpt(scene, 'ppstatue3', 100, 208, 1, H => { H.g.translate(0, 7); ppKingStatue(H, true); });
   ppSculpt(scene, 'ppstatue_big', 160, 332, 1.6, H => { H.g.translate(0, 7); ppKingStatue(H, false); });
   ppSculpt(scene, 'ppb_statue', 130, 270, 1.3, H => { H.g.translate(0, 7); ppKingStatue(H, true, true); });
+}
+
+// ---------------------------------------------------------------- (v2.90) the layers under the crust
+// The mines: timber pit-props with a hanging lantern, a rat mine-cart full of grated Parmesan, a grater-wheel on a
+// gantry. The crystal core: great clusters of cheese crystals (tyrosine), glowing.
+function makeParmDeep(scene) {
+  if (scene.game.__ppDeep || typeof ppSculpt !== 'function') return; scene.game.__ppDeep = true;
+  const P = PPR, INK = P.INK, WOOD = [0xe0b07a, 0xb07a44, 0x7a4e24, 0x4e3014, 0x2a1a0a];
+  const CRY = [0xffffff, 0xfff6d0, 0xffe08a, 0xd8a440, 0x8a5a18], CRYB = [0xffffff, 0xe8f4ff, 0xb8d8f4, 0x7aa0c8, 0x3a5a84];
+  const pal = [].concat(P.MARB, P.VEIN, P.GOLD, P.RED, P.PARM, P.RUST, P.STEEL.slice(1), WOOD, CRY, CRYB, [INK, 0xffffff, 0xffb52a]);
+  ppSculpt(scene, 'ppmine_prop', 90, 110, 1, H => {                                      // a timber pit-prop frame with a lantern
+    H.ink = INK;
+    for (const x of [14, 74]) H.shape([[x - 4, 110], [x - 3, 14], [x + 4, 12], [x + 5, 110]], WOOD, 'cyl');
+    H.shape([[4, 18], [86, 10], [88, 20], [6, 28]], WOOD, 'down');
+    H.line([[18, 30], [70, 92]], WOOD[3], 3); H.line([[70, 30], [18, 92]], WOOD[3], 3);
+    for (const [x, y] of [[14, 22], [74, 16], [14, 60], [74, 60]]) H.ell(x, y, 1.6, 1.6, P.STEEL[2]);
+    H.line([[46, 16], [46, 38]], INK, 1); H.shape([[40, 38], [52, 38], [53, 54], [39, 54]], P.RUST, 'cyl'); H.ell(46, 46, 4, 5, [0xffffff, 0xfff0a0, 0xffb52a, 0xe0601a, 0x8a2a0a], 'round');
+    H.flecks(4, 10, 88, 110, 30, WOOD[4], 0.9);
+  }, { pal });
+  ppSculpt(scene, 'ppmine_cart', 96, 70, 1, H => {                                       // a mine-cart heaped with grated cheese
+    H.ink = INK;
+    H.shape([[8, 20], [88, 20], [80, 56], [16, 56]], P.RUST, 'cyl');
+    for (let x = 14; x < 86; x += 8) { H.ell(x, 24, 1.2, 1.2, P.STEEL[1]); H.ell(x + 2, 52, 1.2, 1.2, P.STEEL[1]); }
+    H.shape([[10, 22], [24, 6], [40, 12], [54, 2], [72, 10], [86, 22]], P.PARM, 'round');
+    H.flecks(14, 2, 84, 22, 26, 0xffffff, 0.9);
+    for (const x of [26, 70]) { H.ell(x, 60, 9, 9, P.STEEL, 'round'); H.ell(x, 60, 3, 3, INK); }
+    H.line([[0, 69], [96, 69]], P.STEEL[3], 2);
+  }, { pal });
+  ppSculpt(scene, 'ppmine_wheel', 100, 120, 1, H => {                                    // a grater-wheel on a gantry, teeth worn
+    H.ink = INK;
+    for (const x of [16, 84]) H.shape([[x - 4, 120], [x + 4, 120], [x + 2, 40], [x - 2, 40]], P.STEEL, 'cyl');
+    H.shape([[8, 40], [92, 40], [92, 46], [8, 46]], P.RUST, 'down');
+    H.ell(50, 74, 32, 32, P.STEEL, 'round');
+    for (let k = 0; k < 40; k++) { const a = k / 40 * Math.PI * 2; H.ell(50 + Math.cos(a) * 26, 74 + Math.sin(a) * 26, 2, 1.2, INK, null, a); }
+    H.ell(50, 74, 8, 8, P.RUST, 'round'); H.flecks(20, 44, 82, 106, 20, P.PARM[1], 1.2);
+  }, { pal });
+  for (const [key, ramp, n, sd] of [['ppcrys1', CRY, 7, 1], ['ppcrys2', CRY, 5, 2], ['ppcrys3', CRYB, 6, 3]]) ppSculpt(scene, key, 90, 110, 1, H => {   // crystal clusters
+    H.ink = INK; let q = sd * 97;
+    const rr = () => (q = (q * 16807) % 2147483647) / 2147483647;
+    H.ell(45, 106, 32, 6, P.PARM, 'round');
+    const spikes = []; for (let k = 0; k < n; k++) spikes.push({ a: -Math.PI / 2 + (k - (n - 1) / 2) * 0.32 + (rr() - 0.5) * 0.2, L: 40 + rr() * 50 * (1 - Math.abs(k - (n - 1) / 2) / n), w: 6 + rr() * 6 });
+    spikes.sort((a, b) => a.L - b.L);
+    for (const sp of spikes) { const bx = 45 + Math.cos(sp.a + Math.PI / 2) * 6, by = 104, tx = bx + Math.cos(sp.a) * sp.L, ty = by + Math.sin(sp.a) * sp.L, nx = Math.cos(sp.a + Math.PI / 2) * sp.w, ny = Math.sin(sp.a + Math.PI / 2) * sp.w;
+      H.poly([[bx - nx, by - ny], [bx + nx, by + ny], [tx + nx * 0.6, ty + ny * 0.6 + 6], [tx, ty], [tx - nx * 0.6, ty - ny * 0.6 + 6]], ramp, 'cyl');
+      H.line([[bx, by], [tx, ty]], ramp[3], 0.8); H.line([[bx - nx * 0.5, by - ny * 0.5], [tx - nx * 0.3, ty - ny * 0.3 + 4]], 0xffffff, 0.8); }
+  }, { pal });
 }

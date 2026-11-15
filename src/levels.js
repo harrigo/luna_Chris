@@ -392,9 +392,9 @@ const LEVELS = {
                { style: 'machines', n: 11, off: 10, amp: 18, col: [22, 5, 10], top: [255, 130, 70], glow: [255, 80, 40], k: 0.55, depth: 0.36, seed: 94, size: 1.4 }],
       fg: { style: 'ruins', col: [26, 6, 10], glow: [255, 150, 70] } },
     waves: [                                                                                          // (v2.78) the Rat Empire's finest
-      { name: 'WAVE 1', spawns: [S('mouse', 0), S('ppguard', 0.3), S('mouse', 0.6), S('pptax', 1.2), S('flyer', 1.6), S('ppgren', 2.2), S('mouse', 2.8), S('mouse', 3.2), S('ppguard', 4), S('flyer', 4.6), S('mouse', 5.2), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7.2), S('ppguard', 8), S('mouse', 8.5), S('mouse', 9)] },
-      { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('flyer', 1.2), S('ppguard', 1.8), S('mouse', 2.2), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('flyer', 4.4), S('ppguard', 5), S('mouse', 5.4), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8), S('mouse', 8.4), S('paladin', 9), S('mouse', 9.6)] },
-      { name: 'WAVE 3', spawns: [S('ppguard', 0), S('ppguard', 0.4), S('ppcav', 1), S('mouse', 1.3), S('ppgren', 1.8), S('ppgren', 2.2), S('flyer', 2.6), S('pptax', 3.2), S('mouse', 3.6), S('ppcav', 4.4), S('paladin', 5), S('mouse', 5.4), S('flyer', 5.8), S('ppguard', 6.4), S('ppgren', 7), S('mouse', 7.4), S('ppcav', 8.2), S('mouse', 8.6), S('flyer', 9), S('ppguard', 9.6), S('mouse', 10)] },
+      { name: 'WAVE 1', spawns: [S('ppguard', 0.3), S('pptax', 1.2), S('flyer', 1.6), S('ppgren', 2.2), S('ppguard', 4), S('ppgren', 6), S('flyer', 7.2), S('ppguard', 8)] },
+      { name: 'WAVE 2', spawns: [S('ppcav', 0), S('mouse', 0.4), S('ppgren', 0.8), S('ppguard', 1.8), S('pptax', 2.8), S('mouse', 3.2), S('ppcav', 4), S('ppguard', 5), S('ppgren', 6), S('mouse', 6.6), S('flyer', 7), S('ppcav', 8)] },
+      { name: 'WAVE 3', spawns: [S('ppguard', 0), S('ppguard', 0.4), S('ppcav', 1), S('mouse', 1.3), S('ppgren', 2.2), S('pptax', 3.2), S('ppcav', 4.4), S('paladin', 5), S('ppguard', 6.4), S('ppgren', 7), S('mouse', 7.4), S('ppcav', 8.2), S('ppguard', 9.6)] },
     ],
     boss: { tex: 'ratking', hp: 480, ai: 'colossus', scale: 1.35 },                                // (v2.79) THE PARMESAN COLOSSUS (parmesan.js; its own textures)
     win: 'The Grand Rat-King\'s mech is scrap!\nBessie is free - and this time she is STAYING free.\nLuna Chris: hero of the galaxy. MOO!'
