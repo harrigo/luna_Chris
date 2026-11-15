@@ -87,7 +87,9 @@ function makeParmTextures(scene) {
   if (typeof makeParmFolk === 'function') makeParmFolk(scene);
   if (typeof makeParmStatues === 'function') makeParmStatues(scene);
   if (typeof makeParmDeep === 'function') makeParmDeep(scene);
-  if (typeof makeParmFolk2 === 'function') makeParmFolk2(scene);   // (v2.91) everyone repainted, and the new folk of the mines and the core   // (v2.90) the mines and the crystal core   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
+  if (typeof makeParmFolk2 === 'function') makeParmFolk2(scene);
+  if (typeof makeParmCity === 'function') makeParmCity(scene);       // (v2.96) the palace, column, arch, treasury and machines redrawn (parmcity.js)
+  if (typeof makeColossus3 === 'function') makeColossus3(scene);     // ...and the Colossus monuments (parmboss.js)   // (v2.91) everyone repainted, and the new folk of the mines and the core   // (v2.90) the mines and the crystal core   // (v2.82) the King's statues, sculpted       // (v2.80) repainted richer: guards, grenadiers, the Taxman, cavalry, the Colossus
 }
 
 Object.assign(ENEMY, {
@@ -115,7 +117,7 @@ const ParmMixin = {
     // mining machines chewing at it; braziers burning in the street; the mining mothership up in the sky
     const NEAR = ['ppb_palace', 'ppb_minaret', 'ppb_drill', 'ppb_temple', 'ppb_arch', 'ppb_statue', 'ppb_grater', 'ppb_minaret'], FAR = ['ppb_minaret', 'ppb_palace', 'ppb_statue', 'ppb_temple', 'ppb_drill', 'ppb_arch'];
     this.ppCity = [];
-    NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xd8a890); im.bsx = im.bsy = k === 'ppb_drill' ? 1.25 : 1.45; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
+    NEAR.forEach((k, i) => { const im = this.add.image(0, 0, k).setOrigin(0.5, 1).setDepth(1.0).setTint(0xd8a890); im.bsx = im.bsy = ({ ppb_drill: 1.2, ppb_palace: 1.5, ppb_minaret: 1.45, ppb_statue: 1.25, ppb_arch: 1.35, ppb_temple: 1.3, ppb_grater: 1.25 })[k] || 1.4; this.ppCity.push({ im, theta: i * TAU / NEAR.length + 0.17, h: -16, drill: k === 'ppb_drill' }); });
     // (the far skyline is a parallax ring now: depth.js 'skyline' / 'machines')
     this.ppFire = []; this.ppSmoke = [];
     for (let i = 0; i < 6; i++) {

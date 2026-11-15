@@ -1827,3 +1827,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The palaces behind the horizon are dimmer and sit behind a band of orange heat-haze (ppHaze, depth 1.02), so the street and the fight stand out in front.
 - The blimp flies: it cruises across the sky, slides with the camera, bobs, noses up and down, trails smoke, and turns round when it's gone off the side. A second, smaller, darker one flies the other way far off.
 - New fountain in the house pixel style, sat flat on the street, 4 frames: a rat cherub spitting an arc of molten cheese, ripples, splash, the cracked rim dribbling.
+
+### v2.96 - Parmesan Prime's buildings redrawn (parmcity.js)
+- All the horizon set-pieces in the house pixel style, and an EMPIRE's capital rather than temples: THE ROYAL PALACE (grand stair with a red carpet, colonnade, tall lit windows, banners, a pediment with the royal crest, a rotunda roofed with a colossal gold crown - a bite out of it, scaffolded - wing towers roofed with giant wedges of holey cheese, flags; the right wing split open), THE VICTORY COLUMN (gold spiral, the King in gold on top), THE TRIUMPHAL ARCH (sky through it, reliefs of the King, a gold cheese-wheel chariot on top), THE ROYAL TREASURY (a great round vault door ajar, gold pouring down the steps), the drill derrick and the grater crawler.
+- The Colossus monuments (ppstatue_big behind the horizon, ppb_statue scaffolded in the city) now use the boss's own sprite with stone eyes, on a plinth with a crown-and-laurel plaque - solid, not see-through.

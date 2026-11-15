@@ -377,7 +377,7 @@ const LEVELS = {
     ledges: [{ theta: 0.6, half: 0.09, h: 90 }, { theta: 1.5, half: 0.08, h: 170 }, { theta: 2.6, half: 0.09, h: 90 }, { theta: 3.6, half: 0.08, h: 170 }, { theta: 4.6, half: 0.09, h: 90 }, { theta: 5.5, half: 0.08, h: 170 }],
     props: [
       // (v2.81) composed like L2: big dark statues and columns looming behind the horizon, and rubble right in front of the camera
-      { tex: 'ppstatue_big', at: [[0.6, 1.4], [2.9, 1.3, 1], [5.0, 1.45]], depth: 0.95, tint: 0x7a3434, alpha: 0.8, h: -22 },
+      { tex: 'ppstatue_big', at: [[0.6, 2.3], [2.9, 2.1, 1], [5.0, 2.4]], depth: 0.95, tint: 0x9a5648, h: -30 },   // (v2.96) the Colossus monuments, solid, hazed with distance
       { tex: 'ppcolbroke', at: [[1.5, 2.2, 1], [3.9, 2.0], [5.8, 2.3, 1]], depth: 0.95, tint: 0x5a2228, alpha: 0.72, h: -20 },
       // (v2.95) nothing parked in front of the camera any more (it hid the enemies); the street furniture is smaller and sits behind the action
       { tex: 'ppstatue2', n: 2, sc: [0.62, 0.7] }, { tex: 'ppstatue3', n: 2, sc: [0.62, 0.7] }, { tex: 'ppcol2', n: 4, sc: [0.8, 1] }, { tex: 'ppcolbroke', n: 3, sc: [0.8, 1] }, { tex: 'ppbanner2', n: 4, sc: [0.8, 0.95] }, { tex: 'ppfountain', n: 3, sc: [1.2, 1.3], h: 0 }, { tex: 'pprubble', n: 3, sc: [0.6, 0.8] }],

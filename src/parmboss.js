@@ -49,8 +49,9 @@ function makeColossus3(scene) {
     a.line([[X(42), Y(-9 + open)], [X(42), Y(-3 + open + (o.f || 0) % 3 * 2)]], LAVA[1], 2); a.px(X(42), Y(4 + open + (o.f || 0) % 3 * 3), LAVA[0]);
     a.ell(X(8), Y(-4), 14, 8, MARB);                                                                                    // jowls
     // the eyes: one alive and rolling, one blank carved stone (cracked; glowing once he's wrecked)
-    eyeball(a, X(2), Y(-27), 12, lk[0], lk[1], o.blaze);
-    a.ell(X(26), Y(-25), 9, 9, DARK); a.ell(X(26), Y(-25), 7, 7, o.dmg ? LAVA : MARBD); a.line([[X(22), Y(-30)], [X(27), Y(-25)], [X(25), Y(-19)]], o.dmg ? 0xffffff : DARK);
+    if (o.stone) { a.ell(X(2), Y(-27), 13, 13, 0x8a8278); a.ell(X(2), Y(-27), 11, 11, 0xc6beb2); a.ell(X(0), Y(-30), 7, 6, 0xf6f1e8); a.ell(X(4), Y(-25), 3, 3, 0x8a8278); }   // (a monument: both eyes blank stone)
+    else eyeball(a, X(2), Y(-27), 12, lk[0], lk[1], o.blaze);
+    a.ell(X(26), Y(-25), 9, 9, o.stone ? 0x8a8278 : DARK); a.ell(X(26), Y(-25), 7, 7, o.dmg ? LAVA : o.stone ? 0xc6beb2 : MARBD); a.line([[X(22), Y(-30)], [X(27), Y(-25)], [X(25), Y(-19)]], o.dmg ? 0xffffff : DARK);
     a.line([[X(-14), Y(-41)], [X(4), Y(-39)], [X(20), Y(-35)], [X(36), Y(-33)]], DARK, 3); a.line([[X(-14), Y(-42)], [X(4), Y(-40)], [X(20), Y(-36)]], MARBD[1]);   // the stone scowl
     for (const [y, l] of [[-16, 12], [-12, 10]]) a.line([[X(46), Y(y)], [X(46 + l), Y(y - 3 + (y + 16))]], GOLD[2]);    // whiskers: snapped gold rods
     crack(a, [[X(-10), Y(-30)], [X(-14), Y(-20)], [X(-8), Y(-12)], [X(-12), Y(-4)]], o.dmg);
@@ -93,7 +94,7 @@ function makeColossus3(scene) {
     for (const [x, yy] of [[50, by - 5], [64, by - 3], [80, by - 2], [90, by - 4]]) a.px(x, yy, MOSS);
     a.rect(44, y - 104, 46, y - 98, 0xffffff); a.px(45, y - 96, 0xffffff);
     // the head
-    head(a, 70, y - 110 + (stomp ? -1 : 0), { open: o.pose === 'l' ? 2 : stomp ? 1 : (f % 2 ? 1 : 0), blaze: o.pose === 'l', dmg, f, look: stomp ? [0.5, 0.8] : o.pose === 'l' ? [0.8, 0.5] : [0.7, 0.3] });
+    head(a, 70, y - 110 + (stomp ? -1 : 0), { open: o.pose === 'l' ? 2 : stomp ? 1 : (f % 2 ? 1 : 0), blaze: o.pose === 'l', dmg, f, stone: o.stone, look: stomp ? [0.5, 0.8] : o.pose === 'l' ? [0.8, 0.5] : [0.7, 0.3] });
     // the near arm and the sceptre: a walking stick... raised like a club for the stomp
     if (stomp) { a.line([[86, y - 100], [102, y - 112], [108, y - 128]], MARB[2], 12); a.line([[86, y - 101], [102, y - 113], [108, y - 128]], MARB[1], 8); a.ell(109, y - 131, 8, 8, MARB);
       a.line([[104, y - 118], [118, y - 158]], GOLD[2], 4); a.line([[104, y - 118], [118, y - 158]], GOLD[1], 2); a.ell(119, y - 162, 6, 6, GOLD); }
@@ -109,6 +110,27 @@ function makeColossus3(scene) {
     pixSprite(scene, base + '_s', 132, 180, a => statue(a, { pose: 's', dmg }));
     pixSprite(scene, base + '_l', 132, 180, a => statue(a, { pose: 'l', dmg }));
   }
+  // (v2.96) the same statue as a MONUMENT, eyes still stone, on a great plinth: ppstatue_big (looming behind the
+  // horizon) and ppb_statue (in the city, scaffolded for the miners)
+  const shift = (a, dx, dy) => ({ ell: (x, y, rx, ry, t) => a.ell(x + dx, y + dy, rx, ry, t), rect: (x0, y0, x1, y1, c) => a.rect(x0 + dx, y0 + dy, x1 + dx, y1 + dy, c), poly: (pts, t) => a.poly(pts.map(([x, y]) => [x + dx, y + dy]), t),
+    line: (pts, c, th) => a.line(pts.map(([x, y]) => [x + dx, y + dy]), c, th), px: (x, y, c) => a.px(x + dx, y + dy, c) });
+  for (const scaf of [0, 1]) pixSprite(scene, scaf ? 'ppb_statue' : 'ppstatue_big', 160, 262, a => {
+    const G = 260;
+    a.rect(6, G - 10, 154, G, MARB[1]); a.rect(6, G - 10, 154, G - 10, MARB[0]); a.rect(6, G, 154, G, MARB[2]);
+    a.rect(14, G - 22, 146, G - 10, MARB[1]); a.rect(14, G - 22, 146, G - 22, MARB[0]);
+    a.rect(22, G - 72, 138, G - 22, MARB[1]); a.rect(22, G - 72, 24, G - 22, MARB[0]); a.rect(134, G - 72, 138, G - 22, MARB[2]);
+    for (let y = G - 62; y < G - 24; y += 10) for (let x = 26; x < 134; x += 2) if ((x + y) % 7) a.px(x, y, MARB[2]);
+    a.rect(16, G - 80, 144, G - 72, GOLD[1]); a.rect(16, G - 80, 144, G - 79, GOLD[0]); a.rect(16, G - 73, 144, G - 72, GOLD[2]);
+    a.rect(44, G - 62, 116, G - 32, MARBD[1]); a.rect(46, G - 60, 114, G - 34, MARB[1]);                                              // the plaque: crown and laurels
+    a.poly([[70, G - 42], [70, G - 52], [75, G - 47], [80, G - 55], [85, G - 47], [90, G - 52], [90, G - 42]], GOLD); for (const sd of [-1, 1]) for (let k = 1; k < 4; k++) a.ell(80 + sd * (12 + k * 6), G - 40 - k * 3, 3.4, 1.8, GOLD);
+    crack(a, [[30, G - 70], [38, G - 56], [32, G - 44], [40, G - 30]], false); a.poly([[126, G - 80], [146, G - 80], [146, G - 60], [136, G - 66]], -1);
+    for (const x of [30, 60, 100, 124]) a.rect(x, G - 72, x + 1, G - 72 + 8 + (x % 3) * 5, MARBD[1]);                                 // grime
+    statue(shift(a, 14, G - 80 - 176 + 2), { f: 0, stone: true });
+    if (scaf) { const RU = [0xe08a4a, 0xa8521e, 0x5e2a0c]; for (const x of [4, 152]) { a.rect(x, 30, x + 2, G - 10, RU[1]); a.rect(x, 30, x, G - 10, RU[0]); }
+      for (let y = 46; y < G - 20; y += 34) { a.rect(0, y, 22, y + 2, RU[1]); a.rect(136, y + 14, 158, y + 16, RU[1]); a.rect(0, y + 3, 22, y + 3, RU[2]); }
+      for (let y = 50; y < G - 12; y += 5) a.rect(8, y, 14, y, RU[1]); a.rect(8, 46, 8, G - 12, RU[2]); a.rect(14, 46, 14, G - 12, RU[2]);
+      a.line([[152, 30], [128, 18], [128, 40]], RU[1]); a.rect(125, 40, 131, 46, RU[2]); }
+  });
   // the head on its own: the neck a jagged break, crystals glowing in it
   for (const op of [0, 1]) pixSprite(scene, op ? 'colhead_o' : 'colhead', 96, 84, a => {
     a.poly([[18, 62], [58, 62], [52, 74], [44, 70], [38, 78], [30, 70], [22, 76]], MARBD);
