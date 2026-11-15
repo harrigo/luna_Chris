@@ -1811,3 +1811,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v2.92 - The Rasp no longer clears your waves
 - The Royal Rasp used to flatten every enemy it passed, wiping wave 1 for you. It's the Empire's own machine: the rats now hop the low pass (or flatten under the high one) and carry on. It only hurts Chris.
+
+### v2.93 - Parmesan Prime's folk redrawn in the house style
+- src/parmfolk.js rewritten with pixSprite (hard pixels, 3 flat tones, dark outline) to match the rest of the cast instead of the smooth dithered sculpts: huge mismatched bloodshot eyes in dark sockets with pin-prick pupils, a heavy scowl, a long warty snout, a maw of crooked teeth, a lolling tongue, drool that stretches and drips, scrawny limbs, pot belly, kinked whip tail.
+- Everyone has a 4-frame cycle (key, _w1.._w3: legs scissor, body bobs, tail cracks, tongue flaps) plus action frames: ppgren_b (lit bomb wound back), ppminer_r / ppminer_b (pick raised / buried, sparks), ppdyna_b (lit stick held high), ppgolem_b (fists up). ENEMY.eyes set so their eyes pop on a hit.
+- Guard (dented gold breastplate, plumed helm, crown shield, halberd), grenadier (shako, bomb belt), Taxman (top hat, monocle, straining gold waistcoat, sack of cheddar shedding coins), cavalry (tin-pot knight on a slobbering bug-eyed war-rat), miner, dynamiter, mine cart (goggled driver, tongue streaming back, spinning spokes), crystal mite, molten slug (eyes on stalks), crystal golem (crystal fangs).

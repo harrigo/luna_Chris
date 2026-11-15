@@ -382,7 +382,7 @@ const ParmMixin = {
         if ((e.digT -= dt) <= 0) { set('under'); this.burst(e.theta, 4, 'crumb', 12, 1); Sound.sfx('clunk'); }
         ground();
       } else if (e.st === 'swing') {
-        e.spr.setTexture(e.stT > 0.3 ? 'ppminer_b' : 'ppminer');
+        e.spr.setTexture(e.stT > 0.3 ? 'ppminer_b' : 'ppminer_r');
         if (e.stT > 0.3 && !e.hit && distP < 80 && P.h < 50 && P.invuln <= 0) { e.hit = true; this.hurt(); this.burst(P.theta, P.h + 20, 'spark', 6, 0.8); Sound.sfx('clang'); }
         if (e.stT > 0.6) { set('walk2'); e.cd = 1.4; e.hit = false; }
         ground();
