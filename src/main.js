@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.06';
+const BUILD = 'v3.07';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -207,7 +207,8 @@ class Level1 extends Phaser.Scene {
     this.runT0 = (data && data.runT) || 0;                       // time already spent before the last death
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
-    this.waves = (Run.on ? Run.trimWaves(this.def.waves) : this.def.waves).concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);   // the boss (and its tune) lands just after the fill's crash
+    this.waves = (Run.on ? Run.trimWaves(this.def.waves) : this.def.waves).concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);
+    this.camp = false; if (data && data.camp) this.campInit(data);     // (v3.07) MOON CAMP: run mode's home (runhub.js)   // the boss (and its tune) lands just after the fill's crash
   }
 
   // ------------------------------------------------------------------ setup
@@ -833,6 +834,7 @@ class Level1 extends Phaser.Scene {
 
   // ------------------------------------------------------------- game flow
   startGame() {
+    if (this.camp) { this.campStart(); return; }
     this.hideOverlay();
     try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
     this.placeWheels(); this.placeOneUp();
@@ -1480,7 +1482,7 @@ class Level1 extends Phaser.Scene {
       this.updateWorld(dt);
       if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
       if (this.pl.pit) this.pitUpdate(dt);
-      if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
+      if (this.camp) this.campUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
       this.updatePlayerBullets(dt);
@@ -1496,6 +1498,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.parm) this.parmUpdate(dt, this.enemies.some(e => e.type === 'boss'));   // L9 (parmesan.js)
       if (this.def.fondue) this.fondueUpdate(dt, inp);                                     // L5.5: cheese curtains, soggy croutons, waves (fondue.js)
     }
+    else if (this.state === 'campmenu') this.campUpdate(dt, {});
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp); if (this.pl.pit) this.pitUpdate(dt);
       if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
@@ -5568,6 +5571,7 @@ class Level1 extends Phaser.Scene {
     P.spr.setTint(P.power > 0 ? 0xffe27a : 0xffffff);
     this.fxDraw();                                        // ground shadows, rim light (fx.js)
     this.toonDraw();                                      // eyes popping out of whatever's been hit (toons.js)
+    if (this.camp) this.campDraw();
   }
 }
 
@@ -5585,7 +5589,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+runInstall(Level1); Object.assign(Level1.prototype, CampMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
@@ -5697,7 +5701,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, RunHubScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

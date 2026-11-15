@@ -215,7 +215,7 @@ class MenuScene extends Phaser.Scene {
     if (this.going) return; this.going = true;
     Sound.sfx('power');
     this.cameras.main.fadeOut(200, 0, 0, 0);
-    this.time.delayedCall(230, () => this.scene.start('runhub'));     // (v3.06) to the MOON CAMP
+    this.time.delayedCall(230, () => this.scene.start('level1', { camp: true }));     // (v3.07) to the MOON CAMP (a real little planet)
   }
   go() {
     if (this.going) return; this.going = true;

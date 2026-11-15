@@ -56,6 +56,8 @@ const Meta = {
   setKit(id) { this._s('lc_kit', id); }
 };
 
+const PERK_KIND = { boots: 'MOVE', mboots: 'MOVE', tank: 'MOVE', sauce: 'ATTACK', glass: 'ATTACK', chip: 'ATTACK', heart: 'DEFENCE', armour: 'DEFENCE', life: 'DEFENCE', vamp: 'DEFENCE', magnet: 'LOOT', wallet: 'LOOT' };
+const KIND_COL = { MOVE: 0x2a5aaa, ATTACK: 0xaa3a1a, DEFENCE: 0x2a8a5a, LOOT: 0xa8801a };
 function runGun() { let i = 0; try { i = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ } return WEAPONS[i] || WEAPONS[0]; }
 
 const Run = {
@@ -158,7 +160,7 @@ function runInstall(L) {
       Run.score += this.score;
       Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'died');
       this.cameras.main.fadeOut(900, 0, 0, 0);
-      this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('runhub', { sum }); });
+      this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('level1', { camp: true, sum }); });
     },
     // SPARE TOQUE (camp larder): once a run, a fatal hit leaves him on half his hearts instead. true = saved
     runToque() {
@@ -171,10 +173,10 @@ function runInstall(L) {
     },
     // leave the level for 'select' / 'menu' - or, mid-run, give the run up
     leaveTo(key) {
-      if (!Run.on) { this.scene.start(key); return; }
+      if (!Run.on) { this.scene.start(this.camp ? 'menu' : key); return; }
       Run.score += this.score;
       Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'quit');
-      Sound.music(null); this.scene.start('runhub', { sum });
+      Sound.music(null); this.scene.start('level1', { camp: true, sum });
     }
   });
 }
@@ -188,12 +190,27 @@ const RUN_UI = {
     g.fillStyle(frame, 1).fillRect(x - 1, y - 1, w + 2, h + 2);
     g.fillStyle(fill, a === undefined ? 0.96 : a).fillRect(x, y, w, h);
   },
+  card(g, x, y, w, h, tone, band, dim) {
+    g.fillStyle(0x1a1020, 1).fillRect(x - 3, y - 3, w + 6, h + 6);
+    g.fillStyle(dim ? 0x3a4060 : 0x9aa4c8, 1).fillRect(x - 1, y - 1, w + 2, h + 2);
+    g.fillStyle(0x1c2452, 1).fillRect(x, y, w, h);
+    for (let yy = y + band + 2; yy < y + h; yy += 4) for (let xx = x + ((yy >> 2) % 2) * 2; xx < x + w; xx += 4) g.fillStyle(0x222c60, 1).fillRect(xx, yy, 1, 1);
+    g.fillStyle(tone, 1).fillRect(x, y, w, band); g.fillStyle(0xffffff, 0.14).fillRect(x, y, w, 2); g.fillStyle(0x000000, 0.25).fillRect(x, y + band - 2, w, 2);
+  },
+  btn(scene, ui, x, y, w, h, label, col, txtCol) {
+    const g = scene.add.graphics(); ui.add(g);
+    g.fillStyle(0x1a1020, 1).fillRect(x - 2, y - 2, w + 4, h + 4); g.fillStyle(col, 1).fillRect(x - 1, y - 1, w + 2, h + 2); g.fillStyle(0x1d2a5a, 1).fillRect(x + 1, y + 1, w - 2, h - 2); g.fillStyle(0xffffff, 0.1).fillRect(x + 1, y + 1, w - 2, 3);
+    ui.add(scene.add.text(x + w / 2, y + h / 2, label, RUN_UI.f(9, txtCol || '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
+  },
   stars(scene) {
     const s = []; for (let i = 0; i < 110; i++) s.push({ x: Math.random(), y: Math.random(), z: 1 + Math.floor(Math.random() * 2), tw: Math.random() * 6 });
     return s;
   },
   drawStars(g, stars, W, H, t) {
-    g.clear(); g.fillStyle(0x070a1c, 1).fillRect(0, 0, W, H);
+    g.clear();
+    const bands = [0x070a26, 0x0b1036, 0x111546, 0x1a1a56, 0x261c62, 0x34206a];
+    bands.forEach((c, i) => g.fillStyle(c, 1).fillRect(0, Math.floor(H * i / bands.length), W, Math.ceil(H / bands.length) + 1));
+    for (const [x, y, r, c] of [[0.2, 0.3, 0.22, 0x5a2a9a], [0.75, 0.55, 0.26, 0x2a3a9a], [0.5, 0.9, 0.3, 0x7a2a7a]]) for (let k = 4; k > 0; k--) g.fillStyle(c, 0.035).fillCircle(x * W + Math.sin(t * 0.1 + x * 9) * 10, y * H, r * Math.max(W, H) * k / 4);
     for (const s of stars) { const a = 0.35 + 0.65 * Math.abs(Math.sin(t * 0.9 + s.tw)); g.fillStyle(0xffffff, a * 0.8).fillRect(Math.round(s.x * W), Math.round(s.y * H), s.z, s.z); }
   },
   planetImg(scene, id, x, y, r) {
@@ -219,7 +236,7 @@ class RunScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this); makeShopTextures(this); makePowerupTextures(this);
     Sound.init();
     if (!Run.on) { this.scene.start('menu'); return; }
-    if (Run.idx >= Run.stages()) { this.scene.start('runhub', { sum: Run.finish(this.registry, 'won') }); return; }
+    if (Run.idx >= Run.stages()) { this.scene.start('level1', { camp: true, sum: Run.finish(this.registry, 'won') }); return; }
     this.cameras.main.fadeIn(220, 0, 0, 0);
     this.going = false; this.sel = 0; this.t = 0;
     if (this.phase === 'perk') { this.offer = Run.offer(this.registry); if (!this.offer.length) this.phase = 'route'; }
@@ -265,7 +282,10 @@ class RunScene extends Phaser.Scene {
     const s = Shop.get(this.registry), small = H < 430;
     // top bar: the route so far
     const stg = Run.stages(), top = small ? 8 : 14;
-    this.ui.add(this.add.text(W / 2, top, this.phase === 'perk' ? 'BOSS DOWN! PICK A PERK' : (Run.idx === 0 ? 'RUN MODE' : 'WHERE NEXT?'), f(small ? 14 : 18, '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
+    { const tg = this.add.graphics(); this.ui.add(tg); const tw = Math.min(W - 20, 420), tx = (W - tw) / 2, th = small ? 24 : 30;
+      tg.fillStyle(0x1a1020, 1).fillRect(tx - 3, top - 5, tw + 6, th + 6); tg.fillStyle(0xc8962a, 1).fillRect(tx - 1, top - 3, tw + 2, th + 2); tg.fillStyle(0x5a140a, 1).fillRect(tx, top - 2, tw, th); tg.fillStyle(0x8a2a1a, 1).fillRect(tx, top - 2, tw, 3);
+      tg.fillStyle(0xffd23f, 1).fillRect(tx + 6, top + th / 2 - 4, 4, 4).fillRect(tx + tw - 10, top + th / 2 - 4, 4, 4); }
+    this.ui.add(this.add.text(W / 2, top + 1, this.phase === 'perk' ? 'BOSS DOWN! PICK A PERK' : (Run.idx === 0 ? 'RUN MODE' : 'WHERE NEXT?'), f(small ? 14 : 18, '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
     const rowY = top + (small ? 30 : 40), gap = Math.min(70, (W - 80) / stg);
     const rg = this.add.graphics(); this.ui.add(rg);
     for (let i = 0; i < stg; i++) {
@@ -298,19 +318,23 @@ class RunScene extends Phaser.Scene {
     this.cards = [];
     this.offer.forEach((p, i) => {
       const x = x0 + i * (cw + 16), y = y0, g = this.add.graphics(); this.ui.add(g);
-      RUN_UI.panel(g, x, y, cw, ch, 0xc9cde0, 0x151b40);
-      const icon = RUN_UI.fit(this.add.image(x + cw / 2, y + ch * 0.27, RUN_UI.iconFor(this, p)), Math.min(64, ch * 0.3)); this.ui.add(icon);
+      const kind = PERK_KIND[p.id] || 'LOOT', tone = KIND_COL[kind];
+      RUN_UI.card(g, x, y, cw, ch, tone, 18);
+      this.ui.add(this.add.text(x + 7, y + 5, kind, f(7, '#ffffff', { strokeThickness: 2 })));
+      const cy = y + 18 + ch * 0.2, cr = Math.min(36, ch * 0.17);
+      g.fillStyle(tone, 0.35).fillCircle(x + cw / 2, cy, cr + 6); g.fillStyle(tone, 0.6).fillCircle(x + cw / 2, cy, cr); g.fillStyle(0xffffff, 0.1).fillCircle(x + cw / 2 - cr * 0.3, cy - cr * 0.3, cr * 0.45);
+      for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4; g.fillStyle(0xffd23f, 0.5).fillRect(x + cw / 2 + Math.cos(a) * (cr + 11) - 1, cy + Math.sin(a) * (cr + 11) - 1, 3, 3); }
+      const icon = RUN_UI.fit(this.add.image(x + cw / 2, cy, RUN_UI.iconFor(this, p)), Math.min(56, cr * 1.6)); this.ui.add(icon);
       this.ui.add(this.add.text(x + cw / 2, y + ch * 0.48, p.name, f(cw < 170 ? 9 : 11, '#ffffff', { align: 'center', wordWrap: { width: cw - 12 } })).setOrigin(0.5, 0));
       this.ui.add(this.add.text(x + cw / 2, y + ch * 0.48 + (cw < 170 ? 16 : 20), p.sub, f(7, '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5, 0));
       this.ui.add(this.add.text(x + cw / 2, y + ch * 0.48 + (cw < 170 ? 32 : 40), p.desc, f(8, '#c9cde0', { strokeThickness: 3, align: 'center', wordWrap: { width: cw - 16 }, lineSpacing: 4 })).setOrigin(0.5, 0));
-      this.ui.add(this.add.text(x + 8, y + 6, String(i + 1), f(8, '#5a6290', { strokeThickness: 0 })));
+      this.ui.add(this.add.text(x + cw - 7, y + 5, String(i + 1), f(7, '#ffffff', { strokeThickness: 2 })).setOrigin(1, 0));
       this.cards.push({ x, y, w: cw, h: ch, icon, iy: icon.y });
       this.hits.push({ x, y, w: cw, h: ch, act: () => this.pickPerk(p, i) });
     });
     if (Run.dice > 0) {                                  // LUCKY DICE (camp larder)
-      const bw = 170, bh = 22, bx = W / 2 - bw / 2, by = y0 + ch + 12, g = this.add.graphics(); this.ui.add(g);
-      RUN_UI.panel(g, bx, by, bw, bh, 0xc9cde0, 0x1d2a5a);
-      this.ui.add(this.add.text(bx + bw / 2, by + bh / 2, 'REROLL (' + Run.dice + ')', f(9, '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
+      const bw = 170, bh = 22, bx = W / 2 - bw / 2, by = y0 + ch + 12;
+      RUN_UI.btn(this, this.ui, bx, by, bw, bh, 'REROLL (' + Run.dice + ')', 0x7dff8a);
       this.hits.push({ x: bx, y: by, w: bw, h: bh, act: () => { if (this.going) return; Run.dice--; Sound.sfx('zing'); this.offer = Run.offer(this.registry); this.build(); } });
     }
   }
@@ -335,9 +359,12 @@ class RunScene extends Phaser.Scene {
     const rules = Run.idx === 0 ? 30 : 0, chh = Math.min(ch, area - rules), yy = y0 + rules + Math.max(0, (area - rules - chh) / 2);
     opts.forEach((id, i) => {
       const L = LEVELS[id], x = x0 + i * (cw + 20), g = this.add.graphics(); this.ui.add(g);
-      RUN_UI.panel(g, x, yy, cw, chh, 0xc9cde0, 0x151b40);
+      RUN_UI.card(g, x, yy, cw, chh, n > 1 ? 0x6a2a8a : 0x2a5aaa, 18);
+      this.ui.add(this.add.text(x + 7, yy + 5, 'PLANET ' + (Run.idx + 1) + (n > 1 ? '  -  FORK: PICK ONE' : ''), f(7, '#ffffff', { strokeThickness: 2 })));
       const r = Math.min(chh * 0.3, cw * 0.17, 46);
-      for (const o of RUN_UI.planetImg(this, id, x + r + 16, yy + chh / 2, r)) this.ui.add(o);
+      const bt = L.boss && L.boss.tex;
+      if (bt && this.textures.exists(bt)) { const bi = this.add.image(x + cw - 8, yy + chh - 6, bt).setOrigin(1, 1).setTint(0x2a1a4a).setAlpha(0.85); RUN_UI.fit(bi, Math.min(chh * 0.5, 70)); this.ui.add(bi); }
+      for (const o of RUN_UI.planetImg(this, id, x + r + 16, yy + 9 + chh / 2, r)) this.ui.add(o);
       const tx = x + r * 2 + 30, tw = cw - (r * 2 + 40);
       this.ui.add(this.add.text(tx, yy + chh / 2 - 30, L.short || L.name, f(cw < 260 ? 9 : 11, '#ffffff', { wordWrap: { width: tw } })).setOrigin(0, 0.5));
       this.ui.add(this.add.text(tx, yy + chh / 2 - 12, 'BOSS: ' + L.bossName, f(7, '#ff9d3a', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: 3 })).setOrigin(0, 0));
@@ -346,10 +373,9 @@ class RunScene extends Phaser.Scene {
     });
     // buttons: SHOP / GIVE UP
     const bw = small ? 120 : 140, by = y1 - btnH + 4;
-    [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('runhub', { sum })); }]].forEach(([lab, act], i) => {
-      const x = W / 2 + (i ? 12 : -12 - bw), g = this.add.graphics(); this.ui.add(g);
-      RUN_UI.panel(g, x, by, bw, btnH - 6, i ? 0x8a5a6a : 0xc9cde0, i ? 0x2a1424 : 0x1d2a5a);
-      this.ui.add(this.add.text(x + bw / 2, by + (btnH - 6) / 2, lab, f(9, i ? '#ff9db8' : '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
+    [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('level1', { camp: true, sum })); }]].forEach(([lab, act], i) => {
+      const x = W / 2 + (i ? 12 : -12 - bw);
+      RUN_UI.btn(this, this.ui, x, by, bw, btnH - 6, lab, i ? 0xd86a8a : 0xffd23f, i ? '#ff9db8' : '#ffd23f');
       this.hits.push({ x, y: by, w: bw, h: btnH - 6, act });
     });
   }
