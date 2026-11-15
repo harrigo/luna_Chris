@@ -716,7 +716,7 @@ class FreefallScene extends Phaser.Scene {
       Sound.sfx('power'); Sound.music('win'); Sound.say('woohoo', { force: true });
       if (this.practice) body = 'PRACTICE RUN CLEARED!';
       else if (this.prize) { Progress.giveGun(this.prize.id); body = 'GOT IT!\n\nNEW GUN: ' + this.prize.name; }
-      else if (Run.on) { Run.freePerk = true; body = 'BONUS CLEAR!\n\nA FREE PERK FOR THE RUN'; } else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'MADE IT TO THE BOTTOM!\n\n+1 LIFE'; }
+      else if (Run.on) { Run.freePerk = 'gold'; body = 'BONUS CLEAR!\n\nA LEGENDARY PERK!'; } else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'MADE IT TO THE BOTTOM!\n\n+1 LIFE'; }
       body += '\n\nCHEESE ' + this.gotCheese + ' / ' + this.trail.length + '   (' + Math.ceil(this.timeLeft) + 's TO SPARE)' + Bonus.win(this);
       this.puff(this.gunImg.x, this.gunImg.y, 40, 0xffd23f, 320, 0.8, 4);
       this.tweens.add({ targets: this.gunImg, y: this.gunY - 90, scale: 3, angle: 360, duration: 800, ease: 'Back.out' });

@@ -57,6 +57,17 @@ const Meta = {
 
 const PERK_KIND = { boots: 'MOVE', mboots: 'MOVE', tank: 'MOVE', sauce: 'ATTACK', glass: 'ATTACK', chip: 'ATTACK', heart: 'DEFENCE', armour: 'DEFENCE', life: 'DEFENCE', vamp: 'DEFENCE', magnet: 'LOOT', wallet: 'LOOT' };
 const KIND_COL = { MOVE: 0x2a5aaa, ATTACK: 0xaa3a1a, DEFENCE: 0x2a8a5a, LOOT: 0xa8801a };
+// LEGENDARY perks (v3.11): only from winning a BONUS STOP on a run - bigger versions and combos
+const RUN_GOLD = [
+  { id: 'g_hearts', name: 'BIG BREAKFAST', sub: '+2 HEARTS', icon: 'hud_cheese', desc: 'Two more cheese hearts, and they\'re full.', act: s => { s.hearts = (s.hearts || 0) + 2; } },
+  { id: 'g_rind', name: 'DRAGON RIND', sub: '+2 ARMOUR MARKS', icon: 'si_armour', desc: 'Black Rind up two marks, fully mended.', can: s => (s.armMk || 0) < 4, act: s => { s.armMk = Math.min(4, (s.armMk || 0) + 2); s.armHp = SHOP.armHp[s.armMk]; } },
+  { id: 'g_toque', name: 'GOLDEN TOQUE', sub: 'CHEAT DEATH', icon: 'c_head', desc: 'Once this run, a fatal hit leaves you on half hearts.', act: () => { Run.toques = (Run.toques || 0) + 1; } },
+  { id: 'g_chips', name: 'ARMOURER', sub: 'ALL GUNS +1', icon: 'si_chip', desc: 'Every gun you own starts a level higher this run.', act: s => { s.chips = Object.assign({}, s.chips || {}); for (const w of WEAPONS) if (weaponUnlocked(w, 99)) s.chips[w.id] = Math.min(3, (s.chips[w.id] || 0) + 1); } },
+  { id: 'g_combo', name: 'SPICY BOOTS', sub: 'TWO FOREVERS', icon: 'pu_sauce', desc: 'Hot Sauce AND Rocket Boots, all run long.', can: () => !(Run.perks.sauce && Run.perks.boots), act: () => { Run.perks.sauce = 1; Run.perks.boots = 1; } },
+  { id: 'g_vamp', name: 'NOSFERATU', sub: 'BIG MUNCH', icon: 'pu_ears', desc: 'Every 5 rats you squash mends a heart.', once: true, act: () => { Run.perks.vamp = 1; Run.vampN = 5; } },
+  { id: 'g_cash', name: 'JACKPOT', sub: '+300 CHEDDAR', icon: 'cheddar', desc: 'A wheelbarrow of cheddar for the ship shop.', act: s => { s.coins += 300; } },
+  { id: 'g_glass', name: 'DIAMOND CHEESE', sub: 'HIT x1.5, NO DOWNSIDE', icon: 'wedge', desc: 'Glass Cheese without the missing heart.', can: () => !Run.perks.glass, once: true, act: () => { Run.perks.diamond = 1; } }
+];
 function runGun() { let i = 0; try { i = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ } return WEAPONS[i] || WEAPONS[0]; }
 
 // CHEESE STRENGTH (v3.10): Slay the Spire's Ascension / Hades' Heat, in cheese. Win a run to unlock the next strength.
@@ -80,7 +91,7 @@ const Run = {
     const L = Meta.larder();
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
-    Object.assign(this, { tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    Object.assign(this, { vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
     const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
     if (kp) this.take(reg, kp);
   },
@@ -109,6 +120,10 @@ const Run = {
     Meta.addCrumbs(sum.crumbs);
     const st = Meta.stats(); st.runs++; if (how === 'won') st.wins++; st.kills += sum.kills; st.planets += sum.planets; Meta._s('lc_run_stats', st);
     Meta._s('lc_run_last', { how, planets: sum.planets, at: sum.at || 0 });
+    if (how !== 'quit' || sum.planets > 0) {                 // (v3.11) every run hands you a new gun, until you have them all
+      const g = WEAPONS.find(w => w.unlock > 1 && !Progress.hasGun(w.id));
+      if (g) { Progress.giveGun(g.id); sum.newGun = g.name; }
+    }
     this.restore(reg);
     return sum;
   },
@@ -135,9 +150,9 @@ const Run = {
     return out.sort((a, b) => a.t - b.t);
   },
   // 3 random perks on offer (never one that can't do anything)
-  offer(reg) {
+  offer(reg, gold) {
     const s = Shop.get(reg), lv = { hp: Math.min(CFG.heartCap, CFG.maxHp + (s.hearts || 0) + (s.burgers || 0)) - this.hpPenalty(), lives: reg.get('lives') || 0 };
-    const pool = RUN_PERKS.filter(p => !(p.once && this.perks[p.id]) && (!p.can || p.can(s, lv)));
+    const pool = (gold ? RUN_GOLD : RUN_PERKS).filter(p => !(p.once && this.perks[p.id]) && (!p.can || p.can(s, lv)));
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
     return pool.slice(0, this.cards || 3);
   },
@@ -160,13 +175,13 @@ const Run = {
 function runInstall(L) {
   const P = L.prototype, buffOn = P.buffOn, hitK = P.hitK;
   P.buffOn = function (k) { return buffOn.call(this, k) || !!(Run.on && (k === 'boots' || k === 'sauce') && Run.perks[k]); };
-  P.hitK = function (e, th, h) { const k = hitK.call(this, e, th, h); return Run.on && Run.perks.glass ? k * 1.5 : k; };
+  P.hitK = function (e, th, h) { const k = hitK.call(this, e, th, h); return Run.on && (Run.perks.glass || Run.perks.diamond) ? k * 1.5 : k; };
   Object.assign(P, {
     runKill(e) {
       Run.kills++;
       if (!Run.perks.vamp || e.type === 'boss') return;
       this.vampN = (this.vampN || 0) + 1;
-      if (this.vampN >= 10) {
+      if (this.vampN >= (Run.vampN || 10)) {
         this.vampN = 0;
         if (this.pl.hp < this.maxHp) { this.pl.hp++; this.updateHearts(); Sound.sfx('power'); this.popup(this.pl.theta, this.pl.h + 60, '+1 HEART', '#ff9db8', true); }
       }
@@ -267,7 +282,8 @@ class RunScene extends Phaser.Scene {
     if (Run.idx >= Run.stages()) { this.scene.start('level1', { camp: true, sum: Run.finish(this.registry, 'won') }); return; }
     this.cameras.main.fadeIn(220, 0, 0, 0);
     this.going = false; this.sel = 0; this.t = 0;
-    if (this.phase === 'perk') { this.offer = Run.offer(this.registry); if (!this.offer.length) this.phase = 'route'; }
+    this.gold = this.phase === 'perk' && Run.freePerk === 'gold';
+    if (this.phase === 'perk') { this.offer = Run.offer(this.registry, this.gold); if (!this.offer.length) this.phase = 'route'; }
     this.starsD = RUN_UI.stars(this);
     this.bg = this.add.graphics().setDepth(0);
     this.ui = this.add.container(0, 0).setDepth(1);
@@ -313,7 +329,7 @@ class RunScene extends Phaser.Scene {
     { const tg = this.add.graphics(); this.ui.add(tg); const tw = Math.min(W - 20, 420), tx = (W - tw) / 2, th = small ? 24 : 30;
       tg.fillStyle(0x1a1020, 1).fillRect(tx - 3, top - 5, tw + 6, th + 6); tg.fillStyle(0xc8962a, 1).fillRect(tx - 1, top - 3, tw + 2, th + 2); tg.fillStyle(0x5a140a, 1).fillRect(tx, top - 2, tw, th); tg.fillStyle(0x8a2a1a, 1).fillRect(tx, top - 2, tw, 3);
       tg.fillStyle(0xffd23f, 1).fillRect(tx + 6, top + th / 2 - 4, 4, 4).fillRect(tx + tw - 10, top + th / 2 - 4, 4, 4); }
-    this.ui.add(this.add.text(W / 2, top + 1, this.phase === 'perk' ? 'BOSS DOWN! PICK A PERK' : (Run.idx === 0 ? 'RUN MODE' : 'WHERE NEXT?'), f(small ? 14 : 18, '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
+    this.ui.add(this.add.text(W / 2, top + 1, this.phase === 'perk' ? (this.gold ? 'BONUS! A LEGENDARY PERK' : 'BOSS DOWN! PICK A PERK') : (Run.idx === 0 ? 'RUN MODE' : 'WHERE NEXT?'), f(small ? 14 : 18, '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
     const rowY = top + (small ? 30 : 40), gap = Math.min(70, (W - 80) / stg);
     const rg = this.add.graphics(); this.ui.add(rg);
     for (let i = 0; i < stg; i++) {
@@ -328,7 +344,7 @@ class RunScene extends Phaser.Scene {
     this.ui.add(this.add.text(32, by, String(s.coins), f(10, '#ffd23f')).setOrigin(0, 0.5));
     let px = 100;
     for (const id of Object.keys(Run.perks)) {
-      const p = RUN_PERKS.find(q => q.id === id); if (!p) continue;
+      const p = RUN_PERKS.concat(RUN_GOLD).find(q => q.id === id); if (!p) continue;
       const im = RUN_UI.fit(this.add.image(px, by, RUN_UI.iconFor(this, p)), 22); this.ui.add(im);
       if (Run.perks[id] > 1) this.ui.add(this.add.text(px + 10, by + 6, 'x' + Run.perks[id], f(7, '#ffffff', { strokeThickness: 3 })).setOrigin(0, 0.5));
       px += 30;
@@ -346,7 +362,7 @@ class RunScene extends Phaser.Scene {
     this.cards = [];
     this.offer.forEach((p, i) => {
       const x = x0 + i * (cw + 16), y = y0, g = this.add.graphics(); this.ui.add(g);
-      const kind = PERK_KIND[p.id] || 'LOOT', tone = KIND_COL[kind];
+      const kind = this.gold ? 'LEGENDARY' : PERK_KIND[p.id] || 'LOOT', tone = this.gold ? 0xc8961a : KIND_COL[kind];
       RUN_UI.card(g, x, y, cw, ch, tone, 18);
       this.ui.add(this.add.text(x + 7, y + 5, kind, f(7, '#ffffff', { strokeThickness: 2 })));
       const cy = y + 18 + ch * 0.2, cr = Math.min(36, ch * 0.17);
@@ -363,7 +379,7 @@ class RunScene extends Phaser.Scene {
     if (Run.dice > 0) {                                  // LUCKY DICE (camp larder)
       const bw = 170, bh = 22, bx = W / 2 - bw / 2, by = y0 + ch + 12;
       RUN_UI.btn(this, this.ui, bx, by, bw, bh, 'REROLL (' + Run.dice + ')', 0x7dff8a);
-      this.hits.push({ x: bx, y: by, w: bw, h: bh, act: () => { if (this.going) return; Run.dice--; Sound.sfx('zing'); this.offer = Run.offer(this.registry); this.build(); } });
+      this.hits.push({ x: bx, y: by, w: bw, h: bh, act: () => { if (this.going) return; Run.dice--; Sound.sfx('zing'); this.offer = Run.offer(this.registry, this.gold); this.build(); } });
     }
   }
   pickPerk(p, i) {
@@ -398,7 +414,7 @@ class RunScene extends Phaser.Scene {
         const tx = x + Math.min(chh * 0.3, cw * 0.17, 46) * 2 + 30, tw = cw - (tx - x) - 10, next = WEAPONS.find(w => w.unlock > 1 && !Progress.hasGun(w.id));
         this.ui.add(this.add.text(tx, yy + chh / 2 - 30, RUN_BONUS_NAME[id], f(cw < 260 ? 9 : 11, '#ffd23f', { wordWrap: { width: tw } })).setOrigin(0, 0.5));
         this.ui.add(this.add.text(tx, yy + chh / 2 - 12, 'ONE GO. NO DANGER.', f(7, '#ff9d3a', { strokeThickness: 3 })).setOrigin(0, 0));
-        this.ui.add(this.add.text(tx, yy + chh / 2 + 10, next ? 'Win it and a new gun is yours for good: ' + next.name + '.' : 'Win it for a free perk.', f(7, '#c9cde0', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: 4 })).setOrigin(0, 0));
+        this.ui.add(this.add.text(tx, yy + chh / 2 + 10, 'Win it for a LEGENDARY perk: bigger, better, rarer.', f(7, '#c9cde0', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: 4 })).setOrigin(0, 0));
         this.hits.push({ x, y: yy, w: cw, h: chh, act: () => { Sound.sfx('power'); Run.bonusDone[Run.idx] = true; this.go(id, id === 'zerog' ? { room: 'zerog' } : undefined); } });
         return;
       }

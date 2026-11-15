@@ -1910,3 +1910,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - GUN RACK station at camp: pick the gun you take on the run (found guns; others ???). Runs no longer stop at the weapon screen between planets; swap mid-level with any others you own.
 - BONUS STOPS: from the second stop to the second-last, a 50% chance the route also offers a bonus stage (Zero-G room / The Big Drop / The Centrifuge). One go, no danger, no campaign tries used. Win it: the next gun you haven't found (kept for good) or, if you have them all, a free perk; +60 cheddar either way.
 - Fewer numbers: no "PLANET 2/5", "RUN 1/5" or "FIVE PLANETS" - stops are NEXT STOP / FORK / BONUS STOP, the best run says planets cleared.
+
+### v3.11 - Legendary perks from bonus stops, a gun every run
+- A run's BONUS STOP no longer gives guns: win it for a LEGENDARY perk pick (gold cards, "BONUS! A LEGENDARY PERK"), from a pool of bigger versions and combos: BIG BREAKFAST (+2 hearts), DRAGON RIND (+2 armour marks), GOLDEN TOQUE (an extra cheat-death), ARMOURER (every gun you own +1 level), SPICY BOOTS (Hot Sauce + Rocket Boots forever), NOSFERATU (a heart every 5 squashes), JACKPOT (+300 cheddar), DIAMOND CHEESE (hit x1.5 with no heart lost). Still +60 cheddar too; Lucky Dice rerolls work on these as well.
+- Every run you finish (a death or a win - or giving up after clearing at least one planet) brings the next gun you haven't found home for good: the summary card says NEW GUN and it's on the camp's GUN RACK (and in the campaign).

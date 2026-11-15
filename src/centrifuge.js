@@ -722,7 +722,7 @@ class CentrifugeScene extends Phaser.Scene {
       if (!Progress.testMode) try { localStorage.setItem('lc_cbeat', '1'); } catch (e) { /* ignore */ }     // the warp road onwards: the Fondue Fountain
       if (this.practice) body = 'SURVIVED THE SPIN!\n\nPRACTICE RUN CLEARED';
       else if (this.prize) { Progress.giveGun(this.prize.id); body = 'SURVIVED THE SPIN!\n\nNEW GUN: ' + this.prize.name; }
-      else if (Run.on) { Run.freePerk = true; body = 'BONUS CLEAR!\n\nA FREE PERK FOR THE RUN'; } else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'SURVIVED THE SPIN!\n\n+1 LIFE'; }
+      else if (Run.on) { Run.freePerk = 'gold'; body = 'BONUS CLEAR!\n\nA LEGENDARY PERK!'; } else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'SURVIVED THE SPIN!\n\n+1 LIFE'; }
       body += Bonus.win(this);
     } else { Sound.music('lose'); body = 'WRECKED!\n\nYOU LASTED ' + Math.floor(CF_TIME - this.timeLeft) + 's OF ' + CF_TIME + Bonus.lose(this); }
     const W = this.scale.width, H = this.scale.height, D = 30;

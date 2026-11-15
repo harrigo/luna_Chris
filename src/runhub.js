@@ -472,7 +472,7 @@ const CampMixin = {
   campRack() {
     const cards = () => WEAPONS.map((w, i) => weaponUnlocked(w, 99)
       ? { icon: w.gunTex, name: w.name, desc: w.blurb, col: this.weaponIdx === i ? 0x8a5a0a : 0x2a4a6a, tag: this.weaponIdx === i ? 'EQUIPPED' : 'GUN', tagCol: this.weaponIdx === i ? '#ffd23f' : '#ffffff', foot: this.weaponIdx === i ? 'IN HAND' : '', footCol: '#7dff8a' }
-      : { dim: true, name: '???', desc: 'Not found yet. Win one at a run\'s bonus stop, or in the campaign\'s bonus rooms.', tag: 'LOCKED', tagCol: '#5a6290' });
+      : { dim: true, name: '???', desc: 'Not found yet. Every run you finish brings a new one home (or find it in the campaign\'s bonus rooms).', tag: 'LOCKED', tagCol: '#5a6290' });
     this.campOpen({ title: 'THE GUN RACK', sub: 'TAKE ONE ON THE RUN (SWAP MID-LEVEL WITH ANY OTHERS YOU OWN)', cards: cards(), cols: Math.min(4, WEAPONS.length), buttons: [{ label: 'DONE', act: () => this.campPanel.close() }],
       onPick: i => { const w = WEAPONS[i]; if (!weaponUnlocked(w, 99)) { Sound.sfx('zing'); return; }
         try { localStorage.setItem('lc_weapon', String(i)); } catch (e) { /* ignore */ }
@@ -522,9 +522,10 @@ const CampMixin = {
       c.add(this.add.text(tx + tw / 2, ty + 5, k, f(5, '#9aa4c8', { strokeThickness: 2 })).setOrigin(0.5, 0)); c.add(this.add.text(tx + tw / 2, ty + 15, String(v), f(9, '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); });
     let ly = ty + 40;
     if (S.newBest) { c.add(this.add.text(W / 2, ly, 'NEW BEST RUN!', f(9, '#7dff8a', { strokeThickness: 3 })).setOrigin(0.5, 0)); ly += 16; }
+    if (S.newGun) { c.add(this.add.text(W / 2, ly, 'NEW GUN: ' + S.newGun + '! (ON THE GUN RACK)', f(8, '#5ae0ff', { strokeThickness: 3 })).setOrigin(0.5, 0)); ly += 16; }
     if (S.unlocked) { c.add(this.add.text(W / 2, ly, 'NEW CHEESE STRENGTH: ' + S.unlocked + '! (AT THE ROCKET)', f(8, '#ffb03a', { strokeThickness: 3 })).setOrigin(0.5, 0)); ly += 16; }
     const pk = S.perks || [];
-    if (pk.length) { const pw = 28, x0 = W / 2 - (pk.length - 1) * pw / 2; pk.forEach((id, i) => { const p = RUN_PERKS.find(q => q.id === id); if (p) c.add(RUN_UI.fit(this.add.image(x0 + i * pw, ly + 11, RUN_UI.iconFor(this, p)), 22)); }); ly += 28; }
+    if (pk.length) { const pw = 28, x0 = W / 2 - (pk.length - 1) * pw / 2; pk.forEach((id, i) => { const p = RUN_PERKS.concat(RUN_GOLD).find(q => q.id === id); if (p) c.add(RUN_UI.fit(this.add.image(x0 + i * pw, ly + 11, RUN_UI.iconFor(this, p)), 22)); }); ly += 28; }
     const cr = this.add.image(W / 2 - 66, ly + 12, 'cr_crumb').setScale(2.5); c.add(cr);
     const ct = this.add.text(W / 2 - 50, ly + 12, '+0 GOLDEN CRUMBS', f(10, '#ffd23f')).setOrigin(0, 0.5); c.add(ct);
     ly += 30;

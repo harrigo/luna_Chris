@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.10';
+const BUILD = 'v3.11';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -149,7 +149,7 @@ const Progress = {           // remembered on the device: highest level beaten
 const BONUS_TRIES = 3, BONUS_SPARE = 50;
 const Bonus = {
   begin(sc, id) {
-    if (Run.on) { sc.bonusId = id; sc.practice = false; sc.tryNo = 1; sc.runBonus = true; return; }     // (v3.10) a run's bonus stop: one go, the campaign's tries untouched
+    if (Run.on) { sc.bonusId = id; sc.practice = false; sc.tryNo = 1; sc.runBonus = true; sc.prize = null; return; }     // (v3.11: a legendary perk, not a gun)     // (v3.10) a run's bonus stop: one go, the campaign's tries untouched
     sc.bonusId = id; sc.practice = !Progress.testMode && Progress.bonusWon(id);
     sc.tryNo = sc.practice ? 0 : Progress.bonusStart(id);
     if (sc.practice) sc.prize = null;
