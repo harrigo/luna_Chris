@@ -624,8 +624,8 @@ function makeColossusTextures(scene) {
 
 Object.assign(ParmMixin, {
   colossusSetup(e) {
-    makeColossusTextures(this);
-    e.h = 0; e.vh = 0; e.ch = 92; e.r = 60; e.spr.setOrigin(0.5, 0.97).setTexture('colossus'); e.spr.bsx = e.spr.bsy = 1.35;
+    makeColossusTextures(this); if (typeof makeColossus3 === 'function') makeColossus3(this);   // (v2.94) redrawn: parmboss.js
+    e.h = 0; e.vh = 0; e.ch = 150; e.r = 60; e.spr.setOrigin(0.5, 0.978).setTexture('colossus'); e.spr.bsx = e.spr.bsy = 1.35;
     e.cs = { st: 'wake', t: 0, ph: 1, stompCd: 2.5, laserCd: 4, walkDir: 1, lift: 0 };
     e.theta = wrap(this.pl.theta + 0.6);
     this.pp.waves = []; this.pp.beams = [];
@@ -676,9 +676,13 @@ Object.assign(ParmMixin, {
       } else {
         if (Math.abs(toP) * R > 170) e.theta = wrap(e.theta + side * (fast ? 55 : 40) / R * dt);
         if (C.stompCd <= 0) { C.lift = 0.6; C.stompCd = fast ? 2.4 : 3.3; Sound.sfx('grind'); }
-        else if (C.laserCd <= 0) { this.colLaser(e, 150 * e.spr.bsy / 1.35); if (fast) this.time.delayedCall(900, () => { if (e.hp > 0 && e.cs.ph === 2) this.colLaser(e, 150 * e.spr.bsy / 1.35); }); C.laserCd = fast ? 3.8 : 4.6; }
+        else if (C.laserCd <= 0) { this.colLaser(e, 185 * e.spr.bsy / 1.35); if (fast) this.time.delayedCall(900, () => { if (e.hp > 0 && e.cs.ph === 2) this.colLaser(e, 185 * e.spr.bsy / 1.35); }); C.laserCd = fast ? 3.8 : 4.6; }
       }
       e.dir = side; e.spr.setFlipX(side < 0); e.h = 0;
+      // (v2.94) his frames: the stomp wind-up, the laser (maw wide, eye blazing), a lumbering walk
+      const base = C.ph === 2 ? 'colossus_b' : 'colossus', firing = this.pp.beams.some(B => B.from === e && B.t < B.warn + B.dur), walking = C.lift <= 0 && Math.abs(toP) * R > 170;
+      if (walking) { C.gait = (C.gait || 0) + dt * (fast ? 3.4 : 2.6); const fr = Math.floor(C.gait) % 4; if (fr !== C.lastFr) { C.lastFr = fr; if (fr % 2 === 0) { this.cameras.main.shake(70, 0.004); Sound.sfx('clunk'); } } }
+      e.spr.setTexture(C.lift > 0 ? base + '_s' : firing ? base + '_l' : walking ? base + ['', '_w1', '_w2', '_w3'][Math.floor(C.gait || 0) % 4] : base);
     } else {
       // ---- the head: bounces after you in big arcs, a shockwave each landing, spits rubble, crown laser
       e.vh -= 900 * dt; e.h += e.vh * dt; e.theta = wrap(e.theta + (C.vt || 0) / R * dt); e.spr.rotation += (C.vt || 0) / 200 * dt;
@@ -696,6 +700,7 @@ Object.assign(ParmMixin, {
       }
       C.laserCd -= dt; if (C.laserCd <= 0 && e.h <= 31) { this.colLaser(e, 60); C.laserCd = 4.2; }
       e.dir = side; e.spr.setFlipX(side < 0);
+      e.spr.setTexture(e.h > 34 || C.spitCd < 0.35 ? 'colhead_o' : 'colhead');   // screaming through the air, spitting
     }
   },
   // shockwaves and the crown laser (called from parmUpdate; they need to run during the boss)
