@@ -1862,3 +1862,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Jumping on his head no longer hurts him: he GRABS Chris, hoists him overhead (shaking), and after a second THROWS him (half a heart, flung away) - "GRABBED! DON'T JUMP ON HIS HEAD!" the first time. Shoot the crust plates, then the core.
 - The breath (the stream of magma globs sweeping high to low) never comes down to the floor any more: it bottoms out just above crouching height, so DUCK under it - or get in close, where the whole sweep goes over your head. A "DUCK! OR GET IN CLOSE!" hint the first time.
 - He's animated: a lumbering 4-frame walk (legs lift, body bobs, arms swing, each step shakes the ground and kicks up crumbs), fists raised overhead for the pound wind-up and while holding Chris, and the maw gaping wide for the breath and the roar.
+
+### v3.04 - TEST LAB panel: out of the way on phones
+- The telemetry panel moved from halfway down the left edge (over the movement stick) to the top-left just under the HUD (top 88px, respects the notch), slightly smaller.
+- It stays on between levels (the switch is remembered on the device until you HIDE it or flip TEST LAB off on the map) - and now refreshes as soon as a new level starts, instead of showing the last level's result until the first wave.

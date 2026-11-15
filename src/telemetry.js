@@ -41,6 +41,7 @@ const Tel = {
   tick(sc, dt) {
     if (!this.run || sc !== this.sc || this.run.result) return;
     if (!this.run.kit && sc.pl && sc.state === 'play') this.run.kit = this.kit(sc);
+    this.hud(sc);                                        // (v3.04: refresh the panel straight away on a new level, not only once a wave's running)
     if (sc.state !== 'play' || !sc.pl || sc.paused) return;
     if (!this.seg || this.seg.wave !== sc.waveIdx) { if (this.seg) this.close(sc, 'clear'); if (sc.waveIdx >= 0) this.open(sc); }
     const s = this.seg; if (!s) return;
@@ -57,7 +58,6 @@ const Tel = {
       const ah = Shop.get(sc.registry).armHp || 0; if (this.armPrev != null && ah < this.armPrev) s.plates += this.armPrev - ah; this.armPrev = ah;
     }
     this.saveT -= dt; if (this.saveT <= 0) { this.saveT = 2; this.push(); }
-    this.hud(sc);
   },
   kill(e) { if (this.seg && e.type !== 'boss') this.seg.kills++; },
   coins(n) { if (this.seg && n > 0) this.seg.coins += n; },
@@ -81,7 +81,7 @@ const Tel = {
     this.hudT -= sc && sc.lastDt || 0.016; if (this.hudT > 0 && !force) return; this.hudT = 0.25;
     if (!this.el) this.build();
     this.el.style.display = 'block';
-    const s = this.seg, r = this.run;
+    const s = this.seg, r = this.run; this.lastLv = r ? r.level : this.lastLv;
     this.body.textContent = r ? ('L' + r.level + ' ' + (s ? s.id : '-') + (r.result ? ' [' + r.result.toUpperCase() + ']' : '') +
       (s ? '\n' + s.t.toFixed(1) + 's  hit ' + s.hpLost + (s.plates ? '+' + s.plates + 'arm' : '') + '  kills ' + s.kills + '  ch ' + s.coins +
         '\nalive ' + (s.aliveSum / Math.max(1, s.n)).toFixed(1) + ' (max ' + s.aliveMax + ')  shots ' + (s.shotSum / Math.max(1, s.n)).toFixed(1) + ' (max ' + s.shotMax + ')' : '') +
@@ -89,7 +89,7 @@ const Tel = {
   },
   build() {
     const el = this.el = document.createElement('div');
-    el.style.cssText = 'position:fixed;left:6px;top:46%;z-index:50;font:10px/1.35 monospace;color:#e8ffe8;background:rgba(10,16,24,.78);padding:5px 7px;border-radius:6px;white-space:pre;pointer-events:auto;max-width:46vw';
+    el.style.cssText = 'position:fixed;left:calc(6px + env(safe-area-inset-left));top:88px;z-index:50;font:9px/1.3 monospace;opacity:.92;color:#e8ffe8;background:rgba(10,16,24,.78);padding:5px 7px;border-radius:6px;white-space:pre;pointer-events:auto;max-width:46vw';
     this.body = document.createElement('div'); el.appendChild(this.body);
     const row = document.createElement('div'); row.style.cssText = 'margin-top:4px;display:flex;gap:5px';
     const btn = (t, f) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'font:bold 10px monospace;padding:3px 6px;border:0;border-radius:4px;background:#ffd23f;color:#1a1020'; b.onclick = e => { e.stopPropagation(); f(b); }; row.appendChild(b); return b; };
