@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.97';
+const BUILD = 'v2.98';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3723,10 +3723,15 @@ class Level1 extends Phaser.Scene {
         e.theta = wrap(e.theta + e.kb / R * dt); e.kb *= Math.exp(-11 * dt);
         if (Math.abs(e.kb) < 3) e.kb = 0;
       }
+      const pt0 = e.theta;                               // (v2.98) where it stood before its own move this frame
       const toP = angDiff(P.theta, e.theta);
       const fooled = e.type !== 'boss' && this.buffOn('disguise');
       const distP = fooled ? 9999 : Math.abs(toP) * R;
-      if (e.fdir === undefined || distP > 16) e.fdir = toP >= 0 ? 1 : -1;      // keep facing when right next to Chris: no flip flicker
+      // (v2.98) each enemy homes on its OWN spot near Chris (up to ~55px either side, drifting), so a crowd doesn't
+      // collapse into one stompable heap on top of him
+      if (e.aimA === undefined) { e.aimA = e.type === 'boss' ? 0 : rnd(25, 65); e.aimF = rnd(0.25, 0.7); }
+      const toA = toP + (fooled ? 0 : e.aimA * Math.sin(e.t * e.aimF + e.seed * 5)) / R;
+      if (e.fdir === undefined || Math.abs(toA) * R > 16) e.fdir = toA >= 0 ? 1 : -1;      // keep facing when right next to the spot: no flip flicker
       if (fooled && !e.wdir) e.wdir = Math.random() < 0.5 ? -1 : 1;
       const dirP = fooled ? e.wdir : e.fdir;
       if (e.burn > 0) {                                  // Hot Sauce: on fire for a bit
@@ -3742,7 +3747,7 @@ class Level1 extends Phaser.Scene {
         e.theta = wrap(e.theta + (dirP * sp / R) * dt);
         e.dir = dirP;
         e.hopCd -= dt;
-        if (grounded && e.hopCd <= 0) { e.vh = rnd(280, 430); e.hopCd = rnd(0.5, 1.4); }
+        if (grounded && e.hopCd <= 0) { e.vh = rnd(260, 450) * (e.hopK || (e.hopK = rnd(0.8, 1.15))); e.hopCd = rnd(0.4, 1.6); }
         e.vh -= this.gAt(e.theta) * dt;
         e.h += e.vh * dt;
         if (e.h <= 0) { e.h = 0; if (e.vh < 0) e.vh = 0; }
@@ -4151,6 +4156,15 @@ class Level1 extends Phaser.Scene {
       if (e.flipP !== undefined) {                                   // coin-flip spin around the vertical axis
         e.flipP += dt * TAU / 0.6;
         if (e.flipP >= TAU) { e.flipP = undefined; e.spr.sqx = 1; } else e.spr.sqx = Math.cos(e.flipP);
+      }
+      // (v2.98) PERSONALITY: every enemy walks at its own pace (0.7-1.25x), which drifts up and down on its own rhythm,
+      // and now and then it dawdles for a moment - so a crowd strings out instead of arriving in one stompable heap
+      if (e.type !== 'boss' && !e.noPace) {
+        if (e.pace === undefined) { e.pace = rnd(0.68, 1.3); e.paceF = rnd(0.35, 1.1); e.lull = 0; e.lullT = rnd(0.5, 4); }
+        if ((e.lullT -= dt) <= 0) { e.lull = rnd(0.25, 0.8); e.lullT = rnd(2.5, 6.5); }
+        if (e.lull > 0) e.lull -= dt;
+        const k = e.pace * (1 + 0.28 * Math.sin(e.t * e.paceF + e.seed * 3)) * (e.lull > 0 ? 0.2 : 1), d = angDiff(e.theta, pt0);
+        if (Math.abs(d) * R < 40) e.theta = wrap(pt0 + d * k);
       }
       const idt = Math.max(dt, 1e-4);
       e.vx = angDiff(e.theta, pt) * R / idt;
