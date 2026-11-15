@@ -1840,3 +1840,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v2.98 - Enemies don't move as one
 - Every non-boss enemy now has a personality (main.js updateEnemies): its own walking pace (0.68-1.3x of its AI's speed) that drifts on its own rhythm, an occasional dawdle (slows to 20% for a moment every few seconds), and its OWN spot to home on near Chris (up to ~65px either side, wandering) instead of his exact position. Mice also get their own hop strength. No active avoidance - they just stop moving in lockstep, so a crowd strings out instead of collapsing into one stompable heap.
 - Measured (8 mice released on L1, Chris standing still, headless): the biggest pile within 24px averaged about 30% smaller.
+
+### v2.99 - Sprites no longer vanish after switching apps
+- Cause: all art is drawn on canvases (packed onto 2048px atlas pages). Phaser's pixel-art canvases are created with willReadFrequently: false, so phones put them on the GPU - and a GPU-backed 2D canvas is discarded when the app is backgrounded; on return Phaser re-uploads blank canvases.
+- Fix (src/canvasfix.js, loaded first): TextureManager.createCanvas makes a fresh canvas with willReadFrequently: true, which stays in ordinary memory and survives backgrounding. Safety net: on WebGL context restore, every canvas texture is re-uploaded. Tested: forced WebGL context loss + restore (WEBGL_lose_context) - everything redraws.
