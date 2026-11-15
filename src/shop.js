@@ -12,7 +12,7 @@ const SHOP = {
   bootCost: [0, 130, 240, 380, 540],
   chipCost: [0, 295, 515, 810],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
   tankCost: [0, 175, 325, 500],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
-  magnetCost: 485, setBonus: 75, lifeCost: 325, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
+  magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
 const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['GUN +1', 10, 0x2a7a72], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)

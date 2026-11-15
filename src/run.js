@@ -19,7 +19,6 @@ const RUN_PERKS = [
   { id: 'wallet', name: 'FAT WALLET', sub: 'CHEDDAR x1.5', icon: 'cheddar', desc: 'Every bit of cheddar is worth half as much again.', once: true },
   { id: 'glass',  name: 'GLASS CHEESE', sub: 'RISKY', icon: 'wedge', desc: 'Hit 50% harder... but one heart fewer.', once: true, can: (s, sc) => sc.hp > 2 },
   { id: 'vamp',   name: 'CHEESE VAMPIRE', sub: 'MUNCH', icon: 'pu_ears', desc: 'Every 10 rats you squash mends a heart.', once: true },
-  { id: 'life',   name: 'SECOND HELPING', sub: '+1 LIFE', icon: 'c_head', desc: 'One more go at a planet if you get grated.', can: (s, sc) => sc.lives < 2, act: (s, reg) => { reg.set('lives', (reg.get('lives') || 0) + 1); } }
 ];
 // ---------------------------------------------------------------- MOON CAMP meta-progression (v3.06)
 // GOLDEN CRUMBS are earned at the end of every run (win or lose) and kept for good. Fridge-o-tron trades them at camp
@@ -306,7 +305,7 @@ class RunScene extends Phaser.Scene {
       px += 30;
     }
     const lives = this.registry.get('lives') || 0;
-    this.ui.add(this.add.text(W - 14, by, 'LIVES ' + lives + '   SCORE ' + Run.score, f(9, '#e8ecf8')).setOrigin(1, 0.5));
+    this.ui.add(this.add.text(W - 14, by, 'RUN SCORE ' + Run.score, f(9, '#e8ecf8')).setOrigin(1, 0.5));
     const midT = rowY + (small ? 30 : 44), midB = by - (small ? 22 : 30);
     if (this.phase === 'perk') this.buildPerks(W, midT, midB, small);
     else this.buildRoute(W, midT, midB, small);

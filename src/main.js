@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.08';
+const BUILD = 'v3.09';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -19,8 +19,8 @@ const CFG = {
   runSpeed: 230,
   maxHp: 3, heartCap: 8,          // hearts to start with (the shop sells up to 2 more)
   startLives: 3,     // lives per game; GAME OVER when they run out
-  maxLives: 9,
-  lifeEvery: 40000,  // a bonus life for every this many points scored in a level
+  maxLives: 5,       // (v3.09: was 9 - lives are meant to be rare)
+  lifeEvery: 100000, // a bonus life for every this many points scored in a level (v3.09: was 40000)
   jumpBuffer: 0.12,   // a jump pressed this long before landing still happens
   coyoteTime: 0.1,    // ...and you can still jump this long after running off an edge
   jetHoldDelay: 0.28, // hold jump this long after take-off and the jetpack lights by itself
@@ -780,7 +780,7 @@ class Level1 extends Phaser.Scene {
 
   addScore(n) {
     this.score += n;
-    if (this.score >= this.nextLife && this.state === 'play') { this.nextLife += CFG.lifeEvery; this.gainLife(); }
+    if (this.score >= this.nextLife && this.state === 'play' && !Run.on) { this.nextLife += CFG.lifeEvery; this.gainLife(); }
   }
 
   get lives() { return this.registry.get('lives') || 0; }
@@ -805,7 +805,7 @@ class Level1 extends Phaser.Scene {
   // one 1UP floats somewhere in every level (high up, so it takes the jetpack). Once taken it stays taken until GAME OVER.
   placeOneUp() {
     if (this.oneUp) { this.oneUp.spr.destroy(); this.oneUp = null; }
-    if (this.registry.get('oneup_' + this.levelId)) return;
+    if (this.registry.get('oneup_' + this.levelId) || Run.on) return;      // (v3.09: no 1UPs on a run)
     const ledges = (this.def.ledges || []).slice().sort((a, b) => b.h - a.h), L = ledges[1] || ledges[0];
     const theta = L ? L.theta : wrap(this.pl.theta - 1.6), h = L ? L.h + 70 : 220;
     const spr = this.add.image(0, 0, 'oneup').setDepth(6); bakedGlow(spr, 0x7dff8a, 3, 8);
@@ -5369,7 +5369,7 @@ class Level1 extends Phaser.Scene {
       const r = this.rig.root; r.setRotation(this.ko.rot); r.y -= Math.abs(this.ko.rot) * 7 * this.zoom; r.x += this.ko.rot * 4 * this.zoom;   // lies ON the ground
       if (this.koStars) { const a = this.t * 5; this.koStars.setPosition(r.x - (P.facing || 1) * 52 * this.zoom + Math.cos(a) * 10, r.y - 12 * this.zoom + Math.sin(a) * 4); }
     }
-    this.livesText.setText('x' + this.lives);
+    this.livesText.setText(Run.on ? '' : 'x' + this.lives);
     if (this.warp && this.warp.entering) this.rig.root.setRotation(this.rig.root.rotation + this.warp.t * 9);
     { // where the gun's muzzle actually is this frame (after recoil, crouch and facing), in world terms
       const tipImg = this.rig.auger, m = tipImg.getWorldTransformMatrix();

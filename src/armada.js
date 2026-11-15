@@ -183,10 +183,10 @@ const ArmadaMixin = {
       S.bob += dt; e.h = WL + Math.sin(S.bob * 1.6) * 2.5; e.spr.rotation = Math.sin(S.bob * 1.1) * 0.03;
       e.spr.setFlipX(S.dir < 0);
       const fl = S.dir < 0 ? -1 : 1;
-      if ((S.smoke -= dt) <= 0) { S.smoke = 0.12; const im = this.add.image(0, 0, 'puff').setDepth(4.8).setTint(Math.random() < 0.5 ? 0x3a3a48 : 0x6a6a7a).setAlpha(0.6); im.bsx = im.bsy = rnd(0.25, 0.4); this.parts.push({ theta: wrap(e.theta + fl * ((S.big ? 1 : -1) * (S.big ? 8 : 6)) * k / R), h: e.h + (S.big ? 62 : 52) * k, vt: -S.dir * 30, vh: rnd(30, 55), life: rnd(1, 1.6), noGrav: true, grow: 1.8, spr: im }); }
+      if ((S.smoke -= dt) <= 0) { S.smoke = 0.12; const im = this.add.image(0, 0, 'puff').setDepth(4.8).setTint(Math.random() < 0.5 ? 0x3a3a48 : 0x6a6a7a).setAlpha(0.6); im.bsx = im.bsy = rnd(0.25, 0.4); this.parts.push({ theta: wrap(e.theta + fl * ((S.big ? 1 : -1) * (S.big ? 8 : 6)) * k / (R + e.h)), h: e.h + (S.big ? 62 : 52) * k, vt: -S.dir * 30, vh: rnd(30, 55), life: rnd(1, 1.6), noGrav: true, grow: 1.8, spr: im }); }
       // keels: follow the hull, pulse
       for (const K of e.keels) {                         // keels: follow the hull. Star Fox style: green -> amber -> red, cracks, smoke; blown off = a smoking hole
-        K.flash = Math.max(0, K.flash - dt); K.theta = wrap(e.theta + fl * K.dx * k / R); K.h = e.h + K.dh * k;
+        K.flash = Math.max(0, K.flash - dt); K.theta = wrap(e.theta + fl * K.dx * k / (R + e.h)); K.h = e.h + K.dh * k;
         const f = Math.max(0, K.hp / K.max), col = f > 0.66 ? 0x7dff6a : (f > 0.33 ? 0xffb03a : 0xff3a2a), crit = f <= 0.33 && !K.dead;
         if (!K.spr) continue;
         this.place(K.spr, K.theta, K.h, 0); this.place(K.plate, K.theta, K.h, 0); this.place(K.crack, K.theta, K.h, 0);
@@ -208,7 +208,7 @@ const ArmadaMixin = {
         S.fireCd = (S.big ? rnd(2.4, 3.2) : rnd(2.6, 3.6)) * (P.h > WL ? 0.5 : 1);   // (above the water the guns are on him: twice as often)
         const n = S.big ? 3 : 1;
         for (let i = 0; i < n; i++) {
-          const gx = wrap(e.theta + fl * (S.big ? (i - 1) * 50 : 52) * k / R), gh = e.h + 34 * k, tx = angDiff(P.theta, gx) * R + (P.h > WL ? P.vx * 1.1 : 0) + (i - (n - 1) / 2) * 60, T = 1.25 + i * 0.12, g = 430;
+          const gx = wrap(e.theta + fl * (S.big ? (i - 1) * 50 : 52) * k / (R + e.h)), gh = e.h + 34 * k, tx = angDiff(P.theta, gx) * R + (P.h > WL ? P.vx * 1.1 : 0) + (i - (n - 1) / 2) * 60, T = 1.25 + i * 0.12, g = 430;
           const tgtH = Math.max(WL + 4, P.h + 20), vh = ((tgtH - gh) + 0.5 * g * T * T) / T;
           const b = this.addEBullet('cannonball', gx, gh, tx / T, vh, 9, 6); b.grav = g; b.cball = true; b.shootable = true; b.spr.bsx = b.spr.bsy = 1.4;
           this.muzzleFlash(gx, gh); this.burst(gx, gh, 'spark', 4, 0.6);
@@ -218,7 +218,7 @@ const ArmadaMixin = {
       // depth charges on anyone swimming underneath
       if (under && (S.chargeCd -= dt) <= 0 && dist < (S.big ? 260 : 160)) {
         S.chargeCd = S.big ? 1.6 : 2.4;
-        for (let i = 0; i < (S.big ? 2 : 1); i++) { const b = this.addEBullet('dcharge', wrap(e.theta + (S.big ? (i ? 40 : -40) : 0) * k / R), e.h - 20 * k, rnd(-15, 15), -40, 13, 12); b.dcharge = true; b.spinV = 0.8; b.shootable = true; }
+        for (let i = 0; i < (S.big ? 2 : 1); i++) { const b = this.addEBullet('dcharge', wrap(e.theta + (S.big ? (i ? 40 : -40) : 0) * k / (R + e.h)), e.h - 20 * k, rnd(-15, 15), -40, 13, 12); b.dcharge = true; b.spinV = 0.8; b.shootable = true; }
         Sound.sfx('clunk'); this.burst(e.theta, e.h - 14, 'bubl', 6, 0.8);
       }
       // the Dreadnought launches torpedo rats
@@ -302,7 +302,7 @@ const ArmadaMixin = {
         return true;
       }
       const k = e.spr.bsx || 1, half = (e.ship.big ? 104 : 62) * k;          // the hull: shots spark off the iron
-      if (Math.abs(angDiff(theta, e.theta)) * R < half && h > e.h - 14 * k && h < e.h + (e.ship.big ? 50 : 40) * k) {
+      if (Math.abs(angDiff(theta, e.theta)) * (R + h) < half && h > e.h - 14 * k && h < e.h + (e.ship.big ? 50 : 40) * k) {
         this.burst(theta, h, 'spark', 3, 0.5); if (Math.random() < 0.3) Sound.sfx('tink');
         if (!this.keelTip && h > WL) { this.keelTip = true; this.popup(e.theta, e.h + 80, 'TOO THICK! HIT THE KEEL!', '#ffd23f'); }
         return true;
