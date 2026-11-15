@@ -191,6 +191,7 @@ function runInstall(L) {
       Sound.say('woohoo', { force: true });
       this.state = 'won';
       Run.score += this.score; Run.done.push(this.levelId); Run.idx++;
+      { const seen = Meta._j('lc_run_seen', []); if (!seen.includes(this.levelId)) Meta._s('lc_run_seen', seen.concat([this.levelId])); }   // (v3.13) the camp talks about it
       Sound.music('win'); this.endT = this.t;
       const last = Run.idx >= Run.stages();
       const mm = Math.floor(this.t / 60), ss = String(Math.floor(this.t % 60)).padStart(2, '0');

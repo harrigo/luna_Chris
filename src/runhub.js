@@ -330,6 +330,7 @@ const CampMixin = {
   },
   campPickLine() {
     const S = this.campSum, P = (a) => a[Math.floor(Math.random() * a.length)];
+    { const seen = storySeen(), last = seen[seen.length - 1]; if (last && STORY[last].fridge && Math.random() < 0.5) return STORY[last].fridge; }
     if (!S) return Meta.stats().runs ? P(['BACK FOR MORE? CRUMBS ARE CRUMBS, CHEF.', 'THE LARDER IS STOCKED. YOUR POCKETS?', 'I SELL THINGS THAT LAST. UNLIKE YOU.']) :
       'WELCOME TO CAMP, CHEF! GO OUT, GET GRATED, BRING ME GOLDEN CRUMBS.';
     if (S.how === 'won') return 'A LEGEND! NOW SPEND, SPEND, SPEND!';

@@ -122,6 +122,8 @@ Object.assign(CampMixin, {
       return { id, d, a, spr, bub, bubT: 0, dir: 1, tgt: a.theta, wait: rnd(0.5, 2), vh: 0, name: d.name, verb: 'TALK', folk: true };
     });
     this.campBarkT = rnd(3, 6); this.campTalked = {};
+    for (const F of this.campFolk) F.mark = this.add.text(0, 0, '!', RUN_UI.f(14, '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 1).setDepth(18);
+    this.campFolkNews();
   },
   campCtx() {
     const S = this.campSum, st = Meta.stats(), b = Run.best(), at = S && LEVELS[S.at];
@@ -156,6 +158,7 @@ Object.assign(CampMixin, {
       const fr = F.id === 'kid' ? Math.floor(t * 3) % 2 : F.id === 'hen' ? (F.moving ? Math.floor(t * 6) % 2 : (Math.sin(t * 1.7 + 2) > 0.7 ? 1 : 0)) : F.id === 'bot' ? (F.moving ? Math.floor(t * 8) % 2 : Math.floor(t * 1.5) % 2) : (F.moving || this.campChat && this.campChat.F === F ? Math.floor(t * 10) % 2 : Math.floor(t * 4) % 2);
       F.spr.setTexture(F.d.tex + fr).setFlipX(F.dir < 0);
       if (F.bub.visible) { const b = F.spr.getBounds(); F.bub.setPosition(b.centerX, b.y - 4).setAlpha(F.spr.visible ? 1 : 0); }
+      { const b = F.spr.getBounds(), on = F.news && !F.bub.visible && !(this.campChat && this.campChat.F === F); F.mark.setVisible(on).setPosition(b.centerX, b.y - 4 + Math.sin(t * 6 + F.a.theta * 9) * 3); }
     }
   },
   campFolkNear() {
@@ -167,13 +170,21 @@ Object.assign(CampMixin, {
   campTalk(F) {
     const d = F.d, c = this.campCtx(), S = this.campSum, seen = Meta._j('lc_talk', {}), me = seen[F.id] || { met: false, i: 0 };
     let lines;
+    const news = storyNext(F.id);
     if (!me.met) lines = d.first;
     else if (S && !this.campTalked[F.id]) lines = d[S.how] || d.chat[0];
+    else if (news) { lines = STORY[news][F.id]; me.story = (me.story || []).concat([news]); }     // (v3.13) something new to say about a planet
     else { lines = d.chat[me.i % d.chat.length]; me.i++; }
     me.met = true; seen[F.id] = me; Meta._s('lc_talk', seen); this.campTalked[F.id] = true;
     if (typeof lines === 'function') lines = lines(c);
     F.bub.setVisible(false);
     this.campChatOpen(F, lines);
+    this.campFolkNews();
+  },
+  // who has something new to say: a first hello, a reaction to the last run, or a planet they've not talked about yet
+  campFolkNews() {
+    const seen = Meta._j('lc_talk', {});
+    for (const F of this.campFolk) F.news = !(seen[F.id] && seen[F.id].met) || (this.campSum && !this.campTalked[F.id]) || !!storyNext(F.id);
   },
   campChatOpen(F, lines) {
     this.state = 'campmenu'; this.pl.vx = 0; this.pl.firing = 0;
@@ -229,3 +240,67 @@ Object.assign(CampMixin, {
     show();
   }
 });
+
+// ---------------------------------------------------------------- the story, as camp talk (v3.13)
+// Every planet Chris clears - in the campaign or on a run - gives each of the folk something new to say about it, and
+// the whole camp slowly works out what the rats want with Bessie: from "why a COW?", through ghost cows, planets filled
+// from the inside and grated for snacks, to the Labyrinth (a moon-sized tank of Bessie's milk curdling into new cheese)
+// and Parmesan Prime (the rats have eaten their own homeworld - they're running out of world). A gold "!" bobs over
+// anyone with something new to say. Fridge-o-tron's greeting picks up the latest news too.
+const STORY = {
+  1: { kid: [['kid', 'You beat the Croque Monsieur?! Was he crunchy?'], ['chris', 'Very. Then a rat-ship snatched Bessie right out from under me.'], ['kid', 'But why would rats want a COW?']],
+       hen: [['hen', 'A cow. Out of every animal on that ranch, they took the cow.'], ['hen', 'Think about that, Chris.'], ['chris', 'I\'m trying very hard not to.']],
+       bot: [['bot', 'ANALYSIS: RATS DO NOT DRINK MILK IN THESE QUANTITIES.'], ['bot', 'THEIR INTEREST IN BESSIE IS... ILLOGICAL. I DO NOT LIKE ILLOGICAL.']],
+       dog: [['dog', '(Biscuit sniffs the Croque crumbs on your boots, then howls at the patch of sky the rat-ship went through.)']],
+       fridge: 'RATS STEALING COWS NOW? WHAT NEXT, FRIDGES?' },
+  2: { bot: [['bot', 'THE BARON\'S SWAMP WAS FARMED, CHRIS. ROWS. DITCHES. IRRIGATION.'], ['bot', 'THE RATS ARE NOT JUST EATING CHEESE. THEY ARE GROWING IT.']],
+       hen: [['hen', 'Blue mould. That\'s how it starts.'], ['hen', 'First the mould. Then the cows. Then the HENS.']],
+       kid: [['kid', 'Mum says blue cheese is just cheese that went wrong.'], ['chris', 'Your mum\'s right about the Baron.']],
+       fridge: 'GORGONZOLA PRICES ARE UP. SOMEBODY\'S BUYING IN BULK.' },
+  3: { kid: [['kid', 'Was the Brie-muda Triangle really full of ghost COWS?'], ['chris', 'Old ones. From farms all over the galaxy.'], ['kid', '...So Bessie isn\'t the first.']],
+       bot: [['bot', 'SHIP LOGS RECOVERED FROM THE BRIE: 212 COWS ABDUCTED. 0 RETURNED.'], ['bot', 'I HAVE STOPPED COUNTING.'], ['bot', '...NO. I HAVE NOT.']],
+       hen: [['hen', 'A graveyard. Of COWS. I said it. I SAID it.'], ['hen', 'Nobody ever listens to a hen.']],
+       dog: [['dog', '(Biscuit sleeps with one eye open tonight. He keeps whimpering at the brie on your boots.)']] },
+  4: { bot: [['bot', 'THE VOLCANO WAS ERUPTING MOZZARELLA. NOT ROCK.'], ['bot', 'SOMEBODY HAS BEEN FILLING THESE PLANETS WITH CHEESE. FROM THE INSIDE.']],
+       kid: [['kid', 'Bessie was INSIDE the cheese?'], ['chris', 'Right in the middle of it. Like they\'d been... topping the planet up with her.'], ['kid', 'Ew. And also: whoa.']],
+       dog: [['dog', '(Biscuit is licking melted mozzarella off your suit. He thinks the volcano was the best day of his life.)']],
+       fridge: 'MOZZARELLA ON TAP FROM A VOLCANO? I WANT A CUT.' },
+  5: { bot: [['bot', 'THE GREAT GRATER WAS A FACTORY. INPUT: WHOLE PLANETS. OUTPUT: RAT SNACKS.'], ['bot', 'THROUGHPUT: ALARMING.']],
+       hen: [['hen', 'They grate PLANETS, Chris. If they\'ll grate a planet, what d\'you think they\'d do to a hen?'], ['chris', '...Grate you?'], ['hen', 'GRATE ME.']],
+       kid: [['kid', 'If they grate whole planets... what happens when they run out?'], ['chris', 'Good question, Zib. Really good question.']],
+       fridge: 'PARMESAN\'S DOUBLED IN PRICE. SOMEONE\'S RUNNING SHORT.' },
+  6: { kid: [['kid', 'The whole moon was one big canyon? Who dug it?'], ['chris', 'Nobody dug it, Zib. It got eaten.']],
+       bot: [['bot', 'CHEDDAR GORGE: 70 PERCENT OF THE MOON CONSUMED.'], ['bot', 'THE RATS DO NOT FARM PLANETS. THEY FINISH THEM.']],
+       hen: [['hen', 'Eat a moon down to a ring, then go looking for another one. That\'s a pattern, Chris.'], ['chris', 'For once I think you might be right.']],
+       dog: [['dog', '(Biscuit buries a chunk of cheddar canyon by the tent. Saving it. Just in case.)']] },
+  7: { bot: [['bot', 'THE ARMADA WAS A SUPPLY FLEET. THE HOLDS WERE EMPTY. WAITING.'], ['bot', 'WAITING FOR A CARGO OF... MILK?']],
+       hen: [['hen', 'A whole navy. You don\'t build a navy for one cow, Chris.'], ['hen', 'You build it to carry everything that cow MAKES.']],
+       dog: [['dog', '(Biscuit is wearing a little rat sailor\'s hat. You decide not to ask where he got it.)']],
+       kid: [['kid', 'Did you really dive under a battleship?'], ['chris', 'Three times. Hit it in the keel.'], ['kid', 'I\'m gonna be SO good at swimming.']],
+       fridge: 'A WHOLE FLEET OF EMPTY TANKERS. SOMEONE\'S EXPECTING A DELIVERY.' },
+  8: { bot: [['bot', 'THE LABYRINTH WAS NOT A MOON, CHRIS. IT WAS A TANK.'], ['bot', 'PIPES. PUMPS. ALL OF IT FULL OF BESSIE\'S MILK, CURDLING INTO NEW CHEESE.'], ['bot', 'CONCLUSION: THEY ARE NOT EATING HER. THEY ARE USING HER TO GROW PLANETS.']],
+       hen: [['hen', 'Pumping a whole moon full of Bessie\'s milk.'], ['hen', 'I\'d say I told you so, Chris.'], ['chris', 'Go on then.'], ['hen', 'I TOLD YOU SO. Bawk.']],
+       kid: [['kid', 'So Bessie\'s milk makes... planets?'], ['chris', 'Best milk in the galaxy. One cow, a whole moon of Swiss.'], ['kid', 'That\'s the coolest and the saddest thing I ever heard.']],
+       dog: [['dog', '(Biscuit won\'t leave the tent tonight. He\'s lying with his nose on Bessie\'s old bell.)']],
+       fridge: 'A MOON FULL OF MILK. HOLY COW. NO, REALLY. HOLY COW.' },
+  9: { bot: [['bot', 'PARMESAN PRIME. THE RAT HOMEWORLD. GRATED DOWN TO 40 PERCENT OF ITS SIZE.'], ['bot', 'THEY HAVE BEEN EATING THEIR OWN PLANET, CHRIS.'], ['bot', 'THAT IS WHY THEY NEED BESSIE. THEY ARE RUNNING OUT OF WORLD.']],
+       kid: [['kid', 'Their whole planet was falling to bits...'], ['kid', 'Is it bad that I feel a bit sorry for the rats?'], ['chris', 'No, Zib. That makes you a better chef than most.']],
+       hen: [['hen', 'They ate their OWN planet.'], ['hen', '...Bawk. Even I didn\'t see that one coming.']],
+       dog: [['dog', '(Biscuit growls at the parmesan dust on your boots. Then sneezes. Then growls again, more quietly.)']],
+       fridge: 'THEY ATE THEIR OWN HOMEWORLD. TERRIBLE FOR BUSINESS.' },
+  10: { kid: [['kid', 'You beat the RAT KING! Is Bessie coming home now?'], ['chris', 'Soon, Zib. Soon.']],
+        bot: [['bot', 'RAT KING: DEFEATED. BESSIE: STILL NOT ON SCHEDULE.'], ['bot', '06:00. 18:00. I WILL WAIT.']],
+        hen: [['hen', 'The King\'s beaten. But who was the King working for, Chris?'], ['chris', 'Henrietta...'], ['hen', 'Just saying.']],
+        dog: [['dog', '(Biscuit has dug up Bessie\'s bell and taken it to the rocket. He\'s sitting next to it. Waiting.)']],
+        fridge: 'THE KING\'S GONE? WHO\'S GOING TO PAY THEIR TAB?' }
+};
+// the planets Chris has cleared: the campaign's, and any cleared on a run
+function storySeen() {
+  const s = new Set(Meta._j('lc_run_seen', []));
+  for (let i = 1; i <= Math.min(10, Progress.best); i++) s.add(i);
+  return [...s].filter(id => STORY[id]).sort((a, b) => a - b);
+}
+function storyNext(fid) {
+  const me = Meta._j('lc_talk', {})[fid] || {}, done = me.story || [];
+  return storySeen().find(id => STORY[id][fid] && !done.includes(id));
+}
