@@ -112,6 +112,63 @@ function makeFolkTextures(scene) {
   });
 }
 
+// the Hades-style dialogue box, for any scene: lines = [[who, text], ...] (who = 'chris' or a FOLK id)
+function chatBar(scene, lines, opts) {
+  opts = opts || {};
+  makeFolkTextures(scene);
+  const W = scene.scale.width, H = scene.scale.height, f = RUN_UI.f, small = H < 430, c = scene.add.container(0, 0).setDepth(60);
+  const bw = Math.min(W - 16, 640), bh = small ? 96 : 120, bx = (W - bw) / 2, by = H - bh - (small ? 8 : 16), ps = bh - 20;
+  const g = scene.add.graphics(); c.add(g);
+  // the box: ink, gold frame, deep blue; a portrait well on the left; a name plate sitting on the top edge
+  g.fillStyle(0x1a1020, 1).fillRect(bx - 4, by - 4, bw + 8, bh + 8); g.fillStyle(0xc8962a, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4); g.fillStyle(0xffd23f, 1).fillRect(bx - 2, by - 2, bw + 4, 2);
+  g.fillStyle(0x121838, 0.97).fillRect(bx, by, bw, bh);
+  for (let yy = by + 2; yy < by + bh; yy += 4) for (let xx = bx + ((yy >> 2) % 2) * 2; xx < bx + bw; xx += 4) g.fillStyle(0x1a2250, 1).fillRect(xx, yy, 1, 1);
+  const pwell = scene.add.graphics(); c.add(pwell);
+  const portrait = scene.add.image(bx + 10 + ps / 2, by + 10 + ps / 2, 'cf_dog0'); c.add(portrait);
+  const plate = scene.add.graphics(); c.add(plate);
+  const nameT = scene.add.text(0, 0, '', f(small ? 9 : 10, '#ffd23f', { stroke: '#2a0606', strokeThickness: 4 })); c.add(nameT);
+  const titleT = scene.add.text(0, 0, '', f(6, '#ffd8b0', { strokeThickness: 2 })); c.add(titleT);
+  const tx = bx + ps + 24, tw = bw - ps - 36;
+  const body = scene.add.text(tx, by + (small ? 14 : 18), '', f(small ? 8 : 9, '#ffffff', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: small ? 5 : 7 })); c.add(body);
+  if (opts.header) c.add(scene.add.text(bx + bw - 10, by - 4, opts.header, f(7, '#7dff8a', { strokeThickness: 3 })).setOrigin(1, 1));
+  const more = scene.add.text(bx + bw - 10, by + bh - 8, '', f(7, '#ffd23f', { strokeThickness: 3 })).setOrigin(1, 1); c.add(more);
+  const chris = scene.textures.exists('portrait');
+  let li = -1, shown = 0, full = '', dead = false;
+  const show = () => {
+    li++; if (li >= lines.length) { close(); return; }
+    const [who, txt] = lines[li], isChris = who === 'chris', D = isChris ? null : FOLK[who] || FOLK.dog;
+    full = txt; shown = 0; body.setText('');
+    const tone = isChris ? 0x2a4a8a : D.col;
+    pwell.clear(); pwell.fillStyle(0x1a1020, 1).fillRect(bx + 8, by + 8, ps + 4, ps + 4); pwell.fillStyle(tone, 1).fillRect(bx + 10, by + 10, ps, ps);
+    pwell.fillStyle(0x000000, 0.25).fillRect(bx + 10, by + 10 + ps * 0.62, ps, ps * 0.38); pwell.fillStyle(0xffffff, 0.12).fillRect(bx + 10, by + 10, ps, 3);
+    if (isChris) { portrait.setTexture(chris ? 'portrait' : 'c_head').setFlipX(false); RUN_UI.fit(portrait, ps * 0.92); }
+    else { portrait.setTexture(D.tex + (D.sit ? 0 : 1)).setFlipX(false); RUN_UI.fit(portrait, ps * 0.86); }
+    const nm = isChris ? 'CHRIS' : D.name, tl = isChris ? 'RETIRED CHEF' : D.title;
+    nameT.setText(nm); titleT.setText(tl);
+    const pw = Math.max(nameT.width, titleT.width) + 20, px = tx - 6, py = by - 14;
+    plate.clear(); plate.fillStyle(0x1a1020, 1).fillRect(px - 2, py - 2, pw + 4, 26); plate.fillStyle(0xc8962a, 1).fillRect(px - 1, py - 1, pw + 2, 24); plate.fillStyle(0x5a140a, 1).fillRect(px, py, pw, 22); plate.fillStyle(0x8a2a1a, 1).fillRect(px, py, pw, 2);
+    nameT.setPosition(px + 10, py + 2); titleT.setPosition(px + 10, py + 14);
+    Sound.sfx(isChris ? 'jump' : (who === 'dog' ? 'flap' : 'pickup'));
+    if (opts.onLine) opts.onLine(who);
+  };
+  const next = () => { if (dead || scene.time.now - opened < 250) return; if (shown < full.length) { shown = full.length; body.setText(full); return; } show(); };
+  const close = () => { if (dead) return; dead = true; window.removeEventListener('keydown', onKey); padOff(); scene.input.off('pointerup', next); scene.events.off('update', tick);
+    scene.tweens.add({ targets: c, alpha: 0, duration: 150, onComplete: () => c.destroy() });
+    if (opts.onClose) opts.onClose(); };
+  const onKey = e => { if (['Enter', ' ', 'ArrowDown', 's', 'S', 'z', 'Z', 'x', 'X'].includes(e.key)) next(); else if (e.key === 'Escape') close(); };
+  const tick = (time, dms) => {
+    if (dead) return;
+    if (shown < full.length) { shown = Math.min(full.length, shown + dms / 1000 * 55); body.setText(full.slice(0, Math.floor(shown))); if (Math.floor(shown) % 4 === 0) { /* (quiet blips) */ } }
+    more.setText(shown >= full.length ? (li < lines.length - 1 ? 'NEXT >' : 'DONE') : '').setAlpha(0.6 + 0.4 * Math.sin(time / 150));
+  };
+  const opened = scene.time.now, padOff = Pad.on(b => { if (b === 'a' || b === 'down') next(); else if (b === 'b' || b === 'back') close(); });
+  window.addEventListener('keydown', onKey); scene.input.on('pointerup', next); scene.events.on('update', tick);
+  scene.events.once('shutdown', () => { if (!dead) { window.removeEventListener('keydown', onKey); padOff(); } });
+  c.setAlpha(0); scene.tweens.add({ targets: c, alpha: 1, duration: 150 });
+  show();
+  return { close };
+}
+
 Object.assign(CampMixin, {
   campFolkInit() {
     makeFolkTextures(this);
@@ -188,56 +245,11 @@ Object.assign(CampMixin, {
   },
   campChatOpen(F, lines) {
     this.state = 'campmenu'; this.pl.vx = 0; this.pl.firing = 0;
-    const W = this.scale.width, H = this.scale.height, f = RUN_UI.f, small = H < 430, c = this.add.container(0, 0).setDepth(60);
-    const bw = Math.min(W - 16, 640), bh = small ? 96 : 120, bx = (W - bw) / 2, by = H - bh - (small ? 8 : 16), ps = bh - 20;
-    const g = this.add.graphics(); c.add(g);
-    // the box: ink, gold frame, deep blue; a portrait well on the left; a name plate sitting on the top edge
-    g.fillStyle(0x1a1020, 1).fillRect(bx - 4, by - 4, bw + 8, bh + 8); g.fillStyle(0xc8962a, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4); g.fillStyle(0xffd23f, 1).fillRect(bx - 2, by - 2, bw + 4, 2);
-    g.fillStyle(0x121838, 0.97).fillRect(bx, by, bw, bh);
-    for (let yy = by + 2; yy < by + bh; yy += 4) for (let xx = bx + ((yy >> 2) % 2) * 2; xx < bx + bw; xx += 4) g.fillStyle(0x1a2250, 1).fillRect(xx, yy, 1, 1);
-    const pwell = this.add.graphics(); c.add(pwell);
-    const portrait = this.add.image(bx + 10 + ps / 2, by + 10 + ps / 2, 'cf_dog0'); c.add(portrait);
-    const plate = this.add.graphics(); c.add(plate);
-    const nameT = this.add.text(0, 0, '', f(small ? 9 : 10, '#ffd23f', { stroke: '#2a0606', strokeThickness: 4 })); c.add(nameT);
-    const titleT = this.add.text(0, 0, '', f(6, '#ffd8b0', { strokeThickness: 2 })); c.add(titleT);
-    const tx = bx + ps + 24, tw = bw - ps - 36;
-    const body = this.add.text(tx, by + (small ? 14 : 18), '', f(small ? 8 : 9, '#ffffff', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: small ? 5 : 7 })); c.add(body);
-    const more = this.add.text(bx + bw - 10, by + bh - 8, '', f(7, '#ffd23f', { strokeThickness: 3 })).setOrigin(1, 1); c.add(more);
-    const chris = this.textures.exists('portrait');
-    let li = -1, shown = 0, full = '', dead = false;
-    const show = () => {
-      li++; if (li >= lines.length) { close(); return; }
-      const [who, txt] = lines[li], isChris = who === 'chris', D = isChris ? null : FOLK[who] || F.d;
-      full = txt; shown = 0; body.setText('');
-      const tone = isChris ? 0x2a4a8a : D.col;
-      pwell.clear(); pwell.fillStyle(0x1a1020, 1).fillRect(bx + 8, by + 8, ps + 4, ps + 4); pwell.fillStyle(tone, 1).fillRect(bx + 10, by + 10, ps, ps);
-      pwell.fillStyle(0x000000, 0.25).fillRect(bx + 10, by + 10 + ps * 0.62, ps, ps * 0.38); pwell.fillStyle(0xffffff, 0.12).fillRect(bx + 10, by + 10, ps, 3);
-      if (isChris) { portrait.setTexture(chris ? 'portrait' : 'c_head').setFlipX(false); RUN_UI.fit(portrait, ps * 0.92); }
-      else { portrait.setTexture(D.tex + (D.sit ? 0 : 1)).setFlipX(false); RUN_UI.fit(portrait, ps * 0.86); }
-      const nm = isChris ? 'CHRIS' : D.name, tl = isChris ? 'RETIRED CHEF' : D.title;
-      nameT.setText(nm); titleT.setText(tl);
-      const pw = Math.max(nameT.width, titleT.width) + 20, px = tx - 6, py = by - 14;
-      plate.clear(); plate.fillStyle(0x1a1020, 1).fillRect(px - 2, py - 2, pw + 4, 26); plate.fillStyle(0xc8962a, 1).fillRect(px - 1, py - 1, pw + 2, 24); plate.fillStyle(0x5a140a, 1).fillRect(px, py, pw, 22); plate.fillStyle(0x8a2a1a, 1).fillRect(px, py, pw, 2);
-      nameT.setPosition(px + 10, py + 2); titleT.setPosition(px + 10, py + 14);
-      Sound.sfx(isChris ? 'jump' : (who === 'dog' ? 'flap' : 'pickup'));
-      if (!isChris) { const P = this.pl; P.facing = Math.sign(angDiff(F.a.theta, P.theta)) || P.facing; }
-    };
-    const next = () => { if (dead || this.time.now - opened < 250) return; if (shown < full.length) { shown = full.length; body.setText(full); return; } show(); };
-    const close = () => { if (dead) return; dead = true; window.removeEventListener('keydown', onKey); padOff(); this.input.off('pointerup', next); this.events.off('update', tick);
-      this.tweens.add({ targets: c, alpha: 0, duration: 150, onComplete: () => c.destroy() });
-      this.campChat = null; this.state = 'play'; this.campCool = 0.4; this.campDownHeld = true; };
-    const onKey = e => { if (['Enter', ' ', 'ArrowDown', 's', 'S', 'z', 'Z', 'x', 'X'].includes(e.key)) next(); else if (e.key === 'Escape') close(); };
-    const tick = (time, dms) => {
-      if (dead) return;
-      if (shown < full.length) { shown = Math.min(full.length, shown + dms / 1000 * 55); body.setText(full.slice(0, Math.floor(shown))); if (Math.floor(shown) % 4 === 0) { /* (quiet blips) */ } }
-      more.setText(shown >= full.length ? (li < lines.length - 1 ? 'NEXT >' : 'DONE') : '').setAlpha(0.6 + 0.4 * Math.sin(time / 150));
-    };
-    const opened = this.time.now, padOff = Pad.on(b => { if (b === 'a' || b === 'down') next(); else if (b === 'b' || b === 'back') close(); });
-    window.addEventListener('keydown', onKey); this.input.on('pointerup', next); this.events.on('update', tick);
-    this.events.once('shutdown', () => { if (!dead) { window.removeEventListener('keydown', onKey); padOff(); } });
-    c.setAlpha(0); this.tweens.add({ targets: c, alpha: 1, duration: 150 });
-    this.campChat = { F, close };
-    show();
+    const bar = chatBar(this, lines, {
+      onLine: who => { if (who !== 'chris') { const P = this.pl; P.facing = Math.sign(angDiff(F.a.theta, P.theta)) || P.facing; } },
+      onClose: () => { this.campChat = null; this.state = 'play'; this.campCool = 0.4; this.campDownHeld = true; }
+    });
+    this.campChat = { F, close: bar.close };
   }
 });
 
@@ -294,6 +306,8 @@ const STORY = {
         dog: [['dog', '(Biscuit has dug up Bessie\'s bell and taken it to the rocket. He\'s sitting next to it. Waiting.)']],
         fridge: 'THE KING\'S GONE? WHO\'S GOING TO PAY THEIR TAB?' }
 };
+// who radios in from camp after each campaign planet (their camp line about it is then 'heard')
+const STORY_RADIO = { 1: 'kid', 2: 'bot', 3: 'kid', 4: 'bot', 5: 'hen', 6: 'kid', 7: 'hen', 8: 'bot', 9: 'bot', 10: 'dog' };
 // the planets Chris has cleared: the campaign's, and any cleared on a run
 function storySeen() {
   const s = new Set(Meta._j('lc_run_seen', []));

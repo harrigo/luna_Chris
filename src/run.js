@@ -199,6 +199,17 @@ function runInstall(L) {
         (last ? 'Bessie is safe. One life. ' + Run.str().name + '. Legend.' : this.def.win) + '\n\nTIME ' + mm + ':' + ss + '   HITS ' + this.hurtCount + '   SCORE ' + this.score +
         '\nRUN SCORE ' + Run.score + '   CHEDDAR ' + Shop.get(this.registry).coins + '\n\n' + (last ? 'Tap for the run summary' : 'Tap to pick a perk'));
     },
+    // after LEVEL CLEAR: a run goes to its perk pick; the campaign hears from camp first (v3.14)
+    wonNext() {
+      if (Run.on) { this.scene.start('runpick', { phase: 'perk' }); return; }
+      const id = this.levelId, st = typeof STORY !== 'undefined' && STORY[id], who = st && STORY_RADIO[id];
+      if (!who || !st[who] || this.storyShownAt === this.endT) { this.scene.start('select'); return; }
+      this.storyShownAt = this.endT; this.state = 'wonchat'; this.hideOverlay();
+      const seen = Meta._j('lc_talk', {}), me = seen[who] || { met: false, i: 0 };
+      if (!(me.story || []).includes(id)) me.story = (me.story || []).concat([id]);
+      seen[who] = me; Meta._s('lc_talk', seen);
+      chatBar(this, st[who], { header: 'MESSAGE FROM MOON CAMP', onClose: () => this.scene.start('select') });
+    },
     runLost() {
       if (this.leavingGO) return; this.leavingGO = true;
       Run.score += this.score;

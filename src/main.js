@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.13';
+const BUILD = 'v3.14';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -579,7 +579,7 @@ class Level1 extends Phaser.Scene {
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
-      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start(Run.on ? 'runpick' : 'select', { phase: 'perk' });
+      else if (this.state === 'won' && this.t - this.endT > 0.8) this.wonNext();
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     // controller: A/Start = start / retry / continue, View (back) = level menu
@@ -592,7 +592,7 @@ class Level1 extends Phaser.Scene {
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
-      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start(Run.on ? 'runpick' : 'select', { phase: 'perk' });
+      else if (this.state === 'won' && this.t - this.endT > 0.8) this.wonNext();
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     this.events.once('shutdown', padOff);
