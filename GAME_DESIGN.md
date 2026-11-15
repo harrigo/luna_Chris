@@ -1914,3 +1914,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.11 - Legendary perks from bonus stops, a gun every run
 - A run's BONUS STOP no longer gives guns: win it for a LEGENDARY perk pick (gold cards, "BONUS! A LEGENDARY PERK"), from a pool of bigger versions and combos: BIG BREAKFAST (+2 hearts), DRAGON RIND (+2 armour marks), GOLDEN TOQUE (an extra cheat-death), ARMOURER (every gun you own +1 level), SPICY BOOTS (Hot Sauce + Rocket Boots forever), NOSFERATU (a heart every 5 squashes), JACKPOT (+300 cheddar), DIAMOND CHEESE (hit x1.5 with no heart lost). Still +60 cheddar too; Lucky Dice rerolls work on these as well.
 - Every run you finish (a death or a win - or giving up after clearing at least one planet) brings the next gun you haven't found home for good: the summary card says NEW GUN and it's on the camp's GUN RACK (and in the campaign).
+
+### v3.12 - A bonus stop on every run
+- Every run now has exactly one BONUS STOP (was a 50% chance at each middle stop): it turns up alongside the planets at a random stop between the first and the last, and which bonus stage it is (Zero-G room / The Big Drop / The Centrifuge) is random too.

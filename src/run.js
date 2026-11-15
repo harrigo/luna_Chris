@@ -91,7 +91,7 @@ const Run = {
     const L = Meta.larder();
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
-    Object.assign(this, { vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    Object.assign(this, { bonusAt: 1 + Math.floor(Math.random() * (RUN_ROUTE.length - 2)), vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
     const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
     if (kp) this.take(reg, kp);
   },
@@ -392,7 +392,7 @@ class RunScene extends Phaser.Scene {
     this.time.delayedCall(420, () => { this.going = false; this.phase = 'route'; this.sel = 0; this.build(); });
   }
   buildRoute(W, y0, y1, small) {
-    if (Run.bonusOffer[Run.idx] === undefined) Run.bonusOffer[Run.idx] = Run.idx > 0 && Run.idx < RUN_ROUTE.length - 1 && Math.random() < 0.5 ? RUN_BONUS[Math.floor(Math.random() * RUN_BONUS.length)] : null;
+    if (Run.bonusOffer[Run.idx] === undefined) Run.bonusOffer[Run.idx] = Run.idx === Run.bonusAt ? RUN_BONUS[Math.floor(Math.random() * RUN_BONUS.length)] : null;   // (v3.12) one bonus stop every run
     const bonus = !Run.bonusDone[Run.idx] && Run.bonusOffer[Run.idx];
     const f = RUN_UI.f, opts = RUN_ROUTE[Run.idx].concat(bonus ? [bonus] : []), n = opts.length;
     const btnH = small ? 26 : 30, area = y1 - y0 - btnH - 10;
