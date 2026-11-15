@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.05';
+const BUILD = 'v3.06';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1209,6 +1209,7 @@ class Level1 extends Phaser.Scene {
 
   die() {
     if (this.bossDown && this.state === 'play') { this.pl.hp = Math.max(1, this.pl.hp); this.updateHearts(); return; }   // (squashed, pits... nothing kills him after the boss)
+    if (this.runToque && this.runToque()) return;           // (v3.06) the camp's SPARE TOQUE
     buzz([120, 60, 250]); Sound.sfx('ouchBig');
     this.state = 'dead';
     Sound.jet(false); Sound.music('lose');
@@ -5696,7 +5697,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, RunOverScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, RunHubScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

@@ -1880,3 +1880,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Between planets: choose the next planet at the forks, visit the shop (no lucky wheel, no extra lives on sale), or give up.
 - Run summary on death / victory / quit: planets cleared, score, rats, cheddar, time, perks; best run kept on the device (lc_run_best).
 - Found guns come with you; cheddar, upgrades and perks are for that run only.
+
+### v3.06 - MOON CAMP (run mode's home)
+- RUN MODE now opens on MOON CAMP (src/runhub.js): the title screen's world made walkable - the top of the Gruyere Globe under the purple sky, the run's planets hanging in the sky. Walk with left/right (or tap where to go / tap a station); UP / E / ENTER / pad A uses the station you're at, SPACE jumps.
+- Stations: SIGNPOST (main menu), NOTICEBOARD (best run, runs, wins, last run), LUNCHBOX (pack a starter perk: Spicy Sandwich = Hot Sauce, Spring-Loaded Socks = Rocket Boots, then Piggy Purse / Lucky Fork / Bessie's Bell / Glass Flask unlock as your best run reaches planets 2-5), CAMPFIRE (how runs work), FRIDGE-O-TRON (the Larder), CHEESE ROCKET (launch: he climbs in, it shakes and blasts off).
+- GOLDEN CRUMBS (kept for good, lc_crumbs): every run pays 8 per planet + 1 per 10 rats + 1 per 50 cheddar (+20 for winning). Spent at FRIDGE-O-TRON'S LARDER on permanent run upgrades: Hearty Breakfast (+1 heart, x2), Nest Egg (+40 cheddar, x3), Thick Rind (start in Black Rind Mk I), Spare Toque (once a run a fatal hit leaves you on half hearts, x2), Lucky Dice (perk reroll, x2), Bigger Menu (4 perk cards).
+- Every run ends back at camp: Chris drops out of the sky by the fire with a thump and the run's summary card pops up (planets, score, rats, cheddar, time, perks, crumbs counting up). The old separate summary screen is gone.

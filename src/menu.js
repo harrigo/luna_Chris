@@ -213,9 +213,9 @@ class MenuScene extends Phaser.Scene {
   }
   startRun() {                                      // (v3.05) a roguelite run (run.js): the campaign is put aside until it ends
     if (this.going) return; this.going = true;
-    Run.start(this.registry); Sound.sfx('power');
+    Sound.sfx('power');
     this.cameras.main.fadeOut(200, 0, 0, 0);
-    this.time.delayedCall(230, () => this.scene.start('runpick', { phase: 'route' }));
+    this.time.delayedCall(230, () => this.scene.start('runhub'));     // (v3.06) to the MOON CAMP
   }
   go() {
     if (this.going) return; this.going = true;

@@ -21,6 +21,41 @@ const RUN_PERKS = [
   { id: 'vamp',   name: 'CHEESE VAMPIRE', sub: 'MUNCH', icon: 'pu_ears', desc: 'Every 10 rats you squash mends a heart.', once: true },
   { id: 'life',   name: 'SECOND HELPING', sub: '+1 LIFE', icon: 'c_head', desc: 'One more go at a planet if you get grated.', can: (s, sc) => sc.lives < 2, act: (s, reg) => { reg.set('lives', (reg.get('lives') || 0) + 1); } }
 ];
+// ---------------------------------------------------------------- MOON CAMP meta-progression (v3.06)
+// GOLDEN CRUMBS are earned at the end of every run (win or lose) and kept for good. Fridge-o-tron trades them at camp
+// for LARDER upgrades that every future run starts with. The LUNCHBOX packs one starter perk for the next run.
+const LARDER = [
+  { id: 'hearty', name: 'HEARTY BREAKFAST', desc: 'Start every run with +1 heart.', cost: [30, 80] },
+  { id: 'purse',  name: 'NEST EGG',         desc: 'Start every run with +40 cheddar.', cost: [15, 35, 60] },
+  { id: 'rind',   name: 'THICK RIND',       desc: 'Start every run in Black Rind Mk I.', cost: [45] },
+  { id: 'toque',  name: 'SPARE TOQUE',      desc: 'Once a run, a fatal hit leaves you on half hearts.', cost: [50, 120] },
+  { id: 'dice',   name: 'LUCKY DICE',       desc: 'Reroll a perk offer once per run.', cost: [25, 60] },
+  { id: 'menu4',  name: 'BIGGER MENU',      desc: 'Perk offers show 4 cards, not 3.', cost: [100] }
+];
+const KITS = [
+  { id: 'none',   name: 'NOTHING',            desc: 'Travel light.', need: 0 },
+  { id: 'sauce',  name: 'SPICY SANDWICH',     desc: 'Start with HOT SAUCE forever.', perk: 'sauce', need: 0 },
+  { id: 'boots',  name: 'SPRING-LOADED SOCKS', desc: 'Start with ROCKET BOOTS forever.', perk: 'boots', need: 0 },
+  { id: 'wallet', name: 'PIGGY PURSE',        desc: 'Start with FAT WALLET.', perk: 'wallet', need: 1 },
+  { id: 'magnet', name: 'LUCKY FORK',         desc: 'Start with the MAGNET FORK.', perk: 'magnet', need: 2 },
+  { id: 'vamp',   name: "BESSIE'S BELL",      desc: 'Start as a CHEESE VAMPIRE.', perk: 'vamp', need: 3 },
+  { id: 'glass',  name: 'GLASS FLASK',        desc: 'Start with GLASS CHEESE. Brave.', perk: 'glass', need: 4 }
+];
+const Meta = {
+  _j(k, d) { try { return JSON.parse(localStorage.getItem(k) || 'null') || d; } catch (e) { return d; } },
+  _s(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } },
+  crumbs() { return this._j('lc_crumbs', 0); },
+  addCrumbs(n) { this._s('lc_crumbs', Math.max(0, this.crumbs() + n)); },
+  larder() { return this._j('lc_larder', {}); },
+  lv(id) { return this.larder()[id] || 0; },
+  buy(u) { const L = this.larder(), lv = L[u.id] || 0, c = u.cost[lv]; if (c === undefined || this.crumbs() < c) return false; this.addCrumbs(-c); L[u.id] = lv + 1; this._s('lc_larder', L); return true; },
+  stats() { return this._j('lc_run_stats', { runs: 0, wins: 0, kills: 0, planets: 0 }); },
+  bestPlanets() { const b = Run.best(); return b ? b.planets : 0; },
+  kitOk(k) { return this.bestPlanets() >= k.need; },
+  kit() { const id = this._j('lc_kit', 'none'), k = KITS.find(q => q.id === id); return k && this.kitOk(k) ? k : KITS[0]; },
+  setKit(id) { this._s('lc_kit', id); }
+};
+
 function runGun() { let i = 0; try { i = +(localStorage.getItem('lc_weapon') || 0); } catch (e) { /* ignore */ } return WEAPONS[i] || WEAPONS[0]; }
 
 const Run = {
@@ -30,9 +65,12 @@ const Run = {
     const keep = {}; for (const k of Object.keys(reg.getAll())) if (k.startsWith('oneup_')) keep[k] = reg.get(k);
     this.saved = { shop: reg.get('shop'), lives: reg.get('lives'), gunLv: reg.get('gunLv'), bonusHeart: reg.get('bonusHeart'), oneups: keep };
     for (const k of Object.keys(keep)) reg.remove(k);
-    reg.set('shop', { coins: RUN_START_CHEDDAR, armMk: 0, armHp: 0, boots: 0, tank: 0, hearts: 0, spins: 0, chips: {} });
+    const L = Meta.larder();
+    reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
-    Object.assign(this, { on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [] });
+    Object.assign(this, { atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
+    if (kp) this.take(reg, kp);
   },
   // hand the campaign back exactly as it was
   restore(reg) {
@@ -47,11 +85,16 @@ const Run = {
   stages() { return RUN_ROUTE.length; },
   // the run's summary, and the best run on this device ({ planets, score })
   finish(reg, how) {
-    const sum = { how, planets: this.done.length, done: this.done.slice(), score: this.score, earned: this.earned, kills: this.kills, time: (Date.now() - this.t0) / 1000, perks: this.picked.slice() };
+    const sum = { how, at: this.atLv || 0, planets: this.done.length, done: this.done.slice(), score: this.score, earned: this.earned, kills: this.kills, time: (Date.now() - this.t0) / 1000, perks: this.picked.slice() };
     const b = this.best();
     sum.newBest = !b || sum.planets > b.planets || (sum.planets === b.planets && sum.score > b.score);
     if (sum.newBest && how !== 'quit') try { localStorage.setItem('lc_run_best', JSON.stringify({ planets: sum.planets, score: sum.score })); } catch (e) { /* ignore */ }
     if (how === 'quit') sum.newBest = false;
+    // GOLDEN CRUMBS for the camp: 8 a planet, a crumb per 10 rats, one per 50 cheddar, +20 for the lot
+    sum.crumbs = sum.planets * 8 + Math.floor(sum.kills / 10) + Math.floor(sum.earned / 50) + (how === 'won' ? 20 : 0);
+    Meta.addCrumbs(sum.crumbs);
+    const st = Meta.stats(); st.runs++; if (how === 'won') st.wins++; st.kills += sum.kills; st.planets += sum.planets; Meta._s('lc_run_stats', st);
+    Meta._s('lc_run_last', { how, planets: sum.planets, at: sum.at || 0 });
     this.restore(reg);
     return sum;
   },
@@ -66,7 +109,7 @@ const Run = {
     const s = Shop.get(reg), lv = { hp: Math.min(CFG.heartCap, CFG.maxHp + (s.hearts || 0) + (s.burgers || 0)) - this.hpPenalty(), lives: reg.get('lives') || 0 };
     const pool = RUN_PERKS.filter(p => !(p.once && this.perks[p.id]) && (!p.can || p.can(s, lv)));
     for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    return pool.slice(0, 3);
+    return pool.slice(0, this.cards || 3);
   },
   take(reg, p) {
     this.perks[p.id] = (this.perks[p.id] || 0) + 1; this.picked.push(p.id);
@@ -113,16 +156,25 @@ function runInstall(L) {
     runLost() {
       if (this.leavingGO) return; this.leavingGO = true;
       Run.score += this.score;
-      const sum = Run.finish(this.registry, 'died'); sum.at = this.levelId;
+      Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'died');
       this.cameras.main.fadeOut(900, 0, 0, 0);
-      this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('runover', sum); });
+      this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('runhub', { sum }); });
+    },
+    // SPARE TOQUE (camp larder): once a run, a fatal hit leaves him on half his hearts instead. true = saved
+    runToque() {
+      if (!Run.on || !(Run.toques > 0) || this.state !== 'play') return false;
+      Run.toques--;
+      const P = this.pl; P.hp = Math.max(1, Math.ceil(this.maxHp / 2)); P.invuln = 2.5; this.updateHearts();
+      Sound.sfx('power'); this.cameras.main.flash(250, 255, 240, 200); this.slowT = 0.6;
+      this.banner('SPARE TOQUE!' + (Run.toques ? '\n(' + Run.toques + ' LEFT)' : ''));
+      return true;
     },
     // leave the level for 'select' / 'menu' - or, mid-run, give the run up
     leaveTo(key) {
       if (!Run.on) { this.scene.start(key); return; }
       Run.score += this.score;
-      const sum = Run.finish(this.registry, 'quit'); sum.at = this.levelId;
-      Sound.music(null); this.scene.start('runover', sum);
+      Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'quit');
+      Sound.music(null); this.scene.start('runhub', { sum });
     }
   });
 }
@@ -167,7 +219,7 @@ class RunScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this); makeShopTextures(this); makePowerupTextures(this);
     Sound.init();
     if (!Run.on) { this.scene.start('menu'); return; }
-    if (Run.idx >= Run.stages()) { this.scene.start('runover', Run.finish(this.registry, 'won')); return; }
+    if (Run.idx >= Run.stages()) { this.scene.start('runhub', { sum: Run.finish(this.registry, 'won') }); return; }
     this.cameras.main.fadeIn(220, 0, 0, 0);
     this.going = false; this.sel = 0; this.t = 0;
     if (this.phase === 'perk') { this.offer = Run.offer(this.registry); if (!this.offer.length) this.phase = 'route'; }
@@ -241,7 +293,7 @@ class RunScene extends Phaser.Scene {
     this.sel = Math.min(this.sel, this.hits.length - 1);
   }
   buildPerks(W, y0, y1, small) {
-    const f = RUN_UI.f, n = this.offer.length, cw = Math.min(210, (W - 40 - (n - 1) * 16) / n), ch = Math.min(230, y1 - y0);
+    const f = RUN_UI.f, n = this.offer.length, cw = Math.min(210, (W - 40 - (n - 1) * 16) / n), ch = Math.min(230, y1 - y0 - (Run.dice > 0 ? 40 : 0));
     const x0 = W / 2 - (n * cw + (n - 1) * 16) / 2;
     this.cards = [];
     this.offer.forEach((p, i) => {
@@ -255,6 +307,12 @@ class RunScene extends Phaser.Scene {
       this.cards.push({ x, y, w: cw, h: ch, icon, iy: icon.y });
       this.hits.push({ x, y, w: cw, h: ch, act: () => this.pickPerk(p, i) });
     });
+    if (Run.dice > 0) {                                  // LUCKY DICE (camp larder)
+      const bw = 170, bh = 22, bx = W / 2 - bw / 2, by = y0 + ch + 12, g = this.add.graphics(); this.ui.add(g);
+      RUN_UI.panel(g, bx, by, bw, bh, 0xc9cde0, 0x1d2a5a);
+      this.ui.add(this.add.text(bx + bw / 2, by + bh / 2, 'REROLL (' + Run.dice + ')', f(9, '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
+      this.hits.push({ x: bx, y: by, w: bw, h: bh, act: () => { if (this.going) return; Run.dice--; Sound.sfx('zing'); this.offer = Run.offer(this.registry); this.build(); } });
+    }
   }
   pickPerk(p, i) {
     if (this.going) return;
@@ -288,7 +346,7 @@ class RunScene extends Phaser.Scene {
     });
     // buttons: SHOP / GIVE UP
     const bw = small ? 120 : 140, by = y1 - btnH + 4;
-    [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('runover', sum)); }]].forEach(([lab, act], i) => {
+    [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('runhub', { sum })); }]].forEach(([lab, act], i) => {
       const x = W / 2 + (i ? 12 : -12 - bw), g = this.add.graphics(); this.ui.add(g);
       RUN_UI.panel(g, x, by, bw, btnH - 6, i ? 0x8a5a6a : 0xc9cde0, i ? 0x2a1424 : 0x1d2a5a);
       this.ui.add(this.add.text(x + bw / 2, by + (btnH - 6) / 2, lab, f(9, i ? '#ff9db8' : '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
@@ -306,72 +364,5 @@ class RunScene extends Phaser.Scene {
       g.lineStyle(3, 0xffd23f, 0.75 + 0.25 * Math.sin(this.t * 6)).strokeRect(h.x - 5, h.y - 5, h.w + 10, h.h + 10);
     }
     if (this.cards) this.cards.forEach((c, i) => { if (c.icon && c.iy !== undefined) c.icon.y = c.iy + (i === this.sel ? Math.sin(this.t * 4) * 3 : 0); });
-  }
-}
-
-// ---------------------------------------------------------------- the run summary
-class RunOverScene extends Phaser.Scene {
-  constructor() { super('runover'); }
-  init(data) { this.sum = data || {}; }
-  create() {
-    makeTextures(this); makeLevelTextures(this); makeShopTextures(this); makePowerupTextures(this);
-    Sound.init();
-    this.cameras.main.fadeIn(300, 0, 0, 0);
-    this.t = 0; this.going = false; this.starsD = RUN_UI.stars(this);
-    this.bg = this.add.graphics().setDepth(0); this.ui = this.add.container(0, 0).setDepth(1); this.selG = this.add.graphics().setDepth(2);
-    this.sel = 0;
-    const S = this.sum;
-    if (S.how === 'won') { Sound.music('win'); Sound.say('woohoo', { force: true }); }
-    this.build(); this.scale.on('resize', this.build, this); this.events.once('shutdown', () => this.scale.off('resize', this.build, this));
-    const kb = this.input.keyboard;
-    if (kb) { kb.on('keydown-LEFT', () => this.move(-1)); kb.on('keydown-RIGHT', () => this.move(1)); kb.on('keydown-ENTER', () => this.hits[this.sel].act()); kb.on('keydown-SPACE', () => this.hits[this.sel].act()); kb.on('keydown-ESC', () => this.hits[1].act()); }
-    const padOff = Pad.on(b => { if (b === 'left' || b === 'up') this.move(-1); else if (b === 'right' || b === 'down') this.move(1); else if (b === 'a') this.hits[this.sel].act(); else if (b === 'b') this.hits[1].act(); });
-    this.events.once('shutdown', padOff);
-    this.input.on('pointerup', p => { const i = this.hits.findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (i >= 0) { this.sel = i; this.hits[i].act(); } });
-  }
-  move(d) { this.sel = (this.sel + d + 2) % 2; Sound.sfx('jump'); }
-  build() {
-    const W = this.scale.width, H = this.scale.height, f = RUN_UI.f, S = this.sum, small = H < 430;
-    this.ui.removeAll(true); this.hits = [];
-    const title = S.how === 'won' ? 'RUN COMPLETE!' : S.how === 'quit' ? 'RUN ABANDONED' : 'GRATED!';
-    this.ui.add(this.add.text(W / 2, small ? 14 : 30, title, f(small ? 20 : 26, S.how === 'won' ? '#ffd23f' : '#ff7a5a', { stroke: '#1a1020', strokeThickness: 6 })).setOrigin(0.5, 0));
-    const sub = S.how === 'won' ? 'Five planets, one life. Bessie salutes you.' : S.how === 'quit' ? 'Chris heads home for a nap.' : 'The run ends on ' + ((LEVELS[S.at] && (LEVELS[S.at].short || LEVELS[S.at].name)) || 'a cold rock') + '.';
-    this.ui.add(this.add.text(W / 2, small ? 44 : 66, sub, f(8, '#e8ecf8', { strokeThickness: 3 })).setOrigin(0.5, 0));
-    // the planets cleared
-    const n = RUN_ROUTE.length, gap = Math.min(64, (W - 60) / n), py = small ? 84 : 116;
-    const g = this.add.graphics(); this.ui.add(g);
-    for (let i = 0; i < n; i++) {
-      const x = W / 2 + (i - (n - 1) / 2) * gap, id = (S.done || [])[i];
-      if (id) { for (const o of RUN_UI.planetImg(this, id, x, py, 18)) this.ui.add(o); }
-      else { g.lineStyle(2, 0x3a4270, 1).strokeCircle(x, py, 18); this.ui.add(this.add.text(x, py, '?', f(10, '#3a4270', { strokeThickness: 0 })).setOrigin(0.5)); }
-    }
-    const mm = Math.floor((S.time || 0) / 60), ss = String(Math.floor((S.time || 0) % 60)).padStart(2, '0');
-    const best = Run.best();
-    const lines = ['PLANETS  ' + (S.planets || 0) + '/' + n, 'SCORE  ' + (S.score || 0), 'RATS SQUASHED  ' + (S.kills || 0) + '     CHEDDAR  ' + (S.earned || 0), 'TIME  ' + mm + ':' + ss,
-      S.newBest ? 'NEW BEST RUN!' : (best ? 'BEST: ' + best.planets + ' PLANETS, ' + best.score : '')];
-    let y = py + (small ? 30 : 40);
-    lines.forEach((l, i) => { this.ui.add(this.add.text(W / 2, y, l, f(i === 4 ? 9 : 8, i === 4 ? (S.newBest ? '#7dff8a' : '#9aa4c8') : '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); y += small ? 15 : 19; });
-    // the perks taken
-    const pk = S.perks || [];
-    if (pk.length) {
-      const pw = 28, x0 = W / 2 - (pk.length - 1) * pw / 2;
-      pk.forEach((id, i) => { const p = RUN_PERKS.find(q => q.id === id); if (p) this.ui.add(RUN_UI.fit(this.add.image(x0 + i * pw, y + 10, RUN_UI.iconFor(this, p)), 22)); });
-      y += 26;
-    }
-    const bw = 150, bh = 24, by = Math.min(H - bh - 10, y + 10);
-    [['RUN AGAIN', () => this.again()], ['MENU', () => this.toMenu()]].forEach(([lab, act], i) => {
-      const x = W / 2 + (i ? 10 : -10 - bw), gg = this.add.graphics(); this.ui.add(gg);
-      RUN_UI.panel(gg, x, by, bw, bh, 0xc9cde0, 0x1d2a5a);
-      this.ui.add(this.add.text(x + bw / 2, by + bh / 2, lab, f(9, '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5));
-      this.hits.push({ x, y: by, w: bw, h: bh, act });
-    });
-  }
-  again() { if (this.going) return; this.going = true; Sound.sfx('power'); Run.start(this.registry); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('runpick', { phase: 'route' })); }
-  toMenu() { if (this.going) return; this.going = true; Sound.music(null); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('menu')); }
-  update(time, dms) {
-    this.t += Math.min(0.05, dms / 1000);
-    RUN_UI.drawStars(this.bg, this.starsD, this.scale.width, this.scale.height, this.t);
-    const g = this.selG, h = this.hits && this.hits[this.sel]; g.clear();
-    if (h) g.lineStyle(3, 0xffd23f, 0.75 + 0.25 * Math.sin(this.t * 6)).strokeRect(h.x - 5, h.y - 5, h.w + 10, h.h + 10);
   }
 }
