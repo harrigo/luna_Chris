@@ -280,14 +280,15 @@ const CampMixin = {
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc;
-      const a = { spr, theta: d.theta, h: d.h || 0, rot: 0 }; this.actors.push(a); return Object.assign({}, d, { a }); });
-    for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; this.actors.push({ spr, theta, h, rot: 0 }); }
+      const a = { spr, theta: d.theta, h: (d.h || 0) - this.campSink(spr, d.sc), rot: 0 }; this.actors.push(a); return Object.assign({}, d, { a }); });
+    for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -0.84, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
+    this.campFolkInit();
     this.campGlow = this.add.image(0, 0, 'puff').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
     this.campLightG = this.add.graphics().setDepth(2.5);
     const f = RUN_UI.f;
     this.campPrompt = this.add.text(0, 0, '', f(9, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 7, y: 5 } })).setOrigin(0.5, 1).setDepth(19).setVisible(false).setInteractive({ useHandCursor: true });
-    this.campPrompt.on('pointerup', () => { const s = this.campNear(); if (s) this.campUse(s); });
+    this.campPrompt.on('pointerup', () => { const s = this.campTarget(); if (s) this.campUse(s); });
     this.campName = this.add.text(0, 0, '', f(8, '#ffffff', { strokeThickness: 4 })).setOrigin(0.5, 1).setDepth(19);
     this.campBubble = this.add.text(0, 0, '', f(7, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: '#f4f0e0', padding: { x: 6, y: 5 }, align: 'center', wordWrap: { width: 180 } })).setOrigin(0.5, 1).setDepth(18.5).setVisible(false);
     this.campHud = this.add.container(0, 0).setDepth(21);
@@ -296,6 +297,15 @@ const CampMixin = {
     const P = this.pl; P.theta = this.campSum ? 0.24 : -0.02;
     if (this.campSum) { P.h = 640; P.vh = -120; this.time.delayedCall(1500, () => this.campShowCard()); }
     else this.time.delayedCall(900, () => this.campSay(this.campLine, 4.5));
+  },
+  // a flat-bottomed sprite on a round moon: drop it by the curve's sag under its half-width so its ends touch down
+  campSink(spr, sc) { const hw = spr.width * sc / 2; return hw * hw / (2 * R) * 0.9; },
+  // whatever Chris is standing at: one of the folk (to TALK to) or a station
+  campTarget() {
+    if (this.campPanel || this.campGo || this.campCard || this.campChat) return null;
+    const s = this.campNear(), fN = this.campFolk && this.campFolkNear();
+    if (fN && (!s || fN.d < Math.abs(angDiff(this.pl.theta, s.theta)) * R)) return fN.F;
+    return s;
   },
   campHudBuild() {
     const f = RUN_UI.f, W = this.scale.width; this.campHud.removeAll(true);
@@ -324,8 +334,9 @@ const CampMixin = {
   },
   campUpdate(dt, inp) {
     this.campCool = Math.max(0, this.campCool - dt);
-    const near = this.campPanel || this.campGo ? null : this.campNear();
-    if (inp.down && !this.campDownHeld && near && this.campCool <= 0 && !this.campCard) this.campUse(near);
+    const near = this.campTarget();
+    if (inp.down && !this.campDownHeld && near && this.campCool <= 0) this.campUse(near);
+    this.campFolkUpdate(dt);
     this.campDownHeld = !!inp.down;
     // the fire: sparks and smoke
     this.campSparkT -= dt;
@@ -362,12 +373,14 @@ const CampMixin = {
         g.fillStyle(c, on ? 0.25 : 0).fillCircle(p.x, p.y + 4 * z, 7 * z); g.fillStyle(on ? c : 0x3a3040, 1).fillCircle(p.x, p.y + 4 * z, 3 * z); }
     });
     // the station under Chris: its name, and the USE prompt
-    const near = this.campPanel || this.campGo || this.campCard ? null : this.campNear(), dev = inputDevice();
+    this.campFolkDraw();
+    const near = this.campTarget(), dev = inputDevice();
     if (near) {
       const sp = this.screenPos(this.pl.theta, this.pl.h + 118);                 // just over Chris's hat
       this.campPrompt.setText((dev === 'touch' ? 'TAP: ' : dev === 'pad' ? 'DOWN: ' : '[S] / [DOWN]: ') + near.verb).setVisible(true).setPosition(Math.max(110, Math.min(this.W - 110, sp.x)), Math.max(70, sp.y + Math.sin(t * 5) * 2));
       this.campName.setText(near.name).setVisible(true).setPosition(sp.x, this.campPrompt.y - this.campPrompt.height - 2);
     } else { this.campPrompt.setVisible(false); this.campName.setVisible(false); }
+    if (this.campChat || this.campPanel) this.campBubble.setVisible(false);
     if (this.campBubble.visible) { const b = this.campBot.spr.getBounds(); this.campBubble.setPosition(Math.max(100, Math.min(this.W - 100, b.centerX)), this.campPrompt.visible ? Math.min(b.y - 4, this.campName.y - this.campName.height - 6) : b.y - 4).setAlpha(this.campBot.spr.visible ? 1 : 0); }
     if (this.campGo && this.campGo.t > 0.15) this.rig.root.setAlpha(0);
   },
@@ -377,7 +390,8 @@ const CampMixin = {
     this.campPanel = makeShelf(this, Object.assign({}, opts, { onClose: () => { this.campPanel = null; this.state = 'play'; this.campCool = 0.35; this.campDownHeld = true; this.campHudBuild(); if (opts.onClose) opts.onClose(); } }));
   },
   campUse(st) {
-    if (this.campPanel || this.campGo || this.campCard) return;
+    if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
+    if (st.folk) { this.campTalk(st); return; }
     Sound.sfx('pickup');
     ({ sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket() })[st.id]();
   },
