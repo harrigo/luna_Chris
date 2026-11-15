@@ -158,6 +158,7 @@ function makeMenu(scene, opt) {
 class MenuScene extends Phaser.Scene {
   constructor() { super('menu'); }
   create() {
+    if (typeof Run !== 'undefined' && Run.on) Run.restore(this.registry);   // (v3.05) never leave a run's state lying about
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
@@ -183,6 +184,7 @@ class MenuScene extends Phaser.Scene {
     ] : [
       { label: () => 'NEW GAME', act: () => this.newGame() }
     ]).concat([
+      { label: () => 'RUN MODE', act: () => this.startRun() },
       { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
     ]).concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
@@ -208,6 +210,12 @@ class MenuScene extends Phaser.Scene {
     try { for (const k of Object.keys(localStorage)) if (/^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins|weapon|testmode)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
     this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); if (typeof Shop !== 'undefined') Shop.reset(this.registry);
     Sound.sfx('power'); this.go();
+  }
+  startRun() {                                      // (v3.05) a roguelite run (run.js): the campaign is put aside until it ends
+    if (this.going) return; this.going = true;
+    Run.start(this.registry); Sound.sfx('power');
+    this.cameras.main.fadeOut(200, 0, 0, 0);
+    this.time.delayedCall(230, () => this.scene.start('runpick', { phase: 'route' }));
   }
   go() {
     if (this.going) return; this.going = true;

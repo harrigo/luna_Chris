@@ -331,11 +331,12 @@ class ShopScene extends Phaser.Scene {
     { const hN = s.hearts || 0;
       if (hN < 2) L.push({ name: 'EXTRA HEART ' + (hN + 1), label: 'EXTRA HEART', icon: 'hud_cheese', pips: [hN, 2], desc: 'You have ' + (CFG.maxHp + hN + (s.burgers || 0)) + '. This makes it ' + (CFG.maxHp + hN + (s.burgers || 0) + 1) + '. (Cheeseburgers add more.)', cost: SHOP.heartCost[hN + 1], act: q => { q.hearts = hN + 1; } });
       else L.push({ name: 'EXTRA HEART 2', label: 'EXTRA HEART', icon: 'hud_cheese', pips: [2, 2], desc: 'Sold out. Eat cheeseburgers for more.', cost: 0, max: true }); }
-    L.push({ name: 'EXTRA LIFE', label: 'EXTRA LIFE', icon: 'c_head', desc: 'You have ' + lives + '. (' + CFG.maxLives + ' at most.)', cost: SHOP.lifeCost, max: lives >= CFG.maxLives, act: () => { reg.set('lives', Math.min(CFG.maxLives, (reg.get('lives') || 0) + 1)); } });
+    if (!(typeof Run !== 'undefined' && Run.on)) L.push({ name: 'EXTRA LIFE', label: 'EXTRA LIFE', icon: 'c_head', desc: 'You have ' + lives + '. (' + CFG.maxLives + ' at most.)', cost: SHOP.lifeCost, max: lives >= CFG.maxLives, act: () => { reg.set('lives', Math.min(CFG.maxLives, (reg.get('lives') || 0) + 1)); } });
     return L;
   }
   // ---- the lucky wheel (v2.53: a lever, respins, Chris sweating it out, and a rugged look: caged work lamps, steel, rust)
-  startSpin() {                                          // open the wheel and pull the lever straight away
+  startSpin() {
+    if (typeof Run !== 'undefined' && Run.on) { Sound.sfx('clunk'); this.say('NO GAMBLING ON A RUN, CHEF.'); return; }                                          // open the wheel and pull the lever straight away
     if (this.going) return;
     if (!this.spin) {
       if (Shop.spinsLeft() <= 0) { Sound.sfx('clunk'); this.say('NO SPINS LEFT. EVERY GOLDEN WHEEL YOU FIND IS ONE SPIN.'); return; }
@@ -560,7 +561,7 @@ class ShopScene extends Phaser.Scene {
     this.say(['PLEASURE DOING BUSINESS.', 'A FINE CHOICE.', 'NO REFUNDS.', 'MIND THE RATS.'][Math.floor(Math.random() * 4)]);
     this.build();
   }
-  back() { if (!this.going) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(180, 0, 0, 0); this.time.delayedCall(200, () => this.scene.start('select')); } }
+  back() { if (!this.going) { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(180, 0, 0, 0); this.time.delayedCall(200, () => this.scene.start(typeof Run !== 'undefined' && Run.on ? 'runpick' : 'select', { phase: 'route' })); } }
   build() {
     const W = this.scale.width, H = this.scale.height, s = Shop.get(this.registry);
     this.ui.removeAll(true);

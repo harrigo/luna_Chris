@@ -2429,7 +2429,7 @@ class WeaponScene extends Phaser.Scene {
     this.time.delayedCall(280, () => this.scene.start('level1', { level: this.levelId, direct: true }));
   }
 
-  back() { if (!this.going) { this.going = true; this.scene.start('select'); } }
+  back() { if (!this.going) { this.going = true; this.scene.start(typeof Run !== 'undefined' && Run.on ? 'runpick' : 'select', { phase: 'route' }); } }
 
   build() {
     const W = this.scale.width, H = this.scale.height;

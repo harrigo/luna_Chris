@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.04';
+const BUILD = 'v3.05';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -207,7 +207,7 @@ class Level1 extends Phaser.Scene {
     this.runT0 = (data && data.runT) || 0;                       // time already spent before the last death
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
-    this.waves = this.def.waves.concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);   // the boss (and its tune) lands just after the fill's crash
+    this.waves = (Run.on ? Run.trimWaves(this.def.waves) : this.def.waves).concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);   // the boss (and its tune) lands just after the fill's crash
   }
 
   // ------------------------------------------------------------------ setup
@@ -504,7 +504,7 @@ class Level1 extends Phaser.Scene {
     this.zoneSprs = [];
     // SECRET WARP: a dull black hole in the sky + floating junk to smash (see LEVELS[n].warp)
     this.warp = null; this.relics = []; this.warpK = 1;
-    const wd = this.def.warp;
+    const wd = !Run.on && this.def.warp;        // (v3.05: no secret warps on a run)
     if (wd) {
       makeWarpTextures(this);
       const glow = this.add.image(0, 0, 'puff').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
@@ -571,24 +571,24 @@ class Level1 extends Phaser.Scene {
       if (this.paused || Board.open) return;            // taps go to the pause menu / the high-score box
       if (p.x > this.W - 74 && p.y > 92 && p.y < 118 && (this.state === 'play' || this.state === 'rescue')) { this.togglePause(); return; }   // PAUSE button
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
-      if (p.x > this.W - 74 && p.y > 70 && p.y <= 92) { this.scene.start('select'); return; }   // MENU button
+      if (p.x > this.W - 74 && p.y > 70 && p.y <= 92) { this.leaveTo('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
-      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
+      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start(Run.on ? 'runpick' : 'select', { phase: 'perk' });
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     // controller: A/Start = start / retry / continue, View (back) = level menu
     const padOff = Pad.on(b => {
       if (Board.open) return;                           // the high-score box has the controller
-      if (b === 'back') { this.scene.start('select'); return; }
+      if (b === 'back') { this.leaveTo('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
       if (this.paused) return;                          // the pause menu handles its own buttons
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
-      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start('select');
+      else if (this.state === 'won' && this.t - this.endT > 0.8) this.scene.start(Run.on ? 'runpick' : 'select', { phase: 'perk' });
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
     });
     this.events.once('shutdown', padOff);
@@ -783,7 +783,7 @@ class Level1 extends Phaser.Scene {
   }
 
   get lives() { return this.registry.get('lives') || 0; }
-  get maxHp() { const q = Shop.get(this.registry); return Math.min(CFG.heartCap, CFG.maxHp + (q.hearts || 0) + (q.burgers || 0)); }   // (v2.49: + a heart for every level's cheeseburger eaten this game)
+  get maxHp() { const q = Shop.get(this.registry); return Math.max(1, Math.min(CFG.heartCap, CFG.maxHp + (q.hearts || 0) + (q.burgers || 0)) - Run.hpPenalty()); }   // (v2.49: + a heart for every level's cheeseburger eaten this game)
   // GUN LEVELS (1-4, per gun): Parmesan raises the gun in your hands a level; losing a life puts them all back to 1
   // a gun's level: what the shop (START CHIPS) and the Lucky Wheel have given it for good, +1 while PARMESAN POWER runs (15 s)
   gunLvBase(id) { const g = this.registry.get('gunLv'); return Math.max((g && g[id]) || 1, 1 + Shop.chip(this.registry, id)); }
@@ -1115,11 +1115,11 @@ class Level1 extends Phaser.Scene {
     Sound.intensity(this.musicTier(this.waveIdx));                            // the tune builds wave by wave (already there if a fill led in)
     // checkpoints: halfway through the waves, and just before the boss
     const half = Math.max(1, Math.floor((this.waves.length - 1) / 2)), isCp = this.waveIdx === half || this.waveIdx === this.waves.length - 1 || (Settings.diff === 'easy' && this.waveIdx > 0);
-    if (isCp && !this.resumed && (!this.cp || this.cp.wave < this.waveIdx)) {
+    if (isCp && !Run.on && !this.resumed && (!this.cp || this.cp.wave < this.waveIdx)) {
       this.cp = { wave: this.waveIdx, score: this.score, power: this.gotPower };
       Sound.sfx('shine');
     }
-    this.banner((this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed ? '\nCHECKPOINT!' : ''));
+    this.banner((Run.on && this.waveIdx === 0 ? 'RUN ' + (Run.idx + 1) + '/' + Run.stages() + ': ' + (this.def.short || this.def.name) + '\n' : '') + (this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed && !Run.on ? '\nCHECKPOINT!' : ''));
     if (this.waveIdx > 0 && this.waveIdx < this.waves.length - 1) Sound.sfx('wave');
     if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard') {      // a breather: a cheese wedge drops in between waves when you're hurt
       this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
@@ -1129,7 +1129,7 @@ class Level1 extends Phaser.Scene {
 
   win() { if (this.def.parm) { this.parmEscape(); return; } this.startRescue(); }   // (L9: the planet splits - run for the Royal Saucer)
   // which arrangement of the level tune a wave gets: 0 the first wave, 2 the last before the boss, 1 the ones between
-  musicTier(i) { const n = this.def.waves.length; return i <= 0 ? 0 : i >= n - 1 ? 2 : 1; }
+  musicTier(i) { const n = this.waves.length - 1; return i <= 0 ? 0 : i >= n - 1 ? 2 : 1; }
 
   // ---- golden cheese wheels: 3 hidden per level, remembered on the device
   //  #1 sits on the highest ledge (or floats mid-air), #2 hangs right up at the jetpack ceiling on the far side,
@@ -1181,6 +1181,7 @@ class Level1 extends Phaser.Scene {
   }
 
   finishWin() {
+    if (Run.on) { this.runWin(); return; }             // (v3.05) a run: no ranks, unlocks or boards
     Progress.beat(this.levelId); Sound.say('woohoo', { force: true });
     this.state = 'won';
     const RK = this.levelRank(), prev = Progress.rank(this.levelId);
@@ -1339,7 +1340,7 @@ class Level1 extends Phaser.Scene {
         this.time.delayedCall(2300, () => {
           this.goReady = true;
           // the run's score still counts if it made the level's online top 10
-          Board.offer(this.levelId, this.score, 'LEVEL ' + this.levelId + ' ' + (this.def.short || this.def.name), () => { if (this.goLeaveLater) this.time.delayedCall(300, () => this.leaveGameOver()); });
+          if (!Run.on) Board.offer(this.levelId, this.score, 'LEVEL ' + this.levelId + ' ' + (this.def.short || this.def.name), () => { if (this.goLeaveLater) this.time.delayedCall(300, () => this.leaveGameOver()); });
         });
       } });
     });
@@ -1347,6 +1348,7 @@ class Level1 extends Phaser.Scene {
     at(11500, () => { if (Board.open) this.goLeaveLater = true; else this.leaveGameOver(); });
   }
   leaveGameOver() {
+    if (Run.on) { this.runLost(); return; }
     if (this.leavingGO) return;
     this.leavingGO = true;
     for (const k of Object.keys(this.registry.getAll())) if (k.startsWith('oneup_')) this.registry.remove(k);   // a fresh game next time
@@ -1571,7 +1573,7 @@ class Level1 extends Phaser.Scene {
         { label: () => 'RESUME', act: d => { if (!d) this.togglePause(); } },
         { label: () => 'CONTROLS', act: d => { if (!d) this.showPauseControls(inputDevice()); } },
         ...optionItems(() => this.applyGfx()),
-        { label: () => 'QUIT TO MENU', act: d => { if (!d) { this.togglePause(); this.scene.start('menu'); } } }
+        { label: () => 'QUIT TO MENU', act: d => { if (!d) { this.togglePause(); this.leaveTo('menu'); } } }
       ] });
     } else if (this.pauseMenu) { this.pauseMenu.destroy(); this.pauseMenu = null; }
   }
@@ -4331,7 +4333,7 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type === 'ppmite' && this.ppMiteBurst) this.ppMiteBurst(e);   // (v2.91) bursts into crystal shards
       if (e.type !== 'boss') this.comboKill();
-      Tel.kill(e);
+      Tel.kill(e); if (Run.on) this.runKill(e);
       this.rig.grin();                                   // (v2.59) a smug grin
       const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, ppminer: 350, ppdyna: 350, ppcart: 400, ppmite: 150, ppslug: 300, ppgolem: 700, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
@@ -5581,7 +5583,8 @@ Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
-if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);   // (v2.97) the labyrinth's rooms
+if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
+runInstall(Level1);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
@@ -5693,7 +5696,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, RunOverScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

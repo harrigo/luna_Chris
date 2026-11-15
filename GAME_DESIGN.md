@@ -1871,3 +1871,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - After a boss dies his cheddar now flies to Chris (it homes in from the air, ~0.7 s after it spills), and the rescue waits for it to land in your pocket (up to 5 s). Coins still about when the rescue starts keep coming (updatePickups runs in the rescue too) instead of freezing in mid-air.
 - Locked guns: the weapon screen no longer says "UNLOCKS AT LEVEL 2/3" (they come out of the bonus rooms): a locked card is just ??? / "Out there somewhere..." / LOCKED. The shop's START CHIP for a gun you haven't found is LOCKED and can't be bought ("FIND THE GUN FIRST. THEN WE TALK.").
 - The TEST LAB telemetry panel sits top-centre under the score (it was over the d-pad); it stays on between levels (it's a saved setting) until HIDE or the map switch.
+
+### v3.05 - RUN MODE (roguelite MVP)
+- New main-menu entry RUN MODE (src/run.js). The campaign's lives / cheddar / shop / gun levels are put aside at the start and handed back untouched when the run ends (also restored if the menu is ever reached mid-run).
+- ONE life, no checkpoints, no secret warps / bonus rooms, no ranks / unlocks / leaderboards. Starts with 60 cheddar and a bare shop.
+- Route: 1 -> (2 or 3) -> 4 -> (5 or 6) -> 7. Each planet is cut to 3 waves (its first, one random middle wave, its last) + the boss.
+- After each boss: pick 1 of 3 perks - Rocket Boots forever, Hot Sauce forever, Magnet Fork, +1 Heart, Black Rind +1 mark, Moon Boots +1, Jet Tank +1, Gun Chip (current gun +1), Fat Wallet (cheddar x1.5), Glass Cheese (hit 50% harder, one heart fewer), Cheese Vampire (10 squashes = a heart), Second Helping (+1 life).
+- Between planets: choose the next planet at the forks, visit the shop (no lucky wheel, no extra lives on sale), or give up.
+- Run summary on death / victory / quit: planets cleared, score, rats, cheddar, time, perks; best run kept on the device (lc_run_best).
+- Found guns come with you; cheddar, upgrades and perks are for that run only.
