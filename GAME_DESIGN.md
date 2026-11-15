@@ -1866,3 +1866,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.04 - TEST LAB panel: out of the way on phones
 - The telemetry panel moved from halfway down the left edge (over the movement stick) to the top-left just under the HUD (top 88px, respects the notch), slightly smaller.
 - It stays on between levels (the switch is remembered on the device until you HIDE it or flip TEST LAB off on the map) - and now refreshes as soon as a new level starts, instead of showing the last level's result until the first wave.
+
+### v3.04 - Boss loot, gun locks, test panel
+- After a boss dies his cheddar now flies to Chris (it homes in from the air, ~0.7 s after it spills), and the rescue waits for it to land in your pocket (up to 5 s). Coins still about when the rescue starts keep coming (updatePickups runs in the rescue too) instead of freezing in mid-air.
+- Locked guns: the weapon screen no longer says "UNLOCKS AT LEVEL 2/3" (they come out of the bonus rooms): a locked card is just ??? / "Out there somewhere..." / LOCKED. The shop's START CHIP for a gun you haven't found is LOCKED and can't be bought ("FIND THE GUN FIRST. THEN WE TALK.").
+- The TEST LAB telemetry panel sits top-centre under the score (it was over the d-pad); it stays on between levels (it's a saved setting) until HIDE or the map switch.

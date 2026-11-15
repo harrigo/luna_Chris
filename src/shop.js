@@ -323,6 +323,7 @@ class ShopScene extends Phaser.Scene {
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {
+      if (!weaponUnlocked(w, Progress.best + 1)) { L.push({ name: 'LOCKED', label: 'LOCKED', icon: w.gunTex, chip: true, desc: 'A gun you haven\'t found yet. Keep your eyes open out there.', cost: 0, max: true, locked: true }); continue; }   // (v3.04)
       const c = Math.max((s.chips || {})[w.id] || 0, this.gunLvOf(w) - 1);   // (v2.49: a level won on the Lucky Wheel counts too, so you can't buy it again)
       if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), label: w.short + ' CHIP', icon: w.gunTex, chip: true, pips: [c, 3], desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: SHOP.chipCost[c + 1], act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
       else L.push({ name: w.short + ' START CHIP 3', label: w.short + ' CHIP', icon: w.gunTex, chip: true, pips: [3, 3], desc: 'Always starts at LEVEL 4.', cost: 0, max: true });
@@ -550,6 +551,7 @@ class ShopScene extends Phaser.Scene {
   buy(i) {
     if (this.going || this.spin) return;
     const it = this.items()[i], reg = this.registry, s = Shop.get(reg); if (!it) return;
+    if (it.locked) { Sound.sfx('clunk'); this.say('FIND THE GUN FIRST. THEN WE TALK.'); return; }
     if (it.max) { Sound.sfx('clunk'); this.say('NOTHING MORE TO SELL YOU THERE.'); return; }
     if (s.coins < it.cost) { Sound.sfx('zing'); this.cameras.main.shake(90, 0.004); this.say('NOT ENOUGH CHEDDAR. THAT IS ' + it.cost + '.'); return; }
     s.coins -= it.cost; it.act(s); Shop.set(reg, s);
@@ -609,11 +611,11 @@ class ShopScene extends Phaser.Scene {
       this.ui.add(gg);
       const tex = this.textures.exists(it.icon) ? it.icon : 'cheddar', fr = this.textures.getFrame(tex), sc = Math.min((tw * 0.5) / fr.width, (th * 0.36) / fr.height, 4);
       const im = this.add.image(x + tw / 2, iy, tex).setScale(sc).setAlpha(it.max ? 0.35 : afford ? 1 : 0.7);
-      if (it.max) im.setTint(0x9098a8);
+      if (it.locked) im.setTint(0x1a1a24); else if (it.max) im.setTint(0x9098a8);
       this.ui.add(im); this.tileIcons.push({ im, y: iy, sc });
       if (it.chip) this.ui.add(this.add.image(x + tw / 2 + fr.width * sc * 0.32, iy + fr.height * sc * 0.3, 'si_chip').setScale(Math.max(1.5, sc * 0.75)).setAlpha(it.max ? 0.4 : 1));
       this.ui.add(this.add.text(x + tw / 2, y + 8, it.label || it.name, f(7, it.max ? '#5a6070' : '#e8e0d0', ink)).setOrigin(0.5, 0));
-      const pt = this.add.text(x + tw / 2 + (it.max ? 0 : 7), py + ph / 2, it.max ? 'MAXED' : String(it.cost), f(8, it.max ? '#5a6070' : afford ? '#ffe27a' : '#ff7a5a', ink)).setOrigin(0.5);
+      const pt = this.add.text(x + tw / 2 + (it.max ? 0 : 7), py + ph / 2, it.locked ? 'LOCKED' : it.max ? 'MAXED' : String(it.cost), f(8, it.max ? '#5a6070' : afford ? '#ffe27a' : '#ff7a5a', ink)).setOrigin(0.5);
       this.ui.add(pt);
       if (!it.max) this.ui.add(this.add.image(pt.x - pt.width / 2 - 8, py + ph / 2, 'cheddar').setScale(1.2));
       this.rows.push({ x, y, w: tw, h: th });

@@ -1496,6 +1496,7 @@ class Level1 extends Phaser.Scene {
     else if (this.state === 'rescue') {
       this.updatePlayer(dt, inp); if (this.pl.pit) this.pitUpdate(dt);
       if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
+      if (this.pickups.length) this.updatePickups(dt);            // (v3.04) any coins still about keep coming - nothing freezes mid-air
       if (this.ppEsc) this.parmEscapeUpdate(dt); else this.updateRescue(dt);
     }
     if (this.nap) this.updateNap(dt);
@@ -3697,7 +3698,9 @@ class Level1 extends Phaser.Scene {
         const more = this.waveIdx >= 0 && this.waveIdx + 1 < this.waves.length;   // not before the first wave: the level starts snappily
         if (!more || !Sound.fill(() => { this.fillDone = true; }, this.musicTier(this.waveIdx + 1), this.waveIdx + 1 === this.waves.length - 1)) this.fillDone = 'none';   // the last fill leads into the boss
       }
-      if (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6) { if (!(this.def.parm && this.parmGate())) this.nextWave(); }   // (v2.90: L9's crust may give way first)
+      // (v3.04) after the boss: his cheddar flies to Chris (bossDown, updatePickups) - wait for it all to land in your pocket (up to 5 s) before the rescue
+      const loot = this.bossDown && this.waveIdx + 1 >= this.waves.length && this.pickups.some(p => p.kind === 'cheddar') && this.clearT < 5;
+      if (!loot && (this.fillDone === true || (this.fillDone === 'none' && this.clearT > 1.4) || this.clearT > 6)) { if (!(this.def.parm && this.parmGate())) this.nextWave(); }   // (v2.90: L9's crust may give way first)
     } else {
       this.clearT = 0;
     }
@@ -4585,7 +4588,8 @@ class Level1 extends Phaser.Scene {
       const p = this.pickups[i];
       const magB = this.buffOn('magnet');               // Magnet Fork (the power-up, or the shop's permanent one with a shorter reach): everything comes to Chris
       p.pull = (magB || this.magOwned) && Math.abs(angDiff(p.theta, P.theta)) * R < (magB ? 420 : 250) && this.state === 'play';
-      if (p.kind === 'cheddar' && this.state === 'play') {   // CHEDDAR sucks in by itself once you're close: within ~140px, or anywhere in a column above / below you
+      if (p.kind === 'cheddar' && this.bossDown && !p.suck && (p.h <= 2 || p.life < 28.3)) p.suck = true;   // (v3.04) the boss is down: once his coins land they all come flying to Chris
+      if (p.kind === 'cheddar' && (this.state === 'play' || this.state === 'rescue')) {   // CHEDDAR sucks in by itself once you're close: within ~140px, or anywhere in a column above / below you
         const cx = angDiff(p.theta, P.theta) * R, cy = p.h - (P.h + 24), cd = Math.hypot(cx, cy), big = this.magOwned || magB;
         const near = big ? (cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300)) : (Math.abs(cx) < 55 && p.h < 40 && P.h < 50);   // (no magnet: just a little tug along the ground)
         if (p.suck || near || p.pull) {

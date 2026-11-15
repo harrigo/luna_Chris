@@ -2457,9 +2457,9 @@ class WeaponScene extends Phaser.Scene {
       this.ui.add([tip, gun]);
       this.cards.push({ x, y: y0, w: cw, h: ch, gun, tip, gy, open, w8: w });
       let ty = gy + 16 * gs;
-      this.ui.add(this.add.text(x + cw / 2, ty, w.name, f(cw > 240 ? 10 : 8, open ? '#ffffff' : '#6b7390', ink)).setOrigin(0.5, 0));
+      this.ui.add(this.add.text(x + cw / 2, ty, open ? w.name : '???', f(cw > 240 ? 10 : 8, open ? '#ffffff' : '#6b7390', ink)).setOrigin(0.5, 0));
       ty += 20;
-      const bl = this.add.text(x + cw / 2, ty, w.blurb, f(8, open ? '#c9cde0' : '#4a5070', { align: 'center', wordWrap: { width: cw - 20 }, lineSpacing: 4 })).setOrigin(0.5, 0);
+      const bl = this.add.text(x + cw / 2, ty, open ? w.blurb : 'Out there somewhere...', f(8, open ? '#c9cde0' : '#4a5070', { align: 'center', wordWrap: { width: cw - 20 }, lineSpacing: 4 })).setOrigin(0.5, 0);
       this.ui.add(bl);
       ty += bl.height + 14;                                     // stats always start below the description, however long it is
       if (open) {
@@ -2472,7 +2472,7 @@ class WeaponScene extends Phaser.Scene {
         });
       } else {
         g.fillStyle(0xc9cde0, 1).fillRect(x + cw / 2 - 9, ty + 8, 18, 14); g.lineStyle(3, 0xc9cde0, 1).strokeRect(x + cw / 2 - 5, ty, 10, 10);   // padlock
-        this.ui.add(this.add.text(x + cw / 2, ty + 30, 'UNLOCKS AT LEVEL ' + w.unlock, f(8, '#ff8a8a', ink)).setOrigin(0.5, 0));
+        this.ui.add(this.add.text(x + cw / 2, ty + 30, 'LOCKED', f(8, '#ff8a8a', ink)).setOrigin(0.5, 0));   // (v3.04: they come out of the bonus rooms - no telling where)
       }
       const z = this.add.zone(x, y0, cw, ch).setOrigin(0).setInteractive({ useHandCursor: true });
       z.on('pointerup', () => { if (this.sel === i) this.pick(i); else if (open) { this.sel = i; this.pick(i); } else this.pick(i); });

@@ -89,7 +89,7 @@ const Tel = {
   },
   build() {
     const el = this.el = document.createElement('div');
-    el.style.cssText = 'position:fixed;left:calc(6px + env(safe-area-inset-left));top:88px;z-index:50;font:9px/1.3 monospace;opacity:.92;color:#e8ffe8;background:rgba(10,16,24,.78);padding:5px 7px;border-radius:6px;white-space:pre;pointer-events:auto;max-width:46vw';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);top:calc(48px + env(safe-area-inset-top));z-index:50;font:9px/1.3 monospace;opacity:.92;color:#e8ffe8;background:rgba(10,16,24,.78);padding:5px 7px;border-radius:6px;white-space:pre;pointer-events:auto;max-width:46vw';
     this.body = document.createElement('div'); el.appendChild(this.body);
     const row = document.createElement('div'); row.style.cssText = 'margin-top:4px;display:flex;gap:5px';
     const btn = (t, f) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'font:bold 10px monospace;padding:3px 6px;border:0;border-radius:4px;background:#ffd23f;color:#1a1020'; b.onclick = e => { e.stopPropagation(); f(b); }; row.appendChild(b); return b; };
