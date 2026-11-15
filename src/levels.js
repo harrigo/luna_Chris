@@ -337,24 +337,24 @@ const LEVELS = {
     //   dead ends: R1 0.5 -> R2 pocket [0.3,0.7]; M 3.9 -> R4 [3.2,4.8] rat nest; R1 0.85 shaft -> R2 [0.7,1.0] -> R3 O -> R4 [0,1.6] hoard, + R2 J via 6.0
     cave: { holeOff: 0.32, fillT: 520, rings: [
       { hole: 0 },
-      { R: 950, ceil: 112, walls: [5.5, 1.6, 3.4], holes: [0.5, 0.85, 1.2, 2.5, 3.0, 4.2, 5.1], path: 1.2,
+      { R: 950, ceil: 112, walls: [5.5, 1.6, 3.4], rooms: { 5.5: ['store', 'THE BASEMENT'], 1.6: 'kitchen', 3.4: 'dining' }, holes: [0.5, 0.85, 1.2, 2.5, 3.0, 4.2, 5.1], path: 1.2,
         pipes: [[-0.78, 1.6, 1.2], [1.6, 3.4, 3.0], [3.4, 5.5, 5.1]],
         loot: [['heal', 2.1]],
         spawn: [['rindtick', 5.81], ['paladin', 0.38], ['gnawer', 0.68], ['gnawer', 1.01], ['paladin', 1.32], ['rindtick', 1.82], ['rindtick', 2.18], ['rindtick', 2.61], ['gnawer', 2.79], ['paladin', 3.16], ['rindtick', 3.64], ['rindtick', 3.97], ['paladin', 4.31], ['rindtick', 4.59], ['rindtick', 4.92], ['rindtick', 5.21]] },
-      { R: 805, ceil: 112, walls: [0.3, 0.7, 1.0, 2.0, 2.75, 3.6, 4.0, 4.6, 5.4], holes: [0.85, 1.7, 2.4, 3.3, 4.4, 5.0, 6.0], path: 1.7,
+      { R: 805, ceil: 112, walls: [0.3, 0.7, 1.0, 2.0, 2.75, 3.6, 4.0, 4.6, 5.4], rooms: { 0.3: ['cellar', 'THE LARDER'], 0.7: 'boiler', 1.0: 'barracks', 2.0: 'armoury', 2.75: 'games', 3.6: 'cellar', 4.0: 'library', 4.6: ['kitchen', 'THE SCULLERY'], 5.4: ['store', 'BASEMENT STORAGE'] }, holes: [0.85, 1.7, 2.4, 3.3, 4.4, 5.0, 6.0], path: 1.7,
         pipes: [[1.0, 2.0, 1.7], [2.0, 2.75, 2.5], [2.75, 3.6, 3.3], [4.0, 4.6, 4.2], [4.6, 5.4, 5.0]],
         loot: [['stash', 0.5, 60], ['heal', 0.55], ['stash', 3.8, 80], ['stash', 6.2, 120], ['heal', 5.8]],
         spawn: [['paladin', 1.25], ['paladin', 1.35], ['gnawer', 1.71], ['gnawer', 1.84], ['gnawer', 2.17], ['rindtick', 2.51], ['gnawer', 2.61], ['gnawer', 3.06], ['gnawer', 3.17], ['grub', 3.46], ['rindtick', 3.8], ['gnawer', 4.25], ['paladin', 4.49], ['grub', 4.75], ['rindtick', 5.14], ['gnawer', 5.23], ['grub', 5.54], ['gnawer', 5.77], ['gnawer', 6.09], ['gnawer', 6.22], ['gnawer', 0.09]] },
-      { R: 660, ceil: 112, walls: [1.5, 2.2, 3.1, 4.7, 5.6], holes: [0.2, 1.9, 2.9, 3.9, 5.3], path: 1.9,
+      { R: 660, ceil: 112, walls: [1.5, 2.2, 3.1, 4.7, 5.6], rooms: { 1.5: 'lab', 2.2: ['boiler', 'THE PUMP ROOM'], 3.1: ['barracks', 'THE GUARDROOM'], 4.7: ['armoury', 'THE GUN ROOM'], 5.6: ['cellar', 'THE AGEING VAULT'] }, holes: [0.2, 1.9, 2.9, 3.9, 5.3], path: 1.9,
         pipes: [[1.5, 2.2, 1.9], [2.2, 3.1, 2.4], [3.1, 4.7, 4.4], [4.7, 5.6, 5.3]],
         loot: [['heal', 3.6], ['stash', 7.5, 90]],
         spawn: [['grub', 1.83], ['grub', 2.09], ['paladin', 2.64], ['gnawer', 3.05], ['paladin', 3.44], ['rindtick', 3.71], ['rindtick', 4.1], ['rindtick', 4.45], ['gnawer', 4.89], ['gnawer', 5.12], ['rindtick', 5.72], ['rindtick', 6.04], ['gnawer', 0.05], ['gnawer', 0.29], ['gnawer', 0.7], ['rindtick', 0.94], ['paladin', 1.3]] },
-      { R: 515, ceil: 112, walls: [0, 1.6, 3.2, 4.8], holes: [5.8], path: 5.8,
+      { R: 515, ceil: 112, walls: [0, 1.6, 3.2, 4.8], rooms: { 0: ['cellar', 'THE KING\'S HOARD'], 1.6: ['lab', 'THE CULTURE ROOM'], 3.2: ['store', 'THE RAT NEST'], 4.8: ['lab', 'THE MILKING LAB'] }, holes: [5.8], path: 5.8,
         pipes: [[1.6, 3.2, 2.9], [4.8, 6.28, 5.8]],
         loot: [['stash', 0.9, 250], ['heal', 1.2], ['stash', 4.4, 100], ['heal', 2.3]],
         spawn: [['paladin', 0.31], ['grub', 0.38], ['rindtick', 0.81], ['gnawer', 0.98], ['grub', 1.37], ['rindtick', 1.94], ['rindtick', 2.21], ['gnawer', 2.42], ['rindtick', 2.81], ['paladin', 3.01], ['rindtick', 3.57], ['grub', 3.81], ['rindtick', 4.18], ['gnawer', 4.37], ['rindtick', 5.0], ['rindtick', 5.19], ['gnawer', 5.57], ['gnawer', 5.86], ['rindtick', 6.09]] },
       // the antechamber over the core: the hatch down into the Milkmaster's churn (core.js)
-      { R: 370, ceil: 112, core: true, bessie: 6.25, walls: [5.2, 0.4],
+      { R: 370, ceil: 112, core: true, bessie: 6.25, walls: [5.2, 0.4], rooms: { 5.2: ['lab', 'THE MILKMASTER\'S STUDY'], 0.4: ['library', 'THE MILKMASTER\'S RECORDS'] },
         spawn: [['rindtick', 5.35], ['gnawer', 5.55], ['paladin', 5.95], ['grub', 6.45], ['rindtick', 6.6]] }
     ] },
     waves: [
@@ -1290,6 +1290,11 @@ class SelectScene extends Phaser.Scene {
       this.modeBtn = this.add.text(W - 8, 8, on ? 'TEST MODE: ON  (ALL UNLOCKED)' : 'UNLOCK ALL (TEST MODE)', f(7, on ? '#1a1020' : '#ffffff', { backgroundColor: on ? '#7dff8a' : '#3a2a5a', padding: { x: 7, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true }).setDepth(5);
       this.modeBtn.on('pointerup', () => { Progress.setTestMode(!Progress.testMode); Sound.sfx(Progress.testMode ? 'power' : 'clunk'); this.build(); });
       this.ui.add(this.modeBtn); this.testBtns.unshift(this.modeBtn);
+      // (v2.97) the TEST LAB switch, beside it: the on-screen telemetry panel (kills, damage, coins per wave - EXPORT for the Balance Lab)
+      let telOn = false; try { telOn = localStorage.getItem('lc_tel_hud') === '1'; } catch (e) { /* ignore */ }
+      this.labBtn = this.add.text(W - 8 - this.modeBtn.width - 6, 8, telOn ? 'TEST LAB: ON' : 'TEST LAB', f(7, telOn ? '#1a1020' : '#ffffff', { backgroundColor: telOn ? '#ffd23f' : '#3a2a5a', padding: { x: 7, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+      this.labBtn.on('pointerup', () => { try { localStorage.setItem('lc_tel_hud', telOn ? '0' : '1'); } catch (e) { /* ignore */ } Sound.sfx(telOn ? 'clunk' : 'power'); this.build(); });
+      this.ui.add(this.labBtn);
     }
     this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
     this.buildInfo();
@@ -1306,6 +1311,7 @@ class SelectScene extends Phaser.Scene {
       this.clearBtn.setVisible(canClear).setText(canClear ? 'TEST: CLEAR ' + (id === 5.5 ? 'FONDUE FOUNTAIN' : 'LV ' + id) : '');
       if (!(typeof Cheat !== 'undefined' && Cheat.on)) for (const b of this.testBtns) if (b !== this.modeBtn) b.setVisible(false);     // (the old TEST buttons only show in cheat mode)
       let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
+      if (this.labBtn && this.modeBtn) this.labBtn.setPosition(this.modeBtn.x - this.modeBtn.width - 6, this.modeBtn.y);
     }
     const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(330, W * 0.41), lw = W - 24 - rw;
     const panel = (x, y, w, h) => {

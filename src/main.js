@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v2.96';
+const BUILD = 'v2.97';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -225,7 +225,7 @@ class Level1 extends Phaser.Scene {
     this.enemies = [];
     this.pBullets = [];
     this.eBullets = [];
-    this.parts = []; this.acidPools = []; this.acidG = null; this.ppEsc = null; this.pp = null; this.ppWarnTxt = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null; this.caveFg = this.caveTxt = this.caveBessie = null; this.labRT = this.labStamp = this.labEyes = this.labRock = this.labSign = this.labMoon = null; this.labLights = [];   // (v2.72: a retry starts clean)
+    this.parts = []; this.acidPools = []; this.acidG = null; this.ppEsc = null; this.pp = null; this.ppWarnTxt = null; this.bossDown = false; this.cave = null; this.caveHole = null; this.caveG = null; this.caveFg = this.caveTxt = this.caveBessie = null; this.labFurn = null; this.roomTxt = this.roomBig = null; this.roomBigT = 0; this.labRT = this.labStamp = this.labEyes = this.labRock = this.labSign = this.labMoon = null; this.labLights = [];   // (v2.72: a retry starts clean)
     this.pickups = [];
     this.waveIdx = -1;
     this.queue = [];
@@ -5492,6 +5492,7 @@ Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
+if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);

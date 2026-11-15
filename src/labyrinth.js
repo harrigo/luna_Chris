@@ -263,6 +263,7 @@ const LabMixin = {
     for (const T of C.tw) T.s.setVisible(!under);
     if (!this.caveBessie) { this.caveBessie = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(6.2); this.caveBessie.bsx = this.caveBessie.bsy = 0.9; }
     if (to > 0) this.labSpawn(to);
+    if (this.labRoomsBuild) this.labRoomsBuild(to); else if (to === 0) for (const q of this.labFurn || []) q.im.setVisible(false);
     if (from === 0 && to === 1 && !C.musicOn) { C.musicOn = true; Sound.music(this.def.music); }
     Sound.sfx(to > from ? 'whoosh' : 'jump');
     if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(CV.rings[to].core ? 'SHE\'S RIGHT BELOW US...\nFIND THE HATCH TO THE CORE!' : (to === 1 ? 'IT\'S DARK DOWN HERE...\nFOLLOW THE PIPES' : 'DEEPER...')); }
@@ -416,10 +417,11 @@ const LabMixin = {
       band(RG.R, top, A0, A1, ri === ring ? 0x1e1209 : 0x0e0704);
       band(RG.R - 8, RG.R, A0, A1, ri === ring ? 0x6a4a1a : 0x3a2810);         // the floor crust
       band(top, top + 7, A0, A1, ri === ring ? 0x4a3010 : 0x2a1a08);           // the roof crust
+      if (ri === ring && RG.rooms) this.labRoomsDraw(g, pol, inView, vt, vh);  // (v2.97) every chamber is a room
       if (RG.core && C.cheeseH > 0.5) { band(RG.R, RG.R + C.cheeseH, A0, A1, 0xffb52a); band(RG.R + C.cheeseH - 2, RG.R + C.cheeseH, A0, A1, 0xfff0a0); }
       if (ri !== ring) return;
       // stalactites like rotten teeth, dripping whey; lumps, bones and the odd skull on the floor
-      for (let k = 0; k < 220; k++) {
+      for (let k = 0; k < (RG.rooms ? 0 : 220); k++) {
         const th = this.caveAbs(k * TAU / 220 + Math.sin(k * 7.3) * 0.006); if (!inView(th)) continue;
         const len = 8 + Math.abs(Math.sin(k * 3.7)) * 26, w = (3 + Math.abs(Math.sin(k * 5.1)) * 5) / RG.R;
         const a = pol(wrap(th - w), top), b = pol(wrap(th + w), top), c = pol(th, top - len);
@@ -573,6 +575,7 @@ const LabMixin = {
       this.caveTxt.setVisible(true).setText(C.won ? 'DRAINING!' : 'BESSIE\'S DROWNING IN CHEESE  ' + Math.round(C.fill * 100) + '%').setPosition(this.W / 2, by + 18);
     }
     this.drawCaveMap();
+    if (this.labRoomsHud) this.labRoomsHud();
   },
   // the map: only the bits you've been through show up
   drawCaveMap() {
@@ -583,7 +586,7 @@ const LabMixin = {
     const rot = -P.theta, pt = (th, rad) => [rx + rad * k * Math.sin(th + rot), ry - rad * k * Math.cos(th + rot)];
     CV.rings.forEach((RG, ri) => {
       if (!ri) return; const vb = C.seen[ri] || {};
-      for (const b in vb) { const th = this.caveAbs((+b + 0.5) / 48 * TAU), [x, y] = pt(th, RG.R + RG.ceil * 0.5); g.fillStyle(ri === C.ring ? 0xc8a050 : 0x6a5028, 1).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
+      for (const b in vb) { const rel = (+b + 0.5) / 48 * TAU, th = this.caveAbs(rel), [x, y] = pt(th, RG.R + RG.ceil * 0.5), rm = this.labRoomAt && this.labRoomAt(ri, rel); g.fillStyle(rm ? rm.theme.map : (ri === C.ring ? 0xc8a050 : 0x6a5028), ri === C.ring ? 1 : 0.6).fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3); }
     });
     const myR = this.caveRing(C.ring).R + 10, [cxx, cyy] = pt(P.theta, myR);
     g.fillStyle(0x1a1020, 1).fillRect(Math.round(cxx) - 3, Math.round(cyy) - 3, 6, 6); g.fillStyle(Math.floor(t * 4) % 2 ? 0xffd23f : 0xffffff, 1).fillRect(Math.round(cxx) - 2, Math.round(cyy) - 2, 4, 4);
