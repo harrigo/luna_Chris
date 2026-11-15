@@ -531,7 +531,7 @@ class ZeroGScene extends Phaser.Scene {
       Sound.sfx('power'); Sound.music('win');
       if (this.practice) body = 'PRACTICE RUN CLEARED!';
       else if (this.prize) { Progress.giveGun(this.prize.id); body = 'THE CRATE IS OPEN!\n\nNEW GUN: ' + this.prize.name; }
-      else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 CHEESE WHEELS!\n\n+1 LIFE'; }
+      else if (Run.on) { Run.freePerk = true; body = 'BONUS CLEAR!\n\nA FREE PERK FOR THE RUN'; } else { const lives = Math.min(CFG.maxLives, (this.registry.get('lives') || CFG.startLives) + 1); this.registry.set('lives', lives); body = 'ALL 12 CHEESE WHEELS!\n\n+1 LIFE'; }
       body += '\n(' + Math.ceil(this.timeLeft) + 's TO SPARE)' + Bonus.win(this);
       this.crateGun.setVisible(false); this.puff(this.crate.x, this.crate.y - 40, 30, 0xffd23f, 300, 0.7, 4);
     } else { Sound.music('lose'); body = 'OUT OF TIME!\n\n' + this.got + ' / ' + this.items.length + ' CHEESE WHEELS' + Bonus.lose(this); }
@@ -551,5 +551,5 @@ class ZeroGScene extends Phaser.Scene {
     this.exitBtn.setVisible(false);
   }
   again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
-  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start('select')); }
+  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start(Run.on ? 'runpick' : 'select', Run.on ? { phase: Run.freePerk ? 'perk' : 'route' } : undefined)); }
 }

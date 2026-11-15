@@ -10,13 +10,14 @@ const CAMP_ST = [
   { id: 'fire',   theta: 0.06,  tex: 'cr_fire0',  sc: 1.6, name: 'CAMPFIRE',      verb: 'SIT' },
   { id: 'lunch',  theta: 0.5,   tex: 'cr_picnic', sc: 1.7, name: 'LUNCHBOX',      verb: 'PACK A LUNCH' },
   { id: 'rocket', theta: 1.02,  tex: 'cr_rocket', sc: 2.3, name: 'CHEESE ROCKET', verb: 'LAUNCH A RUN', h: 6 },
+  { id: 'rack',   theta: 0.76,  tex: 'cr_rack',   sc: 1.7, name: 'GUN RACK',      verb: 'PICK A GUN' },
   { id: 'board',  theta: -0.48, tex: 'cr_board',  sc: 1.7, name: 'NOTICEBOARD',   verb: 'READ' },
   { id: 'larder', theta: -1.06, tex: 'cr_stall',  sc: 1.7, name: 'THE LARDER',    verb: 'TRADE CRUMBS' },
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
   ['cr_tent', -0.15, 1.9, 0, 2.3], ['cr_gantry', 1.15, 2.2, 0, 2.2], ['cr_pad', 1.07, 2.2, -2, 2.45], ['shopship', -1.28, 1.15, 14, 2.2],
-  ['cr_crate', 0.82, 1.6, 0, 2.6], ['cr_crate', 0.86, 1.3, 30, 2.6], ['cr_barrel', 0.75, 1.6, 0, 2.6], ['cr_barrel', -0.86, 1.6, 0, 2.6],
+  ['cr_crate', 1.3, 1.6, 0, 2.6], ['cr_crate', 1.34, 1.3, 30, 2.6], ['cr_barrel', 1.38, 1.6, 0, 2.6], ['cr_barrel', -0.86, 1.6, 0, 2.6],
   ['cr_lamp', -0.3, 1.7, 0, 2.25], ['cr_lamp', 0.28, 1.7, 0, 2.25], ['cr_lamp', 0.7, 1.7, 0, 2.25], ['cr_lamp', -0.68, 1.7, 0, 2.25],
   ['cr_pen', 2.55, 1.8, 0, 2.3], ['cr_dish', -1.75, 1.7, 0, 2.3], ['cr_flag', 0.22, 1.7, 0, 2.2], ['cr_wheels', -2.4, 1.6, 0, 2.3],
   ['cr_crate', 2.95, 1.5, 0, 2.6], ['cr_barrel', -2.2, 1.5, 0, 2.6]
@@ -155,6 +156,15 @@ function makeCampTextures(scene) {
     a.ell(50, 50, 20, 6, [0xffe890, 0xe8c050, 0xa8801a]); for (let i = 0; i < 14; i++) a.line([[34 + i * 2.4, 50], [36 + i * 2.6, 44 + (i % 3)]], 0xfff0a0);
     a.rect(80, 2, 98, 20, 0xf4ecd0); a.rect(82, 4, 96, 6, 0xd83a2a); a.ell(89, 13, 5, 4, [0xffffff, 0xd8d8e0, 0x8a8a9a]); a.ell(87, 12, 1.4, 1.2, 0x1a1020); a.ell(91, 14, 1.6, 1.3, 0x1a1020);
     a.rect(8, 4, 10, 14, DWD[1]); a.ell(9, 17, 3, 3, [0xffe27a, 0xd8a020, 0x8a6008]);
+  });
+  // the GUN RACK: a wooden A-frame rack with three guns on pegs and an ammo crate
+  pixSprite(scene, 'cr_rack', 60, 62, a => {
+    a.line([[4, 61], [14, 4]], DWD[1], 3); a.line([[56, 61], [46, 4]], DWD[1], 3); a.rect(10, 2, 50, 6, WD);
+    for (const y of [18, 34, 50]) a.rect(8, y, 52, y + 2, WD[1]);
+    a.rrect(14, 10, 42, 16, 2, [0xffb060, 0xff8a1a, 0xa8480a]); a.rect(42, 11, 50, 14, ST[1]); a.rect(18, 16, 22, 20, DWD[2]);          // mac-grinder
+    a.rrect(14, 26, 38, 32, 2, [0x8ae0ff, 0x3a9ad8, 0x0a4a8a]); a.ell(42, 29, 4, 4, ST); a.rect(18, 32, 22, 36, DWD[2]);                  // spinner
+    a.rrect(14, 42, 44, 47, 2, [0xfff0a0, 0xf2c040, 0xa8700c]); a.ell(22, 44, 1.2, 1.2, 0xa8700c); a.ell(32, 45, 1, 1, 0xa8700c); a.rect(44, 43, 49, 46, ST[2]);   // swiss-shot
+    a.rect(20, 54, 40, 61, [0x6a8a3a, 0x4a6a2a, 0x2a3a14][1]); a.rect(20, 54, 40, 55, 0x8aaa4a); a.rect(27, 57, 33, 58, 0xffd23f);
   });
   pixSprite(scene, 'cr_dice', 22, 22, a => { a.rrect(1, 1, 20, 20, 4, [0xffffff, 0xe0e4f0, 0x9aa4b4]); for (const [x, y] of [[6, 6], [15, 6], [10.5, 10.5], [6, 15], [15, 15]]) a.ell(x, y, 1.8, 1.8, 0xd83a2a); });
   pixSprite(scene, 'cr_lunchbox', 24, 20, a => { a.rrect(1, 5, 22, 19, 3, [0x8ac8ff, 0x3a78d8, 0x1a3a8a]); a.rect(1, 10, 22, 11, 0x1a3a8a); a.rect(10, 11, 13, 13, 0xffd23f); a.rect(7, 1, 16, 2, 0x9aa4b4); a.rect(7, 1, 8, 5, 0x9aa4b4); a.rect(15, 1, 16, 5, 0x9aa4b4); a.rect(4, 14, 7, 17, 0xffe27a); });
@@ -316,7 +326,7 @@ const CampMixin = {
     this.campHud.add(this.add.text(40, 29, 'GOLDEN CRUMBS', f(5, '#c9cde0', { strokeThickness: 2 })));
     this.campHud.add(this.add.text(W / 2, 8, 'MOON CAMP', f(Math.min(18, W / 34), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
     const b = Run.best();
-    this.campHud.add(this.add.text(W / 2, 32, 'BEST RUN ' + (b ? b.planets + '/' + RUN_ROUTE.length + ' PLANETS' : '- NONE YET -') + '   LUNCH: ' + Meta.kit().name, f(6, '#c9cde0', { strokeThickness: 3 })).setOrigin(0.5, 0));
+    this.campHud.add(this.add.text(W / 2, 32, 'STRENGTH: ' + STRENGTHS[Run.tierSel()].name + '   GUN: ' + runGun().short + '   LUNCH: ' + Meta.kit().name, f(6, '#c9cde0', { strokeThickness: 3 })).setOrigin(0.5, 0));
   },
   campPickLine() {
     const S = this.campSum, P = (a) => a[Math.floor(Math.random() * a.length)];
@@ -393,7 +403,7 @@ const CampMixin = {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
     if (st.folk) { this.campTalk(st); return; }
     Sound.sfx('pickup');
-    ({ sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket() })[st.id]();
+    ({ rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket() })[st.id]();
   },
   campLeave() { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('menu')); },
   campBoard() {
@@ -401,7 +411,7 @@ const CampMixin = {
     const lastTxt = !last ? 'No runs yet. Off you go!' : last.how === 'won' ? 'WON THE LOT!' : last.how === 'quit' ? 'Gave up after ' + last.planets + ' planet' + (last.planets === 1 ? '' : 's') + '.' :
       'Grated on ' + ((LEVELS[last.at] && (LEVELS[last.at].short || LEVELS[last.at].name)) || 'a rock') + '.';
     this.campOpen({ title: 'NOTICEBOARD', sub: 'THE CAMP RECORDS', cols: 3, cards: [
-      { icon: 'goldwheel', name: 'BEST RUN', desc: b ? b.planets + ' of ' + RUN_ROUTE.length + ' planets\nscore ' + b.score : 'None yet.', col: 0x8a5a0a, tag: 'RECORD', tagCol: '#ffd23f' },
+      { icon: 'goldwheel', name: 'BEST RUN', desc: b ? b.planets + ' planet' + (b.planets === 1 ? '' : 's') + ' cleared\nscore ' + b.score + '\nstrongest: ' + STRENGTHS[Run.tierMax()].name : 'None yet.', col: 0x8a5a0a, tag: 'RECORD', tagCol: '#ffd23f' },
       { icon: 'c_head', name: 'RUNS: ' + st.runs, desc: 'Wins: ' + st.wins + '\nPlanets cleared: ' + st.planets, col: 0x2a4a8a, tag: 'STATS' },
       { icon: 'wi_rat', name: 'RATS: ' + st.kills, desc: 'Squashed, zapped and grated over all your runs.', col: 0x6a2a3a, tag: 'TALLY' },
       { planet: last && last.at ? last.at : 1, name: 'LAST RUN', desc: lastTxt, col: 0x3a2a6a, tag: 'LOG' },
@@ -422,7 +432,7 @@ const CampMixin = {
   campFire() {
     this.pl.duck = true;
     this.campOpen({ title: 'BY THE FIRE', sub: 'HOW A RUN WORKS', cols: 3, cards: [
-      { icon: 'c_head', name: 'ONE LIFE', desc: 'Five planets, no checkpoints. Get grated and it\'s back to camp.', col: 0x6a2a3a, tag: '1' },
+      { icon: 'c_head', name: 'ONE LIFE', desc: 'No checkpoints, no extra lives. Get grated and it\'s back to camp.', col: 0x6a2a3a, tag: '1' },
       { planet: 4, name: 'SHORT PLANETS', desc: 'Three waves and a boss each. Pick your path at the forks.', col: 0x2a4a8a, tag: '2' },
       { icon: 'pu_sauce', name: 'PERKS', desc: 'Beat a boss: pick one of three perks. They last the run.', col: 0x7a3a1a, tag: '3' },
       { icon: 'cheddar', name: 'CHEDDAR', desc: 'Spend it in the ship shop between planets. Run only.', col: 0x8a6a0a, tag: '4' },
@@ -451,8 +461,22 @@ const CampMixin = {
     cards.push({ icon: 'cheddar', name: (RUN_START_CHEDDAR + 40 * (L.purse || 0)) + ' CHEDDAR', desc: 'To spend in the ship shop.', col: 0x8a6a0a, tag: 'PURSE' });
     const extra = []; if (L.rind) extra.push('Black Rind Mk I'); if (L.toque) extra.push(L.toque + ' spare toque' + (L.toque > 1 ? 's' : '')); if (L.dice) extra.push(L.dice + ' reroll' + (L.dice > 1 ? 's' : '')); if (L.menu4) extra.push('4-card perk picks');
     cards.push({ icon: 'si_armour', name: 'FROM THE LARDER', desc: extra.length ? extra.join(', ') + '.' : 'Nothing yet. Fridge-o-tron takes crumbs.', col: 0x2a3a5a, tag: 'KIT' });
-    this.campOpen({ title: 'LAUNCH A RUN?', sub: 'ONE LIFE. FIVE PLANETS. BESSIE IS OUT THERE.', cards, cols: 4,
+    const loadout = (kp ? kit.name : 'NO LUNCH') + '  -  ' + (CFG.maxHp + (L.hearty || 0)) + ' HEARTS  -  ' + (RUN_START_CHEDDAR + 40 * (L.purse || 0)) + ' CHEDDAR' + (extra.length ? '  -  ' + extra.join(', ').toUpperCase() : '');
+    const strCards = () => STRENGTHS.map((S, i) => i <= Run.tierMax()
+      ? { icon: 'wedge', name: S.name, desc: S.desc, col: S.col, tag: i === Run.tierSel() ? 'CHOSEN' : 'STRENGTH ' + (i + 1), tagCol: i === Run.tierSel() ? '#ffd23f' : '#ffffff', foot: 'CRUMBS x' + S.crumbs, footCol: i === Run.tierSel() ? '#7dff8a' : '#ffd23f' }
+      : { dim: true, name: '???', desc: 'Win a run on ' + STRENGTHS[i - 1].name + ' to unlock.', tag: 'LOCKED', tagCol: '#5a6290' });
+    this.campOpen({ title: 'CHOOSE YOUR STRENGTH', sub: loadout, cards: strCards(), cols: this.scale.width >= 800 ? 5 : 3,
+      onPick: i => { if (i > Run.tierMax()) { Sound.sfx('zing'); return; } Meta._s('lc_run_tier', i); Sound.sfx('power'); this.campPanel.setCards(strCards()); },
       buttons: [{ label: 'BLAST OFF!', act: () => { this.campPanel.destroy(); this.campPanel = null; this.state = 'play'; this.campLaunch(); } }, { label: 'NOT YET', act: () => this.campPanel.close(), col: 0x9aa4c8 }] });
+  },
+  campRack() {
+    const cards = () => WEAPONS.map((w, i) => weaponUnlocked(w, 99)
+      ? { icon: w.gunTex, name: w.name, desc: w.blurb, col: this.weaponIdx === i ? 0x8a5a0a : 0x2a4a6a, tag: this.weaponIdx === i ? 'EQUIPPED' : 'GUN', tagCol: this.weaponIdx === i ? '#ffd23f' : '#ffffff', foot: this.weaponIdx === i ? 'IN HAND' : '', footCol: '#7dff8a' }
+      : { dim: true, name: '???', desc: 'Not found yet. Win one at a run\'s bonus stop, or in the campaign\'s bonus rooms.', tag: 'LOCKED', tagCol: '#5a6290' });
+    this.campOpen({ title: 'THE GUN RACK', sub: 'TAKE ONE ON THE RUN (SWAP MID-LEVEL WITH ANY OTHERS YOU OWN)', cards: cards(), cols: Math.min(4, WEAPONS.length), buttons: [{ label: 'DONE', act: () => this.campPanel.close() }],
+      onPick: i => { const w = WEAPONS[i]; if (!weaponUnlocked(w, 99)) { Sound.sfx('zing'); return; }
+        try { localStorage.setItem('lc_weapon', String(i)); } catch (e) { /* ignore */ }
+        this.weaponIdx = i; this.weapon = w; this.rig.setWeapon(w); Sound.sfx('power'); this.cameras.main.flash(100, 255, 240, 200); this.campPanel.setCards(cards()); } });
   },
   campLaunch() {
     if (this.campGo) return;
@@ -481,7 +505,7 @@ const CampMixin = {
     const g = this.add.graphics(); c.add(g);
     const won = S.how === 'won', title = won ? 'RUN COMPLETE!' : S.how === 'quit' ? 'RUN ABANDONED' : 'GRATED!';
     c.add(this.add.text(W / 2, y + 9, title, f(small ? 17 : 21, won ? '#ffd23f' : '#ff9a7a', { stroke: '#2a0606', strokeThickness: 6 })).setOrigin(0.5, 0));
-    const atL = LEVELS[S.at], sub = won ? 'Five planets, one life. Bessie salutes you.' : S.how === 'quit' ? 'Chris heads back to camp for a nap.' : 'The run ended on ' + ((atL && (atL.short || atL.name)) || 'a cold rock') + '.';
+    const atL = LEVELS[S.at], sub = won ? 'One life, all the way. Bessie salutes you.' : S.how === 'quit' ? 'Chris heads back to camp for a nap.' : 'The run ended on ' + ((atL && (atL.short || atL.name)) || 'a cold rock') + '.';
     c.add(this.add.text(W / 2, y + (small ? 36 : 42), sub, f(7, '#ffd8b0', { strokeThickness: 3 })).setOrigin(0.5, 0));
     const n = RUN_ROUTE.length, gap = Math.min(56, (w - 40) / n), py = y + (small ? 76 : 88), pg = this.add.graphics(); c.add(pg);
     for (let i = 0; i < n; i++) {
@@ -498,6 +522,7 @@ const CampMixin = {
       c.add(this.add.text(tx + tw / 2, ty + 5, k, f(5, '#9aa4c8', { strokeThickness: 2 })).setOrigin(0.5, 0)); c.add(this.add.text(tx + tw / 2, ty + 15, String(v), f(9, '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); });
     let ly = ty + 40;
     if (S.newBest) { c.add(this.add.text(W / 2, ly, 'NEW BEST RUN!', f(9, '#7dff8a', { strokeThickness: 3 })).setOrigin(0.5, 0)); ly += 16; }
+    if (S.unlocked) { c.add(this.add.text(W / 2, ly, 'NEW CHEESE STRENGTH: ' + S.unlocked + '! (AT THE ROCKET)', f(8, '#ffb03a', { strokeThickness: 3 })).setOrigin(0.5, 0)); ly += 16; }
     const pk = S.perks || [];
     if (pk.length) { const pw = 28, x0 = W / 2 - (pk.length - 1) * pw / 2; pk.forEach((id, i) => { const p = RUN_PERKS.find(q => q.id === id); if (p) c.add(RUN_UI.fit(this.add.image(x0 + i * pw, ly + 11, RUN_UI.iconFor(this, p)), 22)); }); ly += 28; }
     const cr = this.add.image(W / 2 - 66, ly + 12, 'cr_crumb').setScale(2.5); c.add(cr);

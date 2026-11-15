@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.09';
+const BUILD = 'v3.10';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -149,6 +149,7 @@ const Progress = {           // remembered on the device: highest level beaten
 const BONUS_TRIES = 3, BONUS_SPARE = 50;
 const Bonus = {
   begin(sc, id) {
+    if (Run.on) { sc.bonusId = id; sc.practice = false; sc.tryNo = 1; sc.runBonus = true; return; }     // (v3.10) a run's bonus stop: one go, the campaign's tries untouched
     sc.bonusId = id; sc.practice = !Progress.testMode && Progress.bonusWon(id);
     sc.tryNo = sc.practice ? 0 : Progress.bonusStart(id);
     if (sc.practice) sc.prize = null;
@@ -157,6 +158,7 @@ const Bonus = {
   tag(sc) { if (sc.msg) sc.msg.setText(sc.msg.text + '\n\n' + this.label(sc)); },
   // returns the extra lines for the results screen
   win(sc) {
+    if (sc.runBonus) { Shop.earn(sc.registry, 60); return '\n+60 CHEDDAR'; }
     if (sc.practice) return '';
     Progress.bonusWin(sc.bonusId);
     const spare = Math.max(0, BONUS_TRIES - sc.tryNo);
@@ -164,11 +166,12 @@ const Bonus = {
     return '\nON THE LAST GO!';
   },
   lose(sc) {
+    if (sc.runBonus) return '\n\nBACK TO THE RUN.';
     if (sc.practice) return '';
     const left = BONUS_TRIES - sc.tryNo;
     return left > 0 ? '\n\n' + left + ' TR' + (left > 1 ? 'IES' : 'Y') + ' LEFT' : '\n\nNO TRIES LEFT: THE ROOM IS LOCKED' + (sc.prize ? '\nTHE ' + sc.prize.name + ' IS GONE' : '');
   },
-  canAgain(sc) { return sc.practice || Progress.testMode || sc.tryNo < BONUS_TRIES; },
+  canAgain(sc) { if (sc.runBonus) return false; return sc.practice || Progress.testMode || sc.tryNo < BONUS_TRIES; },
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || Progress.testMode || w.unlock <= 1 || Progress.hasGun(w.id);     // the Spinner and the Swiss-Shot come out of the bonus rooms' crates
 
@@ -1109,7 +1112,7 @@ class Level1 extends Phaser.Scene {
     this.waveIdx++;
     if (this.waveIdx >= this.waves.length) { this.win(); return; }
     const w = this.waves[this.waveIdx];
-    this.queue = w.spawns.map(s => Object.assign({}, s)).sort((a, b) => a.t - b.t);
+    this.queue = Run.moreSpawns(w.spawns.map(s => Object.assign({}, s)).sort((a, b) => a.t - b.t));
     this.waveTotal = Math.max(1, this.queue.length);
     if (this.waveIdx > 0 && !this.resumed) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;
@@ -1121,9 +1124,9 @@ class Level1 extends Phaser.Scene {
       this.cp = { wave: this.waveIdx, score: this.score, power: this.gotPower };
       Sound.sfx('shine');
     }
-    this.banner((Run.on && this.waveIdx === 0 ? 'RUN ' + (Run.idx + 1) + '/' + Run.stages() + ': ' + (this.def.short || this.def.name) + '\n' : '') + (this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed && !Run.on ? '\nCHECKPOINT!' : ''));
+    this.banner((Run.on && this.waveIdx === 0 ? (this.def.short || this.def.name) + ' (' + Run.str().name + ')\n' : '') + (this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed && !Run.on ? '\nCHECKPOINT!' : ''));
     if (this.waveIdx > 0 && this.waveIdx < this.waves.length - 1) Sound.sfx('wave');
-    if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard') {      // a breather: a cheese wedge drops in between waves when you're hurt
+    if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard' && !(Run.on && Run.str().noHeal)) {      // a breather: a cheese wedge drops in between waves when you're hurt
       this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
     }
     this.waveText.setText(this.waveIdx < this.waves.length - 1 ? 'WAVE ' + (this.waveIdx + 1) + '/' + (this.waves.length - 1) : 'BOSS');
@@ -3760,7 +3763,7 @@ class Level1 extends Phaser.Scene {
       st = ENEMY[type]; tex = st.tex; oy = st.oy; k = st.k || 1.22;
     }
     const e = {
-      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp * this.hpMul(type, st), maxHp: st.hp * Settings.dk.hp * this.hpMul(type, st), r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
+      type, theta, h: type === 'boss' ? 240 : 0, vh: 0, hp: st.hp * Settings.dk.hp * this.hpMul(type, st) * Run.hpK(type, st), maxHp: st.hp * Settings.dk.hp * this.hpMul(type, st) * Run.hpK(type, st), r: st.r * (1 + (k - 1) * 0.5), ch: st.ch * k,
       big: !!st.big, drop: st.drop,
       spr: this.add.image(0, 0, tex).setOrigin(0.5, oy).setDepth(type === 'boss' ? 6 : 5),
       t: 0, seed: rnd(0, 6), flash: 0, vx: 0, dh: 0, dir: -(side || 1)
