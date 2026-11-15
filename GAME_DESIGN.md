@@ -1785,3 +1785,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v2.88 - The Core uses Chris's real hearts
 - No more separate 8-pip armour in the core: Chris's cheese hearts come down from the labyrinth, a hit costs half a heart (as everywhere else), and whatever's left goes back up with him. The bonus centrifuge keeps its armour pips.
+
+### v2.89 - The Lactose Labyrinth is a real maze
+- Rebuilt the 4 rings as a chamber maze: rock walls split each ring into chambers, floor holes join a chamber to the one below (jet back up through them). The true route: down 3 rings, back UP 3, down 2, up 2, then down 4 to the hatch - 14 drops/climbs and ~7,800px of tunnel (checked with a shortest-path script and a scripted run through every hole).
+- Dead ends: a pocket by the start, a rat nest at the bottom of ring 4, and a secret shaft by the start that plunges three rings to a big hoard (+ another stash off it). Hoards and wedges in the pockets.
+- The roof pipes on the true route pulse towards the way on; the compass now points at the hatch to the core, NOT at the exit of the chamber (that solved the maze for you).
+- No more pump surges or valves. Many more vermin: ~16/21/17/19 per ring + the antechamber. Bessie's drowning clock 520 s (was 330) for the longer route.

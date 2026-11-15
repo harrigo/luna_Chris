@@ -365,7 +365,8 @@ const LabMixin = {
     }
     return false;
   },
-  caveTarget() { const C = this.cave, RG = this.caveRing(C.ring); return { theta: this.caveAbs(RG.core ? RG.bessie : (RG.path || 0)), dir: 1 }; },
+  // (v2.89) the compass points at the hatch to the core - not at the way out of this chamber (that would solve the maze for you)
+  caveTarget() { const CV = this.def.cave, core = CV.rings[CV.rings.length - 1]; return { theta: this.caveAbs(core.bessie), dir: 1 }; },
 
   // ================= drawing =================
   drawCave() {

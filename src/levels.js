@@ -326,23 +326,36 @@ const LEVELS = {
     // (v2.71) THE LABYRINTH (src/labyrinth.js). Angles are relative to the hole in the surface. Each ring: walls split it into
     // chambers; `holes` in its floor drop to the ring below; `path` is the hole that leads on; `pipes` [from, to, flowsTo]
     // run along the roof of the true route's chambers; `spawn` [type, angle]; `loot` [kind, angle, cheddar] sits in dead ends.
-    cave: { holeOff: 0.32, fillT: 330, rings: [
-      { hole: 0 },                                                                                     // the surface (a boulder plugs the hole)
-      { R: 950, ceil: 112, walls: [-1.4, 1.2], holes: [-1.1, 0.5, 0.95], path: 0.95, pipes: [[-1.4, 1.2, 0.95]], valves: [0.2],
-        spawn: [['rindtick', -0.35], ['grub', -0.18], ['rindtick', 0.28], ['grub', 0.66], ['gnawer', 1.1], ['paladin', -0.75], ['rindtick', -0.98], ['gnawer', -1.3]] },
-      { R: 805, ceil: 112, walls: [-1.25, -0.9, 0.3, 0.72, 1.6, 2.4], holes: [1.45, 2.0], path: 1.45, pipes: [[0.72, 1.6, 1.45]], outlet: 1.15, every: 3, valves: [0.85],
-        loot: [['stash', -1.07, 60], ['heal', 0.6], ['stash', 2.15, 120], ['heal', 2.3]],      // two dead-end pockets off ring 1, and a hoard you can only jet UP into from ring 3
-        spawn: [['rindtick', -1.0], ['rindtick', -1.16], ['grub', -1.04], ['gnawer', 0.36], ['grub', 0.45], ['grub', 0.62], ['rindtick', 1.1], ['paladin', 1.3], ['gnawer', 1.55], ['grub', 1.22], ['rindtick', 1.38], ['paladin', 1.9], ['rindtick', 2.1], ['gnawer', 2.33]] },
-      { R: 660, ceil: 112, walls: [0.9, 2.95], holes: [2.6], path: 2.6, pipes: [[0.9, 2.95, 2.6]], outlet: 1.8, every: 2, doubles: true, valves: [1.3, 2.3],
-        spawn: [['gnawer', 0.98], ['rindtick', 1.2], ['grub', 1.7], ['paladin', 1.9], ['rindtick', 2.15], ['grub', 2.35], ['gnawer', 2.86], ['rindtick', 2.5], ['paladin', 2.75]] },
-      // (v2.86) a fourth ring: THE ROT. Three holes in the floor - two drop into sealed pockets of the ring below (a rat
-      // nest, a hoard), only the middle one leads on. The pipes show the way.
-      { R: 515, ceil: 112, walls: [1.15, 3.3], holes: [1.45, 2.15, 3.05], path: 2.15, pipes: [[1.15, 3.3, 2.15]], outlet: 2.75, every: 2, doubles: true, valves: [1.8, 2.95],
-        spawn: [['gnawer', 1.25], ['rindtick', 1.4], ['grub', 1.6], ['paladin', 1.75], ['rindtick', 1.95], ['grub', 2.3], ['gnawer', 2.45], ['rindtick', 2.6], ['paladin', 2.85], ['grub', 3.1], ['gnawer', 3.2]] },
+    // (v2.89) A REAL MAZE. Each ring is split into chambers by rock walls; floor holes join a chamber to the one below
+    // (jet up through them to go back). The true route goes DOWN three rings, back UP three, down, up, then all the way
+    // down to the hatch - ~5,500px of tunnel and twelve drops/climbs - with dead-end pockets (hoards, rat nests) and a
+    // secret shaft by the start that plunges three rings to a big hoard. The roof pipes on the true route pulse towards the
+    // way on. No more pump surges: just a lot more vermin.
+    //   R1 A[-0.78,1.6] start --1.2--> R2 D[1.0,2.0] --1.7--> R3 K[1.5,2.2] --1.9--> R4 [1.6,3.2] --UP 2.9--> R3 L[2.2,3.1]
+    //   --UP 2.4--> R2 E[2.0,2.75] --UP 2.5--> R1 B[1.6,3.4] --3.0--> R2 F[2.75,3.6] --3.3--> R3 M[3.1,4.7] --UP 4.4-->
+    //   R2 H[4.0,4.6] --UP 4.2--> R1 C[3.4,5.5] --5.1--> R2 I[4.6,5.4] --5.0--> R3 N[4.7,5.6] --5.3--> R4 [4.8,6.28] --5.8--> CORE
+    //   dead ends: R1 0.5 -> R2 pocket [0.3,0.7]; M 3.9 -> R4 [3.2,4.8] rat nest; R1 0.85 shaft -> R2 [0.7,1.0] -> R3 O -> R4 [0,1.6] hoard, + R2 J via 6.0
+    cave: { holeOff: 0.32, fillT: 520, rings: [
+      { hole: 0 },
+      { R: 950, ceil: 112, walls: [5.5, 1.6, 3.4], holes: [0.5, 0.85, 1.2, 2.5, 3.0, 4.2, 5.1], path: 1.2,
+        pipes: [[-0.78, 1.6, 1.2], [1.6, 3.4, 3.0], [3.4, 5.5, 5.1]],
+        loot: [['heal', 2.1]],
+        spawn: [['rindtick', 5.81], ['paladin', 0.38], ['gnawer', 0.68], ['gnawer', 1.01], ['paladin', 1.32], ['rindtick', 1.82], ['rindtick', 2.18], ['rindtick', 2.61], ['gnawer', 2.79], ['paladin', 3.16], ['rindtick', 3.64], ['rindtick', 3.97], ['paladin', 4.31], ['rindtick', 4.59], ['rindtick', 4.92], ['rindtick', 5.21]] },
+      { R: 805, ceil: 112, walls: [0.3, 0.7, 1.0, 2.0, 2.75, 3.6, 4.0, 4.6, 5.4], holes: [0.85, 1.7, 2.4, 3.3, 4.4, 5.0, 6.0], path: 1.7,
+        pipes: [[1.0, 2.0, 1.7], [2.0, 2.75, 2.5], [2.75, 3.6, 3.3], [4.0, 4.6, 4.2], [4.6, 5.4, 5.0]],
+        loot: [['stash', 0.5, 60], ['heal', 0.55], ['stash', 3.8, 80], ['stash', 6.2, 120], ['heal', 5.8]],
+        spawn: [['paladin', 1.25], ['paladin', 1.35], ['gnawer', 1.71], ['gnawer', 1.84], ['gnawer', 2.17], ['rindtick', 2.51], ['gnawer', 2.61], ['gnawer', 3.06], ['gnawer', 3.17], ['grub', 3.46], ['rindtick', 3.8], ['gnawer', 4.25], ['paladin', 4.49], ['grub', 4.75], ['rindtick', 5.14], ['gnawer', 5.23], ['grub', 5.54], ['gnawer', 5.77], ['gnawer', 6.09], ['gnawer', 6.22], ['gnawer', 0.09]] },
+      { R: 660, ceil: 112, walls: [1.5, 2.2, 3.1, 4.7, 5.6], holes: [0.2, 1.9, 2.9, 3.9, 5.3], path: 1.9,
+        pipes: [[1.5, 2.2, 1.9], [2.2, 3.1, 2.4], [3.1, 4.7, 4.4], [4.7, 5.6, 5.3]],
+        loot: [['heal', 3.6], ['stash', 7.5, 90]],
+        spawn: [['grub', 1.83], ['grub', 2.09], ['paladin', 2.64], ['gnawer', 3.05], ['paladin', 3.44], ['rindtick', 3.71], ['rindtick', 4.1], ['rindtick', 4.45], ['gnawer', 4.89], ['gnawer', 5.12], ['rindtick', 5.72], ['rindtick', 6.04], ['gnawer', 0.05], ['gnawer', 0.29], ['gnawer', 0.7], ['rindtick', 0.94], ['paladin', 1.3]] },
+      { R: 515, ceil: 112, walls: [0, 1.6, 3.2, 4.8], holes: [5.8], path: 5.8,
+        pipes: [[1.6, 3.2, 2.9], [4.8, 6.28, 5.8]],
+        loot: [['stash', 0.9, 250], ['heal', 1.2], ['stash', 4.4, 100], ['heal', 2.3]],
+        spawn: [['paladin', 0.31], ['grub', 0.38], ['rindtick', 0.81], ['gnawer', 0.98], ['grub', 1.37], ['rindtick', 1.94], ['rindtick', 2.21], ['gnawer', 2.42], ['rindtick', 2.81], ['paladin', 3.01], ['rindtick', 3.57], ['grub', 3.81], ['rindtick', 4.18], ['gnawer', 4.37], ['rindtick', 5.0], ['rindtick', 5.19], ['gnawer', 5.57], ['gnawer', 5.86], ['rindtick', 6.09]] },
       // the antechamber over the core: the hatch down into the Milkmaster's churn (core.js)
-      { R: 370, ceil: 112, core: true, bessie: 2.5, walls: [1.3, 1.6, 2.9, 3.2], outlet: 2.0, every: 2, doubles: true,
-        loot: [['stash', 1.45, 150], ['stash', 3.05, 100], ['heal', 3.1]],
-        spawn: [['rindtick', 1.4], ['gnawer', 1.5], ['grub', 2.95], ['rindtick', 3.1], ['paladin', 1.9], ['gnawer', 2.2]] }
+      { R: 370, ceil: 112, core: true, bessie: 6.25, walls: [5.2, 0.4],
+        spawn: [['rindtick', 5.35], ['gnawer', 5.55], ['paladin', 5.95], ['grub', 6.45], ['rindtick', 6.6]] }
     ] },
     waves: [
       { name: 'WAVE 1', spawns: [S('paladin', 0), S('mouse', 0.4), S('germ', 0.4), S('paladin', 0.4), S('germ', 0.4), S('germ', 0.4), S('germ', 0.6), S('mouse', 1.2), S('mouse', 1.8), S('germ', 2.4), S('germ', 3), S('mouse', 3.6), S('germ', 4.2), S('paladin', 4.8), S('mouse', 5.4), S('germ', 6), S('mouse', 6.6), S('mouse', 7.2)] },
