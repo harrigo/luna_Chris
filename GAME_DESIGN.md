@@ -1851,3 +1851,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.01 - Pits: a better look, and a smooth way out
 - drawPit (main.js): every pit (L6 Cheddar Gorge, L9 Parmesan Prime's chasms, any 'pit' crater) is now a crumbling well - a ragged lip with chunks hanging over, rubble at the edges, five layers of strata wall going down into the dark, crumbs trickling in; Parmesan chasms glow molten at the bottom, Gorge pits keep their salsa (now a proper pool across the bowl).
 - pitUpdate (main.js) replaces the old sink-then-teleport: FALL (he slides to the middle and drops in, fading into the dark), BOTTOM (a thud, dust puffs out of the hole, a heart lighter, he glows red-hot), POP (rocket boots fire and he blasts out in one eased arc, a somersault at the top, fire trailing, landing smoothly on the far side - the way he was heading - with a moment's grace). The Saucer's overboard fall is unchanged.
+
+### v3.02 - Balance: L1-4 harder, fewer gun power-ups, dearer shop
+- Levels 1-4 were too easy: enemy HP x1.2 / 1.25 / 1.3 / 1.35 (def.hpMul; one-hit fodder stays one-hit), bosses +~15% (Croque 195, Baron 195, Milkmaid 255, Magma Golem 305).
+- The Parmesan Power-Up (the gun's temporary level-up) lasts 10 s (was 15); after the guaranteed first one, later big enemies drop one 1 in 20 (was 1 in 8).
+- Timed power-ups: a wave's first medium/big kill now drops one only half the time (was always); 1 in 25 after that (was 1 in 12).
+- Shop prices +20% (armour 160/280/430/650, boots 130/240/380/540, chips 295/515/810, tanks 175/325/500, magnet 485, life 325, patch 25, hearts 380/650).

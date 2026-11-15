@@ -46,7 +46,7 @@ const ENEMY = {
 const LEVELS = {
   1: {
     fullCam: true,                                                // CAMERA: FULL is allowed here (tested level)
-    id: 1, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
+    id: 1, hpMul: 1.2, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
     radius: 420, sky: [0x111a6a, 0x4a2296], skyCols: [0x0a0c40, 0x11186a, 0x1d1f86, 0x2d2192, 0x45249a, 0x5e2a9c], bg: '#0a0c40', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
     surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242 },
@@ -70,12 +70,12 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 170, ai: 'croque', armouredTop: true },
+    boss: { tex: 'croque', hp: 195, ai: 'croque', armouredTop: true },
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
   2: {
-    id: 2, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Quicksand goop.\nGerms, tongue-lashing rat-frogs, stink-flies.',
+    id: 2, hpMul: 1.25, name: 'Gorgonzola Gulch', short: 'GORGONZOLA GULCH', blurb: 'Stinky blue-cheese swamp.\nSpores bend gravity. Quicksand goop.\nGerms, tongue-lashing rat-frogs, stink-flies.',
     music: 'level2', bossName: 'BARON VON BLUE', tip: 'SPORES BEND GRAVITY!',
     radius: 580, sky: [0x000204, 0x021a16], bg: '#000204', starTint: 0xe8fff8, dustAlpha: 0.6, bgDecor: 'motes',
     surface: { pal: [0x04080e, 0x0a1220, 0x121e30, 0x1c2c42, 0x283c56, 0x3e5a74], seed: 2121, rim: [0x1d5a2a, 0x3a9a3a, 0x7ee05a], spot: [0x163a26, 0x2f7a3a], rimLight: [170, 255, 130], dark: [0, 4, 10] },
@@ -116,12 +116,12 @@ const LEVELS = {
     // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
     // like the mushrooms - still nothing like the yellow-green of the ground it's sunk into
     goopPal: { edge: 0x03141a, deep: 0x0a4250, mid: 0x1a9a96, top: 0x52e6cc, gloss: 0xe0fff6 }, goopGlow: 0x3ae8d0, goopBub: 'swampbub',
-    boss: { tex: 'baron', hp: 166, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog)
+    boss: { tex: 'baron', hp: 195, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog)
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 
   3: {
-    id: 3, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
+    id: 3, hpMul: 1.3, name: 'The Brie-muda Triangle', short: 'BRIE-MUDA TRIANGLE', blurb: 'A graveyard of lost ships and cows in a wheel of brie.\nPhantom pirates and poltergeist wedges.',
     music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
     bloom: 0.28, radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
     // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
@@ -154,12 +154,12 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('ghostpirate', 0), S('ghostpirate', 0.6), S('polterwedge', 1.4), S('phantom', 2.2), S('polterwedge', 3), S('ghostpirate', 3.8), S('polterwedge', 4.6), S('polterwedge', 5), S('phantom', 5.4), S('ghostpirate', 6.2), S('polterwedge', 7), S('ghostpirate', 7.8)] },
       { name: 'WAVE 3', spawns: [S('polterwedge', 0), S('ghostpirate', 0.5), S('ghostpirate', 1), S('phantom', 1.8), S('polterwedge', 2.4), S('polterwedge', 2.8), S('ghostpirate', 3.6), S('polterwedge', 4), S('phantom', 4.4), S('ghostpirate', 5), S('polterwedge', 5.6), S('polterwedge', 6), S('ghostpirate', 6.4), S('polterwedge', 7), S('phantom', 7.8), S('ghostpirate', 8.4)] }
     ],
-    boss: { tex: 'milkmaid', hp: 220, ai: 'milkmaid', scale: 1.25 },
+    boss: { tex: 'milkmaid', hp: 255, ai: 'milkmaid', scale: 1.25 },
     win: 'The Phantom Milkmaid has curdled into mist!\nBessie floated free... straight into a waiting tractor beam.\nThe rats are fleeing to a smoking volcano planet.'
   },
 
   4: {
-    id: 4, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'The Pizza Inferno: a charred crust planet\nwith molten mozzarella pools and an angry volcano.',
+    id: 4, hpMul: 1.35, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'The Pizza Inferno: a charred crust planet\nwith molten mozzarella pools and an angry volcano.',
     music: 'level4', bossName: 'THE MOZZARELLA MAGMA-GOLEM', tip: 'MOLTEN CHEESE GRABS YOU: MASH OR HOLD JUMP TO RIP FREE!',
     radius: 440, sky: [0x160302, 0x8a2408], bg: '#160302', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12, mozz: true,
     // the PIZZA INFERNO: a charred, cratered pizza crust (golden where it's baked, black where it's burnt), lava light on the rim
@@ -192,7 +192,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('rocketrat', 0), S('ovendrone', 0.8), S('mouse', 1.8), S('anchovy', 2.8), S('mgolem', 3.8), S('rocketrat', 4.8), S('mouse', 5.6), S('anchovy', 6.6), S('rocketrat', 7.6)] },
       { name: 'WAVE 3', spawns: [S('mgolem', 0), S('anchovy', 1), S('rocketrat', 1.8), S('ovendrone', 2.6), S('mouse', 3.4), S('ovendrone', 3.9), S('mgolem', 4.4), S('anchovy', 5.4), S('rocketrat', 6.2), S('ovendrone', 7.2), S('rocketrat', 8.2)] }
     ],
-    boss: { tex: 'magmagolem', hp: 265, ai: 'magmagolem', scale: 1.25 },
+    boss: { tex: 'magmagolem', hp: 305, ai: 'magmagolem', scale: 1.25 },
     win: 'The Magma-Golem has cooled into a crust!\nBessie popped out of the cheese... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
   },
 

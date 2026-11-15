@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.01';
+const BUILD = 'v3.02';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -63,7 +63,7 @@ const WEAPONS = [
     blurb: 'HOLD to charge a ball of Swiss, RELEASE to lob it. It BOUNCES, bursting each time; a full charge splits into a cluster of little ones.', stats: { POWER: 4, RATE: 1, RANGE: 4, PIERCE: 4 } }
 ];
 CFG.allWeapons = false;          // (v2.39 playtest) only the Mac-Grinder to start; the others are won in the bonus rooms
-CFG.powerT = 15;                 // seconds the Parmesan Power-Up lasts (a hit still knocks it off sooner)
+CFG.powerT = 10;   // (v3.02: was 15)                 // seconds the Parmesan Power-Up lasts (a hit still knocks it off sooner)
 // graphics quality comes from Settings.gfx (menu.js): HIGH = glow + lights, MEDIUM = lights only, LOW = none (?lowfx forces LOW)
 const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj && obj.preFX) return obj.preFX.addGlow(col, strength, 0, false, 0.1, dist || 8); } catch (e) { /* canvas renderer */ } return null; };
 // Same look as glowFx for things that never change texture, but the halo is drawn once into a cached texture
@@ -4357,16 +4357,16 @@ class Level1 extends Phaser.Scene {
       const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
       const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId));
       const fresh = pool.filter(k => !(this.buffsSeen || []).includes(k));
+      const firstOfWave = midSize && this.waveBuff !== this.waveIdx; if (firstOfWave) { this.waveBuff = this.waveIdx; this.waveBuffRoll = Math.random() < 0.5; }   // (v3.02) the wave's power-up: only half the time
       if (e.big && !this.gotPower) {                     // the first big enemy always drops the Parmesan Power-Up
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
-      } else if (midSize && (this.waveBuff !== this.waveIdx || Math.random() < 0.08) && !this.pickups.some(p => p.kind === 'buff') && !this.pl.buff && pool.length) {   // (v2.41: 1 in 12 after the first, and never while one's running)
+      } else if (midSize && ((firstOfWave && this.waveBuffRoll) || Math.random() < 0.04) && !this.pickups.some(p => p.kind === 'buff') && !this.pl.buff && pool.length) {   // (v2.41: 1 in 12 after the first, and never while one's running)
         // every wave's first medium/big kill drops a timed power-up, then 1 in 4 after that; ones not yet had this level come first
-        this.waveBuff = this.waveIdx;
         const from = fresh.length ? fresh : pool, bk = from[Math.floor(Math.random() * from.length)], B = BUFFS[bk];
         (this.buffsSeen = this.buffsSeen || []).push(bk);
         this.pickups.push({ kind: 'buff', bk, theta: e.theta, h: e.h + e.ch, vh: 240, life: 14, spr: (() => { const im = this.add.image(0, 0, B.tex).setDepth(6); bakedGlow(im, B.col, 3, 8); return im; })() });
-      } else if (e.big && Math.random() < 0.12) {        // later big ones: now and then another Parmesan (v2.45: 1 in 8, was 3 in 10 - the guns levelled up too fast)
+      } else if (e.big && Math.random() < 0.05) {        // later big ones: now and then another Parmesan (v2.45: 1 in 8, was 3 in 10; v3.02: 1 in 20)
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
       } else if (Math.random() < (e.drop || 0)) {
