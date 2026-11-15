@@ -1782,3 +1782,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v2.87 - The Core looks like a core, and has gravity again
 - Gravity is back in the core: the centrifuge rules (the spin pins you to the wall; as it winds down to a stop, gravity takes over and you fall).
 - New look (core.js): the churn is a ring of pitted rind crust and craggy rock hung in the molten heart of the moon - glowing veins of molten cheese running out from the hub, tyrosine crystal clusters, glowing crystal studs round the wall (to read the spin), hot cracks in the outer rock, a film of milk spun against the wall. Behind it, the moon's heart: a throbbing white-hot glow, rough rings of strata, molten rivers running inwards, boulders and crystal shards drifting round, embers rising. The cogs, motor and factory are hidden.
+
+### v2.88 - The Core uses Chris's real hearts
+- No more separate 8-pip armour in the core: Chris's cheese hearts come down from the labyrinth, a hit costs half a heart (as everywhere else), and whatever's left goes back up with him. The bonus centrifuge keeps its armour pips.

@@ -100,7 +100,9 @@ const CoreMixin = {
   coreCreate() {
     makeCoreTextures(this);
     const RD = this.RD;
-    this.hpMax = this.hp = 8;
+    // (v2.88) Chris's own hearts come down with him from the labyrinth (and go back up)
+    const lvl = this.scene.get('level1'); this.hpMax = (lvl && lvl.maxHp) || 3; this.hp = lvl && lvl.pl ? Math.max(0.5, lvl.pl.hp) : this.hpMax;
+    this.heartIcons = Array.from({ length: Math.ceil(Math.max(this.hpMax, this.hp)) }, (_, i) => this.add.image(26 + i * 32, 24, 'hud_cheese').setDepth(20).setScale(1.7));
     this.exitBtn.setVisible(false);
     this.cr = { st: 'fight', t: 0, milk: 1, phase: 1, score: 0, snatch: null, freed: false };
     // the pumps, fixed to the drum wall (drum coordinates)
@@ -439,13 +441,17 @@ const CoreMixin = {
     this.milkLbl.setPosition(W / 2, my - 11);
   },
 
+  coreHearts() {
+    const hp = Math.max(0, this.hp), lowF = hp <= 1 && Math.floor(this.t * 6) % 2;
+    this.heartIcons.forEach((c, i) => c.setTexture(hp >= i + 1 ? 'hud_cheese' : hp >= i + 0.5 ? 'hud_cheese_half' : 'hud_cheese_off').setVisible(i < Math.max(this.hpMax, Math.ceil(hp))).setAlpha(lowF ? 0.5 : 1));
+  },
   coreFinish(won) {
     if (this.done) return; this.done = true; this.doneT = this.t;
     this.jetting = false; Sound.jet(false);
     const lvl = this.scene.get('level1'), score = this.cr.score;
     const back = () => {
       this.cameras.main.fadeOut(500, won ? 255 : 0, won ? 255 : 0, won ? 255 : 0);
-      this.time.delayedCall(560, () => { this.scene.stop(); this.scene.wake('level1'); if (lvl && lvl.labCoreDone) lvl.labCoreDone(won, score, this.cr.dry); });
+      this.time.delayedCall(560, () => { this.scene.stop(); this.scene.wake('level1'); if (lvl && lvl.pl) { lvl.pl.hp = Math.max(0, this.hp); lvl.updateHearts(); } if (lvl && lvl.labCoreDone) lvl.labCoreDone(won, score, this.cr.dry); });
     };
     if (won) { Sound.music('win'); this.time.delayedCall(400, back); }
     else { Sound.music('lose'); this.pop(this.scale.width / 2, this.scale.height * 0.5, this.cr.dry ? 'BESSIE\'S BEEN MILKED DRY!' : 'KNOCKED OUT!', '#ff7a5a'); this.time.delayedCall(1600, back); }

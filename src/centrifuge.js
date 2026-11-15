@@ -332,7 +332,7 @@ class CentrifugeScene extends Phaser.Scene {
   }
   bonk(why, dmg) {
     if (this.penaltyT > 0 || this.done) return;
-    dmg = dmg || 1;
+    dmg = dmg || 1; if (this.core) dmg *= 0.5;                      // (v2.88) the core uses Chris's real hearts: a hit is half a heart, as everywhere else
     this.penaltyT = 0.8; this.hp = Math.max(0, this.hp - dmg);
     if (this.hp <= 0) this.time.delayedCall(this.out ? 1100 : 300, () => this.finish(false));
     Sound.sfx(['ouch1', 'ouch2', 'ouch3'][Math.floor(Math.random() * 3)]); this.cameras.main.shake(140, 0.008);
@@ -563,7 +563,7 @@ class CentrifugeScene extends Phaser.Scene {
       if (!this.done && this.intro <= 0 && Math.hypot(lx - it.x, ly - it.y) < 40) {
         it.got = true; this.got++; Sound.sfx('pickup');
         this.tweens.add({ targets: it.im, scale: 0, angle: 360, duration: 250, onComplete: () => it.im.destroy() });
-        if (this.hp < this.hpMax) { this.hp++; this.pop(W / 2, H * 0.42, 'PATCHED UP! +1', '#7dff8a'); } else this.pop(W / 2, H * 0.42, 'YUM!', '#7dff8a');
+        if (this.hp < this.hpMax) { this.hp = Math.min(this.hpMax, this.hp + 1); this.pop(W / 2, H * 0.42, 'PATCHED UP! +1', '#7dff8a'); } else this.pop(W / 2, H * 0.42, 'YUM!', '#7dff8a');
       }
     }
     if (this.core) this.coreUpdate(dt, cp0);
@@ -587,7 +587,7 @@ class CentrifugeScene extends Phaser.Scene {
         for (let i = 0; i < lit; i++) { const x = Math.round(gx + i * bw); hg.fillStyle(fc, 1).fillRect(x + 1, gy + 1, Math.round(bw) - 2, gh - 2); hg.fillStyle(0xffffff, 0.55).fillRect(x + 1, gy + 1, Math.round(bw) - 2, 2); }
         if (!this.jetLbl) this.jetLbl = this.add.text(0, 0, 'JET', { fontFamily: PIXEL, fontSize: '7px', color: '#9fd8ff', stroke: '#1a1020', strokeThickness: 2 }).setOrigin(1, 0.5).setDepth(20);
         this.jetLbl.setPosition(gx - 6, gy + gh / 2); }
-      for (let k = 0; k < n; k++) { const x = x0 + k * (w + 4), on = k < this.hp; hg.fillStyle(0x1a1020, 1).fillRect(x - 1, y0 - 1, w + 2, 10); hg.fillStyle(on ? (this.hp <= 2 && Math.floor(this.t * 6) % 2 ? 0xff5a3a : 0x7dff8a) : 0x3a2a30, 1).fillRect(x, y0, w, 8); if (on) hg.fillStyle(0xffffff, 0.45).fillRect(x, y0, w, 2); } }
+      if (this.core) this.coreHearts(); else for (let k = 0; k < n; k++) { const x = x0 + k * (w + 4), on = k < this.hp; hg.fillStyle(0x1a1020, 1).fillRect(x - 1, y0 - 1, w + 2, 10); hg.fillStyle(on ? (this.hp <= 2 && Math.floor(this.t * 6) % 2 ? 0xff5a3a : 0x7dff8a) : 0x3a2a30, 1).fillRect(x, y0, w, 8); if (on) hg.fillStyle(0xffffff, 0.45).fillRect(x, y0, w, 2); } }
     if (this.prizeIm) {                                                       // the prize, bobbing in the middle: fly through it
       this.prizeIm.setRotation(Math.sin(this.t * 2) * 0.2).setY(Math.sin(this.t * 3) * 4);
       const pg2 = this.prizeG; pg2.clear();
