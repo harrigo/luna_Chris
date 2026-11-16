@@ -1943,3 +1943,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.17 - DOWN + BASH is now an UPPERCUT
 - Replaces v3.16's air SPIKE. Hold DOWN and BASH - on the ground or in the air - and Chris springs up into a rising gun-butt uppercut (spark trail, a Shoryuken-style follow-through hop that holding DOWN can't cut short). Everything in front of and above him takes bash damage +1 and small fry get BOSHED nearly straight up (high, little sideways drift) - set up for juggling with shots. Big ones get a shove and a lift; bosses take 4. "BOSH!" / "UPPERCUT!" / "BOSH x2!", +80 a rat, style points, counts toward the air chain.
 - Training Ground lesson 7 is now UPPERCUT ("hold DOWN and BASH... then shoot it to juggle!").
+
+### v3.18 - Uppercut AND spike
+- DOWN + BASH on the ground = the UPPERCUT (v3.17); DOWN + BASH in the air = the SPIKE is back (v3.16: drive the rats below into the ground, shockwave round where they land, pogo back up). Which one you get is decided as the swing starts, so a spike still lands even if a ground-pound has you on the deck by the time the hit connects.
+- Training Ground: ten lessons now - UPPERCUT (on the ground) then SPIKE (in the air).
