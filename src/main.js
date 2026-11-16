@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.16';
+const BUILD = 'v3.17';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2179,7 +2179,8 @@ class Level1 extends Phaser.Scene {
 
   startBash() {
     const P = this.pl;
-    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false;
+    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false; P.upper = false;
+    if (this.lastInp && this.lastInp.down && this.uppercutStart) this.uppercutStart();
     Sound.sfx('swish');
     if (this.def.fondue) this.fondueBash();                                           // L5.5: a swipe parts a curtain of cheese
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
@@ -3321,7 +3322,7 @@ class Level1 extends Phaser.Scene {
 
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
-    if (P.h > (P.floor || 0) + 24 && this.lastInp && this.lastInp.down && this.spikeHit()) { this.reapEnemies(); return; }   // (v3.16) SPIKE: down + bash in the air
+    if (P.upper) { P.upper = false; this.uppercutHit(); this.reapEnemies(); return; }   // (v3.17) UPPERCUT: down + bash (style.js)
     const reachT = CFG.bashRange / R;
     let hit = 0;
     for (const e of this.enemies) {

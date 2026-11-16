@@ -1,6 +1,6 @@
 // ================================================================= THE TRAINING GROUND (v3.16)
 // Clank's obstacle course on a quiet little cheese moon: nine short lessons, one move at a time, on target rats that
-// don't fight back and a pea cannon that can't hurt you. RUN + JUMP, JETPACK, SHOOT, BASH, BOWLING, JUGGLE, SPIKE, PARRY,
+// don't fight back and a pea cannon that can't hurt you. RUN + JUMP, JETPACK, SHOOT, BASH, BOWLING, JUGGLE, UPPERCUT, PARRY,
 // then STYLE (mix it all up to rank B). A coach box at the top says what to do and ticks each one off.
 // Where it lives:  the campaign offers it before Level 1 the first time (SKIP TRAINING any time) -  the main menu has
 // TRAINING - and Moon Camp has a TRAINING DUMMY station. It goes back to wherever it came from.
@@ -11,9 +11,9 @@ const TRAIN_STEPS = [
   { title: 'BASH', text: 'Get close and BASH. Small rats go FLYING.', kb: 'F, B or right-click to bash.', touch: 'The BASH button.', dummies: [80], keep: 1, check: T => T.ev.launch >= 1 },
   { title: 'BOWLING', text: 'Bash a rat INTO the others. Whatever a flying rat hits gets hurt - and launched too!', dummies: [70, 150, 190], keep: 3, check: T => T.ev.smash >= 1 },
   { title: 'JUGGLE', text: 'Bash a rat into the air, then SHOOT it while it flies to keep it up.', dummies: [80, 220], keep: 2, check: T => T.ev.juggle >= 1 },
-  { title: 'SPIKE', text: 'Jump over a rat, hold DOWN and BASH in the air: SPIKE it into the ground and POGO off it.', dummies: [110, 250], keep: 2, check: T => T.ev.spike >= 1 },
+  { title: 'UPPERCUT', text: 'Hold DOWN and BASH: an UPPERCUT boshes a rat straight up into the air. Then shoot it to juggle!', kb: 'Hold S / DOWN, then F / B / right-click.', touch: 'Pull the left thumb down, then BASH.', dummies: [70, 200], keep: 2, check: T => T.ev.uppercut >= 1 },
   { title: 'PARRY', text: 'The pea cannon fires at you. BASH just as a pea reaches you to PARRY it back. Do it twice!', turret: true, check: T => T.ev.parry >= 2, prog: T => (T.ev.parry || 0) + '/2' },
-  { title: 'STYLE', text: 'Mix it ALL up - shots, bashes, smashes, juggles, spikes, parries. Repeats earn less. Reach rank B!', turret: true, dummies: [120, 200, 280], keep: 3, check: (T, P, sc) => sc.styleRank >= 2, prog: (T, sc) => 'RANK ' + STYLE_RANKS[sc.styleRank].r }
+  { title: 'STYLE', text: 'Mix it ALL up - shots, bashes, smashes, juggles, uppercuts, parries. Repeats earn less. Reach rank B!', turret: true, dummies: [120, 200, 280], keep: 3, check: (T, P, sc) => sc.styleRank >= 2, prog: (T, sc) => 'RANK ' + STYLE_RANKS[sc.styleRank].r }
 ];
 
 function trainDef() {

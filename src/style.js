@@ -3,7 +3,9 @@
 //              whoever's nearest: slow-mo flash, "PARRY!", your gun's heat cleared and topped up. Boss shots too (not the
 //              huge stuff: falling rocks, bombs, anything bigger than a fist).
 //  JUGGLE      shoot a rat that's been bashed into the air and it stays up (and it's going down for good): JUGGLE xN.
-//  SPIKE       in the air, hold DOWN and BASH: whatever's below you is driven into the ground (a shockwave knocks the rats
+//  UPPERCUT    hold DOWN and BASH (ground or air): Chris springs up into a rising uppercut that BOSHES whatever's in front
+//              of him straight up - then shoot them to juggle. (v3.17: replaced v3.16's air SPIKE)
+//  (old SPIKE)  in the air, hold DOWN and BASH: whatever's below you is driven into the ground (a shockwave knocks the rats
 //              round it), and you POGO back up off it.
 //  AIR CHAIN   stomps, spikes and juggles strung together before your feet touch down: AIR x2, x3...
 //  STYLE       a rank from D to S fills as you mix it up - shots, bashes, smashes, K.O.s, stomps, spikes, juggles, parries.
@@ -143,28 +145,37 @@ const StyleMixin = {
     if (P.airChain >= 2) { this.popup(P.theta, P.h + 96, 'AIR x' + P.airChain + '!', '#ffd23f', P.airChain >= 4); this.addScore(40 * P.airChain); this.styleAdd('air', 18 + 6 * P.airChain); }
   },
 
-  // ---- SPIKE: a downward bash in the air
-  spikeHit() {
+  // ---- UPPERCUT (v3.17): DOWN + BASH, on the ground or in the air. Chris springs up into a rising gun-butt uppercut
+  // and BOSHES whatever's in front of him straight up into the air - perfect for juggling with shots afterwards.
+  uppercutStart() {
+    const P = this.pl, onGround = P.h <= (P.floor || 0) + 0.5;
+    P.upper = true; P.vh = Math.max(P.vh || 0, onGround ? 330 : 280); P.diving = false; P.bounceT = 0.45;
+    Sound.sfx('whoosh');
+    for (let k = 0; k < 6; k++) this.time.delayedCall(k * 30, () => this.burst(wrap(P.theta + (P.facing || 1) * 18 / R), P.h + 20 + k * 10, 'spark', 1, 0.3));
+  },
+  uppercutHit() {
     const P = this.pl, dir = P.facing || 1;
     let hit = 0;
     for (const e of this.enemies) {
       if (e.hp <= 0 || e.phased) continue;
       const a = angDiff(e.theta, P.theta) * R * dir, top = e.h + e.ch;
-      if (a < -40 || a > 70 || top > P.h + 26 || top < P.h - 130) continue;
+      if (a < -24 || a > 82 + (e.r || 14) * 0.5 || top < P.h - 24 || top > P.h + 150) continue;
       e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1; hit++;
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
         this.launchEnemy(e, dir, 1, e.hp <= 0);
-        Object.assign(e.launch, { vt: dir * 120, vh: -720, spike: true, kill: e.hp <= 0 || e.launch.kill });
-      }
-      this.burst(e.theta, top, 'spark', 8, 0.9);
+        Object.assign(e.launch, { vt: dir * rnd(60, 110), vh: rnd(700, 780), kill: e.hp <= 0 || e.launch.kill, upper: true });
+      } else if (e.type !== 'boss') { this.knock(e, P.theta, 200); if (e.h > 0 || e.baseH) e.h += 30; }
+      this.burst(e.theta, top, 'spark', 10, 1);
+      this.bang(e.theta, top, 16);
     }
     if (hit) {
-      P.vh = 470; P.diving = false; P.bounceT = 0.3; this.stompBoost();
-      this.popup(P.theta, P.h + 70, 'SPIKE!', '#ff9d3a', true);
-      Sound.sfx('bonk'); Sound.sfx('jump'); buzz([30, 20, 50]); this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camKick(0, 6);
-      this.styleAdd('spike', 45); this.airChainUp();
-      if (this.trainEvent) this.trainEvent('spike');
+      P.vh = Math.max(P.vh, 420); P.bounceT = Math.max(P.bounceT || 0, 0.4);   // a rising follow-through, Shoryuken style
+      this.popup(P.theta, P.h + 80, hit > 1 ? 'BOSH x' + hit + '!' : (this.boshN = (this.boshN || 0) + 1) % 2 ? 'BOSH!' : 'UPPERCUT!', '#ff9d3a', true);
+      Sound.sfx('bonk'); buzz([30, 20, 50]); this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camKick(0, -7); this.camPunch(0.03);
+      this.addLight(wrap(P.theta + dir * 30 / R), P.h + 60, 80, 0xffe0a0, 0.8, 0.25);
+      this.addScore(80 * hit); this.styleAdd('upper', 40); this.airChainUp();
+      if (this.trainEvent) this.trainEvent('uppercut');
     }
     return hit;
   },
