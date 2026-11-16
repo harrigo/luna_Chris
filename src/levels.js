@@ -1913,7 +1913,7 @@ const BUFFS = {
   boots:   { name: 'ROCKET BOOTS!',     tex: 'pu_boots',  t: 8, from: 1, col: 0x5ce1ff },
   magnet:  { name: 'MAGNET FORK!',      tex: 'pu_magnet', t: 8, from: 1, col: 0xff6a8a },
   shield:  { name: 'FONDUE SHIELD!',    tex: 'pu_shield', t: 10, from: 2, col: 0xffd23f },
-  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 5,  from: 3, col: 0xb8a8ff },
+  slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 5,  from: 1, col: 0xb8a8ff },   // (v3.24: from L1 - it goes in your pocket as CHEESE TIME)
   giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 6,  from: 2, col: 0xff3a3a },
   moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 4, col: 0xffffff },
   disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 7, from: 3, col: 0xff9db8 }

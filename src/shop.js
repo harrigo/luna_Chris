@@ -10,7 +10,6 @@ const SHOP = {
   armHp: [0, 2, 3, 4, 5],                 // gauge size per mark
   armCost: [0, 160, 280, 430, 650],        // forging / upgrading TO this mark
   bootCost: [0, 130, 240, 380, 540],
-  watchCost: [0, 450, 700],                // (v3.23) the CHEESE TIME stopwatch: I = once a level, II = once a wave
   chipCost: [0, 295, 515, 810],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
   tankCost: [0, 175, 325, 500],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
   magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
@@ -321,9 +320,8 @@ class ShopScene extends Phaser.Scene {
     { const k = s.tank || 0;
       if (k < 3) L.push({ name: 'JET TANK LV ' + (k + 1), label: 'JET TANK', icon: 'si_tank', pips: [k, 3], desc: 'A bigger jetpack tank: burns ' + (12 * (k + 1)) + '% slower and refills faster.', cost: SHOP.tankCost[k + 1], act: q => { q.tank = (q.tank || 0) + 1; } });
       else L.push({ name: 'JET TANK LV 3', label: 'JET TANK', icon: 'si_tank', pips: [3, 3], desc: 'As big as they come.', cost: 0, max: true }); }
-    { makeCtTextures(this); const k = s.watch || 0;                   // (v3.23) CHEESE TIME
-      if (k < 2) L.push({ name: k ? 'STOPWATCH II' : 'CHEESE TIME STOPWATCH', label: 'STOPWATCH', icon: 'ct_watch', pips: [k, 2], desc: k ? 'Cheese Time recharges at the start of EVERY WAVE, not once a level.' : 'C / pad X / SLOW: 6 seconds where everything but you crawls. Hits land harder. Once a level.', cost: SHOP.watchCost[k + 1], act: q => { q.watch = (q.watch || 0) + 1; } });
-      else L.push({ name: 'STOPWATCH II', label: 'STOPWATCH', icon: 'ct_watch', pips: [2, 2], desc: 'Cheese Time every wave. Wind it and go.', cost: 0, max: true }); }
+    { const k = s.slowmo || 0;                                        // (v3.24) SLOW-MO CHEESE: CHEESE TIME, one at a time
+      L.push({ name: 'SLOW-MO CHEESE', label: 'SLOW-MO', icon: 'pu_slowmo', pips: [k, 3], desc: k >= 3 ? 'Your pockets are full (3).' : 'C / pad X / SLOW: 6 seconds where everything but you crawls. Carry up to 3.', cost: k >= 3 ? 0 : CT.cost, max: k >= 3, act: q => { q.slowmo = (q.slowmo || 0) + 1; } }); }
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {

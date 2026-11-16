@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.23';
+const BUILD = 'v3.24';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -625,7 +625,7 @@ class Level1 extends Phaser.Scene {
       const Bb = this.btn && this.btn.bash;                // touch BASH button reacts on the press, so even a flick of a tap counts
       if (p.wasTouch && Bb && this.touchUI && Math.hypot(p.x - Bb.x, p.y - Bb.y) < Bb.r * 1.05) this.bashReq = true;
       const Sb = this.btn && this.btn.slow;
-      if (p.wasTouch && Sb && this.touchUI && Math.hypot(p.x - Sb.x, p.y - Sb.y) < Sb.r * 1.1) this.ctReq = true;
+      if (p.wasTouch && Sb && this.touchUI && Shop.get(this.registry).slowmo > 0 && Math.hypot(p.x - Sb.x, p.y - Sb.y) < Sb.r * 1.1) this.ctReq = true;
     });
     this.input.on('wheel', (p, objs, dx, dy) => {
       if (this.state !== 'play' || this.paused || this.time.now < this.wheelCd || !dy) return;
@@ -646,7 +646,7 @@ class Level1 extends Phaser.Scene {
     this.layout();
     this.updateHearts();
     this.styleInit();                          // (v3.16) the style meter (style.js)
-    this.ctInit();                             // (v3.23) CHEESE TIME slow-mo, if you own the stopwatch (cheesetime.js)
+    this.ctInit();                             // (v3.24) CHEESE TIME slow-mo from SLOW-MO CHEESE (cheesetime.js)
     if (this.autostart || this.direct) {
       this.startGame();                       // retry after dying / picked from the level select: straight in
     } else {
@@ -691,7 +691,7 @@ class Level1 extends Phaser.Scene {
       aim:  { x: W - 170, y: H - 86, r: 52 },
       bash: { x: W - 48, y: Math.max(H * 0.36, H - 215), r: 32 }      // up the right edge, clear of where the thumb lands to aim
     };
-    if ((Shop.get(this.registry).watch || 0) > 0 && !this.camp && !this.training) this.btn.slow = { x: W - 48, y: Math.min(H - 70, this.btn.bash.y + 72), r: 24 };   // (v3.23) CHEESE TIME
+    if (!this.camp && !this.training) this.btn.slow = { x: W - 48, y: Math.min(H - 70, this.btn.bash.y + 72), r: 24 };   // (v3.23) CHEESE TIME (only live while you've a Slow-Mo cheese)
     this.btnLabels.move.setPosition(this.btn.move.x, this.btn.move.y + 64);
     this.btnLabels.aim.setPosition(this.btn.aim.x, this.btn.aim.y + 64);
     this.btnLabels.bash.setPosition(this.btn.bash.x, this.btn.bash.y);
@@ -848,7 +848,7 @@ class Level1 extends Phaser.Scene {
     if (this.training) { this.trainStart(); return; }
     this.hideOverlay();
     try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
-    this.placeWheels(); this.placeOneUp();
+    this.placeWheels(); this.placeOneUp(); this.ctPlace();
     this.state = 'play';
     Sound.init();
     this.waveText.setText('LEVEL ' + this.levelId);
@@ -1629,7 +1629,7 @@ class Level1 extends Phaser.Scene {
       if (oy < this.H * 0.28) continue;                                  // the HUD / menu area isn't a stick
       const Bb = this.btn.bash;
       if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.05) { d.melee = true; continue; }      // the right-hand button = BASH (only if the press starts on it)
-      if (this.btn.slow && Math.hypot(ox - this.btn.slow.x, oy - this.btn.slow.y) < this.btn.slow.r * 1.1) continue;   // (the SLOW button isn't a stick)
+      if (this.btn.slow && (Shop.get(this.registry).slowmo > 0 || this.ctT > 0) && Math.hypot(ox - this.btn.slow.x, oy - this.btn.slow.y) < this.btn.slow.r * 1.1) continue;   // (the SLOW button isn't a stick)
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
         S.move = { ox, oy, vx, vy }; moveTouched = true; d.mvx = vx;      // (v3.21: the raw stick, for the dodge's double-flick)
@@ -4652,6 +4652,7 @@ class Level1 extends Phaser.Scene {
         p.theta = wrap(p.theta + Math.sign(angDiff(P.theta, p.theta)) * Math.min(Math.abs(angDiff(P.theta, p.theta)), 360 / R * dt));
         p.h += (P.h + 14 - p.h) * Math.min(1, dt * 4); p.vh = 0; p.vt = 0; p.pullT = (p.pullT || 0) + dt;
       }
+      if (p.hover !== undefined && !p.pull) { p.vh = 0; p.h = p.hover + Math.sin(this.t * 2.2 + p.theta * 5) * 6; } else
       p.vh -= this.gAt(p.theta) * 0.6 * dt;
       p.h += p.vh * dt;
       if (p.vt) { p.theta = wrap(p.theta + p.vt / R * dt); if (p.h <= 0) { p.vt *= Math.exp(-5 * dt); if (p.vh < -90) { p.vh = -p.vh * 0.4; p.h = 0.5; } } }   // (coins scatter, bounce and roll to a stop)
@@ -4665,7 +4666,8 @@ class Level1 extends Phaser.Scene {
         if (p.kind === 'buff' && p.bk === 'magnet' && this.magOwned) {       // already own the fork for good: it's worth cheddar instead
           Shop.earn(this.registry, 40); P.coinPop = 0.4; Sound.sfx('power'); this.addScore(300); this.banner('SPARE MAGNET FORK!\n+40 CHEDDAR');
         } else
-        if (p.kind === 'buff') this.startBuff(p.bk);
+        if (p.kind === 'buff' && p.bk === 'slowmo' && this.ctPocketAdd(p)) { /* (v3.24) saved for later: CHEESE TIME */ }
+        else if (p.kind === 'buff') this.startBuff(p.bk);
         else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; this.coinAcc = (this.coinAcc || 0) + p.val; this.coinAccT = 0.22; }
         else if (p.kind === 'power') {
           // PARMESAN POWER (v2.46): +1 gun level for 15 seconds, not for good (the shop's START CHIPS are the lasting kind)
