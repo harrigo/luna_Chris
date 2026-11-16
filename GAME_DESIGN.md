@@ -1988,3 +1988,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - CHEESE TIME moved to RB on the pad. X is fire, and was also eating Slow-Mo Cheese every time you shot. RB no longer fires (X and RT do).
 - Mouse aim only steers Chris while firing. Otherwise he faces the way he walks. Touching the pad switches mouse aim off completely, so a nudged mouse can't stop the stick turning him round.
 - Pad dodge reads the raw stick: it needs a strong flick (past 85%) and back to near centre (under 25%), twice. Easing off the stick while walking no longer dashes.
+
+## v3.29: dodge flicks must match
+- On a stick (pad or touch), the two dodge flicks must point the same way, within 10 degrees of each other, and be roughly sideways (under ~34 degrees from flat). So up-and-a-bit-right then right is just movement, while right-right is a dodge. Keyboard and d-pad double taps are unchanged.

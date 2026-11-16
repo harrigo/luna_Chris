@@ -25,6 +25,7 @@ const Style = { mult: 1 };
   Shop.earn = function (reg, n) { if (Style.noEarn && n > 0) return; if (n > 0 && Style.mult > 1) n = Math.round(n * Style.mult); return earn.call(this, reg, n); };
 })();
 
+const DODGE_ANG = 10 * Math.PI / 180;                                  // (v3.29) how closely the two dodge flicks must match
 const StyleMixin = {
   styleInit() {
     this.styleP = 0; this.styleRank = 0; this.styleRecent = []; this.styleIdle = 0; this.styleSWave = -1; Style.mult = 1;
@@ -93,16 +94,20 @@ const StyleMixin = {
     for (const [k, d] of [['left', -1], ['right', 1]]) {
       const was = !!this['dh_' + k];
       const on = inp.mvx !== undefined ? (was ? d * inp.mvx > 0.25 : d * inp.mvx > (inp.mvxHi || 0.6)) : !!inp[k];
+      // (v3.29) on a stick, the angle it was flicked at: the two flicks have to point the same way (within ~10 degrees),
+      // so going up-and-a-bit-right then right is just moving, but right-right is a dodge
+      const ang = inp.mvx !== undefined ? Math.atan2(-(inp.mvy || 0), Math.abs(inp.mvx)) : 0;
       if (on && !was) {                                                  // pressed
         const tap = this['tap_' + k], gap = tap ? now - tap.up : 1e9;
+        const same = !tap || tap.ang === undefined || inp.mvx === undefined || Math.abs(ang - tap.ang) <= DODGE_ANG;
         if (tap && gap < 45 && tap.held) { this['dn_' + k] = tap.down; }                       // a flicker, not a new press: carry on the old one
         else {
-          if (tap && tap.short && gap >= 30 && gap < 230 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) { this.dashStart(d * (this.axFlip || 1)); this['tap_' + k] = null; }
-          this['dn_' + k] = now;
+          if (tap && tap.short && same && (inp.mvx === undefined || Math.abs(ang) < 0.6) && gap >= 30 && gap < 230 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) { this.dashStart(d * (this.axFlip || 1)); this['tap_' + k] = null; }
+          this['dn_' + k] = now; this['ang_' + k] = inp.mvx !== undefined ? ang : undefined;
         }
       } else if (!on && was) {                                           // let go
         const held = now - (this['dn_' + k] || now);
-        this['tap_' + k] = { up: now, down: this['dn_' + k], short: held < 220, held: true };
+        this['tap_' + k] = { up: now, down: this['dn_' + k], short: held < 220, held: true, ang: this['ang_' + k] };
       }
       this['dh_' + k] = on;
     }

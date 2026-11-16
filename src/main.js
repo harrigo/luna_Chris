@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.28';
+const BUILD = 'v3.29';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1633,7 +1633,7 @@ class Level1 extends Phaser.Scene {
       if (this.btn.slow && (Shop.get(this.registry).slowmo > 0 || this.ctT > 0) && Math.hypot(ox - this.btn.slow.x, oy - this.btn.slow.y) < this.btn.slow.r * 1.1) continue;   // (the SLOW button isn't a stick)
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
-        S.move = { ox, oy, vx, vy }; moveTouched = true; d.mvx = vx;      // (v3.21: the raw stick, for the dodge's double-flick)
+        S.move = { ox, oy, vx, vy }; moveTouched = true; d.mvx = vx; d.mvy = vy;      // (v3.21: the raw stick, for the dodge's double-flick)
         if (vx < -0.3) d.left = true; else if (vx > 0.3) d.right = true;
         if (vy > 0.55 && Math.abs(vy) > Math.abs(vx) * 0.8) d.down = true;            // pull down: duck / drop fast
         // push UP to jump: must be a clear upward push (not a sloppy diagonal while running), and you have to come back
@@ -1672,7 +1672,7 @@ class Level1 extends Phaser.Scene {
     const g = Pad.state;
     if (g.connected && g.busy) this.mouseAim = false;               // (v3.28) picked up the pad: stop aiming at a mouse that was nudged once
     if (g.connected) {
-      if (!moveTouched && !g.dpad && Math.abs(g.lx || 0) > 0.05) { d.mvx = g.lx; d.mvxHi = 0.85; }   // the raw stick, for a strict double-flick dodge
+      if (!moveTouched && !g.dpad && Math.abs(g.lx || 0) > 0.05) { d.mvx = g.lx; d.mvy = g.ly || 0; d.mvxHi = 0.85; }   // the raw stick, for a strict double-flick dodge
       if (g.left) d.left = true;
       if (g.right) d.right = true;
       if (g.jump) d.jump = true;
