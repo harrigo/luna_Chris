@@ -1980,3 +1980,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - MOON BOOTS is now one 5-level upgrade (150/280/430/600/800): +5% run and +3.5% jump per level, the jetpack burns 10% less per level (half at Lv 5) and refills 12% faster per level. The JET TANK shop item and run perk are gone; old saves fold any Jet Tank levels into Moon Boots (capped at 5).
 - Cheese Time slows the world to 10% speed (was 35%), so things move about 10x slower while Chris stays full speed.
 - Fixed a crash when a level ended or restarted during Cheese Time (camera gone at shutdown).
+
+## v3.27: Chris slows a little in Cheese Time
+- During Cheese Time Chris and his shots run at 60% speed (CT.chris), while the world runs at 10%, so he's still about 6x quicker than everything else but it reads as slow-mo for him too.

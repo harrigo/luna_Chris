@@ -5,7 +5,7 @@
 // Where they come from: one floats somewhere on every level (up high - jump or jet for it), the Slow-Mo Brie power-up
 // that drops from enemies goes in your pocket instead of going off straight away (unless your pocket's full), and
 // Fridge-o-tron sells them. In the campaign they carry over like your upgrades; on a run, they're for that run.
-const CT = { dur: 6, slow: 0.1, hit: 1.5, max: 3, cost: 150 };
+const CT = { dur: 6, slow: 0.1, chris: 0.6, hit: 1.5, max: 3, cost: 150 };
 
 const CheeseTimeMixin = {
   ctOn() { return !this.camp && !this.training; },

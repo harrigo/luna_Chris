@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.26';
+const BUILD = 'v3.27';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1492,16 +1492,17 @@ class Level1 extends Phaser.Scene {
 
     if (this.state === 'play') {
       const ek = (this.buffOn('slowmo') ? 0.4 : 1) * this.ctK();          // Slow-Mo Brie / CHEESE TIME: everything but Chris crawls
+      const pk = this.ctT > 0 ? CT.chris : 1;                              // (v3.27) ...and Chris slows a little too
       this.updateBuff(dt);
       this.updateHazards(dt * ek);
       this.updateWorld(dt);
-      if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
-      if (this.pl.pit) this.pitUpdate(dt);
-      if (this.pl.ob) this.saucerOB(dt);
+      if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt * pk); else this.updatePlayer(dt * pk, inp);   // (v2.90: L9 falling through to the next layer)
+      if (this.pl.pit) this.pitUpdate(dt * pk);
+      if (this.pl.ob) this.saucerOB(dt * pk);
       this.styleUpdate(dt); if (this.camp) this.campUpdate(dt, inp); else if (this.training) this.trainingUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
-      this.updatePlayerBullets(dt);
+      this.updatePlayerBullets(dt * pk);
       this.updateEnemyBullets(dt * ek);
       this.updatePickups(dt);
       this.updateWheels(dt); this.updateOneUp(); this.updateClawDrops(dt);
