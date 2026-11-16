@@ -282,7 +282,7 @@ const RUN_UI = {
     if (p.id === 'chip') { const w = runGun(); return w && scene.textures.exists(w.gunTex) ? w.gunTex : 'si_tank'; }
     return scene.textures.exists(p.icon) ? p.icon : 'cheddar';
   },
-  fit(img, box) { const s = Math.min(box / img.width, box / img.height); img.setScale(Math.max(1, Math.floor(s * 2) / 2)); return img; }
+  fit(img, box) { const s = Math.min(box / img.width, box / img.height); img.setScale(s < 1 ? s : Math.floor(s * 2) / 2); return img; }   // (v3.36: big pictures shrink to fit)
 };
 
 class RunScene extends Phaser.Scene {

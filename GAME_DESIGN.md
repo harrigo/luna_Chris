@@ -2027,3 +2027,28 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - RIND BEETLE: a red wax shell; shots and bashes ping off and stomps bounce off. A SPIKE, a ground-pound, a bowled rat, a spike shockwave or a parried shot CRACKS it, leaving it soft and taking 1.5x damage. Its tell is a shiver; then it curls into a ball and rolls at Chris for 1.5s (dodge through it).
 - BRIE SNIPER: hovers 220-330px away and blinks off when Chris gets within 90px. Its polished parmesan plate deflects every shot. It aims with a laser sight (1.1s), blinks on lock (0.3s), then fires a slow pink brie bolt. PARRY the bolt and it homes back on its own sniper: an instant knock-out. Bash and stomp still land if you catch it.
 - They're added to waves in levels 1-6 and 5.5 (SF_PLACES), so both modes get them. Each shows a how-to banner the first time it appears in a level (the sniper only the very first time ever).
+
+## v3.36: Moon Camp grows, and the BOSS RUSH
+- CAMP GROWS (campgrow.js): milestones add things round the moon. Fridge-o-tron announces each one with a sparkle the first time you're back at camp after earning it:
+
+  | Unlock | Earned by |
+  |---|---|
+  | Biscuit's kennel | Finish a run |
+  | Cheese plant patch | Clear 2 planets in a run |
+  | Telescope | Clear 3 planets in a run |
+  | Fondue hot tub | Clear 4 planets in a run |
+  | Golden trophy | Win a run |
+  | Target board | Own 3 guns |
+  | Bessie in the pen | Beat the campaign |
+  | Crown on the Boss Gate | Clear the Boss Rush |
+
+- BOSS RUSH (bossrush.js): the BOSS GATE station at camp (-2.95), open once you've won a run (always in test mode).
+  - All 9 bosses back to back (L1, 2, 3, 4, 5, 5.5, 6, 7, 10) against the clock, each level cut to just its boss wave. L8 (no boss wave) and L9 (layered escape) are left out.
+  - One life, with hearts refilling between bosses, and a fixed kit: Black Rind Mk II, Moon Boots 3, +1 heart, 2 Slow-Mo.
+  - The record is furthest boss reached, then fastest time. Rewards: 15 crumbs a boss, +60 for a full clear, +25 for a new record.
+  - Win sequences are skipped (straight on to the next boss); death or quitting goes back to camp with a result card.
+- RUN_UI.fit now shrinks pictures bigger than their box (it only ever scaled up before).
+
+## v3.37: a more fun front end
+- The main menu is now three big bobbing cards: CAMPAIGN (Continue/Play, with your planet), RUN MODE (your crumbs) and TRAINING. A small row underneath holds New Game, Controls, Options (and The End). Keys/pad move left-right and up-down; mouse hovers and clicks; touch taps. The focused card wiggles and gets a gold ring. Sub-screens still use the text menu.
+- The logo wobbles. The title backdrop, used by the splash and the menu, plays little scenes: a rat scurries in and Chris blasts it into orbit (K.O.!), or Biscuit gallops past chasing the beach ball.

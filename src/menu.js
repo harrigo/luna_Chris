@@ -162,49 +162,138 @@ class MenuScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
-    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.15, 0);   // (v2.54: the pixel title scene, not the painted cover art)
+    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.08, 0);   // (v2.54: the pixel title scene, not the painted cover art)
     this.events.on('update', () => { if (this.backdrop) this.backdrop.update(); });
     this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5);
     this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
     this.fit();
+    this.logo.setShadow(4, 5, '#000000', 0, true, true);
+    this.tweens.add({ targets: this.logo, angle: { from: -2, to: 2 }, yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.easeInOut' });   // (v3.37) a happy wobble
     this.scale.on('resize', this.fit, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.fit, this));
     this.going = false;
-    const toMain = () => { this.logo.setVisible(true); this.sub.setVisible(true); this.menu.setItems(main(), ''); };
-    // CONTINUE (when there's a game on this device) and NEW GAME, which wipes every bit of progress after a check
+    // (v3.37) the main menu is three big cards - CAMPAIGN, RUN MODE, TRAINING - and a little row underneath for the rest.
+    // The text menus are kept for the sub-screens (options, controls, the new-game check).
     const hasSave = () => { try { return Object.keys(localStorage).some(k => /^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins)/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== '0'); } catch (e) { return false; } };
+    const sub = (items, title) => { this.tilesShow(false); this.logo.setVisible(title !== 'NEW GAME?'); this.sub.setVisible(false); if (this.menu) this.menu.destroy();
+      this.menu = makeMenu(this, { items, title, dim: false, y: Math.round(this.scale.height * 0.5), minWidth: 220, depth: 5, onBack: toMain }); };
+    const toMain = () => { if (this.menu) { this.menu.destroy(); this.menu = null; } this.logo.setVisible(true); this.sub.setVisible(true); this.tilesShow(true); };
     const confirmNew = () => [
       { info: true, text: 'THIS WIPES ALL PROGRESS:', color: '#ff7a5a' },
       { info: true, text: 'LEVELS, GUNS, WHEELS, RANKS', color: '#ffffff' },
       { label: () => 'YES, START AGAIN', act: () => this.newGame() },
       { label: () => 'NO, GO BACK', act: toMain }];
-    const main = () => (hasSave() ? [
-      { label: () => 'CONTINUE', act: () => this.go() },
-      { label: () => 'NEW GAME', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(confirmNew(), 'NEW GAME?'); } }
-    ] : [
-      { label: () => 'NEW GAME', act: () => this.newGame() }
-    ]).concat([
-      { label: () => 'RUN MODE', act: () => this.startRun() },
-      { label: () => 'TRAINING', act: () => { if (this.going) return; this.going = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('level1', { training: { from: 'menu' } })); } },
-      { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
-      { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
-    ]).concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
     const opts = () => optionItems().concat([{ label: () => 'BACK', act: toMain }]);
     const I = (text, color) => ({ info: true, text, color });
     let dev = inputDevice();
     const controls = () => controlItems(dev, I).concat([
-      { label: () => 'SHOW: ' + { kb: 'KEYBOARD', pad: 'CONTROLLER', touch: 'TOUCH' }[dev] + '  >', act: d => { const o = ['kb', 'pad', 'touch']; dev = o[(o.indexOf(dev) + (d || 1) + 3) % 3]; this.menu.setItems(controls(), 'CONTROLS'); } },
+      { label: () => 'SHOW: ' + { kb: 'KEYBOARD', pad: 'CONTROLLER', touch: 'TOUCH' }[dev] + '  >', act: d => { const o = ['kb', 'pad', 'touch']; dev = o[(o.indexOf(dev) + (d || 1) + 3) % 3]; sub(controls(), 'CONTROLS'); } },
       { label: () => 'BACK', act: toMain }
     ]);
-    this.menu = makeMenu(this, { items: main(), title: '', dim: false, y: Math.round(this.scale.height * 0.5), minWidth: 220, depth: 5,
-      onBack: toMain });
+    const crumbs = typeof Meta !== 'undefined' ? Meta.crumbs() : 0, lv = Math.min(CFG.finalLevel || 10, Progress.best + 1);
+    if (typeof makeCampTextures === 'function') makeCampTextures(this);
+    this.menu = null;
+    this.tileDefs = [
+      { label: hasSave() ? 'CONTINUE' : 'PLAY', sub: hasSave() ? 'PLANET ' + lv : 'SAVE BESSIE!', head: 'CAMPAIGN', icon: 'bessie', col: 0x2a6ad8, act: () => this.go() },
+      { label: 'RUN MODE', sub: crumbs ? crumbs + ' CRUMBS' : 'ONE LIFE. GO!', head: 'ROGUELITE', icon: 'cr_rocket', col: 0xd8402a, act: () => this.startRun() },
+      { label: 'TRAINING', sub: 'LEARN THE MOVES', head: 'PRACTICE', icon: 'cr_dummy', col: 0x2a9a4a, act: () => { if (this.going) return; this.going = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('level1', { training: { from: 'menu' } })); } }
+    ];
+    this.pillDefs = (hasSave() ? [{ label: 'NEW GAME', act: () => sub(confirmNew(), 'NEW GAME?') }] : []).concat([
+      { label: 'CONTROLS', act: () => sub(controls(), 'CONTROLS') },
+      { label: 'OPTIONS', act: () => sub(opts(), 'OPTIONS') }
+    ]).concat(Progress.best >= CFG.finalLevel ? [{ label: 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
+    this.focus = 0; this.tilesOn = true;
+    this.tilesBuild();
+    this.scale.on('resize', this.tilesBuild, this);
+    this.events.once('shutdown', () => this.scale.off('resize', this.tilesBuild, this));
+    // keys / pad: left-right along a row, up-down between the cards and the little row
+    const nT = () => this.tileDefs.length, nAll = () => this.tileDefs.length + this.pillDefs.length;
+    const move = (dx, dy) => {
+      if (!this.tilesOn) return;
+      let f = this.focus;
+      if (dy > 0 && f < nT()) f = nT() + Math.min(this.pillDefs.length - 1, Math.round(f * (this.pillDefs.length - 1) / Math.max(1, nT() - 1)));
+      else if (dy < 0 && f >= nT()) f = Math.min(nT() - 1, Math.round((f - nT()) * (nT() - 1) / Math.max(1, this.pillDefs.length - 1)));
+      else if (dx) { const row0 = f < nT() ? 0 : nT(), rowN = f < nT() ? nT() : this.pillDefs.length; f = row0 + (((f - row0 + dx) % rowN) + rowN) % rowN; }
+      if (f !== this.focus) { this.focus = f; Sound.sfx('jump'); this.tilesPop(f); }
+    };
+    const fire = () => { if (!this.tilesOn || this.going) return; const d = this.focus < nT() ? this.tileDefs[this.focus] : this.pillDefs[this.focus - nT()]; Sound.sfx('pickup'); this.tilesPop(this.focus, true); this.time.delayedCall(120, () => d.act()); };
+    const onKey = e => {
+      if (!this.tilesOn) return;
+      const k = e.key;
+      if (k === 'ArrowLeft' || k === 'a' || k === 'A') move(-1, 0); else if (k === 'ArrowRight' || k === 'd' || k === 'D') move(1, 0);
+      else if (k === 'ArrowUp' || k === 'w' || k === 'W') move(0, -1); else if (k === 'ArrowDown' || k === 's' || k === 'S') move(0, 1);
+      else if (k === 'Enter' || k === ' ' || k === 'z' || k === 'Z' || k === 'x' || k === 'X') fire();
+    };
+    window.addEventListener('keydown', onKey);
+    const padOff = Pad.on(b => { if (!this.tilesOn) return; if (b === 'left') move(-1, 0); else if (b === 'right') move(1, 0); else if (b === 'up') move(0, -1); else if (b === 'down') move(0, 1); else if (b === 'a' || b === 'start') fire(); });
+    this.events.once('shutdown', () => { window.removeEventListener('keydown', onKey); padOff(); });
+    this.input.on('pointermove', p => { if (!this.tilesOn || p.wasTouch) return; const i = this.tileHit(p.x, p.y); if (i >= 0 && i !== this.focus) { this.focus = i; this.tilesPop(i); } });
+    this.input.on('pointerup', p => { if (!this.tilesOn) return; const i = this.tileHit(p.x, p.y); if (i >= 0) { this.focus = i; fire(); } });
+    this.events.on('update', () => this.tilesTick());
   }
+  // ---- the cards
+  tilesBuild() {
+    if (this.tileC) this.tileC.destroy();
+    const W = this.scale.width, H = this.scale.height, n = this.tileDefs.length, gap = Math.max(10, W * 0.02);
+    const tw = Math.min(190, (W - 60 - gap * (n - 1)) / n), th = Math.min(170, H * 0.4, tw * 1.05), y0 = Math.round(H * 0.34), x0 = (W - (n * tw + (n - 1) * gap)) / 2;
+    const c = this.tileC = this.add.container(0, 0).setDepth(5).setVisible(this.tilesOn !== false);
+    const f = (sz, col) => ({ fontFamily: PIXEL, fontSize: sz + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 });
+    this.tiles = this.tileDefs.map((d, i) => {
+      const x = x0 + i * (tw + gap), t = this.add.container(x + tw / 2, y0 + th / 2), g = this.add.graphics();
+      g.fillStyle(0x1a1020, 1).fillRoundedRect(-tw / 2 - 4, -th / 2 - 4, tw + 8, th + 8, 10);
+      g.fillStyle(d.col, 1).fillRoundedRect(-tw / 2, -th / 2, tw, th, 8);
+      g.fillStyle(0x000000, 0.28).fillRoundedRect(-tw / 2 + 6, -th / 2 + 24, tw - 12, th * 0.52, 6);           // a dark window for the picture
+      g.fillStyle(0xffffff, 0.16).fillRoundedRect(-tw / 2, -th / 2, tw, 6, { tl: 8, tr: 8, bl: 0, br: 0 });  // a shine along the top
+      t.add(g);
+      t.add(this.add.text(0, -th / 2 + 6, d.head, f(7, '#ffffff')).setOrigin(0.5, 0).setAlpha(0.8));
+      let im = null;
+      if (this.textures.exists(d.icon)) { im = this.add.image(0, -th / 2 + 24 + th * 0.26, d.icon); const fr = im.frame, s = Math.min((tw - 30) / fr.width, th * 0.46 / fr.height); im.setScale(s); im.baseS = s; t.add(im); }
+      t.add(this.add.text(0, th / 2 - 34, d.label, f(Math.min(14, tw / 11), '#ffd23f')).setOrigin(0.5, 0));
+      t.add(this.add.text(0, th / 2 - 14, d.sub, f(7, '#ffffff')).setOrigin(0.5, 0));
+      const ring = this.add.graphics(); t.add(ring);
+      c.add(t);
+      return { t, im, ring, x, y: y0, w: tw, h: th, ph: i * 1.7 };
+    });
+    // the little row underneath
+    const py = Math.min(H - 22, y0 + th + Math.max(26, H * 0.08));
+    let px = 0; const pw = this.pillDefs.map(d => d.label.length * 8 + 26), pg2 = 10, total = pw.reduce((a, b) => a + b, 0) + pg2 * (pw.length - 1);
+    px = (W - total) / 2;
+    this.pills = this.pillDefs.map((d, i) => {
+      const w = pw[i], h = 24, t = this.add.container(px + w / 2, py), g = this.add.graphics();
+      g.fillStyle(0x1a1020, 0.85).fillRoundedRect(-w / 2, -h / 2, w, h, 12); t.add(g);
+      t.add(this.add.text(0, 0, d.label, f(8, '#e8ecf8')).setOrigin(0.5));
+      const ring = this.add.graphics(); t.add(ring); c.add(t);
+      const o = { t, ring, x: px, y: py - h / 2, w, h, pill: true }; px += w + pg2; return o;
+    });
+    this.tilesPop(this.focus || 0);
+  }
+  tilesShow(on) { this.tilesOn = on; if (this.tileC) this.tileC.setVisible(on); }
+  tileHit(x, y) {
+    const all = (this.tiles || []).concat(this.pills || []);
+    return all.findIndex(o => x >= o.x && x <= o.x + o.w && y >= o.y && y <= o.y + o.h);
+  }
+  tilesPop(i, press) {
+    const all = (this.tiles || []).concat(this.pills || []), o = all[i]; if (!o) return;
+    this.tweens.killTweensOf(o.t); o.t.setScale(press ? 0.9 : 1.12);
+    this.tweens.add({ targets: o.t, scale: press ? 1.04 : 1.06, duration: press ? 160 : 260, ease: 'Back.easeOut' });
+    for (const q of all) if (q !== o) { this.tweens.killTweensOf(q.t); this.tweens.add({ targets: q.t, scale: 1, duration: 160 }); }
+  }
+  tilesTick() {
+    if (!this.tiles || !this.tilesOn) return;
+    const t = this.time.now / 1000, all = this.tiles.concat(this.pills);
+    all.forEach((o, i) => {
+      const on = i === this.focus;
+      if (!o.pill) { o.t.y = o.y + o.h / 2 + Math.sin(t * 2 + o.ph) * 3; if (o.im) { o.im.setRotation(on ? Math.sin(t * 6) * 0.06 : 0); o.im.setScale(o.im.baseS * (on ? 1.06 + 0.04 * Math.sin(t * 8) : 1)); } }
+      o.ring.clear(); if (on) { o.ring.lineStyle(3, 0xffd23f, 0.7 + 0.3 * Math.sin(t * 6)); if (o.pill) o.ring.strokeRoundedRect(-o.w / 2 - 3, -o.h / 2 - 3, o.w + 6, o.h + 6, 14); else o.ring.strokeRoundedRect(-o.w / 2 - 6, -o.h / 2 - 6, o.w + 12, o.h + 12, 12); }
+    });
+  }
+
   fit() {
     const W = this.scale.width, H = this.scale.height;
     if (this.bg) this.bg.setPosition(W / 2, H / 2).setScale(Math.max(W / 1024, H / 572));
     const fs = Math.max(26, Math.min(48, W / 16));
-    this.logo.setFontSize(fs).setPosition(W / 2, H * 0.2);
-    this.sub.setPosition(W / 2, H * 0.2 + fs * 0.85);
+    this.logo.setFontSize(fs).setPosition(W / 2, H * 0.13);
+    this.sub.setPosition(W / 2, H * 0.13 + fs * 0.8);
   }
   newGame() {                                       // wipe the save (settings, volume and cheat mode stay) and the run in hand, then off to the map
     if (this.going) return;

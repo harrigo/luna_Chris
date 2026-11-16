@@ -1207,7 +1207,59 @@ class TitleBackdrop {
     this.rig = new ChrisRig(scene); this.rig.root.setDepth((depth || 0) + 0.05); this.rig.setWeapon(WEAPONS[0]);
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0.5, power: 0, duck: false, facing: 1 };
     this.last = scene.time.now;
+    try { if (typeof makeFolkTextures === 'function') makeFolkTextures(scene); if (typeof makeBallTexture === 'function') makeBallTexture(scene); } catch (e) { /* not ready */ }
+    this.gagT = 3; this.gag = null; this.gagN = 0; this.gagG = scene.add.graphics().setDepth((depth || 0) + 0.06); this.gagSpr = [];
   }
+  // (v3.37) LITTLE SCENES on the moon, so the title isn't just a picture: a rat scurries in and Chris blasts it into
+  // orbit (a twinkle and a K.O.), or Biscuit gallops past chasing a beach ball. x/y are on the moon's curved top.
+  gagUpdate(dt, t, W, H, mx, my, R, top, cx, cy, z) {
+    const sc = this.s, gy = x => top + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))));
+    const img = (k, d) => { if (!sc.textures.exists(k)) return null; const im = sc.add.image(0, 0, k).setDepth(this.g.depth + (d || 0.07)); this.gagSpr.push(im); return im; };
+    const P = this.P;
+    if (!this.gag) {
+      this.gagT -= dt; if (this.gagT > 0) return;
+      this.gagN++;
+      if (this.gagN % 2) {                                                    // a rat runs in from the right...
+        const s = img('mouse'); if (!s) { this.gagT = 3; return; }
+        s.setOrigin(0.5, 1).setFlipX(true).setScale(z * 0.9);
+        this.gag = { k: 'rat', s, x: W + 30, st: 'run', t: 0, shots: [] };
+      } else {                                                                // ...or Biscuit chases a ball across
+        const d = img('cf_dog'), b = img('cr_ball');
+        if (!d || !b) { this.gagN++; this.gagT = 0.5; return; }
+        d.setOrigin(0.5, 1).setScale(z * 0.8); b.setOrigin(0.5, 0.5).setScale(z * 1.0);
+        this.gag = { k: 'dog', d, b, x: -40, bx: 30, bh: 40, bvh: 0, t: 0 };
+      }
+      return;
+    }
+    const G = this.gag; G.t += dt;
+    if (G.k === 'rat') {
+      const s = G.s;
+      if (G.st === 'run') {
+        G.x -= 120 * dt; s.setPosition(G.x, gy(G.x) + 2).setRotation(Math.sin(G.t * 20) * 0.08);
+        if (G.x < cx + W * 0.42 && !G.fired) { G.fired = true; this.burst = 0.6; P.aimA = 0.05; }   // Chris takes aim...
+        if (this.burst > 0 && Math.random() < dt * 12) { const m = img('mac0', 0.08); if (m) { m.setScale(z * 0.7); G.shots.push({ m, x: cx + 40 * z, y: cy - 38 * z }); } }
+        for (const q of G.shots) { q.x += 700 * dt; q.m.setPosition(q.x, q.y).setRotation(q.x * 0.1); if (q.x > G.x - 10) { G.st = 'fly'; G.vx = 260; G.vy = -520; G.r = 0; Sound.sfx('bonk'); } }
+      } else if (G.st === 'fly') {                                            // ...BOSH: off it goes, spinning, into orbit
+        G.vy += 300 * dt; G.x += G.vx * dt; G.y = (G.y === undefined ? gy(G.x) - 10 : G.y) + G.vy * dt; G.r += dt * 14;
+        s.setPosition(G.x, G.y).setRotation(G.r);
+        for (const q of G.shots) q.m.setVisible(false);
+        if (G.y < -20 || G.x > W + 40) {
+          const k = sc.add.text(Math.min(W - 40, Math.max(40, G.x)), 30, 'K.O.!', { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(this.g.depth + 0.1);
+          sc.tweens.add({ targets: k, y: 50, alpha: 0, duration: 900, onComplete: () => k.destroy() }); Sound.sfx('chime');
+          this.gagDone(); return;
+        }
+      }
+      return;
+    }
+    if (G.k === 'dog') {                                                      // the ball bounces along, Biscuit galloping after it
+      G.bx += 170 * dt; G.bvh -= 900 * dt; G.bh += G.bvh * dt; if (G.bh < 12 * z) { G.bh = 12 * z; G.bvh = 420; }
+      G.x += 168 * dt;
+      G.b.setPosition(G.bx, gy(G.bx) - G.bh).setRotation(G.t * 6);
+      G.d.setPosition(G.x, gy(G.x) + 2 - Math.abs(Math.sin(G.t * 12)) * 8 * z).setRotation(Math.sin(G.t * 12) * 0.08);
+      if (G.x > W + 60) this.gagDone();
+    }
+  }
+  gagDone() { for (const s of this.gagSpr) s.destroy(); this.gagSpr = []; this.gag = null; this.gagT = 4 + Math.random() * 3; this.P.aimA = 0.5; }
   update() {
     const sc = this.s, g = this.g, W = sc.scale.width, H = sc.scale.height, now = sc.time.now, t = (now - this.t0) / 1000, dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now; g.clear();
@@ -1238,11 +1290,12 @@ class TitleBackdrop {
     // Chris on top, cape in the wind; now and then a blast of the gun into the sky
     const P = this.P; this.fireT -= dt;
     if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
-    this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = 0.45 + 0.1 * Math.sin(t * 0.8);
+    this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = this.gag && this.gag.k === 'rat' && this.gag.fired ? 0.05 : 0.45 + 0.1 * Math.sin(t * 0.8);
     const x = W * this.cx, y = top + 3 + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))));
     const z = Math.max(1.3, Math.min(2.2, H / 230));
     this.rig.update(P, dt, Math.round(x), Math.round(y), z, 1, Math.floor(t * 10) % 4);
+    if (this.fun !== false) this.gagUpdate(dt, t, W, H, mx, my, R, top, x, y, z);
     if (this.burst > 0 && Math.floor(t * 20) % 2) { const gx = x + 60 * z * 0.5, gy = y - 46 * z; g.fillStyle(0xffe27a, 0.35).fillCircle(gx + 10 * z, gy - 8 * z, 10 * z); }
   }
-  destroy() { this.g.destroy(); this.rig.root.destroy(); }
+  destroy() { this.gagDone(); this.g.destroy(); this.gagG.destroy(); this.rig.root.destroy(); }
 }
