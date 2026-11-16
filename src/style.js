@@ -83,6 +83,50 @@ const StyleMixin = {
     g.fillStyle(Phaser.Display.Color.HexStringToColor(K.col).color, 1).fillRect(x - bw / 2, y + (K.mult > 1 ? 41 : 31), bw * Math.max(0, Math.min(1, k)), 5);
   },
 
+  // ---- DODGE (v3.20): double-tap LEFT or RIGHT for a quick dash that way - nothing can touch him for the length of it.
+  // Dash through a shot or a rat at the last moment for a CLOSE CALL: slow-mo, style, a little ammo back.
+  dashUpdate(dt, inp) {
+    const P = this.pl, t = this.t;
+    for (const [k, d] of [['left', -1], ['right', 1]]) {
+      const on = !!inp[k];
+      if (on && !this['dh_' + k]) {                                   // a fresh press: was there another one just before?
+        if (this['dt_' + k] !== undefined && t - this['dt_' + k] < 0.27 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) this.dashStart(d * (this.axFlip || 1));
+        this['dt_' + k] = t;
+      }
+      this['dh_' + k] = on;
+    }
+    if (P.dashCd > 0) P.dashCd -= dt;
+    if (P.h <= (P.floor || 0) + 0.5) P.airDash = false;
+    const D = P.dash; if (!D) return;
+    D.t += dt; const u = Math.min(1, D.t / D.len);
+    P.vx = D.dir * (820 - 560 * u * u); if (D.air) P.vh = Math.max(P.vh, -30);   // a burst that eases off; in the air he holds his height
+    if ((D.ghostT -= dt) <= 0) { D.ghostT = 0.028; this.dashGhost(); }
+    if (D.t >= D.len) { P.dash = null; P.vx = D.dir * CFG.runSpeed * 0.9; }
+  },
+  dashStart(dir) {
+    const P = this.pl, air = P.h > (P.floor || 0) + 0.5;
+    if (air && P.airDash) return;                                       // one dash per jump
+    P.facing = dir;
+    P.dash = { t: 0, len: 0.2, dir, air, ghostT: 0, close: false }; P.dashCd = 0.5; if (air) P.airDash = true;
+    Sound.sfx('swish'); buzz(15);
+    this.burst(P.theta, P.h + 4, 'puff', 5, 0.5);
+    if (this.trainEvent) this.trainEvent('dash');
+  },
+  dashGhost() {                                                         // a pale streak left behind him
+    const P = this.pl, p = this.screenPos(P.theta, P.h + 40), z = this.zoom;
+    const im = this.add.image(p.x, p.y, 'blob').setDepth(4.9).setTint(0x9fe8ff).setAlpha(0.55).setScale(1.6 * z, 2.6 * z).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: im, alpha: 0, scaleX: 0.4 * z, duration: 220, onComplete: () => im.destroy() });
+  },
+  closeCall() {
+    const P = this.pl, D = P.dash; if (!D || D.close) return;
+    D.close = true;
+    this.slowT = Math.max(this.slowT || 0, 0.55); P.ammo = Math.min(1, (P.ammo || 0) + 0.35);
+    Sound.sfx('shine'); buzz([10, 10, 30]); this.cameras.main.flash(80, 160, 230, 255);
+    this.popup(P.theta, P.h + 84, 'CLOSE CALL!', '#9fe8ff', true);
+    this.addScore(120); this.styleAdd('dodge', 55);
+    if (this.trainEvent) this.trainEvent('close');
+  },
+
   // ---- PARRY: called every frame while the bash is in its opening window
   parryCheck() {
     const P = this.pl; if (P.bashT <= 0 || P.bashT < CFG.bashTime - 0.16 || P.parried) return;

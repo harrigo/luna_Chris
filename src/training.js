@@ -1,12 +1,13 @@
 // ================================================================= THE TRAINING GROUND (v3.16)
-// Clank's obstacle course on a quiet little cheese moon: ten short lessons, one move at a time, on target rats that
-// don't fight back and a pea cannon that can't hurt you. RUN + JUMP, JETPACK, SHOOT, BASH, BOWLING, JUGGLE, UPPERCUT, SPIKE, PARRY,
+// Clank's obstacle course on a quiet little cheese moon: eleven short lessons, one move at a time, on target rats that
+// don't fight back and a pea cannon that can't hurt you. RUN + JUMP, JETPACK, DODGE, SHOOT, BASH, BOWLING, JUGGLE, UPPERCUT, SPIKE, PARRY,
 // then STYLE (mix it all up to rank B). A coach box at the top says what to do and ticks each one off.
 // Where it lives:  the campaign offers it before Level 1 the first time (SKIP TRAINING any time) -  the main menu has
 // TRAINING - and Moon Camp has a TRAINING DUMMY station. It goes back to wherever it came from.
 const TRAIN_STEPS = [
   { title: 'RUN AND JUMP', text: 'Run left and right, then JUMP.', kb: 'A / D to run, SPACE to jump.', touch: 'Left thumb to run, push up to jump.', check: (T, P) => T.moved > 240 && T.jumped, prog: T => Math.min(100, Math.round(T.moved / 2.4)) + '%' },
   { title: 'JETPACK', text: 'In the air, HOLD jump to fire the jetpack. Fly up high!', check: (T, P) => P.h > 170 },
+  { title: 'DODGE', text: 'Double-tap LEFT or RIGHT to DODGE: a quick dash nothing can hit. Dash through a pea at the last moment for a CLOSE CALL!', kb: 'Tap A-A or D-D (or the arrows) quickly.', touch: 'Flick the left thumb twice, quickly.', turret: true, check: T => T.ev.dash >= 2 && T.ev.close >= 1, prog: T => 'DODGES ' + Math.min(2, T.ev.dash || 0) + '/2  CLOSE CALL ' + Math.min(1, T.ev.close || 0) + '/1' },
   { title: 'SHOOT', text: 'Aim and fire at the target rats. Get all three.', kb: 'Mouse to aim, click to fire.', touch: 'Right thumb aims and fires.', dummies: [170, 240, 310], check: T => T.ev.kill >= 3, prog: T => (T.ev.kill || 0) + '/3' },
   { title: 'BASH', text: 'Get close and BASH. Small rats go FLYING.', kb: 'F, B or right-click to bash.', touch: 'The BASH button.', dummies: [80], keep: 1, check: T => T.ev.launch >= 1 },
   { title: 'BOWLING', text: 'Bash a rat INTO the others. Whatever a flying rat hits gets hurt - and launched too!', dummies: [70, 150, 190], keep: 3, check: T => T.ev.smash >= 1 },

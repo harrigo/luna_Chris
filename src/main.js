@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.19';
+const BUILD = 'v3.20';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1377,6 +1377,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
     if (this.bossDown) return;                                // the boss is beaten: nothing can hurt Chris on the way to the rescue
+    if (P.dash) { this.closeCall(); return; }                 // (v3.20) mid-dodge: nothing touches him
     if (this.training) return;                                // (v3.16) the training ground can't hurt you
     this.styleHit();
     if (this.buffOn('giant')) return;                        // too big to hurt
@@ -1761,6 +1762,7 @@ class Level1 extends Phaser.Scene {
     const squishy = this.def.squish && P.h <= (P.floor || 0) + 0.5 && !(P.floor > 0);         // the brie rind: soft, slidey, sluggish (jet boots don't care)
     P.vx += (ax * CFG.runSpeed * (1 + 0.05 * this.bootLv) * (P.duck && onGround ? 0.38 : 1) * (squishy ? 0.82 : 1) * (1 - 0.3 * (P.charge || 0)) * (P.goop ? 0.2 : (P.suck ? 0.4 : (P.bump ? 0.45 : 1))) * (P.grabbed || P.cheese || P.pitFall > 0 ? 0 : 1) - P.vx) * Math.min(1, dt * (P.h > 0 ? 6 : (squishy ? 2.4 : 12)));
     if (P.tripT > 0) { P.tripT -= dt; P.vx = Math.max(-110, Math.min(110, P.vx)); }   // (stumbling)
+    this.dashUpdate(dt, inp);                               // (v3.20) double-tap a direction: DODGE (style.js)
     P.theta = wrap(P.theta + (P.vx / R) * dt);
     if (this.chips && this.chips.length) {               // tortilla chips are solid: you can't run (or be pushed) through them
       this.pinT = Math.max(0, this.pinT - dt);
@@ -4594,7 +4596,8 @@ class Level1 extends Phaser.Scene {
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
       if (b.reflected) { if (!dead && this.reflectHit(b)) dead = true; if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); } continue; }   // (v3.16) parried back
-      if (!dead && P.invuln <= 0) {
+      if (!dead && P.dash) { const rr = b.r + 22; if (dist2(b.theta, b.h, P.theta, P.h + 22) < rr * rr) this.closeCall(); }   // (v3.20) dodged right through it
+      if (!dead && P.invuln <= 0 && !P.dash) {
         const rr = b.r + (P.duck ? 8 : 12);
         if (dist2(b.theta, b.h, P.theta, P.h + (P.duck ? 10 : 22)) < rr * rr) { this.hurt(); dead = true; }
       }

@@ -1950,3 +1950,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v3.19 - Uppercut or spike by momentum
 - DOWN + BASH now follows Chris's vertical momentum as the swing starts (read before that frame's dive kicks in, so pressing DOWN+BASH together while rising still uppercuts): falling (in the air, moving down) = SPIKE; standing, or rising through a jump = UPPERCUT (an air uppercut keeps him going up). Training lesson text updated to match.
+
+### v3.20 - DODGE (double-tap a direction)
+- Double-tap LEFT or RIGHT (keys, d-pad/stick, or two quick flicks of the touch stick) for a quick dash that way: ~0.2s burst that eases off, pale streaks behind him, nothing can hit him while it lasts (shots pass straight through, enemy contact does nothing). Works on the ground and once per jump in the air (he holds his height). 0.5s cooldown.
+- CLOSE CALL: dash through a shot or an enemy at the last moment - slow-mo, a blue flash, "CLOSE CALL!", +120, a bit of ammo back, style points ('dodge').
+- Training Ground: new lesson 3/11 DODGE (two dodges and a close call through the pea cannon).
