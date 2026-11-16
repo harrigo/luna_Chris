@@ -12,6 +12,7 @@ const SHOP = {
   bootCost: [0, 150, 280, 430, 600, 800],   // (v3.26: 5 levels - the old Jet Tank folded in)
   bootMax: 5,
   chipCost: [0, 295, 515, 810],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
+  sellK: 0.5,                              // (v3.31) SELLING: anything bought goes back for half what that level cost
   magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
@@ -269,7 +270,7 @@ class ShopScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this); makeChrisTextures(this); makeShopTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020'); this.cameras.main.fadeIn(200, 0, 0, 0);
     Sound.init();
-    this.going = false; this.sel = 0; this.t0 = 0; this.msg = 'WELCOME! EVERYTHING MUST GO.'; this.msgT = 0; this.flashRow = -1; this.flashT = 0;
+    this.going = false; this.sellMode = false; this.sel = 0; this.t0 = 0; this.msg = 'WELCOME! EVERYTHING MUST GO.'; this.msgT = 0; this.flashRow = -1; this.flashT = 0;
     this.stars = []; for (let i = 0; i < 90; i++) this.stars.push({ x: Math.random(), y: Math.random(), s: 1 + Math.floor(Math.random() * 3), tw: Math.random() * 6 });
     this.bg = this.add.graphics().setDepth(0);
     this.ui = this.add.container(0, 0).setDepth(1);
@@ -284,9 +285,9 @@ class ShopScene extends Phaser.Scene {
     if (kb) {
       kb.on('keydown-UP', () => this.move(-1)); kb.on('keydown-DOWN', () => this.move(1)); kb.on('keydown-W', () => this.move(-1)); kb.on('keydown-S', () => this.move(1));
       kb.on('keydown-ENTER', () => this.buy(this.sel)); kb.on('keydown-SPACE', () => this.buy(this.sel)); kb.on('keydown-X', () => this.buy(this.sel));
-      kb.on('keydown-ESC', () => { if (!this.spin) this.back(); });
+      kb.on('keydown-ESC', () => { if (!this.spin) this.back(); }); kb.on('keydown-Q', () => this.toggleSell());
     }
-    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'up' || b === 'down') this.move(b === 'up' ? -1 : 1); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
+    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'lb') { this.toggleSell(); return; } if (b === 'up' || b === 'down') this.move(b === 'up' ? -1 : 1); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
     this.events.once('shutdown', padOff);
     this.spin = null; this.spinG = this.add.graphics().setDepth(10); this.moodG = this.add.graphics().setDepth(11.5); this.spinT = []; this.spinI = []; this.spinB = [];
     if (kb) { kb.on('keydown-L', () => this.startSpin()); kb.on('keydown-SPACE', () => { if (this.spin) this.pullLever(); }); kb.on('keydown-ESC', () => { if (this.spin) this.endSpin(); }); kb.on('keydown-ENTER', () => { if (this.spin) this.endSpin(); }); ['ONE', 'TWO', 'THREE'].forEach((k, i) => kb.on('keydown-' + k, () => { if (this.spin && this.spin.pick && this.spin.pick[i]) this.pickGun(this.spin.pick[i]); })); }
@@ -300,12 +301,14 @@ class ShopScene extends Phaser.Scene {
         if ((S.done && S.doneT > 0.4) || S.idle) this.endSpin(); return; }
       if (this.spinBox && p.x >= this.spinBox.x && p.x <= this.spinBox.x + this.spinBox.w && p.y >= this.spinBox.y && p.y <= this.spinBox.y + this.spinBox.h) { this.startSpin(); return; }
       if (this.backBox && p.x >= this.backBox.x && p.x <= this.backBox.x + this.backBox.w && p.y >= this.backBox.y && p.y <= this.backBox.y + this.backBox.h) { this.back(); return; }
+      if (this.sellBox && p.x >= this.sellBox.x && p.x <= this.sellBox.x + this.sellBox.w && p.y >= this.sellBox.y && p.y <= this.sellBox.y + this.sellBox.h) { this.toggleSell(); return; }
       const i = (this.rows || []).findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
       if (i >= 0) { if (this.sel === i) this.buy(i); else { this.sel = i; Sound.sfx('jump'); this.showInfo(); } }      // (v2.53: tap a tile to see what it is, tap again to buy)
     });
   }
   // what's on the shelves right now (it depends on what is owned): { name, desc, cost, can, why, act }
   items() {
+    if (this.sellMode) return this.sellItems();
     const reg = this.registry, s = Shop.get(reg), L = [], lives = reg.get('lives') || 0;
     const mk = ['', 'Mk I', 'Mk II', 'Mk III', 'Mk IV'];
     if (s.armMk > 0 && s.armHp <= 0) {
@@ -336,6 +339,25 @@ class ShopScene extends Phaser.Scene {
     if (!(typeof Run !== 'undefined' && Run.on)) L.push({ name: 'EXTRA LIFE', label: 'EXTRA LIFE', icon: 'c_head', desc: 'You have ' + lives + '. (' + CFG.maxLives + ' at most.)', cost: SHOP.lifeCost, max: lives >= CFG.maxLives, act: () => { reg.set('lives', Math.min(CFG.maxLives, (reg.get('lives') || 0) + 1)); } });
     return L;
   }
+  // (v3.31) SELLING: hand an upgrade back for half what its last level cost - so you can rebuild Chris another way
+  sellItems() {
+    const s = Shop.get(this.registry), L = [], K = SHOP.sellK, mk = ['', 'Mk I', 'Mk II', 'Mk III', 'Mk IV'];
+    const add = (o, have, mx, cost, act) => L.push(Object.assign(o, have > 0 ? { pips: [have, mx], cost: Math.round(cost * K), act, sell: true } : { pips: mx > 1 ? [0, mx] : undefined, desc: 'You haven\'t got one to sell.', cost: 0, max: true, sell: true }));
+    add({ name: 'SELL BLACK RIND ' + mk[s.armMk], label: 'BLACK RIND', icon: 'si_armour', desc: s.armMk > 1 ? 'Melt it down to ' + mk[s.armMk - 1] + '.' : 'Melt it down for scrap.' }, s.armMk, 4, SHOP.armCost[s.armMk] || 0,
+      q => { const had = q.armHp > 0; q.armMk--; q.armHp = q.armMk > 0 && had ? Math.min(q.armHp, SHOP.armHp[q.armMk]) : 0; });
+    add({ name: 'SELL MOON BOOTS LV ' + (s.boots || 0), label: 'MOON BOOTS', icon: 'si_boots', desc: 'Back down to LV ' + Math.max(0, (s.boots || 0) - 1) + '.' }, s.boots || 0, SHOP.bootMax, SHOP.bootCost[s.boots || 0] || 0, q => { q.boots--; });
+    add({ name: 'SELL A SLOW-MO CHEESE', label: 'SLOW-MO', icon: 'pu_slowmo', desc: 'One out of your pocket.' }, s.slowmo || 0, 3, CT.cost, q => { q.slowmo--; });
+    add({ name: 'SELL THE MAGNET FORK', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar stops flying to you.' }, s.magnet ? 1 : 0, 1, SHOP.magnetCost, q => { q.magnet = false; });
+    for (const w of WEAPONS) {
+      if (!weaponUnlocked(w, Progress.best + 1)) continue;
+      const c = (s.chips || {})[w.id] || 0;
+      add({ name: 'SELL ' + w.short + ' START CHIP ' + c, label: w.short + ' CHIP', icon: w.gunTex, chip: true, desc: c > 1 ? 'Starts at LEVEL ' + c + ' instead.' : 'Starts at LEVEL 1 again.' }, c, 3, SHOP.chipCost[c] || 0,
+        q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c - 1; });
+    }
+    add({ name: 'SELL EXTRA HEART ' + (s.hearts || 0), label: 'EXTRA HEART', icon: 'hud_cheese', desc: 'One less cheese heart.' }, s.hearts || 0, 2, SHOP.heartCost[s.hearts || 0] || 0, q => { q.hearts--; });
+    return L;
+  }
+  toggleSell() { if (this.going || this.spin) return; this.sellMode = !this.sellMode; this.sel = 0; Sound.sfx('jump'); this.say(this.sellMode ? 'SELLING? I PAY HALF. FRIDGE-O-TRON HAS OVERHEADS.' : 'BACK TO BUYING. EXCELLENT.'); this.build(); }
   // ---- the lucky wheel (v2.53: a lever, respins, Chris sweating it out, and a rugged look: caged work lamps, steel, rust)
   startSpin() {
     if (typeof Run !== 'undefined' && Run.on) { Sound.sfx('clunk'); this.say('NO GAMBLING ON A RUN, CHEF.'); return; }                                          // open the wheel and pull the lever straight away
@@ -554,6 +576,14 @@ class ShopScene extends Phaser.Scene {
   buy(i) {
     if (this.going || this.spin) return;
     const it = this.items()[i], reg = this.registry, s = Shop.get(reg); if (!it) return;
+    if (it.sell) {
+      if (it.max) { Sound.sfx('clunk'); this.say('NOTHING THERE TO SELL.'); return; }
+      s.coins += it.cost; it.act(s); Shop.set(reg, s);
+      if (this.rig) this.rig.setArmour(s.armHp > 0, s.armMk);
+      Sound.sfx('pickup'); this.flashRow = i; this.flashT = 0.4;
+      this.say(['SOLD. NO TAKE-BACKS.', 'I\'LL FIND IT A GOOD HOME.', 'HALF PRICE. THAT\'S BUSINESS.'][Math.floor(Math.random() * 3)]);
+      this.build(); return;
+    }
     if (it.locked) { Sound.sfx('clunk'); this.say('FIND THE GUN FIRST. THEN WE TALK.'); return; }
     if (it.max) { Sound.sfx('clunk'); this.say('NOTHING MORE TO SELL YOU THERE.'); return; }
     if (s.coins < it.cost) { Sound.sfx('zing'); this.cameras.main.shake(90, 0.004); this.say('NOT ENOUGH CHEDDAR. THAT IS ' + it.cost + '.'); return; }
@@ -569,7 +599,7 @@ class ShopScene extends Phaser.Scene {
     this.ui.removeAll(true);
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
     const ink = { stroke: '#1a1020', strokeThickness: 4 };
-    this.ui.add(this.add.text(W / 2, Math.max(8, H * 0.03), "FRIDGE-O-TRON'S SPACE SHOP", f(Math.min(16, W / 30), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
+    this.ui.add(this.add.text(W / 2, Math.max(8, H * 0.03), this.sellMode ? "FRIDGE-O-TRON BUYS BACK" : "FRIDGE-O-TRON'S SPACE SHOP", f(Math.min(16, W / 30), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
     this.ui.add(this.add.image(W - 118, 20, 'cheddar').setScale(2));
     this.ui.add(this.add.text(W - 102, 13, 'CHEDDAR ' + s.coins, f(10, '#ffe27a', ink)));
     // the counter on the left: Chris (in whatever he's wearing) and the shopkeeper
@@ -578,6 +608,7 @@ class ShopScene extends Phaser.Scene {
     g.fillStyle(0x1a1020, 1).fillRect(10, top, lw, bot - top); g.fillStyle(0x151b40, 1).fillRect(12, top + 2, lw - 4, bot - top - 4);
     g.fillStyle(0x2a2050, 1).fillRect(12, bot - 50, lw - 4, 48); g.fillStyle(0x4a3a7a, 1).fillRect(12, bot - 52, lw - 4, 3);     // the floor
     this.ui.add(g);
+    this.charSc = H < 560 ? 1 : 1.5;                                   // (v3.31) smaller on short screens, so they don't stand on the blurb
     this.stage = { x: 12 + (lw - 4) * 0.3, bx: 12 + (lw - 4) * 0.74, y: bot - 26 };
     this.msgText = this.add.text(12 + lw / 2, top + 10, this.msg, f(8, '#5cffe0', { align: 'center', wordWrap: { width: lw - 24 }, lineSpacing: 4 })).setOrigin(0.5, 0);
     this.ui.add(this.msgText);
@@ -618,7 +649,7 @@ class ShopScene extends Phaser.Scene {
       this.ui.add(im); this.tileIcons.push({ im, y: iy, sc });
       if (it.chip) this.ui.add(this.add.image(x + tw / 2 + fr.width * sc * 0.32, iy + fr.height * sc * 0.3, 'si_chip').setScale(Math.max(1.5, sc * 0.75)).setAlpha(it.max ? 0.4 : 1));
       this.ui.add(this.add.text(x + tw / 2, y + 8, it.label || it.name, f(7, it.max ? '#5a6070' : '#e8e0d0', ink)).setOrigin(0.5, 0));
-      const pt = this.add.text(x + tw / 2 + (it.max ? 0 : 7), py + ph / 2, it.locked ? 'LOCKED' : it.max ? 'MAXED' : String(it.cost), f(8, it.max ? '#5a6070' : afford ? '#ffe27a' : '#ff7a5a', ink)).setOrigin(0.5);
+      const pt = this.add.text(x + tw / 2 + (it.max ? 0 : 7), py + ph / 2, it.locked ? 'LOCKED' : it.sell ? (it.max ? 'NONE' : '+' + it.cost) : it.max ? 'MAXED' : String(it.cost), f(8, it.max ? '#5a6070' : (afford || it.sell) ? (it.sell ? '#8aff8a' : '#ffe27a') : '#ff7a5a', ink)).setOrigin(0.5);
       this.ui.add(pt);
       if (!it.max) this.ui.add(this.add.image(pt.x - pt.width / 2 - 8, py + ph / 2, 'cheddar').setScale(1.2));
       this.rows.push({ x, y, w: tw, h: th });
@@ -627,7 +658,12 @@ class ShopScene extends Phaser.Scene {
     const bgx = this.add.graphics(); bgx.fillStyle(0x0a0b10, 1).fillRect(W - 12 - bw - 2, by - 2, bw + 4, backH + 4); bgx.fillStyle(0x3a1a2a, 1).fillRect(W - 12 - bw, by, bw, backH);
     this.ui.add(bgx); this.ui.add(this.add.text(W - 12 - bw / 2, by + backH / 2, 'BACK TO MAP', f(8, '#ffffff', ink)).setOrigin(0.5));
     this.backBox = { x: W - 12 - bw, y: by, w: bw, h: backH };
-    this.ui.add(this.add.text(x0, by + backH / 2, (this.sys.game.device.input.touch ? 'TAP TO LOOK, TAP AGAIN TO BUY.' : 'CLICK TO BUY.') + ' LASTS UNTIL GAME OVER.', f(7, '#6b7390')).setOrigin(0, 0.5));
+    { const sw = 96, sx = W - 12 - bw - 12 - sw, sg = this.add.graphics();            // (v3.31) SELL / BUY toggle
+      sg.fillStyle(0x0a0b10, 1).fillRect(sx - 2, by - 2, sw + 4, backH + 4); sg.fillStyle(this.sellMode ? 0x1a3a22 : 0x2a2a3a, 1).fillRect(sx, by, sw, backH);
+      this.ui.add(sg); this.ui.add(this.add.text(sx + sw / 2, by + backH / 2, this.sellMode ? 'BUY' : 'SELL', f(8, this.sellMode ? '#ffe27a' : '#8aff8a', ink)).setOrigin(0.5));
+      this.sellBox = { x: sx, y: by, w: sw, h: backH };
+      const dev = typeof inputDevice === 'function' ? inputDevice() : 'kb', key = dev === 'pad' ? ' (LB)' : dev === 'touch' ? '' : ' (Q)';
+      this.ui.add(this.add.text(x0, by + backH / 2, (this.sellMode ? (this.sys.game.device.input.touch ? 'TAP TWICE TO SELL' : 'CLICK TO SELL') + ' FOR HALF PRICE.' : (this.sys.game.device.input.touch ? 'TAP TO LOOK, TAP AGAIN TO BUY.' : 'CLICK TO BUY.')) + ' SELL/BUY' + key, f(7, '#6b7390', { wordWrap: { width: Math.max(80, sx - x0 - 10) } })).setOrigin(0, 0.5)); }
     if (this.sel >= n) this.sel = n - 1;
     // what the selected thing is: name and blurb in the panel on the left
     this.infoT = this.add.text(12 + lw / 2, top + 120, '', f(7, '#c9cde0', { align: 'center', wordWrap: { width: lw - 28 }, lineSpacing: 4 })).setOrigin(0.5, 0);
@@ -635,7 +671,7 @@ class ShopScene extends Phaser.Scene {
   }
   showInfo() {
     const it = this.items()[this.sel]; if (!it || !this.infoT) return;
-    this.infoT.setText(it.name + '\n' + it.desc + (it.max ? '' : '\n' + it.cost + ' CHEDDAR'));
+    this.infoT.setText(it.name + '\n' + it.desc + (it.max ? '' : '\n' + (it.sell ? 'YOU GET ' : '') + it.cost + ' CHEDDAR'));
   }
   update(time, delta) {
     const W = this.scale.width, H = this.scale.height, t = time / 1000, dt = Math.min(0.05, delta / 1000);
@@ -647,9 +683,9 @@ class ShopScene extends Phaser.Scene {
       const sp = this.spin, shake = !sp.done && !sp.idle ? Math.sin(t * 60) * 1.2 : 0;
       this.rig.root.setDepth(11); this.rigP.facing = 1;
       this.rig.update(this.rigP, dt, Math.round(sp.cx + shake), Math.round(sp.gy - this.rigP.h * 1.6), 2, 1, Math.floor(t * 8) % 4);
-    } else this.rig.update(this.rigP, dt, Math.round(S.x), Math.round(S.y), 1.5, 1, Math.floor(t * 8) % 4);
+    } else this.rig.update(this.rigP, dt, Math.round(S.x), Math.round(S.y), this.charSc || 1.5, 1, Math.floor(t * 8) % 4);
     if (this.tileIcons) this.tileIcons.forEach((q, i) => { const on = i === this.sel && !this.spin; q.im.setY(q.y + (on ? Math.sin(t * 5) * 2.5 : 0)).setScale(q.sc * (on ? 1.08 : 1)); });
-    this.bot.setPosition(S.bx, S.y - 76 * 0.75 + Math.sin(t * 3) * 1.5).setScale(1.5).setRotation(Math.sin(t * 1.7) * 0.03);
+    this.bot.setPosition(S.bx, S.y - 76 * 0.5 * (this.charSc || 1.5) + Math.sin(t * 3) * 1.5).setScale(this.charSc || 1.5).setRotation(Math.sin(t * 1.7) * 0.03);
     this.flashT = Math.max(0, this.flashT - dt);
     const r = this.rows[this.sel]; this.selG.clear();
     if (r) { this.selG.lineStyle(2, this.flashT > 0 ? 0xffffff : 0xffd23f, 0.6 + 0.4 * Math.sin(t * 6)).strokeRect(r.x - 3, r.y - 3, r.w + 6, r.h + 6); }

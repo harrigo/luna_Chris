@@ -1994,3 +1994,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.30: dodge window
 - The whole double tap must happen within 0.3s, from the first press to the second (DODGE_WIN in style.js). This applies on top of the existing rules: each tap is short, the gap is under 0.23s, and stick flicks match within 10 degrees.
+
+## v3.31: roomier camp, selling, shop panel fix
+- Moon Camp is spread right round the moon, roughly 40% further apart. Stations: training dummy -2.35, larder -1.6, noticeboard -0.85, fire 0, lunchbox 0.72, gun rack 1.3, rocket 2.0, sign at PI. Clank stands by the training dummy (he runs the lessons), Fridge-o-tron by his larder, and Henrietta by the gun rack. Decor, lamps, bulb strings and ledges all moved to match.
+- SELLING in Fridge-o-tron's shop, in both modes: the SELL button (Q / pad LB) flips the shelves to a buy-back list. Each sale returns half (SHOP.sellK) of what that level cost: armour marks, Moon Boots levels, Slow-Mo cheeses, the Magnet Fork, gun start chips, and extra hearts. Lives can't be sold.
+- On short screens (<560px tall) the shop's Chris and Fridge-o-tron are drawn smaller, so they no longer stand on the item description.

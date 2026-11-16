@@ -8,7 +8,7 @@
 // they got to is remembered, lc_talk). Hades-style dialogue box: a portrait, a name plate, typewriter text; now and
 // then they say something on their own in a little bubble.
 const FOLK = {
-  dog: { name: 'BISCUIT', title: 'SPACE DOG', tex: 'cf_dog', sc: 1.5, col: 0xa86a2a, theta: 0.12, home: [-0.45, 0.6], speed: 0.55,
+  dog: { name: 'BISCUIT', title: 'SPACE DOG', tex: 'cf_dog', sc: 1.5, col: 0xa86a2a, theta: 0.14, home: [-0.6, 0.55], speed: 0.55,
     barks: ['ARF!', 'WOOF!', '*pant pant*', '*sniff*'],
     first: [['dog', 'WOOF! WOOF WOOF!'], ['chris', 'Biscuit! Who gave you a helmet? Good boy!'], ['dog', '(He drops a slobbery rat tail at your feet. It\'s a present.)']],
     died: [['dog', '(Biscuit licks your visor until you can\'t see a thing.)'], ['chris', 'Alright, alright! I\'m fine. Mostly.']],
@@ -22,7 +22,7 @@ const FOLK = {
       [['dog', '(Biscuit is chewing the noticeboard leg. Again.)']],
       [['dog', '*sniff sniff sniff*'], ['chris', 'He can smell Bessie on my suit. He misses her too.']]
     ] },
-  bot: { name: 'CLANK', title: 'RANCH ROBOT', tex: 'cf_bot', sc: 1.5, col: 0xc8641a, theta: -0.62, home: [-0.82, -0.24], speed: 0.16,
+  bot: { name: 'CLANK', title: 'RANCH ROBOT', tex: 'cf_bot', sc: 1.5, col: 0xc8641a, theta: -2.05, home: [-2.15, -1.98], speed: 0.16,
     barks: ['BEEP.', 'STACKING.', '*WHIRRR*', 'COUNTING...'],
     first: [['bot', 'GREETINGS, CHRIS. I HAVE RELOCATED THE RANCH TO THIS MOON.'], ['chris', 'You moved the whole ranch?'], ['bot', 'I MOVED A TENT. THE RANCH EXCEEDED MY LIFTING CAPACITY.']],
     died: (c) => [['bot', 'STATUS: CHRIS. DECEASED ON ' + c.at + '. CURRENT STATUS: NOT DECEASED.'], ['bot', 'RECOMMENDATION: DIE LESS.']],
@@ -36,7 +36,7 @@ const FOLK = {
       (c) => [['bot', 'YOU ARE CARRYING ' + c.crumbs + ' GOLDEN CRUMBS.'], ['bot', 'SPEND THEM OR I WILL FILE THEM.']],
       [['bot', 'WHEN BESSIE RETURNS I WILL MILK HER ON SCHEDULE. 06:00. 18:00.'], ['bot', 'I... HAVE MISSED THE SCHEDULE.']]
     ] },
-  kid: { name: 'ZIB', title: 'KID FROM NEXT DOOR', tex: 'cf_kid', sc: 1.5, col: 0x3a9a2a, theta: 0.2, home: [0.2, 0.2], speed: 0, sit: true,
+  kid: { name: 'ZIB', title: 'KID FROM NEXT DOOR', tex: 'cf_kid', sc: 1.5, col: 0x3a9a2a, theta: 0.24, home: [0.24, 0.24], speed: 0, sit: true,
     barks: ['WHEEE!', 'PEW PEW!', 'Mister Chris!', 'Mmm, toasty.'],
     first: [['kid', 'MISTER CHRIS! Mum let me come to space camp!'], ['chris', 'Zib! Does your mum know the camp is on the MOON?'], ['kid', '...She knows it\'s a camp.']],
     died: (c) => [['kid', 'Did ' + c.boss + ' get you?! Was it SCARY?'], ['chris', 'Terrifying. Don\'t tell anyone.'], ['kid', 'I\'m telling EVERYONE.']],
@@ -50,7 +50,7 @@ const FOLK = {
       [['kid', 'Can I have your gun when you retire again?'], ['chris', 'Ask me in about forty years.']],
       [['kid', 'I drew the Rat King! ...It\'s a potato with a crown on.'], ['chris', 'That\'s honestly not far off.']]
     ] },
-  hen: { name: 'HENRIETTA', title: 'SPACE HEN', tex: 'cf_hen', sc: 1.5, col: 0xb8b8c8, theta: 0.78, home: [0.64, 0.9], speed: 0.1,
+  hen: { name: 'HENRIETTA', title: 'SPACE HEN', tex: 'cf_hen', sc: 1.5, col: 0xb8b8c8, theta: 0.98, home: [0.9, 1.1], speed: 0.1,
     barks: ['Bawk.', 'BAWK?!', 'They\'re watching...', '*peck peck*'],
     first: [['hen', 'Bawk. They took the cow, Chris. The hens are next.'], ['chris', 'Henrietta, nobody wants to abduct a chicken.'], ['hen', 'That\'s what they WANT you to think.']],
     died: [['hen', 'Bawk! They got you too?! I KNEW it. It\'s all connected.']],

@@ -6,29 +6,29 @@
 //   round the back: Bessie's empty pen and the SIGNPOST home (main menu)
 // Stand at a station and press DOWN (or tap its sign) to use it. Every run ends back here: Chris drops out of the sky
 // by the fire and the run's summary card pops up.
-const CAMP_ST = [
-  { id: 'fire',   theta: 0.06,  tex: 'cr_fire0',  sc: 1.6, name: 'CAMPFIRE',      verb: 'SIT' },
-  { id: 'lunch',  theta: 0.5,   tex: 'cr_picnic', sc: 1.7, name: 'LUNCHBOX',      verb: 'PACK A LUNCH' },
-  { id: 'rocket', theta: 1.02,  tex: 'cr_rocket', sc: 2.3, name: 'CHEESE ROCKET', verb: 'LAUNCH A RUN', h: 6 },
-  { id: 'rack',   theta: 0.76,  tex: 'cr_rack',   sc: 1.7, name: 'GUN RACK',      verb: 'PICK A GUN' },
-  { id: 'board',  theta: -0.48, tex: 'cr_board',  sc: 1.7, name: 'NOTICEBOARD',   verb: 'READ' },
-  { id: 'larder', theta: -1.06, tex: 'cr_stall',  sc: 1.7, name: 'THE LARDER',    verb: 'TRADE CRUMBS' },
-  { id: 'train',  theta: -1.5,  tex: 'cr_dummy',  sc: 1.7, name: 'TRAINING DUMMY', verb: 'TRAIN' },
+const CAMP_ST = [            // (v3.31) spread right round the moon - every station gets room to breathe
+  { id: 'fire',   theta: 0.0,   tex: 'cr_fire0',  sc: 1.6, name: 'CAMPFIRE',      verb: 'SIT' },
+  { id: 'lunch',  theta: 0.72,  tex: 'cr_picnic', sc: 1.7, name: 'LUNCHBOX',      verb: 'PACK A LUNCH' },
+  { id: 'rack',   theta: 1.3,   tex: 'cr_rack',   sc: 1.7, name: 'GUN RACK',      verb: 'PICK A GUN' },
+  { id: 'rocket', theta: 2.0,   tex: 'cr_rocket', sc: 2.3, name: 'CHEESE ROCKET', verb: 'LAUNCH A RUN', h: 6 },
+  { id: 'board',  theta: -0.85, tex: 'cr_board',  sc: 1.7, name: 'NOTICEBOARD',   verb: 'READ' },
+  { id: 'larder', theta: -1.6,  tex: 'cr_stall',  sc: 1.7, name: 'THE LARDER',    verb: 'TRADE CRUMBS' },
+  { id: 'train',  theta: -2.35, tex: 'cr_dummy',  sc: 1.7, name: 'TRAINING DUMMY', verb: 'TRAIN' },
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
-  ['cr_tent', -0.15, 1.9, 0, 2.3], ['cr_gantry', 1.15, 2.2, 0, 2.2], ['cr_pad', 1.07, 2.2, -2, 2.45], ['shopship', -1.28, 1.15, 14, 2.2],
-  ['cr_crate', 1.3, 1.6, 0, 2.6], ['cr_crate', 1.34, 1.3, 30, 2.6], ['cr_barrel', 1.38, 1.6, 0, 2.6], ['cr_barrel', -0.86, 1.6, 0, 2.6],
-  ['cr_lamp', -0.3, 1.7, 0, 2.25], ['cr_lamp', 0.28, 1.7, 0, 2.25], ['cr_lamp', 0.7, 1.7, 0, 2.25], ['cr_lamp', -0.68, 1.7, 0, 2.25],
-  ['cr_pen', 2.55, 1.8, 0, 2.3], ['cr_dish', -1.75, 1.7, 0, 2.3], ['cr_flag', 0.22, 1.7, 0, 2.2], ['cr_wheels', -2.4, 1.6, 0, 2.3],
-  ['cr_crate', 2.95, 1.5, 0, 2.6], ['cr_barrel', -2.2, 1.5, 0, 2.6]
+  ['cr_tent', -0.42, 1.9, 0, 2.3], ['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
+  ['cr_crate', 2.36, 1.6, 0, 2.6], ['cr_crate', 2.4, 1.3, 30, 2.6], ['cr_barrel', 2.44, 1.6, 0, 2.6], ['cr_barrel', -1.15, 1.6, 0, 2.6],
+  ['cr_lamp', -1.22, 1.7, 0, 2.25], ['cr_lamp', -0.55, 1.7, 0, 2.25], ['cr_lamp', 0.4, 1.7, 0, 2.25], ['cr_lamp', 1.02, 1.7, 0, 2.25],
+  ['cr_pen', 2.78, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], ['cr_wheels', 1.62, 1.6, 0, 2.3],
+  ['cr_barrel', -2.6, 1.5, 0, 2.6]
 ];
-const CAMP_LIGHTS = [[-0.68, -0.3], [-0.3, 0.28], [0.28, 0.7]];          // strings of bulbs between the lamp posts
+const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strings of bulbs between the lamp posts
 
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    ledges: [{ theta: 1.75, half: 0.11, h: 95 }, { theta: 2.15, half: 0.09, h: 175 }, { theta: -1.55, half: 0.1, h: 110 }, { theta: 4.0, half: 0.1, h: 150 }],
+    ledges: [{ theta: 2.6, half: 0.11, h: 95 }, { theta: 2.95, half: 0.09, h: 175 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -303,7 +303,7 @@ const CampMixin = {
     this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc;
       const a = { spr, theta: d.theta, h: (d.h || 0) - this.campSink(spr, d.sc), rot: 0 }; this.actors.push(a); return Object.assign({}, d, { a }); });
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
-    this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -0.84, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
+    this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
     this.campFolkInit();
     this.campGlow = this.add.image(0, 0, 'puff').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
     this.campLightG = this.add.graphics().setDepth(2.5);
@@ -315,7 +315,7 @@ const CampMixin = {
     this.campHud = this.add.container(0, 0).setDepth(21);
     this.campHudBuild();
     this.campLine = this.campPickLine();
-    const P = this.pl; P.theta = this.campSum ? 0.24 : -0.02;
+    const P = this.pl; P.theta = this.campSum ? 0.42 : -0.14;
     if (this.campSum) { P.h = 640; P.vh = -120; this.time.delayedCall(1500, () => this.campShowCard()); }
     else this.time.delayedCall(900, () => this.campSay(this.campLine, 4.5));
   },
