@@ -445,6 +445,10 @@ class RunScene extends Phaser.Scene {
       this.ui.add(this.add.text(tx, yy + chh / 2 + 10, (L.blurb || '').replace(/\n/g, ' '), f(7, '#c9cde0', { strokeThickness: 3, wordWrap: { width: tw }, lineSpacing: 4 })).setOrigin(0, 0));
       this.hits.push({ x, y: yy, w: cw, h: chh, act: () => { Sound.sfx('power'); this.go('level1', { level: id, direct: true }); } });     // (v3.10: the gun is chosen at camp)
     });
+    if (Progress.testMode) {                                         // (v3.25) TEST MODE: run cheddar on tap
+      const tb = this.add.text(8, 8, '+2000 CHEDDAR (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setInteractive({ useHandCursor: true });
+      tb.on('pointerup', () => { const s = Shop.get(this.registry); s.coins += 2000; s.slowmo = 3; Shop.set(this.registry, s); Sound.sfx('power'); this.build(); }); this.ui.add(tb);
+    }
     // buttons: SHOP / GIVE UP
     const bw = small ? 120 : 140, by = y1 - btnH + 4;
     [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('level1', { camp: true, sum })); }]].forEach(([lab, act], i) => {

@@ -1295,6 +1295,16 @@ class SelectScene extends Phaser.Scene {
       this.labBtn = this.add.text(W - 8 - this.modeBtn.width - 6, 8, telOn ? 'TEST LAB: ON' : 'TEST LAB', f(7, telOn ? '#1a1020' : '#ffffff', { backgroundColor: telOn ? '#ffd23f' : '#3a2a5a', padding: { x: 7, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true });
       this.labBtn.on('pointerup', () => { try { localStorage.setItem('lc_tel_hud', telOn ? '0' : '1'); } catch (e) { /* ignore */ } Sound.sfx(telOn ? 'clunk' : 'power'); this.build(); });
       this.ui.add(this.labBtn);
+      // (v3.25) TEST MODE only: a button that fills your pockets - cheddar, slow-mo cheese, and golden crumbs for the camp
+      if (on) {
+        this.cheeseBtn = this.add.text(0, 8, '+CHEESE', f(7, '#1a1020', { backgroundColor: '#ffd23f', padding: { x: 7, y: 5 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+        this.cheeseBtn.on('pointerup', () => {
+          const s = Shop.get(this.registry); s.coins += 5000; s.slowmo = 3; Shop.set(this.registry, s);
+          if (typeof Meta !== 'undefined') Meta.addCrumbs(500);
+          Sound.sfx('power'); this.cameras.main.flash(120, 255, 220, 120); this.build();
+        });
+        this.ui.add(this.cheeseBtn);
+      }
     }
     this.infoBox = this.add.container(0, 0); this.ui.add(this.infoBox);
     this.buildInfo();
@@ -1312,6 +1322,7 @@ class SelectScene extends Phaser.Scene {
       if (!(typeof Cheat !== 'undefined' && Cheat.on)) for (const b of this.testBtns) if (b !== this.modeBtn) b.setVisible(false);     // (the old TEST buttons only show in cheat mode)
       let y = 8; for (const b of this.testBtns) if (b.visible) { b.setY(y); y += 18; }
       if (this.labBtn && this.modeBtn) this.labBtn.setPosition(this.modeBtn.x - this.modeBtn.width - 6, this.modeBtn.y);
+      if (this.cheeseBtn && this.labBtn) this.cheeseBtn.setPosition(this.labBtn.x - this.labBtn.width - 6, this.labBtn.y);
     }
     const y0 = Math.round(this.panelY || H * 0.76), ph = H - y0 - 6, rw = Math.min(330, W * 0.41), lw = W - 24 - rw;
     const panel = (x, y, w, h) => {

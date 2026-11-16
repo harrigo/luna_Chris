@@ -1971,3 +1971,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The Stopwatch upgrade is gone. CHEESE TIME is now fuelled by SLOW-MO CHEESE, a collectible you carry (up to 3, shown under the style meter with a count): C / pad X / touch SLOW eats one for 6s of slow-mo (same effect as v3.23).
 - Where you get them: one floats up high somewhere round every level (jump or jet for it; once you've had a level's one it doesn't come back on a retry - on a run it's per run); the SLOW-MO BRIE power-up drop now turns up from Level 1 and goes in your pocket instead of going off straight away (if your pocket's full, it goes off as before); and Fridge-o-tron sells them, 150 cheddar each.
 - Campaign: they carry over like your upgrades. On a run: run-only, like the run's cheddar.
+
+### v3.25 - TEST MODE: +CHEESE buttons
+- With TEST MODE on, the level map has a yellow +CHEESE button (next to TEST LAB): +5000 cheddar, a full pocket of Slow-Mo Cheese (3) and +500 golden crumbs.
+- Moon Camp shows "+500 CRUMBS (TEST)" under the crumbs counter, and a run's "where next" screen shows "+2000 CHEDDAR (TEST)" (run cheddar, plus a full Slow-Mo pocket) - both only in test mode.

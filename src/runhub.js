@@ -335,6 +335,10 @@ const CampMixin = {
     this.campHud.add(this.add.image(24, 23, 'cr_crumb').setScale(2));
     this.campCrumbT = this.add.text(40, 16, String(Meta.crumbs()), f(10, '#ffd23f')); this.campHud.add(this.campCrumbT);
     this.campHud.add(this.add.text(40, 29, 'GOLDEN CRUMBS', f(5, '#c9cde0', { strokeThickness: 2 })));
+    if (Progress.testMode) {                                         // (v3.25) TEST MODE: crumbs on tap
+      const tb = this.add.text(8, 44, '+500 CRUMBS (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setInteractive({ useHandCursor: true });
+      tb.on('pointerup', () => { Meta.addCrumbs(500); Sound.sfx('power'); this.campHudBuild(); }); this.campHud.add(tb);
+    }
     this.campHud.add(this.add.text(W / 2, 8, 'MOON CAMP', f(Math.min(18, W / 34), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
     const b = Run.best();
     this.campHud.add(this.add.text(W / 2, 32, 'STRENGTH: ' + STRENGTHS[Run.tierSel()].name + '   GUN: ' + runGun().short + '   LUNCH: ' + Meta.kit().name, f(6, '#c9cde0', { strokeThickness: 3 })).setOrigin(0.5, 0));
