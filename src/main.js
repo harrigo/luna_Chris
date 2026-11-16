@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.31';
+const BUILD = 'v3.32';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -238,6 +238,7 @@ class Level1 extends Phaser.Scene {
     this.waveT = 0;
     this.clearT = 0;
     this.spawnSide = 1;
+    this.ball = null;               // (v3.32) the camp's beach ball
     this.actors = [];               // decorative things placed in the world: Bessie, the rat-ship, falling debris
     this.rescue = null;
     this.nap = null;
@@ -3346,6 +3347,7 @@ class Level1 extends Phaser.Scene {
 
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
+    if (this.ball) this.ballBash(dir, cy);                                  // (v3.32) the camp's beach ball (beachball.js)
     if (P.upper) { P.upper = false; this.uppercutHit(); this.reapEnemies(); return; }   // (v3.17) UPPERCUT: down + bash on the ground (style.js)
     if (P.spikeArm) { P.spikeArm = false; if (this.spikeHit()) { this.reapEnemies(); return; } }   // ...and a SPIKE in the air
     const reachT = CFG.bashRange / R;
@@ -4504,6 +4506,7 @@ class Level1 extends Phaser.Scene {
           if (!(C.stun > 0) && !(C.stagCd > 0)) { C.stag = (C.stag || 0) + (b.dmg || 1); if (C.stag >= 12) { C.stag = 0; C.stagCd = 3.2; this.stunChaser(1.7); if (this.gz) this.gorgeFling(C, 2); } }   // (v2.61) enough hits: it reels back, and rind flies
         }
       }
+      if (!dead && this.ball && this.ballShot(b)) dead = true;
       if (!dead && this.gz && this.gorgeHit(b.theta, b.h, 6)) dead = true;
       if (!dead && this.az && this.armadaHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (false) {
@@ -5639,7 +5642,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin, BallMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);

@@ -305,6 +305,7 @@ const CampMixin = {
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
     this.campFolkInit();
+    this.ball = null; this.ballInit();                                     // (v3.32) the beach ball
     this.campGlow = this.add.image(0, 0, 'puff').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
     this.campLightG = this.add.graphics().setDepth(2.5);
     const f = RUN_UI.f;
@@ -325,7 +326,8 @@ const CampMixin = {
   campTarget() {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return null;
     const s = this.campNear(), fN = this.campFolk && this.campFolkNear();
-    if (fN && (!s || fN.d < Math.abs(angDiff(this.pl.theta, s.theta)) * R)) return fN.F;
+    // (v3.32) the stations come first; folk only win if they're closer, and Biscuit only when there's nothing else to use
+    if (fN && (!s || (fN.F.id !== 'dog' && fN.d < Math.abs(angDiff(this.pl.theta, s.theta)) * R))) return fN.F;
     return s;
   },
   campHudBuild() {
@@ -363,6 +365,7 @@ const CampMixin = {
     const near = this.campTarget();
     if (inp.down && !this.campDownHeld && near && this.campCool <= 0) this.campUse(near);
     this.campFolkUpdate(dt);
+    this.ballUpdate(dt);
     this.campDownHeld = !!inp.down;
     // the fire: sparks and smoke
     this.campSparkT -= dt;

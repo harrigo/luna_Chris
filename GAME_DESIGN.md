@@ -1999,3 +1999,12 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Moon Camp is spread right round the moon, roughly 40% further apart. Stations: training dummy -2.35, larder -1.6, noticeboard -0.85, fire 0, lunchbox 0.72, gun rack 1.3, rocket 2.0, sign at PI. Clank stands by the training dummy (he runs the lessons), Fridge-o-tron by his larder, and Henrietta by the gun rack. Decor, lamps, bulb strings and ledges all moved to match.
 - SELLING in Fridge-o-tron's shop, in both modes: the SELL button (Q / pad LB) flips the shelves to a buy-back list. Each sale returns half (SHOP.sellK) of what that level cost: armour marks, Moon Boots levels, Slow-Mo cheeses, the Magnet Fork, gun start chips, and extra hearts. Lives can't be sold.
 - On short screens (<560px tall) the shop's Chris and Fridge-o-tron are drawn smaller, so they no longer stand on the item description.
+
+## v3.32: beach ball and a better-behaved Biscuit
+- Moon Camp has an unpoppable stripy BEACH BALL (beachball.js).
+  - Shots nudge it, a bash belts it along the ground, an uppercut sends it sky-high, and a spike hammers it down to bounce.
+  - Walking into it dribbles it along; landing on it bounces Chris up.
+  - It bounces off the moon and the ledges with squash and spin.
+- Biscuit no longer clings to Chris. He roams round the fire and chases the ball whenever it's moving, nosing it about.
+- Now and then, when Chris comes up to him, Biscuit tags along at his heels for 5-10 seconds, then wanders off (8-15s before he'll do it again). His heel side only changes when Chris walks, so he no longer flicks left and right when you stand on him.
+- DOWN goes to the station first: Biscuit only gets the TALK prompt when nothing else is in reach. Other folk still win if they're nearer than the station.

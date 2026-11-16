@@ -192,10 +192,24 @@ Object.assign(CampMixin, {
       const d = F.d, A = F.a;
       if (talking && talking.F === F) { F.dir = Math.sign(angDiff(A.theta, P.theta)) || F.dir; }
       else if (d.speed > 0) {
-        if (F.id === 'dog' && Math.abs(angDiff(A.theta, P.theta)) < 0.9 && !this.campGo) F.tgt = wrap(P.theta - F.dir * 0.09 + Math.sin(this.t * 0.7) * 0.04);   // Biscuit sticks by you
+        // (v3.32) Biscuit no longer glues himself to Chris (he got underfoot, and flicked about when you stood on him):
+        // he roams round the fire, and when the beach ball's near he chases it and noses it about
+        // ...and now and then, when you come up to him, he tags along at your heels for 5-10 seconds, then wanders off
+        let bt = F.id === 'dog' && !this.campGo && this.ballDogTarget ? this.ballDogTarget(F) : null;
+        if (F.id === 'dog' && bt === null && !this.campGo) {
+          F.followCd = Math.max(0, (F.followCd || 0) - dt);
+          if (F.followT > 0) {
+            F.followT -= dt; if (F.followT <= 0) { F.followCd = rnd(8, 15); F.wait = 0; F.tgt = A.theta; }
+            if (Math.abs(P.vx || 0) > 25 || F.heel === undefined) F.heel = P.facing || 1;          // (which side to sit only changes when you walk - no flip-flopping)
+            bt = wrap(P.theta - F.heel * 0.12);
+          } else if (F.followCd <= 0 && Math.abs(angDiff(A.theta, P.theta)) < 0.3) {
+            if (Math.random() < 0.5) { F.followT = rnd(5, 10); F.vh = 260; } else F.followCd = rnd(4, 8);
+          }
+        }
+        if (bt !== null) { F.tgt = bt; F.wait = rnd(1, 2.5); }
         else if ((F.wait -= dt) <= 0 && Math.abs(angDiff(F.tgt, A.theta)) < 0.01) { F.tgt = d.home[0] + Math.random() * (d.home[1] - d.home[0]); F.wait = rnd(1.5, 4); }
         const df = angDiff(F.tgt, A.theta);
-        if (Math.abs(df) > 0.01) { const sp = d.speed * (F.id === 'dog' && Math.abs(df) > 0.3 ? 1.8 : 1); A.theta = wrap(A.theta + Math.sign(df) * Math.min(Math.abs(df), sp * dt)); F.dir = Math.sign(df); F.moving = true; }
+        if (Math.abs(df) > (bt !== null && F.followT > 0 ? 0.03 : 0.01)) { const sp = d.speed * (F.id === 'dog' && (Math.abs(df) > 0.3 || bt !== null) ? 1.8 : 1); A.theta = wrap(A.theta + Math.sign(df) * Math.min(Math.abs(df), sp * dt)); F.dir = Math.sign(df); F.moving = true; }
         else F.moving = false;
         if (F.id === 'dog' && A.h <= 0 && Math.random() < dt * 0.25) F.vh = 260;          // a happy hop now and then
       }
