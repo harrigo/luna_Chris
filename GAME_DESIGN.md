@@ -1955,3 +1955,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Double-tap LEFT or RIGHT (keys, d-pad/stick, or two quick flicks of the touch stick) for a quick dash that way: ~0.2s burst that eases off, pale streaks behind him, nothing can hit him while it lasts (shots pass straight through, enemy contact does nothing). Works on the ground and once per jump in the air (he holds his height). 0.5s cooldown.
 - CLOSE CALL: dash through a shot or an enemy at the last moment - slow-mo, a blue flash, "CLOSE CALL!", +120, a bit of ammo back, style points ('dodge').
 - Training Ground: new lesson 3/11 DODGE (two dodges and a close call through the pea cannon).
+
+### v3.21 - Dodge only on a real double tap
+- The dodge was firing by accident: any off-on flicker of a direction within 0.27s counted - a thumb wobbling round the touch stick's 30% edge, or letting go and re-pressing while running. Now it needs a proper double TAP: two short presses (each let go within 0.22s), a clean gap of 30-230ms between them, and any press the other way cancels a half-done tap. Off-flickers shorter than 45ms are treated as the same press. On the touch stick it reads the raw stick: a flick has to go past 60% and come back inside 25% to count as let go.

@@ -86,15 +86,29 @@ const StyleMixin = {
   // ---- DODGE (v3.20): double-tap LEFT or RIGHT for a quick dash that way - nothing can touch him for the length of it.
   // Dash through a shot or a rat at the last moment for a CLOSE CALL: slow-mo, style, a little ammo back.
   dashUpdate(dt, inp) {
-    const P = this.pl, t = this.t;
+    // (v3.21) a proper double TAP: two short presses (each let go within ~0.2s) with a clean gap between them. Holding a
+    // direction, or a thumb wobbling round the stick's edge, never counts - the touch stick needs a strong flick (past 60%)
+    // and has to come right back (inside 25%) before it counts as let go.
+    const P = this.pl, now = this.time.now;
     for (const [k, d] of [['left', -1], ['right', 1]]) {
-      const on = !!inp[k];
-      if (on && !this['dh_' + k]) {                                   // a fresh press: was there another one just before?
-        if (this['dt_' + k] !== undefined && t - this['dt_' + k] < 0.27 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) this.dashStart(d * (this.axFlip || 1));
-        this['dt_' + k] = t;
+      const was = !!this['dh_' + k];
+      const on = inp.mvx !== undefined ? (was ? d * inp.mvx > 0.25 : d * inp.mvx > 0.6) : !!inp[k];
+      if (on && !was) {                                                  // pressed
+        const tap = this['tap_' + k], gap = tap ? now - tap.up : 1e9;
+        if (tap && gap < 45 && tap.held) { this['dn_' + k] = tap.down; }                       // a flicker, not a new press: carry on the old one
+        else {
+          if (tap && tap.short && gap >= 30 && gap < 230 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) { this.dashStart(d * (this.axFlip || 1)); this['tap_' + k] = null; }
+          this['dn_' + k] = now;
+        }
+      } else if (!on && was) {                                           // let go
+        const held = now - (this['dn_' + k] || now);
+        this['tap_' + k] = { up: now, down: this['dn_' + k], short: held < 220, held: true };
       }
       this['dh_' + k] = on;
     }
+    // (any press of the other way cancels a half-done double tap)
+    if (inp.left && this.tap_right) this.tap_right = null;
+    if (inp.right && this.tap_left) this.tap_left = null;
     if (P.dashCd > 0) P.dashCd -= dt;
     if (P.h <= (P.floor || 0) + 0.5) P.airDash = false;
     const D = P.dash; if (!D) return;

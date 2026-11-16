@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.20';
+const BUILD = 'v3.21';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1625,7 +1625,7 @@ class Level1 extends Phaser.Scene {
       if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.05) { d.melee = true; continue; }      // the right-hand button = BASH (only if the press starts on it)
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
-        S.move = { ox, oy, vx, vy }; moveTouched = true;
+        S.move = { ox, oy, vx, vy }; moveTouched = true; d.mvx = vx;      // (v3.21: the raw stick, for the dodge's double-flick)
         if (vx < -0.3) d.left = true; else if (vx > 0.3) d.right = true;
         if (vy > 0.55 && Math.abs(vy) > Math.abs(vx) * 0.8) d.down = true;            // pull down: duck / drop fast
         // push UP to jump: must be a clear upward push (not a sloppy diagonal while running), and you have to come back
