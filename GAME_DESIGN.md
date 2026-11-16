@@ -1991,3 +1991,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.29: dodge flicks must match
 - On a stick (pad or touch), the two dodge flicks must point the same way, within 10 degrees of each other, and be roughly sideways (under ~34 degrees from flat). So up-and-a-bit-right then right is just movement, while right-right is a dodge. Keyboard and d-pad double taps are unchanged.
+
+## v3.30: dodge window
+- The whole double tap must happen within 0.3s, from the first press to the second (DODGE_WIN in style.js). This applies on top of the existing rules: each tap is short, the gap is under 0.23s, and stick flicks match within 10 degrees.

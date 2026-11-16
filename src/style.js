@@ -25,6 +25,7 @@ const Style = { mult: 1 };
   Shop.earn = function (reg, n) { if (Style.noEarn && n > 0) return; if (n > 0 && Style.mult > 1) n = Math.round(n * Style.mult); return earn.call(this, reg, n); };
 })();
 
+const DODGE_WIN = 300;                                                 // (v3.30) whole double tap, first press to second, in 0.3s
 const DODGE_ANG = 10 * Math.PI / 180;                                  // (v3.29) how closely the two dodge flicks must match
 const StyleMixin = {
   styleInit() {
@@ -102,7 +103,7 @@ const StyleMixin = {
         const same = !tap || tap.ang === undefined || inp.mvx === undefined || Math.abs(ang - tap.ang) <= DODGE_ANG;
         if (tap && gap < 45 && tap.held) { this['dn_' + k] = tap.down; }                       // a flicker, not a new press: carry on the old one
         else {
-          if (tap && tap.short && same && (inp.mvx === undefined || Math.abs(ang) < 0.6) && gap >= 30 && gap < 230 && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) { this.dashStart(d * (this.axFlip || 1)); this['tap_' + k] = null; }
+          if (tap && tap.short && same && (inp.mvx === undefined || Math.abs(ang) < 0.6) && gap >= 30 && gap < 230 && now - tap.down < DODGE_WIN && !P.dash && !(P.dashCd > 0) && this.state === 'play' && !P.grabbed && !P.ob && !P.pit) { this.dashStart(d * (this.axFlip || 1)); this['tap_' + k] = null; }
           this['dn_' + k] = now; this['ang_' + k] = inp.mvx !== undefined ? ang : undefined;
         }
       } else if (!on && was) {                                           // let go
