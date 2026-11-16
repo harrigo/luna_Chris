@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.15';
+const BUILD = 'v3.16';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -211,7 +211,8 @@ class Level1 extends Phaser.Scene {
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
     this.waves = (Run.on ? Run.trimWaves(this.def.waves) : this.def.waves).concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);
-    this.camp = false; if (data && data.camp) this.campInit(data);     // (v3.07) MOON CAMP: run mode's home (runhub.js)   // the boss (and its tune) lands just after the fill's crash
+    this.camp = false; if (data && data.camp) this.campInit(data);
+    this.training = null; if (data && data.training) this.trainInit(data);     // (v3.16) the training ground (training.js)     // (v3.07) MOON CAMP: run mode's home (runhub.js)   // the boss (and its tune) lands just after the fill's crash
   }
 
   // ------------------------------------------------------------------ setup
@@ -641,6 +642,7 @@ class Level1 extends Phaser.Scene {
 
     this.layout();
     this.updateHearts();
+    this.styleInit();                          // (v3.16) the style meter (style.js)
     if (this.autostart || this.direct) {
       this.startGame();                       // retry after dying / picked from the level select: straight in
     } else {
@@ -838,6 +840,7 @@ class Level1 extends Phaser.Scene {
   // ------------------------------------------------------------- game flow
   startGame() {
     if (this.camp) { this.campStart(); return; }
+    if (this.training) { this.trainStart(); return; }
     this.hideOverlay();
     try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
     this.placeWheels(); this.placeOneUp();
@@ -1374,6 +1377,8 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     if (P.invuln > 0 || this.state !== 'play') return;
     if (this.bossDown) return;                                // the boss is beaten: nothing can hurt Chris on the way to the rescue
+    if (this.training) return;                                // (v3.16) the training ground can't hurt you
+    this.styleHit();
     if (this.buffOn('giant')) return;                        // too big to hurt
     if (this.buffOn('shield') && P.buff.charges > 0) {       // the Fondue Shield soaks it
       P.buff.charges--; P.invuln = 0.8; this.shieldHit();
@@ -1486,7 +1491,7 @@ class Level1 extends Phaser.Scene {
       if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
       if (this.pl.pit) this.pitUpdate(dt);
       if (this.pl.ob) this.saucerOB(dt);
-      if (this.camp) this.campUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
+      this.styleUpdate(dt); if (this.camp) this.campUpdate(dt, inp); else if (this.training) this.trainingUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
       this.updatePlayerBullets(dt);
@@ -1719,6 +1724,7 @@ class Level1 extends Phaser.Scene {
 
   updatePlayer(dt, inp) {
     const P = this.pl;
+    this.lastInp = inp;
     if (this.fullCam) {                                         // FULL camera: on a SIDE of the planet, holding DOWN walks him down it (like RIGHT),
       const side = Math.abs(Math.cos(this.camLag || 0)) < 0.5;  // and keeps doing so while held, on round underneath
       if (inp.down && !inp.left && !inp.right && (this.downWalk || (side && P.h <= (P.floor || 0) + 1))) {
@@ -1915,6 +1921,7 @@ class Level1 extends Phaser.Scene {
     // (no auto-bash: it only ever happens when you press BASH)
     if (inp.melee && P.bashCd <= 0 && P.bashT <= 0 && this.state === 'play') this.startBash();
     if (P.bashT > 0) {
+      this.parryCheck();                                                     // (v3.16) the opening of the swing parries shots
       P.bashT = Math.max(0, P.bashT - dt);
       const k = 1 - P.bashT / CFG.bashTime;                                  // 0 -> 1 through the swing
       // 1) SWING: the gun whips ~120 degrees anticlockwise round the grip - barrel up and back, butt swinging
@@ -2172,7 +2179,7 @@ class Level1 extends Phaser.Scene {
 
   startBash() {
     const P = this.pl;
-    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0;
+    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false;
     Sound.sfx('swish');
     if (this.def.fondue) this.fondueBash();                                           // L5.5: a swipe parts a curtain of cheese
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
@@ -3314,6 +3321,7 @@ class Level1 extends Phaser.Scene {
 
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
+    if (P.h > (P.floor || 0) + 24 && this.lastInp && this.lastInp.down && this.spikeHit()) { this.reapEnemies(); return; }   // (v3.16) SPIKE: down + bash in the air
     const reachT = CFG.bashRange / R;
     let hit = 0;
     for (const e of this.enemies) {
@@ -3335,6 +3343,7 @@ class Level1 extends Phaser.Scene {
     if (this.relics && this.relics.length) hit += this.relicHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (this.lumps && this.lumps.length) hit += this.lumpHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (hit) {
+      this.styleAdd('bash', 20);
       this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy);
       Sound.sfx('bonk'); buzz([30, 20, 50]);
       this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camKick(dir * 6, 2); this.camPunch(0.02);
@@ -3804,6 +3813,7 @@ class Level1 extends Phaser.Scene {
       const pt = e.theta, ph = e.h;
       e.t += dt;
       if (e.launch) { this.launchUpdate(e, dt); continue; }   // (v3.15) bashed into orbit: smash.js
+      if (e.dummy) { if (e.h > 0) e.h = Math.max(0, e.h - 300 * dt); continue; }   // (v3.16) a training-ground target rat just stands there
       if (e.kb) {                                        // knockback from hits: a shove that dies away quickly
         e.theta = wrap(e.theta + e.kb / R * dt); e.kb *= Math.exp(-11 * dt);
         if (Math.abs(e.kb) < 3) e.kb = 0;
@@ -4304,7 +4314,7 @@ class Level1 extends Phaser.Scene {
             e.flash = 0.08; e.spr.setTintFill(0xffffff); e.spr.hsq = 1.6; this.hitStop = Math.max(this.hitStop || 0, 0.03);
             this.burst(e.theta, top, 'spark', pound ? 12 : 7, 0.8); this.cameras.main.shake(50, 0.003);
             Sound.sfx('jump'); buzz(14);
-            this.addScore(50);
+            this.addScore(50); this.styleAdd('stomp', 22); this.airChainUp();
             continue;
           }
           if (e.stompCd > 0) continue;                                    // one stomp per landing: no double hits
@@ -4313,6 +4323,7 @@ class Level1 extends Phaser.Scene {
           else if (e.type === 'boss') e.hp -= pound ? 12 : 6;
           else { e.stomps = (e.stomps || 0) + 1; if (e.stomps >= 2) e.hp = 0; else e.hp = Math.max(1, e.hp - (pound ? 5 : 3)); }   // big ones always take two
           P.vh = pound ? 560 : 480; P.h = top + 1; P.diving = false; P.bounceT = 0.45;   // a real bounce: holding down can't cancel it
+          this.styleAdd('stomp', 28); this.airChainUp();
           if (e.hp > 0) P.vx = (Math.sign(angDiff(P.theta, e.theta)) || P.facing || 1) * 170;   // bounced back off them, not down onto them again
           this.stompBoost();                                          // a head-bounce tops up the jetpack and re-arms it
           P.invuln = Math.max(P.invuln, 0.2);
@@ -4344,11 +4355,11 @@ class Level1 extends Phaser.Scene {
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type === 'ppmite' && this.ppMiteBurst) this.ppMiteBurst(e);   // (v2.91) bursts into crystal shards
       if (e.type !== 'boss') this.comboKill();
-      Tel.kill(e); if (Run.on) this.runKill(e);
+      Tel.kill(e); if (Run.on) this.runKill(e); this.styleAdd('kill', 8); if (this.trainEvent) this.trainEvent('kill', e);
       this.rig.grin();                                   // (v2.59) a smug grin
       const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, ppminer: 350, ppdyna: 350, ppcart: 400, ppmite: 150, ppslug: 300, ppgolem: 700, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
       this.addScore(pts);
-      this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
+      if (!this.training) this.spillCheddar(e.theta, e.h + e.ch, e.type === 'boss' ? 60 : Math.max(1, Math.round(pts * 0.022)));     // (v2.40: cut by ~69%; v2.45: ~30% less again)       // CHEDDAR for the space shop: it spills out, and doesn't lie about for long
       this.popup(e.theta, e.h + e.ch + e.r + 6, '+' + pts, e.type === 'boss' ? '#ffd23f' : (this.comboMult() > 1 ? '#ff9d3a' : '#ffffff'), e.type === 'boss' || this.comboMult() > 1);
       if (e.type !== 'boss' && e.spr.frame) {          // the body tumbles off, spinning, instead of just vanishing
         const c = this.add.image(0, 0, e.spr.texture.key, e.spr.frame.name).setOrigin(e.spr.originX, e.spr.originY).setDepth(e.spr.depth).setFlipX(e.spr.flipX).setTintFill(0xffffff);
@@ -4501,6 +4512,7 @@ class Level1 extends Phaser.Scene {
             if (e.ai === 'milkmaid') this.mmOnHit(e, b.theta, b.h);
             if (e.ai === 'magmagolem') this.mgOnHit(e, b.theta, b.h);
             e.hp -= (b.dmg || 1) * hk; if (this.buffOn('sauce')) e.burn = 2;
+            if (e.launch) this.juggleHit(e);                      // (v3.16) a flying rat stays up
             this.knock(e, b.theta, 70 * Math.sqrt(b.dmg || 1));
             this.hitSfx(e);
             if (!(e.flashCd > 0)) { e.flash = 0.05; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1; }      // limited blink rate, not constant flicker
@@ -4577,6 +4589,7 @@ class Level1 extends Phaser.Scene {
       }
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
+      if (b.reflected) { if (!dead && this.reflectHit(b)) dead = true; if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); } continue; }   // (v3.16) parried back
       if (!dead && P.invuln <= 0) {
         const rr = b.r + (P.duck ? 8 : 12);
         if (dist2(b.theta, b.h, P.theta, P.h + (P.duck ? 10 : 22)) < rr * rr) { this.hurt(); dead = true; }
@@ -5579,6 +5592,7 @@ class Level1 extends Phaser.Scene {
     this.fxDraw();                                        // ground shadows, rim light (fx.js)
     this.toonDraw();                                      // eyes popping out of whatever's been hit (toons.js)
     if (this.camp) this.campDraw();
+    this.styleDraw();
   }
 }
 
@@ -5596,7 +5610,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+runInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);

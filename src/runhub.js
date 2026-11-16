@@ -13,6 +13,7 @@ const CAMP_ST = [
   { id: 'rack',   theta: 0.76,  tex: 'cr_rack',   sc: 1.7, name: 'GUN RACK',      verb: 'PICK A GUN' },
   { id: 'board',  theta: -0.48, tex: 'cr_board',  sc: 1.7, name: 'NOTICEBOARD',   verb: 'READ' },
   { id: 'larder', theta: -1.06, tex: 'cr_stall',  sc: 1.7, name: 'THE LARDER',    verb: 'TRADE CRUMBS' },
+  { id: 'train',  theta: -1.5,  tex: 'cr_dummy',  sc: 1.7, name: 'TRAINING DUMMY', verb: 'TRAIN' },
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
@@ -165,6 +166,16 @@ function makeCampTextures(scene) {
     a.rrect(14, 26, 38, 32, 2, [0x8ae0ff, 0x3a9ad8, 0x0a4a8a]); a.ell(42, 29, 4, 4, ST); a.rect(18, 32, 22, 36, DWD[2]);                  // spinner
     a.rrect(14, 42, 44, 47, 2, [0xfff0a0, 0xf2c040, 0xa8700c]); a.ell(22, 44, 1.2, 1.2, 0xa8700c); a.ell(32, 45, 1, 1, 0xa8700c); a.rect(44, 43, 49, 46, ST[2]);   // swiss-shot
     a.rect(20, 54, 40, 61, [0x6a8a3a, 0x4a6a2a, 0x2a3a14][1]); a.rect(20, 54, 40, 55, 0x8aaa4a); a.rect(27, 57, 33, 58, 0xffd23f);
+  });
+  // the TRAINING DUMMY: a straw rat stuffed into a sack on a post, a target painted on its belly
+  pixSprite(scene, 'cr_dummy', 40, 66, a => {
+    a.rect(18, 30, 21, 65, DWD[1]); a.rect(10, 62, 29, 65, DWD[1]);
+    a.rrect(8, 22, 31, 50, 6, [0xe8d090, 0xc8a85a, 0x8a6a2a]); for (let i = 0; i < 10; i++) a.px(10 + (i * 7) % 20, 25 + (i * 5) % 22, 0xa8884a);
+    a.ell(19.5, 37, 7, 7, 0xf4f0e0); a.ell(19.5, 37, 5, 5, 0xd83a2a); a.ell(19.5, 37, 3, 3, 0xf4f0e0); a.ell(19.5, 37, 1.4, 1.4, 0xd83a2a);
+    a.ell(19.5, 14, 9, 8, [0xe8d090, 0xc8a85a, 0x8a6a2a]); a.ell(11, 7, 3.5, 3.5, [0xe8d090, 0xc8a85a, 0x8a6a2a]); a.ell(28, 7, 3.5, 3.5, [0xe8d090, 0xc8a85a, 0x8a6a2a]);
+    a.rect(14, 12, 17, 13, 0x1a1020); a.rect(22, 12, 25, 13, 0x1a1020); a.rect(15, 11, 16, 14, 0x1a1020); a.rect(23, 11, 24, 14, 0x1a1020);      // stitched X eyes
+    a.rect(17, 18, 22, 18, 0x5a3212); a.line([[29, 15], [37, 12]], 0xc8a85a); a.line([[29, 17], [38, 18]], 0xc8a85a);                   // mouth, whiskers
+    a.line([[31, 44], [38, 54]], 0xc8a85a, 2);                                                                                             // tail
   });
   pixSprite(scene, 'cr_dice', 22, 22, a => { a.rrect(1, 1, 20, 20, 4, [0xffffff, 0xe0e4f0, 0x9aa4b4]); for (const [x, y] of [[6, 6], [15, 6], [10.5, 10.5], [6, 15], [15, 15]]) a.ell(x, y, 1.8, 1.8, 0xd83a2a); });
   pixSprite(scene, 'cr_lunchbox', 24, 20, a => { a.rrect(1, 5, 22, 19, 3, [0x8ac8ff, 0x3a78d8, 0x1a3a8a]); a.rect(1, 10, 22, 11, 0x1a3a8a); a.rect(10, 11, 13, 13, 0xffd23f); a.rect(7, 1, 16, 2, 0x9aa4b4); a.rect(7, 1, 8, 5, 0x9aa4b4); a.rect(15, 1, 16, 5, 0x9aa4b4); a.rect(4, 14, 7, 17, 0xffe27a); });
@@ -404,7 +415,7 @@ const CampMixin = {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
     if (st.folk) { this.campTalk(st); return; }
     Sound.sfx('pickup');
-    ({ rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket() })[st.id]();
+    ({ train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket() })[st.id]();
   },
   campLeave() { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('menu')); },
   campBoard() {

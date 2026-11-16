@@ -185,6 +185,7 @@ class MenuScene extends Phaser.Scene {
       { label: () => 'NEW GAME', act: () => this.newGame() }
     ]).concat([
       { label: () => 'RUN MODE', act: () => this.startRun() },
+      { label: () => 'TRAINING', act: () => { if (this.going) return; this.going = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('level1', { training: { from: 'menu' } })); } },
       { label: () => 'CONTROLS', act: () => { this.logo.setVisible(false); this.sub.setVisible(false); this.menu.setItems(controls(), 'CONTROLS'); } },
       { label: () => 'OPTIONS', act: () => this.menu.setItems(opts(), 'OPTIONS') }
     ]).concat(Progress.best >= CFG.finalLevel ? [{ label: () => 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);

@@ -16,7 +16,7 @@ const SmashMixin = {
     e.launch = { vt: dir * vt * power, vh: vh * power, spin: dir * rnd(13, 19), t: 0, kill, bounces: 0, hit: new Set(), roll0: e.roll, power };
     e.kb = 0; if (kill) e.hp = Math.max(0.01, e.hp);
     if (e.h <= 0) e.h = 2;
-    Sound.sfx('whoosh');
+    Sound.sfx('whoosh'); if (this.trainEvent) this.trainEvent('launch');
   },
   launchUpdate(e, dt) {
     const L = e.launch; L.t += dt;
@@ -35,7 +35,7 @@ const SmashMixin = {
       o.hp -= boss ? 3 : 4; o.flash = 0.08; o.flashCd = 0.15; o.spr.setTintFill(0xffffff); o.spr.hsq = 1;
       this.smashChain = (this.smashChain || 0) + 1; this.smashChainT = 1.2;
       this.popup(o.theta, o.h + o.ch + 30, this.smashChain > 1 ? 'SMASH x' + this.smashChain + '!' : 'SMASH!', '#ff9d3a', true);
-      this.addScore(60 * this.smashChain);
+      this.addScore(60 * this.smashChain); this.styleAdd('smash', 30); if (this.trainEvent) this.trainEvent('smash');
       Sound.sfx('bonk'); buzz([20, 15, 40]); this.hitStop = Math.max(this.hitStop || 0, 0.05); this.camKick(d * 5, 2);
       this.bang(o.theta, o.h + o.ch, 14); this.addLight(o.theta, o.h + o.ch, 60, 0xffc080, 0.8, 0.2);
       if (!boss && this.canLaunch(o)) this.launchEnemy(o, d, Math.max(0.65, L.power * 0.85), o.hp <= 0);
@@ -47,6 +47,7 @@ const SmashMixin = {
     // landing: a finished one splats; a live one bounces once, then gets up dizzy
     if (e.h <= 0 && L.vh < 0 && L.t > 0.08) {
       e.h = 0;
+      if (L.spike && !L.spiked) { L.spiked = true; this.spikeLand(e); }
       if (L.kill) { e.hp = 0; e.launch = null; this.burst(e.theta, 4, 'crumb', 10, 0.9); Sound.sfx('squelch'); this.cameras.main.shake(70, 0.004); return; }
       if (L.bounces < 1 && L.vh < -220) { L.vh = -L.vh * 0.38; L.vt *= 0.5; L.bounces++; this.burst(e.theta, 2, 'puff', 4, 0.5); Sound.sfx('bonk'); return; }
       e.launch = null; e.roll = L.roll0; e.stunT = 0.5;
@@ -61,7 +62,7 @@ const SmashMixin = {
     this.tweens.add({ targets: star, scale: 5, angle: 180, alpha: 0, duration: 650, ease: 'Cubic.easeOut', onComplete: () => star.destroy() });
     const ring = this.add.circle(x, y, 6, 0xffffff, 0).setStrokeStyle(3, 0xffd23f).setDepth(30);
     this.tweens.add({ targets: ring, scale: 6, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
-    Sound.sfx('chime'); this.addScore(150);
+    Sound.sfx('chime'); this.addScore(150); this.styleAdd('ko', 50);
     const t = this.add.text(x, y + 22, 'K.O.!', { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(30);
     this.tweens.add({ targets: t, y: y + 4, alpha: 0, duration: 900, delay: 250, onComplete: () => t.destroy() });
     e.launch = null; e.hp = 0;

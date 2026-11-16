@@ -91,7 +91,7 @@ const Run = {
     const L = Meta.larder();
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
-    Object.assign(this, { bonusAt: 1 + Math.floor(Math.random() * (RUN_ROUTE.length - 2)), vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    Object.assign(this, { styleS: 0, bonusAt: 1 + Math.floor(Math.random() * (RUN_ROUTE.length - 2)), vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
     const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
     if (kp) this.take(reg, kp);
   },
@@ -115,6 +115,7 @@ const Run = {
     if (how === 'quit') sum.newBest = false;
     // GOLDEN CRUMBS for the camp: 8 a planet, a crumb per 10 rats, one per 50 cheddar, +20 for the lot
     sum.crumbs = Math.round((sum.planets * 8 + Math.floor(sum.kills / 10) + Math.floor(sum.earned / 50) + (how === 'won' ? 20 : 0)) * this.str().crumbs);
+    sum.crumbs += (this.styleS || 0) * 3; sum.styleS = this.styleS || 0;
     sum.tier = this.tier || 0;
     if (how === 'won' && (this.tier || 0) >= this.tierMax() && this.tier < STRENGTHS.length - 1) { Meta._s('lc_run_tiermax', this.tier + 1); sum.unlocked = STRENGTHS[this.tier + 1].name; }
     Meta.addCrumbs(sum.crumbs);
@@ -228,6 +229,7 @@ function runInstall(L) {
     },
     // leave the level for 'select' / 'menu' - or, mid-run, give the run up
     leaveTo(key) {
+      if (this.training) { this.trainExit(true); return; }
       if (!Run.on) { this.scene.start(this.camp ? 'menu' : key); return; }
       Run.score += this.score;
       Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'quit');

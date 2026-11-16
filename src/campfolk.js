@@ -163,7 +163,7 @@ function chatBar(scene, lines, opts) {
   };
   const opened = scene.time.now, padOff = Pad.on(b => { if (b === 'a' || b === 'down') next(); else if (b === 'b' || b === 'back') close(); });
   window.addEventListener('keydown', onKey); scene.input.on('pointerup', next); scene.events.on('update', tick);
-  scene.events.once('shutdown', () => { if (!dead) { window.removeEventListener('keydown', onKey); padOff(); } });
+  scene.events.once('shutdown', () => { if (!dead) { dead = true; window.removeEventListener('keydown', onKey); padOff(); scene.events.off('update', tick); scene.input.off('pointerup', next); } });
   c.setAlpha(0); scene.tweens.add({ targets: c, alpha: 1, duration: 150 });
   show();
   return { close };

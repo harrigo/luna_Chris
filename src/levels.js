@@ -2426,7 +2426,8 @@ class WeaponScene extends Phaser.Scene {
     Sound.sfx('power');
     this.cameras.main.flash(150, 255, 230, 160);
     this.cameras.main.fadeOut(250, 0, 0, 0);
-    this.time.delayedCall(280, () => this.scene.start('level1', { level: this.levelId, direct: true }));
+    const next = { level: this.levelId, direct: true }, train = this.levelId === 1 && !(typeof Run !== 'undefined' && Run.on) && !(() => { try { return localStorage.getItem('lc_trained'); } catch (e) { return '1'; } })();
+    this.time.delayedCall(280, () => this.scene.start('level1', train ? { training: { from: 'campaign', next } } : next));   // (v3.16) first time: the training ground first (skippable)
   }
 
   back() { if (!this.going) { this.going = true; this.scene.start(typeof Run !== 'undefined' && Run.on ? 'runpick' : 'select', { phase: 'route' }); } }
