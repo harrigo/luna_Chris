@@ -92,7 +92,7 @@ const StyleMixin = {
     const P = this.pl, now = this.time.now;
     for (const [k, d] of [['left', -1], ['right', 1]]) {
       const was = !!this['dh_' + k];
-      const on = inp.mvx !== undefined ? (was ? d * inp.mvx > 0.25 : d * inp.mvx > 0.6) : !!inp[k];
+      const on = inp.mvx !== undefined ? (was ? d * inp.mvx > 0.25 : d * inp.mvx > (inp.mvxHi || 0.6)) : !!inp[k];
       if (on && !was) {                                                  // pressed
         const tap = this['tap_' + k], gap = tap ? now - tap.up : 1e9;
         if (tap && gap < 45 && tap.held) { this['dn_' + k] = tap.down; }                       // a flicker, not a new press: carry on the old one

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.27';
+const BUILD = 'v3.28';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -589,7 +589,7 @@ class Level1 extends Phaser.Scene {
       if (b === 'back') { this.leaveTo('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
       if (this.paused) return;                          // the pause menu handles its own buttons
-      if (b === 'x' && this.state === 'play') { this.ctReq = true; return; }   // (v3.23) CHEESE TIME
+      if (b === 'rb' && this.state === 'play') { this.ctReq = true; return; }   // (v3.28) CHEESE TIME on RB (X fires)
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
@@ -1655,7 +1655,7 @@ class Level1 extends Phaser.Scene {
     if (this.mouseAim && this.pl && this.pl.spr) {                       // mouse aim: point from Chris's gun to the cursor
       const m = this.input.manager.mousePointer, gx = this.pl.spr.x, gy = this.pl.spr.y - 40 * this.zoom;
       const ax = m.x - gx, ay = m.y - gy, len = Math.hypot(ax, ay);
-      if (len > 18) d.aim = { x: ax / len, y: ay / len };
+      if (len > 18) d.mouseV = { x: ax / len, y: ay / len };          // (v3.28) only used while firing - otherwise he faces where he walks
       if (m.leftButtonDown()) { d.fire = true; d.fireP = 1; }
       if (m.rightButtonDown()) d.melee = true;
     }
@@ -1670,7 +1670,9 @@ class Level1 extends Phaser.Scene {
       if (k.shift.isDown) { d.jump = true; d.jetNow = true; }          // SHIFT: straight onto the jetpack (like LT on a pad)
     }
     const g = Pad.state;
+    if (g.connected && g.busy) this.mouseAim = false;               // (v3.28) picked up the pad: stop aiming at a mouse that was nudged once
     if (g.connected) {
+      if (!moveTouched && !g.dpad && Math.abs(g.lx || 0) > 0.05) { d.mvx = g.lx; d.mvxHi = 0.85; }   // the raw stick, for a strict double-flick dodge
       if (g.left) d.left = true;
       if (g.right) d.right = true;
       if (g.jump) d.jump = true;
@@ -1687,6 +1689,7 @@ class Level1 extends Phaser.Scene {
       if (g.aimOn) { d.aim = { x: g.aimX, y: g.aimY }; d.fire = true; d.fireP = Math.max(d.fireP || 0, g.fireP || 1); }   // twin-stick: aiming fires
     }
     if (d.fire) { d.fireP = d.fireP || 1; d.reach = d.reach || d.fireP; }
+    if (d.mouseV && d.fire && !d.aim) d.aim = d.mouseV;
     return d;
   }
 

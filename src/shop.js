@@ -321,7 +321,7 @@ class ShopScene extends Phaser.Scene {
       if (k < M) L.push({ name: 'MOON BOOTS LV ' + (k + 1), label: 'MOON BOOTS', icon: 'si_boots', pips: [k, M], desc: 'Run faster, jump higher, and the jetpack burns ' + (10 * (k + 1)) + '% slower and refills faster.', cost: SHOP.bootCost[k + 1], act: q => { q.boots = (q.boots || 0) + 1; } });
       else L.push({ name: 'MOON BOOTS LV ' + M, label: 'MOON BOOTS', icon: 'si_boots', pips: [M, M], desc: 'Fully sprung, and the jetpack sips half the fuel.', cost: 0, max: true }); }
     { const k = s.slowmo || 0;                                        // (v3.24) SLOW-MO CHEESE: CHEESE TIME, one at a time
-      L.push({ name: 'SLOW-MO CHEESE', label: 'SLOW-MO', icon: 'pu_slowmo', pips: [k, 3], desc: k >= 3 ? 'Your pockets are full (3).' : 'C / pad X / SLOW: 6 seconds where everything but you crawls. Carry up to 3.', cost: k >= 3 ? 0 : CT.cost, max: k >= 3, act: q => { q.slowmo = (q.slowmo || 0) + 1; } }); }
+      L.push({ name: 'SLOW-MO CHEESE', label: 'SLOW-MO', icon: 'pu_slowmo', pips: [k, 3], desc: k >= 3 ? 'Your pockets are full (3).' : 'C / pad RB / SLOW: 6 seconds where everything but you crawls. Carry up to 3.', cost: k >= 3 ? 0 : CT.cost, max: k >= 3, act: q => { q.slowmo = (q.slowmo || 0) + 1; } }); }
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
     else L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Yours. Spare forks you find pay 40 cheddar.', cost: 0, max: true });
     for (const w of WEAPONS) {

@@ -1983,3 +1983,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.27: Chris slows a little in Cheese Time
 - During Cheese Time Chris and his shots run at 60% speed (CT.chris), while the world runs at 10%, so he's still about 6x quicker than everything else but it reads as slow-mo for him too.
+
+## v3.28: controller fixes
+- CHEESE TIME moved to RB on the pad. X is fire, and was also eating Slow-Mo Cheese every time you shot. RB no longer fires (X and RT do).
+- Mouse aim only steers Chris while firing. Otherwise he faces the way he walks. Touching the pad switches mouse aim off completely, so a nudged mouse can't stop the stick turning him round.
+- Pad dodge reads the raw stick: it needs a strong flick (past 85%) and back to near centre (under 25%), twice. Easing off the stick while walking no longer dashes.

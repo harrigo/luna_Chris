@@ -1,5 +1,5 @@
 // ================================================================= CHEESE TIME (v3.24): Viewtiful-Joe-style slow-mo, from SLOW-MO CHEESE
-// SLOW-MO CHEESE is a collectible you keep in your pocket (up to 3): press C / pad X / the touch SLOW button to eat one,
+// SLOW-MO CHEESE is a collectible you keep in your pocket (up to 3): press C / pad RB / the touch SLOW button to eat one,
 // and for 6 seconds everything but Chris crawls - enemies, their shots, the hazards - while he moves at full speed. His
 // hits land 50% harder and the parry window nearly doubles. The colours drain and a violet haze closes in.
 // Where they come from: one floats somewhere on every level (up high - jump or jet for it), the Slow-Mo Brie power-up
@@ -35,7 +35,7 @@ const CheeseTimeMixin = {
     const s = Shop.get(this.registry); if ((s.slowmo || 0) >= CT.max) return false;
     s.slowmo = (s.slowmo || 0) + 1; Shop.set(this.registry, s);
     Sound.sfx('power'); this.addScore(200);
-    this.banner('SLOW-MO CHEESE!\n' + (inputDevice() === 'touch' ? 'TAP SLOW' : inputDevice() === 'pad' ? 'PRESS X' : 'PRESS C') + ' FOR CHEESE TIME');
+    this.banner('SLOW-MO CHEESE!\n' + (inputDevice() === 'touch' ? 'TAP SLOW' : inputDevice() === 'pad' ? 'PRESS RB' : 'PRESS C') + ' FOR CHEESE TIME');
     this.ctIcon.setScale(3); this.tweens.add({ targets: this.ctIcon, scale: 1.4, duration: 300, ease: 'Back.easeOut' });
     return true;
   },
@@ -85,7 +85,7 @@ const CheeseTimeMixin = {
     else g.lineStyle(2, 0xb8a8ff, 0.5 + 0.4 * Math.sin(this.t * 5)).strokeCircle(x, y, 19);
     this.ctN.setText('x' + n).setPosition(x + 12, y + 14);
     const dev = inputDevice();
-    this.ctKey.setText(tb ? 'SLOW' : (this.ctT > 0 ? 'CHEESE TIME' : (dev === 'pad' ? '(X) SLOW-MO' : '[C] SLOW-MO'))).setPosition(x, y + (tb ? tb.r + 2 : 18));
+    this.ctKey.setText(tb ? 'SLOW' : (this.ctT > 0 ? 'CHEESE TIME' : (dev === 'pad' ? '(RB) SLOW-MO' : '[C] SLOW-MO'))).setPosition(x, y + (tb ? tb.r + 2 : 18));
   }
 };
 
