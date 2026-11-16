@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.33';
+const BUILD = 'v3.34';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1122,6 +1122,9 @@ class Level1 extends Phaser.Scene {
     if (this.waveIdx >= this.waves.length) { this.win(); return; }
     const w = this.waves[this.waveIdx];
     this.queue = Run.moreSpawns(w.spawns.map(s => Object.assign({}, s)).sort((a, b) => a.t - b.t));
+    { const k = Settings.dk.more || 0, add = [];                          // (v3.34) DIFFICULTY: each rat may bring a mate (25% normal, 40% hard)
+      if (k > 0 && !this.training) for (const s of this.queue) if (s.type !== 'boss' && Math.random() < k) add.push(Object.assign({}, s, { t: s.t + 0.5 + Math.random() * 1.4 }));
+      if (add.length) this.queue = this.queue.concat(add).sort((a, b) => a.t - b.t); }
     this.waveTotal = Math.max(1, this.queue.length);
     if (this.waveIdx > 0 && !this.resumed) this.addScore(1000);                // wave-clear bonus
     this.waveT = 0;

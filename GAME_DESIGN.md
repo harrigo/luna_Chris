@@ -2020,3 +2020,4 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
   Enemy speed scales how fast regular enemies move and attack. Bosses' own special attacks are not affected. Run mode's strength multipliers stack on top.
 - During Cheese Time Chris now runs at 80% speed (CT.chris), up from 60%.
+- (v3.34) MORE RATS: each regular spawn in a wave may bring a mate, landing 0.5-1.9s later. The chance is set per difficulty (Settings.dk.more): Easy 0, Normal 25%, Hard 40%. Bosses never double and training is untouched. Run mode's own extra spawns stack on top.

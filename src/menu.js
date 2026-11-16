@@ -11,7 +11,7 @@ const Settings = (() => {
     padUpJump: load('padUpJump', false),
     cam: load('cam', load('camSwing', true) ? 'swing' : 'locked'),   // camera: locked on Chris | swing (lags a little behind) | full (up stays up: run right round, upside down at the bottom)             // controller: push the left stick up to jump (hold = jetpack), like touch
     cycleDiff(dir) { const o = ['easy', 'normal', 'hard'], i = o.indexOf(this.diff); this.set('diff', dir ? o[Math.max(0, Math.min(2, i + dir))] : o[(i + 1) % 3]); },
-    get dk() { return { easy: { hp: 0.85, shot: 0.85, spd: 0.95 }, normal: { hp: 1.2, shot: 1.1, spd: 1.1 }, hard: { hp: 1.5, shot: 1.25, spd: 1.2 } }[this.diff] || { hp: 1.2, shot: 1.1, spd: 1.1 }; },   // (v3.33: everything up a notch - Chris got a lot more moves)
+    get dk() { return { easy: { hp: 0.85, shot: 0.85, spd: 0.95, more: 0 }, normal: { hp: 1.2, shot: 1.1, spd: 1.1, more: 0.25 }, hard: { hp: 1.5, shot: 1.25, spd: 1.2, more: 0.4 } }[this.diff] || { hp: 1.2, shot: 1.1, spd: 1.1, more: 0.25 }; },   // (v3.33: everything up a notch - Chris got a lot more moves)
     get glow() { return this.gfx === 'high'; },      // shader glow on sprites
     get lights() { return this.gfx !== 'low'; },     // light halos + heat haze
     set(k, v) { this[k] = v; save(k, v); },
