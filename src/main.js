@@ -1724,7 +1724,7 @@ class Level1 extends Phaser.Scene {
 
   updatePlayer(dt, inp) {
     const P = this.pl;
-    this.lastInp = inp;
+    this.lastInp = inp; P.vhPre = P.vh;                  // (v3.19) momentum before this frame's dive/jump changes it
     if (this.fullCam) {                                         // FULL camera: on a SIDE of the planet, holding DOWN walks him down it (like RIGHT),
       const side = Math.abs(Math.cos(this.camLag || 0)) < 0.5;  // and keeps doing so while held, on round underneath
       if (inp.down && !inp.left && !inp.right && (this.downWalk || (side && P.h <= (P.floor || 0) + 1))) {
@@ -2181,7 +2181,7 @@ class Level1 extends Phaser.Scene {
     const P = this.pl;
     P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false; P.upper = false;
     // (v3.19) DOWN + BASH follows your momentum: on the way DOWN it's a SPIKE; standing still or on the way UP it's an UPPERCUT
-    P.spikeArm = !!(this.lastInp && this.lastInp.down && P.h > (P.floor || 0) + 8 && P.vh < -40);
+    P.spikeArm = !!(this.lastInp && this.lastInp.down && P.h > (P.floor || 0) + 8 && (P.vhPre !== undefined ? P.vhPre : P.vh) < -40 && !(P.vhPre > 0 && P.vh === -220));
     if (this.lastInp && this.lastInp.down && !P.spikeArm && this.uppercutStart) this.uppercutStart();
     Sound.sfx('swish');
     if (this.def.fondue) this.fondueBash();                                           // L5.5: a swipe parts a curtain of cheese

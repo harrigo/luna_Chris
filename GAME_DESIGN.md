@@ -1949,4 +1949,4 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Training Ground: ten lessons now - UPPERCUT (on the ground) then SPIKE (in the air).
 
 ### v3.19 - Uppercut or spike by momentum
-- DOWN + BASH now follows Chris's vertical momentum as the swing starts: falling (in the air, moving down) = SPIKE; standing, or rising through a jump = UPPERCUT (an air uppercut keeps him going up). Training lesson text updated to match.
+- DOWN + BASH now follows Chris's vertical momentum as the swing starts (read before that frame's dive kicks in, so pressing DOWN+BASH together while rising still uppercuts): falling (in the air, moving down) = SPIKE; standing, or rising through a jump = UPPERCUT (an air uppercut keeps him going up). Training lesson text updated to match.
