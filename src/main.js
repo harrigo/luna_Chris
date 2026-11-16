@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.34';
+const BUILD = 'v3.35';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3360,6 +3360,7 @@ class Level1 extends Phaser.Scene {
       const a = angDiff(e.theta, P.theta) * dir;                           // how far in front (radians)
       if (a < -14 / R || a > reachT + e.r / R) continue;
       if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
+      if (this.sfIs(e) && this.sfBashBlock(e, dir)) { hit++; continue; }   // (v3.35) a shield / wax rind just clangs
       e.hp -= e.type === 'boss' ? 3 : CFG.bashDmg; hit++;
       if (e.hp <= 0 && e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3 && !this.wheels.some(w => w.i === 2)) {   // bash-finish a tough one: wheel #3
         this.addWheel(2, e.theta, e.h + e.ch + 10); const w = this.wheels.find(w => w.i === 2); if (w) { w.vh = 300; w.rest = 24; }
@@ -3994,6 +3995,8 @@ class Level1 extends Phaser.Scene {
         this.kamikazeAI(e, dt, P);
       } else if (ai === 'skimmer') {                    // L5.5: Skimmer flies
         this.skimmerAI(e, dt, P);
+      } else if (ai === 'shieldrat' || ai === 'shellbug' || ai === 'sniper') {   // (v3.35) the skill foes (skillfoes.js)
+        this.sfAI(e, dt, toP, distP, dirP, fooled);
       } else if (ai === 'welder') {
         this.welderAI(e, dt, toP, distP, fooled);
 
@@ -4302,6 +4305,7 @@ class Level1 extends Phaser.Scene {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
           const pound = P.diving && P.vh < -380;
+          if (this.sfIs(e) && this.sfStomp(e, top)) continue;             // (v3.35) a Rind Beetle's wax: you bounce off
           if (e.kind === 'slicer') {                                      // a spinning saw-blade: you do NOT land on that
             P.vh = 420; P.h = top + 1; P.jetArmed = false; this.hurt(); P.vx = -(Math.sign(angDiff(e.theta, P.theta)) || 1) * 200;
             this.burst(P.theta, top, 'spark', 14, 1.2); Sound.sfx('zing'); this.banner('OUCH! NOT THE SAW!');
@@ -4621,6 +4625,10 @@ class Level1 extends Phaser.Scene {
       }
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
       let dead = b.life <= 0 || b.h < -2;
+      if (b.reflected && b.from && b.from.hp > 0 && this.enemies.includes(b.from)) {   // (v3.35) a parried sniper bolt homes in on its sniper
+        const T = b.from, dx = angDiff(T.theta, b.theta) * R, dy = T.h + T.ch - b.h, L = Math.hypot(dx, dy) || 1, sp = Math.max(420, Math.hypot(b.vt, b.vh));
+        b.vt += (dx / L * sp - b.vt) * Math.min(1, dt * 8); b.vh += (dy / L * sp - b.vh) * Math.min(1, dt * 8);
+      }
       if (b.reflected) { if (!dead && this.reflectHit(b)) dead = true; if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); } continue; }   // (v3.16) parried back
       if (!dead && P.dash) { const rr = b.r + 22; if (dist2(b.theta, b.h, P.theta, P.h + 22) < rr * rr) this.closeCall(); }   // (v3.20) dodged right through it
       if (!dead && P.invuln <= 0 && !P.dash) {
@@ -5237,7 +5245,7 @@ class Level1 extends Phaser.Scene {
     const { cx, cy } = this;
     this.drawBlastFx(); this.drawMacTrails(); this.drawMagnet();
     this.drawHazards();
-    this.drawTongues(); this.drawFactory(); this.drawCheeseStrings(); this.drawMando();
+    this.drawTongues(); this.drawFactory(); this.sfDraw(); this.drawCheeseStrings(); this.drawMando();
 
     const Rz = R * this.zoom;
     this.unw += angDiff(P.theta, this.lastTheta); this.lastTheta = P.theta;
@@ -5645,7 +5653,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin, BallMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+sfInstall(Level1); runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin, BallMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);

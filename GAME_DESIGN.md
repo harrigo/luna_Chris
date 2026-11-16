@@ -2021,3 +2021,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   Enemy speed scales how fast regular enemies move and attack. Bosses' own special attacks are not affected. Run mode's strength multipliers stack on top.
 - During Cheese Time Chris now runs at 80% speed (CT.chris), up from 60%.
 - (v3.34) MORE RATS: each regular spawn in a wave may bring a mate, landing 0.5-1.9s later. The chance is set per difficulty (Settings.dk.more): Easy 0, Normal 25%, Hard 40%. Bosses never double and training is untouched. Run mode's own extra spawns stack on top.
+
+## v3.35: SKILL FOES - enemies that need Chris's moves (skillfoes.js)
+- SHIELD RAT: a cheese-grater shield always turned to face Chris (slow to turn, 0.6s). Shots and a plain bash CLANG off it and push both apart. An UPPERCUT, a parried shot or a bowled rat knocks the shield away: dazed for 3.2s and taking 1.5x damage. Hits from behind do 1.25x. Its tell is a brace (flashing) before a shield-charge.
+- RIND BEETLE: a red wax shell; shots and bashes ping off and stomps bounce off. A SPIKE, a ground-pound, a bowled rat, a spike shockwave or a parried shot CRACKS it, leaving it soft and taking 1.5x damage. Its tell is a shiver; then it curls into a ball and rolls at Chris for 1.5s (dodge through it).
+- BRIE SNIPER: hovers 220-330px away and blinks off when Chris gets within 90px. Its polished parmesan plate deflects every shot. It aims with a laser sight (1.1s), blinks on lock (0.3s), then fires a slow pink brie bolt. PARRY the bolt and it homes back on its own sniper: an instant knock-out. Bash and stomp still land if you catch it.
+- They're added to waves in levels 1-6 and 5.5 (SF_PLACES), so both modes get them. Each shows a how-to banner the first time it appears in a level (the sniper only the very first time ever).

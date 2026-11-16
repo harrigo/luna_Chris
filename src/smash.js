@@ -31,6 +31,7 @@ const SmashMixin = {
       const dx = angDiff(o.theta, e.theta) * (R + Math.max(0, e.h)), dy = (o.h + o.ch) - (e.h + e.ch), rr = (o.r || 14) + (e.r || 14);
       if (dx * dx + dy * dy > rr * rr) continue;
       L.hit.add(o);
+      if (this.sfIs && this.sfIs(o)) { this.sfCrack(o); if (o.kind === 'shieldrat' && !(o.dazeT > 0)) this.sfDaze(o); }   // (v3.35) bowling cracks wax and knocks shields away
       const boss = o.type === 'boss', d = Math.sign(L.vt) || 1;
       o.hp -= boss ? 3 : 4; o.flash = 0.08; o.flashCd = 0.15; o.spr.setTintFill(0xffffff); o.spr.hsq = 1;
       this.smashChain = (this.smashChain || 0) + 1; this.smashChainT = 1.2;

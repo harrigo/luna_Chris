@@ -157,8 +157,8 @@ const StyleMixin = {
       const ex = angDiff(b.theta, P.theta) * R, ey = b.h - cy;
       if (ex * dir < -26 || Math.hypot(ex, ey) > 78 + (b.r || 6)) continue;
       // swat it back at whoever's nearest in front, harder than it came
-      let tgt = null, bd = 1e9;
-      for (const e of this.enemies) { if (e.hp <= 0 || e.phased) continue; const dx = angDiff(e.theta, P.theta) * R; if (dx * dir < -40) continue; const d = Math.abs(dx) + Math.abs(e.h - P.h) * 0.5; if (d < bd) { bd = d; tgt = e; } }
+      let tgt = b.from && b.from.hp > 0 && this.enemies.includes(b.from) ? b.from : null, bd = tgt ? -1 : 1e9;   // (v3.35) a sniper's bolt goes home to its sniper
+      if (!tgt) for (const e of this.enemies) { if (e.hp <= 0 || e.phased) continue; const dx = angDiff(e.theta, P.theta) * R; if (dx * dir < -40) continue; const d = Math.abs(dx) + Math.abs(e.h - P.h) * 0.5; if (d < bd) { bd = d; tgt = e; } }
       const sp = Math.max(420, Math.hypot(b.vt, b.vh) * 1.8);
       if (tgt) { const tx = angDiff(tgt.theta, b.theta) * R, ty = tgt.h + tgt.ch - b.h, L = Math.hypot(tx, ty) || 1; b.vt = tx / L * sp; b.vh = ty / L * sp; }
       else { b.vt = dir * sp; b.vh = Math.abs(b.vh) * 0.3 + 60; }
@@ -182,6 +182,7 @@ const StyleMixin = {
       if (e.hp <= 0 || e.phased) continue;
       const rr = (e.r || 14) + (b.r || 6) + 4;
       if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
+        if (this.sfIs && this.sfIs(e)) this.sfReflect(e);                    // (v3.35) a sniper's own bolt knocks it out
         e.hp -= e.type === 'boss' ? 6 : 5; e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
         this.bang(b.theta, b.h, 14); this.burst(b.theta, b.h, 'spark', 8, 0.8); Sound.sfx('bonk');
         if (e.type !== 'boss' && this.canLaunch(e)) this.launchEnemy(e, Math.sign(b.vt) || 1, 0.9, e.hp <= 0);
@@ -224,6 +225,7 @@ const StyleMixin = {
       if (e.hp <= 0 || e.phased) continue;
       const a = angDiff(e.theta, P.theta) * R * dir, top = e.h + e.ch;
       if (a < -24 || a > 82 + (e.r || 14) * 0.5 || top < P.h - 24 || top > P.h + 150) continue;
+      if (this.sfIs && this.sfIs(e) && this.sfUpper(e)) continue;          // (v3.35) flips a shield rat's shield
       e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1; hit++;
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
@@ -251,6 +253,7 @@ const StyleMixin = {
       if (e.hp <= 0 || e.phased) continue;
       const a = angDiff(e.theta, P.theta) * R * dir, top = e.h + e.ch;
       if (a < -40 || a > 70 || top > P.h + 26 || top < P.h - 130) continue;
+      if (this.sfIs && this.sfIs(e)) this.sfCrack(e);                       // (v3.35) cracks a Rind Beetle's wax
       e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1; hit++;
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
@@ -274,6 +277,7 @@ const StyleMixin = {
     for (const o of this.enemies) {
       if (o === e || o.hp <= 0 || o.phased || o.launch) continue;
       if (Math.abs(angDiff(o.theta, e.theta)) * R < 90 && o.h < 40) {
+        if (this.sfIs && this.sfIs(o)) this.sfCrack(o);
         o.hp -= o.type === 'boss' ? 2 : 3; o.flash = 0.08; o.spr.setTintFill(0xffffff);
         if (o.type !== 'boss' && this.canLaunch(o)) this.launchEnemy(o, Math.sign(angDiff(o.theta, e.theta)) || 1, 0.7, o.hp <= 0);
         else if (o.type !== 'boss') this.knock(o, e.theta, 240);
