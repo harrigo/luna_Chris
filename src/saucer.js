@@ -202,6 +202,30 @@ const SaucerMixin = {
     return h.theta;
   },
   saucerEdgeBack() { const P = this.pl, sd = Math.sign(angDiff(P.theta, 0)) || 1; return wrap(sd * (SAUCER_HALF - 120) / R); },
+  // (v3.15) OVERBOARD: he slips off the lip, tumbles away down past the hull, and the ship's tractor beam catches him
+  // (that costs a heart), hauls him back up in a green column of light, still spinning, and sets him down on deck.
+  saucerOB(dt) {
+    const P = this.pl, O = P.ob; if (!O) return;
+    O.t += dt; P.vx = 0; P.firing = 0; P.thrusting = false; P.duck = false;
+    if (O.st === 'fall') {
+      O.vh -= 950 * dt; O.h += O.vh * dt; O.th = wrap(O.th + O.vt / (R + Math.max(0, O.h)) * dt); O.vt *= Math.exp(-0.6 * dt);
+      P.spinA = (P.spinA || 0) + O.sd * (4 + O.t * 6) * dt;
+      P.theta = O.th; P.h = O.h; P.vh = O.vh; P.invuln = Math.max(P.invuln, 0.25);
+      if (Math.random() < dt * 30) this.burst(O.th, O.h + 30, 'puff', 1, 0.3);
+      if (O.t > 0.8) {
+        O.st = 'beam'; O.t = 0; O.h0 = O.h; O.th0 = O.th; O.to = this.saucerEdgeBack(); O.spin0 = Math.atan2(Math.sin(P.spinA), Math.cos(P.spinA));
+        P.invuln = 0; this.hurt(); if (this.state !== 'play') { P.ob = null; P.spinA = 0; return; }
+        P.invuln = Math.max(P.invuln, 2.4); Sound.sfx('beam'); this.cameras.main.flash(120, 140, 255, 180); buzz([40, 30, 40]);
+      }
+    } else {
+      const D = 1.35, u = Math.min(1, O.t / D), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
+      P.theta = wrap(O.th0 + angDiff(O.to, O.th0) * e);
+      P.h = O.h0 + (70 - O.h0) * e + Math.sin(Math.PI * u) * 70 + Math.sin(O.t * 9) * 4 * (1 - u);
+      P.vh = 0; P.spinA = O.spin0 * (1 - e);
+      if (Math.random() < dt * 25) this.burst(P.theta, P.h + 30, 'spark', 1, 0.4);
+      if (u >= 1) { P.ob = null; P.spinA = 0; P.h = 70; P.vh = -40; Sound.sfx('clunk'); this.burst(P.theta, 60, 'spark', 8, 0.7); }
+    }
+  },
   saucerUpdate(dt, bossUp) {
     const G = this.sz, P = this.pl; if (!G) return;
     G.t += dt;
@@ -213,22 +237,29 @@ const SaucerMixin = {
     else if (G.tState === 'over' && G.tT <= 0) { G.tState = 'idle'; G.tT = G.fall ? rnd(2.5, 4.5) : rnd(7, 11) - 1.2 * (this.waveIdx || 0); }
     const goal = (G.tState === 'over' ? G.tiltDir : 0) + (G.fall ? 0.22 * Math.sin(G.t * 1.7) + 0.12 * Math.sin(G.t * 4.3) : 0);   // (diving: it never sits level)
     G.tilt += (goal - G.tilt) * Math.min(1, dt * (goal ? 3.5 : 2.2));
-    if (Math.abs(G.tilt) > 0.02 && this.state === 'play' && !P.pitFall) {
+    if (Math.abs(G.tilt) > 0.02 && this.state === 'play' && !P.pitFall && !P.ob) {
       const onDeck = P.h <= (P.floor || 0) + 0.5;
       P.theta = wrap(P.theta + G.tilt * (onDeck ? 118 : 60) / R * dt);                                   // (you can run against it, just)
       if (onDeck && Math.random() < dt * 14) this.burst(wrap(P.theta - G.tilt * 10 / R), 2, 'spark', 1, 0.3);   // boots scraping
     }
     // ---- the edges: no deck, no floor
     const d = angDiff(P.theta, 0);
-    if (Math.abs(d) > G.DH + 6 / R && P.h <= 0.5 && !(P.floor > 0) && !P.pitFall && this.state === 'play') { P.pitFall = 0.85; Sound.sfx('whoosh'); this.banner('OVERBOARD!'); buzz(80); }
+    // (v3.15) the rim is deck too: he stands on its curved lip (sinking down its slope), and only goes over past it
+    const px = Math.abs(d) * R, lip = Math.max(0, px - SAUCER_HALF) / 40;
+    if (!P.ob && !P.pit && P.h <= 0.5 && !(P.floor > 0)) P.sink = px > SAUCER_HALF ? 22 * lip * lip : 0;
+    if (px > SAUCER_HALF + 27 && P.h <= 0.5 && !(P.floor > 0) && !P.ob && !P.pit && this.state === 'play') {
+      const sd = Math.sign(d) || 1;
+      P.ob = { st: 'fall', t: 0, sd, th: P.theta, h: -P.sink, vt: sd * Math.max(90, Math.abs(P.vx || 0) * 0.7), vh: 150 };
+      P.sink = 0; Sound.sfx('whoosh'); this.banner('OVERBOARD!'); buzz(80);
+    }
     for (const e of this.enemies) {
-      if (e.type === 'boss' || e.hp <= 0) continue;
+      if (e.type === 'boss' || e.hp <= 0 || e.launch) continue;
       if (e.tossV) { e.theta = wrap(e.theta + e.tossV / R * dt); if (e.h <= 1) e.tossV = 0; }
       const st = ENEMY[e.type] || {};
       if (!e.over) {
         if (st.deck && e.h <= 1) {
           if (Math.abs(G.tilt) > 0.02) e.theta = wrap(e.theta + G.tilt * 95 / R * dt);                   // the crew slide too
-          if (Math.abs(angDiff(e.theta, 0)) > G.DH + 10 / R) { e.over = { h: 0, vh: 120, vt: Math.sign(angDiff(e.theta, 0)) * 60, th: e.theta }; Sound.sfx('squeak'); this.popup(e.theta, 40, 'OVERBOARD!', '#ffd23f'); }
+          if (Math.abs(angDiff(e.theta, 0)) > (SAUCER_HALF + 27) / R) { e.over = { h: 0, vh: 120, vt: Math.sign(angDiff(e.theta, 0)) * 60, th: e.theta }; Sound.sfx('squeak'); this.popup(e.theta, 40, 'OVERBOARD!', '#ffd23f'); }
         }
       } else {                                                                                           // over the side: arms windmilling, gone
         const O = e.over; O.vh -= 900 * dt; O.h += O.vh * dt; O.th = wrap(O.th + O.vt / R * dt);
@@ -290,6 +321,13 @@ const SaucerMixin = {
     g.lineStyle(3 * z, 0x1a1020, 1).strokePoints(top, false); g.lineStyle(2 * z, 0xb8c4e0, 1).strokePoints(top.filter((q, k) => Math.abs((k / N * 2 - 1) * (E + RIM)) <= E + 4).map(q => ({ x: q.x, y: q.y + 2 * z })), false);
     // ---- lights (ADD): the rim, the deck chevrons that run the way you're about to slide, thrusters, the underside lamp
     const L = G.lights; L.clear();
+    if (P.ob && P.ob.st === 'beam') {                                                                   // (v3.15) the tractor beam hauling him back
+      const sd = P.ob.sd, src = sp(sd * (E - 40), -70), dst = this.screenPos(P.theta, P.h + 34), ux = dst.x - src.x, uy = dst.y - src.y, ln = Math.hypot(ux, uy) || 1, nx = -uy / ln, ny = ux / ln;
+      const w0 = 8 * z, w1 = 46 * z, a = 0.85 - 0.6 * Math.min(1, P.ob.t / 1.35);
+      for (const [k, al] of [[1, 0.14], [0.6, 0.18], [0.25, 0.3]]) L.fillStyle(0x7dffb0, al * a).fillPoints([{ x: src.x + nx * w0 * k, y: src.y + ny * w0 * k }, { x: src.x - nx * w0 * k, y: src.y - ny * w0 * k }, { x: dst.x - nx * w1 * k, y: dst.y - ny * w1 * k }, { x: dst.x + nx * w1 * k, y: dst.y + ny * w1 * k }], true);
+      for (let i = 0; i < 5; i++) { const f = ((t * 1.6 + i / 5) % 1), cx = dst.x - ux * f, cy = dst.y - uy * f, rw = (w0 + (w1 - w0) * (1 - f)); L.lineStyle(2 * z, 0xb8ffd8, 0.5 * a * (1 - f)).strokeEllipse(cx, cy, rw * 1.6, rw * 0.5); }
+      L.fillStyle(0xb8ffd8, 0.35 * a).fillCircle(dst.x, dst.y, w1 * 0.9);
+    }
     for (let px = -E - 20, k = 0; px <= E + 20; px += 62, k++) { const q = sp(px, -52), on = (Math.floor(t * 5) + k) % 5 === 0; L.fillStyle(on ? 0xffe27a : 0xff5a2a, on ? 0.9 : 0.35).fillCircle(q.x, q.y, (on ? 4 : 2.5) * z); if (on) L.fillStyle(0xffe27a, 0.18).fillCircle(q.x, q.y, 11 * z); }
     const warn = G.tState === 'warn' || G.tState === 'over', dir = G.tiltDir;
     if (warn) for (let px = -E + 40, k = 0; px <= E - 40; px += 46, k++) {

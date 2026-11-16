@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.14';
+const BUILD = 'v3.15';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1485,6 +1485,7 @@ class Level1 extends Phaser.Scene {
       this.updateWorld(dt);
       if (this.def.parm && this.pp && this.pp.drop && this.pp.drop.st !== 'quake' && this.pp.drop.st !== 'land') this.parmDropPlayer(dt); else this.updatePlayer(dt, inp);   // (v2.90: L9 falling through to the next layer)
       if (this.pl.pit) this.pitUpdate(dt);
+      if (this.pl.ob) this.saucerOB(dt);
       if (this.camp) this.campUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
       this.updateEnemies(dt * ek);
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
@@ -1503,7 +1504,7 @@ class Level1 extends Phaser.Scene {
     }
     else if (this.state === 'campmenu') this.campUpdate(dt, {});
     else if (this.state === 'rescue') {
-      this.updatePlayer(dt, inp); if (this.pl.pit) this.pitUpdate(dt);
+      this.updatePlayer(dt, inp); if (this.pl.pit) this.pitUpdate(dt); if (this.pl.ob) this.saucerOB(dt);
       if (this.pBullets.length) this.updatePlayerBullets(dt);     // (shots still fly: the Milkmaid's churn can be smashed)
       if (this.pickups.length) this.updatePickups(dt);            // (v3.04) any coins still about keep coming - nothing freezes mid-air
       if (this.ppEsc) this.parmEscapeUpdate(dt); else this.updateRescue(dt);
@@ -3326,7 +3327,8 @@ class Level1 extends Phaser.Scene {
       }
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.kind === 'frog' && e.hp > 0) this.frogStun(e, 1.1);        // bash cracks the slime: stunned and open
-      if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 12 / R); this.knock(e, P.theta, 300); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
+      if (e.type !== 'boss' && this.canLaunch(e)) { this.launchEnemy(e, dir, 1, e.hp <= 0); this.smashChain = 0; }   // (v3.15) small fry go FLYING (smash.js)
+      else if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 12 / R); this.knock(e, P.theta, 300); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
       this.burst(e.theta, e.h + e.ch, 'spark', 8, 0.9);
       this.bang(e.theta, e.h + e.ch, 16);
     }
@@ -3797,9 +3799,11 @@ class Level1 extends Phaser.Scene {
 
   updateEnemies(dt) {
     const P = this.pl;
+    if (this.smashChainT > 0 && (this.smashChainT -= dt) <= 0) this.smashChain = 0;
     for (const e of this.enemies) {
       const pt = e.theta, ph = e.h;
       e.t += dt;
+      if (e.launch) { this.launchUpdate(e, dt); continue; }   // (v3.15) bashed into orbit: smash.js
       if (e.kb) {                                        // knockback from hits: a shove that dies away quickly
         e.theta = wrap(e.theta + e.kb / R * dt); e.kb *= Math.exp(-11 * dt);
         if (Math.abs(e.kb) < 3) e.kb = 0;
@@ -5592,7 +5596,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1); Object.assign(Level1.prototype, CampMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+runInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
