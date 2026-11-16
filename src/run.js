@@ -13,8 +13,7 @@ const RUN_PERKS = [
   { id: 'magnet', name: 'MAGNET FORK', sub: 'FOR KEEPS', icon: 'pu_magnet', desc: 'Cheddar flies to you from anywhere.', can: s => !s.magnet, act: s => { s.magnet = true; } },
   { id: 'heart',  name: '+1 HEART', sub: 'BIGGER BELLY', icon: 'hud_cheese', desc: 'One more cheese heart to lose.', can: (s, sc) => sc.hp < CFG.heartCap, act: s => { s.hearts = (s.hearts || 0) + 1; } },
   { id: 'armour', name: 'BLACK RIND', sub: '+1 MARK', icon: 'si_armour', desc: 'Armour plates that soak hits first. Fully mended.', can: s => (s.armMk || 0) < 4, act: s => { s.armMk = (s.armMk || 0) + 1; s.armHp = SHOP.armHp[s.armMk]; } },
-  { id: 'mboots', name: 'MOON BOOTS', sub: '+1 LEVEL', icon: 'si_boots', desc: 'Run faster, jump higher, thriftier jetpack.', can: s => (s.boots || 0) < 4, act: s => { s.boots = (s.boots || 0) + 1; } },
-  { id: 'tank',   name: 'JET TANK', sub: '+1 LEVEL', icon: 'si_tank', desc: 'A bigger jetpack tank that refills faster.', can: s => (s.tank || 0) < 3, act: s => { s.tank = (s.tank || 0) + 1; } },
+  { id: 'mboots', name: 'MOON BOOTS', sub: '+1 LEVEL', icon: 'si_boots', desc: 'Run faster, jump higher, and a jetpack that burns slower and refills faster.', can: s => (s.boots || 0) < SHOP.bootMax, act: s => { s.boots = (s.boots || 0) + 1; } },
   { id: 'chip',   name: 'GUN CHIP', sub: 'YOUR GUN +1', icon: null, desc: 'Your current gun starts a level higher.', can: s => !!runGun() && ((s.chips || {})[runGun().id] || 0) < 3, act: s => { const w = runGun(); s.chips = Object.assign({}, s.chips || {}); s.chips[w.id] = (s.chips[w.id] || 0) + 1; } },
   { id: 'wallet', name: 'FAT WALLET', sub: 'CHEDDAR x1.5', icon: 'cheddar', desc: 'Every bit of cheddar is worth half as much again.', once: true },
   { id: 'glass',  name: 'GLASS CHEESE', sub: 'RISKY', icon: 'wedge', desc: 'Hit 50% harder... but one heart fewer.', once: true, can: (s, sc) => sc.hp > 2 },
@@ -55,7 +54,7 @@ const Meta = {
   setKit(id) { this._s('lc_kit', id); }
 };
 
-const PERK_KIND = { boots: 'MOVE', mboots: 'MOVE', tank: 'MOVE', sauce: 'ATTACK', glass: 'ATTACK', chip: 'ATTACK', heart: 'DEFENCE', armour: 'DEFENCE', life: 'DEFENCE', vamp: 'DEFENCE', magnet: 'LOOT', wallet: 'LOOT' };
+const PERK_KIND = { boots: 'MOVE', mboots: 'MOVE', sauce: 'ATTACK', glass: 'ATTACK', chip: 'ATTACK', heart: 'DEFENCE', armour: 'DEFENCE', life: 'DEFENCE', vamp: 'DEFENCE', magnet: 'LOOT', wallet: 'LOOT' };
 const KIND_COL = { MOVE: 0x2a5aaa, ATTACK: 0xaa3a1a, DEFENCE: 0x2a8a5a, LOOT: 0xa8801a };
 // LEGENDARY perks (v3.11): only from winning a BONUS STOP on a run - bigger versions and combos
 const RUN_GOLD = [

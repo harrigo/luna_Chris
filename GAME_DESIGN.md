@@ -1975,3 +1975,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.25 - TEST MODE: +CHEESE buttons
 - With TEST MODE on, the level map has a yellow +CHEESE button (next to TEST LAB): +5000 cheddar, a full pocket of Slow-Mo Cheese (3) and +500 golden crumbs.
 - Moon Camp shows "+500 CRUMBS (TEST)" under the crumbs counter, and a run's "where next" screen shows "+2000 CHEDDAR (TEST)" (run cheddar, plus a full Slow-Mo pocket) - both only in test mode.
+
+## v3.26: Moon Boots + Jet Tank merged; deeper Cheese Time
+- MOON BOOTS is now one 5-level upgrade (150/280/430/600/800): +5% run and +3.5% jump per level, the jetpack burns 10% less per level (half at Lv 5) and refills 12% faster per level. The JET TANK shop item and run perk are gone; old saves fold any Jet Tank levels into Moon Boots (capped at 5).
+- Cheese Time slows the world to 10% speed (was 35%), so things move about 10x slower while Chris stays full speed.
+- Fixed a crash when a level ended or restarted during Cheese Time (camera gone at shutdown).

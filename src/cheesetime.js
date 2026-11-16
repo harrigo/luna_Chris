@@ -5,7 +5,7 @@
 // Where they come from: one floats somewhere on every level (up high - jump or jet for it), the Slow-Mo Brie power-up
 // that drops from enemies goes in your pocket instead of going off straight away (unless your pocket's full), and
 // Fridge-o-tron sells them. In the campaign they carry over like your upgrades; on a run, they're for that run.
-const CT = { dur: 6, slow: 0.35, hit: 1.5, max: 3, cost: 150 };
+const CT = { dur: 6, slow: 0.1, hit: 1.5, max: 3, cost: 150 };
 
 const CheeseTimeMixin = {
   ctOn() { return !this.camp && !this.training; },
@@ -20,7 +20,7 @@ const CheeseTimeMixin = {
     this.ctHaze = this.add.graphics().setDepth(19.5);
     this.ctFx = null;
     if (this.input.keyboard) this.input.keyboard.on('keydown-C', () => { this.ctReq = true; });
-    this.events.once('shutdown', () => { if (this.ctFx && this.cameras.main.postFX) this.cameras.main.postFX.remove(this.ctFx); this.ctFx = null; });
+    this.events.once('shutdown', () => { try { const c = this.cameras && this.cameras.main; if (this.ctFx && c && c.postFX) c.postFX.remove(this.ctFx); } catch (e) { /* camera already gone */ } this.ctFx = null; });
   },
   // one on every level, floating up high somewhere round the planet
   ctPlace() {
@@ -53,7 +53,7 @@ const CheeseTimeMixin = {
   },
   ctEnd() {
     this.ctT = 0; Sound.sfx('whoosh');
-    if (this.ctFx && this.cameras.main.postFX) { this.cameras.main.postFX.remove(this.ctFx); this.ctFx = null; }
+    try { const c = this.cameras && this.cameras.main; if (this.ctFx && c && c.postFX) c.postFX.remove(this.ctFx); } catch (e) { /* ignore */ } this.ctFx = null;
   },
   // the world's speed this frame (everything but Chris)
   ctK() { return this.ctT > 0 ? CT.slow : 1; },

@@ -2,22 +2,24 @@
 // Enemies pay out CHEDDAR. Between stages (a button on the route map) it buys things that last until GAME OVER:
 //   * BLACK RIND armour (Mk I-IV): its own gauge, soaks hits before the cheese hearts do, turns Chris's suit gunmetal.
 //     It does not mend itself: patch it up here. If the gauge empties it SHATTERS and has to be re-forged.
-//   * MOON BOOTS (Lv 1-4): faster run, higher jump, thriftier jetpack.
+//   * MOON BOOTS (Lv 1-5): faster run, higher jump, and the jetpack burns slower and refills faster (v3.26: the JET TANK merged in).
 //   * START CHIPS for each gun: the level that gun falls back to when a life is lost (instead of level 1).
 //   * EXTRA LIVES.
 // Everything lives in the registry under 'shop' and is wiped with the lives on game over.
 const SHOP = {
   armHp: [0, 2, 3, 4, 5],                 // gauge size per mark
   armCost: [0, 160, 280, 430, 650],        // forging / upgrading TO this mark
-  bootCost: [0, 130, 240, 380, 540],
+  bootCost: [0, 150, 280, 430, 600, 800],   // (v3.26: 5 levels - the old Jet Tank folded in)
+  bootMax: 5,
   chipCost: [0, 295, 515, 810],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
-  tankCost: [0, 175, 325, 500],            // (v2.55) JET TANK: the jetpack burns slower and refills faster
   magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
 const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['GUN +1', 10, 0x2a7a72], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
 const Shop = {
-  get(reg) { const s = reg.get('shop'); return s || { coins: SHOP.setBonus * this.goldenSets(),      // (a GOLDEN SET: every game starts with cheddar in hand)
+  get(reg) { const s = reg.get('shop');
+    if (s && s.tank > 0) { s.boots = Math.min(SHOP.bootMax, (s.boots || 0) + s.tank); s.tank = 0; }   // (v3.26) old Jet Tank levels become Moon Boots levels
+    return s || { coins: SHOP.setBonus * this.goldenSets(),      // (a GOLDEN SET: every game starts with cheddar in hand)
       armMk: 0, armHp: 0, boots: 0, tank: 0, hearts: 0, spins: 0, chips: {} }; },
   set(reg, s) { reg.set('shop', Object.assign({}, s)); },
   reset(reg) { reg.set('shop', null); },
@@ -315,11 +317,9 @@ class ShopScene extends Phaser.Scene {
     } else L.push({ name: 'BLACK RIND Mk IV', label: 'BLACK RIND', icon: 'si_armour', pips: [4, 4], desc: 'The best there is.', cost: 0, max: true });
     const miss = s.armMk > 0 && s.armHp > 0 ? SHOP.armHp[s.armMk] - s.armHp : 0;
     L.push({ name: 'PATCH UP ARMOUR', label: 'PATCH UP', icon: 'si_patch', desc: miss > 0 ? 'Weld on the ' + miss + ' missing plate' + (miss > 1 ? 's' : '') + '.' : (s.armHp > 0 ? 'Not a scratch on it.' : 'Nothing to patch.'), cost: miss * SHOP.patchCost, max: miss <= 0, act: q => { q.armHp = SHOP.armHp[q.armMk]; } });
-    if (s.boots < 4) L.push({ name: 'MOON BOOTS LV ' + (s.boots + 1), label: 'MOON BOOTS', icon: 'si_boots', pips: [s.boots, 4], desc: 'Run faster, jump higher, and the jetpack sips less fuel.', cost: SHOP.bootCost[s.boots + 1], act: q => { q.boots++; } });
-    else L.push({ name: 'MOON BOOTS LV 4', label: 'MOON BOOTS', icon: 'si_boots', pips: [4, 4], desc: 'Fully sprung.', cost: 0, max: true });
-    { const k = s.tank || 0;
-      if (k < 3) L.push({ name: 'JET TANK LV ' + (k + 1), label: 'JET TANK', icon: 'si_tank', pips: [k, 3], desc: 'A bigger jetpack tank: burns ' + (12 * (k + 1)) + '% slower and refills faster.', cost: SHOP.tankCost[k + 1], act: q => { q.tank = (q.tank || 0) + 1; } });
-      else L.push({ name: 'JET TANK LV 3', label: 'JET TANK', icon: 'si_tank', pips: [3, 3], desc: 'As big as they come.', cost: 0, max: true }); }
+    { const k = s.boots || 0, M = SHOP.bootMax;                      // (v3.26) MOON BOOTS: legs AND jetpack in one
+      if (k < M) L.push({ name: 'MOON BOOTS LV ' + (k + 1), label: 'MOON BOOTS', icon: 'si_boots', pips: [k, M], desc: 'Run faster, jump higher, and the jetpack burns ' + (10 * (k + 1)) + '% slower and refills faster.', cost: SHOP.bootCost[k + 1], act: q => { q.boots = (q.boots || 0) + 1; } });
+      else L.push({ name: 'MOON BOOTS LV ' + M, label: 'MOON BOOTS', icon: 'si_boots', pips: [M, M], desc: 'Fully sprung, and the jetpack sips half the fuel.', cost: 0, max: true }); }
     { const k = s.slowmo || 0;                                        // (v3.24) SLOW-MO CHEESE: CHEESE TIME, one at a time
       L.push({ name: 'SLOW-MO CHEESE', label: 'SLOW-MO', icon: 'pu_slowmo', pips: [k, 3], desc: k >= 3 ? 'Your pockets are full (3).' : 'C / pad X / SLOW: 6 seconds where everything but you crawls. Carry up to 3.', cost: k >= 3 ? 0 : CT.cost, max: k >= 3, act: q => { q.slowmo = (q.slowmo || 0) + 1; } }); }
     if (!s.magnet) L.push({ name: 'MAGNET FORK, FOR KEEPS', label: 'MAGNET FORK', icon: 'pu_magnet', desc: 'Cheddar flies up to you, even from below. Spare forks pay 40.', cost: SHOP.magnetCost, act: q => { q.magnet = true; } });
