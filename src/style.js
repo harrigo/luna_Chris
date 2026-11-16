@@ -143,7 +143,7 @@ const StyleMixin = {
 
   // ---- PARRY: called every frame while the bash is in its opening window
   parryCheck() {
-    const P = this.pl; if (P.bashT <= 0 || P.bashT < CFG.bashTime - 0.16 || P.parried) return;
+    const P = this.pl; if (P.bashT <= 0 || P.bashT < CFG.bashTime - (this.ctT > 0 ? 0.28 : 0.16) || P.parried) return;   // (a wider window in CHEESE TIME)
     const dir = P.facing || 1, cy = P.h + (P.duck ? 22 : 34);
     let got = 0;
     for (const b of this.eBullets) {

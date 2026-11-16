@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.22';
+const BUILD = 'v3.23';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -589,6 +589,7 @@ class Level1 extends Phaser.Scene {
       if (b === 'back') { this.leaveTo('select'); return; }
       if (b === 'start' && (this.state === 'play' || this.state === 'rescue' || this.paused)) { this.togglePause(); return; }
       if (this.paused) return;                          // the pause menu handles its own buttons
+      if (b === 'x' && this.state === 'play') { this.ctReq = true; return; }   // (v3.23) CHEESE TIME
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
       if (this.state === 'intro') this.startGame();
@@ -623,6 +624,8 @@ class Level1 extends Phaser.Scene {
       if (p.wasTouch) this.mouseAim = false;
       const Bb = this.btn && this.btn.bash;                // touch BASH button reacts on the press, so even a flick of a tap counts
       if (p.wasTouch && Bb && this.touchUI && Math.hypot(p.x - Bb.x, p.y - Bb.y) < Bb.r * 1.05) this.bashReq = true;
+      const Sb = this.btn && this.btn.slow;
+      if (p.wasTouch && Sb && this.touchUI && Math.hypot(p.x - Sb.x, p.y - Sb.y) < Sb.r * 1.1) this.ctReq = true;
     });
     this.input.on('wheel', (p, objs, dx, dy) => {
       if (this.state !== 'play' || this.paused || this.time.now < this.wheelCd || !dy) return;
@@ -643,6 +646,7 @@ class Level1 extends Phaser.Scene {
     this.layout();
     this.updateHearts();
     this.styleInit();                          // (v3.16) the style meter (style.js)
+    this.ctInit();                             // (v3.23) CHEESE TIME slow-mo, if you own the stopwatch (cheesetime.js)
     if (this.autostart || this.direct) {
       this.startGame();                       // retry after dying / picked from the level select: straight in
     } else {
@@ -687,6 +691,7 @@ class Level1 extends Phaser.Scene {
       aim:  { x: W - 170, y: H - 86, r: 52 },
       bash: { x: W - 48, y: Math.max(H * 0.36, H - 215), r: 32 }      // up the right edge, clear of where the thumb lands to aim
     };
+    if ((Shop.get(this.registry).watch || 0) > 0 && !this.camp && !this.training) this.btn.slow = { x: W - 48, y: Math.min(H - 70, this.btn.bash.y + 72), r: 24 };   // (v3.23) CHEESE TIME
     this.btnLabels.move.setPosition(this.btn.move.x, this.btn.move.y + 64);
     this.btnLabels.aim.setPosition(this.btn.aim.x, this.btn.aim.y + 64);
     this.btnLabels.bash.setPosition(this.btn.bash.x, this.btn.bash.y);
@@ -1483,9 +1488,10 @@ class Level1 extends Phaser.Scene {
     this.lastDt = dt;
     this.fxTick(rawDt);
     this.t += dt;
+    this.ctUpdate(rawDt);
 
     if (this.state === 'play') {
-      const ek = this.buffOn('slowmo') ? 0.4 : 1;          // Slow-Mo Brie: everything but Chris crawls
+      const ek = (this.buffOn('slowmo') ? 0.4 : 1) * this.ctK();          // Slow-Mo Brie / CHEESE TIME: everything but Chris crawls
       this.updateBuff(dt);
       this.updateHazards(dt * ek);
       this.updateWorld(dt);
@@ -1623,6 +1629,7 @@ class Level1 extends Phaser.Scene {
       if (oy < this.H * 0.28) continue;                                  // the HUD / menu area isn't a stick
       const Bb = this.btn.bash;
       if (Math.hypot(ox - Bb.x, oy - Bb.y) < Bb.r * 1.05) { d.melee = true; continue; }      // the right-hand button = BASH (only if the press starts on it)
+      if (this.btn.slow && Math.hypot(ox - this.btn.slow.x, oy - this.btn.slow.y) < this.btn.slow.r * 1.1) continue;   // (the SLOW button isn't a stick)
       const rad = 46, vx = Math.max(-1, Math.min(1, (p.x - ox) / rad)), vy = Math.max(-1, Math.min(1, (p.y - oy) / rad));
       if (ox < this.W * 0.45) {                                          // MOVE stick
         S.move = { ox, oy, vx, vy }; moveTouched = true; d.mvx = vx;      // (v3.21: the raw stick, for the dodge's double-flick)
@@ -5608,7 +5615,7 @@ class Level1 extends Phaser.Scene {
     this.fxDraw();                                        // ground shadows, rim light (fx.js)
     this.toonDraw();                                      // eyes popping out of whatever's been hit (toons.js)
     if (this.camp) this.campDraw();
-    this.styleDraw();
+    this.styleDraw(); this.ctDraw();
   }
 }
 
@@ -5626,7 +5633,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-runInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
+runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin);   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms
 Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src/parmesan.js)           // L8's Lactose Labyrinth (src/labyrinth.js)         // L7's ocean world (src/armada.js)         // L10's Royal Saucer (src/saucer.js)          // L6's Cheddar Gorge (src/gorge.js)
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);

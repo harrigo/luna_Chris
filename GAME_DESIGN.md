@@ -1961,3 +1961,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v3.22 - Uppercut has its own swing
 - The uppercut no longer reuses the forward gun-butt bash animation: he cocks the gun down and back by his hip (crouching into it), then whips it UP past his face with the arm high and the butt leading, leaning back, holds it overhead for a beat, then eases back. No forward lunge (the hop does the work).
+
+### v3.23 - CHEESE TIME (slow-mo upgrade)
+- New shop upgrade (cheesetime.js): the STOPWATCH. Level I (450 cheddar): one charge a LEVEL. Level II (700): recharges at the start of every WAVE ("STOPWATCH READY").
+- Use it: C on keyboard, X on a pad, or the round SLOW button under BASH on touch. 6 seconds where enemies, their shots and the hazards run at 35% speed while Chris moves at full speed; his hits land x1.5 and the parry window nearly doubles (0.16s -> 0.28s). The colours drain (camera colour matrix), a violet haze closes in round the edges, streaks trail off him, "CHEESE TIME!". HUD: a stopwatch under the style meter with a countdown ring / [C] SLOW-MO / USED / NEXT WAVE. Pressing it with no charge says when it's back.
+- It's in Fridge-o-tron's ship shop (campaign keeps it like other upgrades; on a run it's run-only).
