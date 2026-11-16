@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.32';
+const BUILD = 'v3.33';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1501,7 +1501,7 @@ class Level1 extends Phaser.Scene {
       if (this.pl.pit) this.pitUpdate(dt * pk);
       if (this.pl.ob) this.saucerOB(dt * pk);
       this.styleUpdate(dt); if (this.camp) this.campUpdate(dt, inp); else if (this.training) this.trainingUpdate(dt, inp); else if (this.def.cave) this.updateCave(dt); else this.updateWaves(dt);
-      this.updateEnemies(dt * ek);
+      this.updateEnemies(dt * ek * (Settings.dk.spd || 1));                  // (v3.33) the difficulty sets how lively the rats are too
       this.toonUpdate(dt * ek);                                                       // cartoon squash-and-stretch, walk cycles (toons.js)
       this.updatePlayerBullets(dt * pk);
       this.updateEnemyBullets(dt * ek);

@@ -2008,3 +2008,15 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Biscuit no longer clings to Chris. He roams round the fire and chases the ball whenever it's moving, nosing it about.
 - Now and then, when Chris comes up to him, Biscuit tags along at his heels for 5-10 seconds, then wanders off (8-15s before he'll do it again). His heel side only changes when Chris walks, so he no longer flicks left and right when you stand on him.
 - DOWN goes to the station first: Biscuit only gets the TALK prompt when nothing else is in reach. Other folk still win if they're nearer than the station.
+
+## v3.33: tougher rats; slow-mo Chris at 80%
+- All three difficulties moved up a notch, now that Chris has the dodge, parry, uppercut, spike and Cheese Time. Changes from v3.32:
+
+  | Setting | Health | Bullet speed | Enemy speed (new) |
+  |---|---|---|---|
+  | Easy | 0.7 → 0.85 | 0.75 → 0.85 | 0.95 |
+  | Normal | 1.0 → 1.2 | 1.0 → 1.1 | 1.1 |
+  | Hard | 1.3 → 1.5 | 1.15 → 1.25 | 1.2 |
+
+  Enemy speed scales how fast regular enemies move and attack. Bosses' own special attacks are not affected. Run mode's strength multipliers stack on top.
+- During Cheese Time Chris now runs at 80% speed (CT.chris), up from 60%.
