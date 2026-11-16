@@ -1947,3 +1947,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ### v3.18 - Uppercut AND spike
 - DOWN + BASH on the ground = the UPPERCUT (v3.17); DOWN + BASH in the air = the SPIKE is back (v3.16: drive the rats below into the ground, shockwave round where they land, pogo back up). Which one you get is decided as the swing starts, so a spike still lands even if a ground-pound has you on the deck by the time the hit connects.
 - Training Ground: ten lessons now - UPPERCUT (on the ground) then SPIKE (in the air).
+
+### v3.19 - Uppercut or spike by momentum
+- DOWN + BASH now follows Chris's vertical momentum as the swing starts: falling (in the air, moving down) = SPIKE; standing, or rising through a jump = UPPERCUT (an air uppercut keeps him going up). Training lesson text updated to match.

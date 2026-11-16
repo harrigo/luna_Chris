@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.18';
+const BUILD = 'v3.19';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2180,8 +2180,9 @@ class Level1 extends Phaser.Scene {
   startBash() {
     const P = this.pl;
     P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false; P.upper = false;
-    P.spikeArm = !!(this.lastInp && this.lastInp.down && P.h > (P.floor || 0) + 8);      // (v3.18) DOWN + BASH in the air: a SPIKE (decided as the swing starts)
-    if (this.lastInp && this.lastInp.down && !P.spikeArm && this.uppercutStart) this.uppercutStart();   // ...and on the ground, an UPPERCUT
+    // (v3.19) DOWN + BASH follows your momentum: on the way DOWN it's a SPIKE; standing still or on the way UP it's an UPPERCUT
+    P.spikeArm = !!(this.lastInp && this.lastInp.down && P.h > (P.floor || 0) + 8 && P.vh < -40);
+    if (this.lastInp && this.lastInp.down && !P.spikeArm && this.uppercutStart) this.uppercutStart();
     Sound.sfx('swish');
     if (this.def.fondue) this.fondueBash();                                           // L5.5: a swipe parts a curtain of cheese
     if (P.overheat && !this.bashTipShown) { this.bashTipShown = true; this.banner('OUT OF PASTA - BASH \'EM!'); }
