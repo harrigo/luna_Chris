@@ -207,7 +207,7 @@ const StyleMixin = {
   // and BOSHES whatever's in front of him straight up into the air - perfect for juggling with shots afterwards.
   uppercutStart() {
     const P = this.pl, onGround = P.h <= (P.floor || 0) + 0.5;
-    P.upper = true; P.vh = Math.max(P.vh || 0, onGround ? 330 : 280); P.diving = false; P.bounceT = 0.45;
+    P.upper = true; P.upperAnim = true; P.vh = Math.max(P.vh || 0, onGround ? 330 : 280); P.diving = false; P.bounceT = 0.45;
     Sound.sfx('whoosh');
     for (let k = 0; k < 6; k++) this.time.delayedCall(k * 30, () => this.burst(wrap(P.theta + (P.facing || 1) * 18 / R), P.h + 20 + k * 10, 'spark', 1, 0.3));
   },

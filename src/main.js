@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.21';
+const BUILD = 'v3.22';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1930,7 +1930,16 @@ class Level1 extends Phaser.Scene {
       //    forward into whatever's in front - with a lunge and a lean (the hit lands at the end of the swing)
       // 2) a split-second hold at the hit, 3) SNAP back to normal
       const SW = -2.1;                                                     // about 120 degrees
-      if (k < 0.36) { const q = k / 0.36, e = 1 - Math.pow(1 - q, 3);
+      if (P.upperAnim) {                                                   // (v3.22) the UPPERCUT: cock the gun down and back, then whip it UP past his face, arm high, leaning back
+        const pose = (a, y, x, l, s) => { P.bashA = a; P.bashY = y; P.bashX = x; P.bashLean = l; P.bashSpin = s; };
+        const W0 = [0.75, 7, -7, 0.22, 0.55], W1 = [-1.65, -15, 5, -0.24, -1.95], mix = (A, B, e) => pose(...A.map((v, i) => v + (B[i] - v) * e));
+        if (k < 0.18) mix([0, 0, 0, 0, 0], W0, 1 - Math.pow(1 - k / 0.18, 2));
+        else if (k < 0.4) mix(W0, W1, 1 - Math.pow(1 - (k - 0.18) / 0.22, 3));
+        else if (k < 0.56) mix(W1, W1, 0);
+        else if (k < 0.86) { const q = (k - 0.56) / 0.3; mix(W1, [0, 0, 0, 0, 0], q * q * (3 - 2 * q)); }
+        else pose(0, 0, 0, 0, 0);
+      }
+      else if (k < 0.36) { const q = k / 0.36, e = 1 - Math.pow(1 - q, 3);
         P.bashSpin = SW * e; P.bashX = 10 * e; P.bashY = 2 * e; P.bashA = 0.1 * e; P.bashLean = 0.16 * e;
         P.theta = wrap(P.theta + (P.facing || 1) * 230 / R * dt); }         // lunge into it
       else if (k < 0.48) { P.bashSpin = SW - 0.06; P.bashX = 10; P.bashY = 2; P.bashA = 0.1; P.bashLean = 0.16; }
@@ -1938,7 +1947,7 @@ class Level1 extends Phaser.Scene {
         P.bashSpin = (SW - 0.06) * (1 - e); P.bashX = 10 * (1 - e); P.bashY = 2 * (1 - e); P.bashA = 0.1 * (1 - e); P.bashLean = 0.16 * (1 - e); }
       else { P.bashSpin = 0; P.bashX = 0; P.bashY = 0; P.bashA = 0; P.bashLean = 0; }
       if (!P.bashHit && k >= 0.33) { P.bashHit = true; this.bashHit(); }
-    } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; }
+    } else { P.bashA = 0; P.bashX = 0; P.bashY = 0; P.bashSpin = 0; P.bashLean = 0; P.upperAnim = false; }
     const sauceK = this.buffOn('sauce') ? 0.4 : 1;        // HOT SAUCE: every gun's gauge lasts 2.5x as long and refills twice as fast (and what it hits burns)
     const canShoot = this.state === 'play' || (this.state === 'rescue' && this.relics.some(q => q.hp > 0));     // (after a boss, only while there's a churn to smash)
     P.beamOn = !!(W.beam && want && !P.overheat && P.bashT <= 0 && canShoot);
@@ -2181,7 +2190,7 @@ class Level1 extends Phaser.Scene {
 
   startBash() {
     const P = this.pl;
-    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false; P.upper = false;
+    P.bashT = CFG.bashTime; P.bashCd = CFG.bashCd; P.bashHit = false; P.charging = false; P.charge = 0; P.parried = false; P.upper = false; P.upperAnim = false;
     // (v3.19) DOWN + BASH follows your momentum: on the way DOWN it's a SPIKE; standing still or on the way UP it's an UPPERCUT
     P.spikeArm = !!(this.lastInp && this.lastInp.down && P.h > (P.floor || 0) + 8 && (P.vhPre !== undefined ? P.vhPre : P.vh) < -40 && !(P.vhPre > 0 && P.vh === -220));
     if (this.lastInp && this.lastInp.down && !P.spikeArm && this.uppercutStart) this.uppercutStart();

@@ -1958,3 +1958,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ### v3.21 - Dodge only on a real double tap
 - The dodge was firing by accident: any off-on flicker of a direction within 0.27s counted - a thumb wobbling round the touch stick's 30% edge, or letting go and re-pressing while running. Now it needs a proper double TAP: two short presses (each let go within 0.22s), a clean gap of 30-230ms between them, and any press the other way cancels a half-done tap. Off-flickers shorter than 45ms are treated as the same press. On the touch stick it reads the raw stick: a flick has to go past 60% and come back inside 25% to count as let go.
+
+### v3.22 - Uppercut has its own swing
+- The uppercut no longer reuses the forward gun-butt bash animation: he cocks the gun down and back by his hip (crouching into it), then whips it UP past his face with the arm high and the butt leading, leaning back, holds it overhead for a beat, then eases back. No forward lunge (the hop does the work).
