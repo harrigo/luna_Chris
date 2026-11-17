@@ -2107,3 +2107,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Shots fade out over their last 0.35s of life (sprite, glow and trail together) instead of blinking out.
 - Anything that wipes the screen (Moo Bomb, boss down, a ring change, etc.) makes each shot swell and fade with a wisp of sparks over 0.22s (ebFade) rather than vanish.
 - Gouda Golems (L1) and the L4 golems fire their volley one shot at a time, DOM... DOM... DOM, every 0.4-0.52s, each at a slightly random height and speed, with a recoil squash.
+
+## v3.45: the spike needs timing; easier L1/L2 bosses; aimed stink flies
+- SPIKE (SPIKE in style.js): only a rat whose head is within 34px below your boots (and 44px in front / 24px behind) gets the full SPIKE. That's ONE rat, slammed into the ground; its landing shockwave still does the crowd damage.
+  - Mistimed (the old big box, up to 130px below): a light 1-damage TAP on the nearest rat and a small hop, like a normal stomp. A Rind Beetle's wax ignores taps.
+  - It used to hit everything in that big box at once.
+- L1 Croque Monsieur and L2 Baron: boss hp 195 -> 166 (15% less).
+- L2 STINK FLIES aim their spores at Chris (leading him a little, 170px/s, light gravity) instead of dropping them, and fire from up to 320px away (was 230).

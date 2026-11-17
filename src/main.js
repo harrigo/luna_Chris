@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.44';
+const BUILD = 'v3.45';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3892,7 +3892,7 @@ class Level1 extends Phaser.Scene {
         e.theta = wrap(e.theta + (mv * 105 / R) * dt);
         e.dir = dirP;
         e.bombCd -= dt;
-        if (e.bombCd <= 0 && distP < 230) {
+        if (e.bombCd <= 0 && distP < (e.type === 'stinkfly' ? 320 : 230)) {
           if (e.type === 'ghostpirate') {                // a bolt that zig-zags towards Chris in sharp triangular turns
             const ex = angDiff(P.theta, e.theta) * R, ey = P.h + 22 - e.h, len = Math.hypot(ex, ey) || 1;
             const bb = this.addEBullet('tribolt', e.theta, e.h, ex / len * 110, ey / len * 110, 8, 4.5); bb.tri = { t: 0, s: 1, bx: ex / len * 110, by: ey / len * 110, per: rnd(0.28, 0.4) }; bb.spinV = 5;
@@ -3907,7 +3907,9 @@ class Level1 extends Phaser.Scene {
             const bb = this.addEBullet('chili', e.theta, e.h - 10, (P.vx || 0) * 0.2, -30, 7, 3); bb.grav = 380;
             e.bombCd = rnd(1.6, 2.4); Sound.sfx('cube');
           } else if (e.type === 'stinkfly') {            // spore bomb: a lob that leads Chris, and a stink puff either side
-            this.addEBullet('spore', e.theta, e.h, dirP * 70 + (P.vx || 0) * 0.35, -150, 11, 3).grav = 120;
+            // (v3.45) aimed at Chris (leading him a little), not just dropped
+            const lead = (P.vx || 0) * 0.45, ex = angDiff(P.theta, e.theta) * R + lead, ey = P.h + 26 - e.h, len = Math.hypot(ex, ey) || 1;
+            const sb = this.addEBullet('spore', e.theta, e.h, ex / len * 170, ey / len * 170, 11, 3.2); sb.grav = 40;
             e.bombCd = rnd(2.0, 3.0);
           } else {
             this.addEBullet('cube', e.theta, e.h, dirP * 40, -190, 9, 3);

@@ -70,7 +70,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 195, ai: 'croque', armouredTop: true },
+    boss: { tex: 'croque', hp: 166, ai: 'croque', armouredTop: true },   // (v3.45: 195 -> 166, 15% less)
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
@@ -116,7 +116,7 @@ const LEVELS = {
     // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
     // like the mushrooms - still nothing like the yellow-green of the ground it's sunk into
     goopPal: { edge: 0x03141a, deep: 0x0a4250, mid: 0x1a9a96, top: 0x52e6cc, gloss: 0xe0fff6 }, goopGlow: 0x3ae8d0, goopBub: 'swampbub',
-    boss: { tex: 'baron', hp: 195, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog)
+    boss: { tex: 'baron', hp: 166, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog; v3.45: 195 -> 166, 15% less)
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 

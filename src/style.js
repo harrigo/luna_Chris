@@ -27,6 +27,7 @@ const Style = { mult: 1 };
 
 const DODGE_WIN = 300;                                                 // (v3.30) whole double tap, first press to second, in 0.3s
 const DODGE_ANG = 10 * Math.PI / 180;                                  // (v3.29) how closely the two dodge flicks must match
+const SPIKE = { fwd: 44, back: 24, under: 34, over: 18 };                  // (v3.45) the spike's sweet spot: px in front / behind, how far below your boots its head can be
 const PARRY = { win: 0.1, winCT: 0.18, fwd: 22, reach: 18 };              // (v3.38) the parry: timing window (s), sweet spot ahead of Chris, its radius (px)
 const StyleMixin = {
   styleInit() {
@@ -261,30 +262,47 @@ const StyleMixin = {
     return hit;
   },
   // ---- SPIKE: DOWN + BASH in the air (v3.18: back alongside the ground uppercut)
+  // (v3.45) THE SPIKE NEEDS TIMING. Only a rat right under your boots - its head within ~34px below you, just in front -
+  // gets the full SPIKE: one rat, slammed into the ground, and ITS landing shockwave does the crowd damage. Swing from
+  // further up (or off to the side) and it's a light tap on the nearest one and a little hop off, like a normal stomp.
   spikeHit() {
     const P = this.pl, dir = P.facing || 1;
-    let hit = 0;
+    let best = null, bestD = 1e9, near = null, nearD = 1e9;
     for (const e of this.enemies) {
       if (e.hp <= 0 || e.phased) continue;
-      const a = angDiff(e.theta, P.theta) * R * dir, top = e.h + e.ch;
-      if (a < -40 || a > 70 || top > P.h + 26 || top < P.h - 130) continue;
+      const a = angDiff(e.theta, P.theta) * R * dir, top = e.h + e.ch, below = P.h - top;
+      if (a < -40 || a > 70 || below < -26 || below > 130) continue;           // nowhere near
+      const d = Math.abs(a - 10) + Math.abs(below - 6);
+      if (a >= -SPIKE.back && a <= SPIKE.fwd && below >= -SPIKE.over && below <= SPIKE.under) { if (d < bestD) { bestD = d; best = e; } }
+      else if (d < nearD) { nearD = d; near = e; }
+    }
+    if (best) {
+      const e = best, top = e.h + e.ch;
       if (this.sfIs && this.sfIs(e)) this.sfCrack(e);                       // (v3.35) cracks a Rind Beetle's wax
-      e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1; hit++;
+      e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1;
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
         this.launchEnemy(e, dir, 1, e.hp <= 0);
         Object.assign(e.launch, { vt: dir * 120, vh: -720, spike: true, kill: e.hp <= 0 || e.launch.kill });
       }
-      this.burst(e.theta, top, 'spark', 8, 0.9);
-    }
-    if (hit) {
+      this.burst(e.theta, top, 'spark', 10, 1);
       P.vh = 470; P.diving = false; P.bounceT = 0.3; this.stompBoost();
       this.popup(P.theta, P.h + 70, 'SPIKE!', '#ff9d3a', true);
-      Sound.sfx('bonk'); Sound.sfx('jump'); buzz([30, 20, 50]); this.hitStop = Math.max(this.hitStop || 0, 0.08); this.camKick(0, 6);
+      Sound.sfx('bonk'); Sound.sfx('jump'); buzz([30, 20, 50]); this.hitStop = Math.max(this.hitStop || 0, 0.09); this.camKick(0, 7);
       this.styleAdd('spike', 45); this.airChainUp();
       if (this.trainEvent) this.trainEvent('spike');
+      return 1;
     }
-    return hit;
+    if (near) {                                                              // mistimed: a light tap and a hop
+      const e = near;
+      if (!(this.sfIs && this.sfIs(e) && e.kind === 'shellbug' && !e.cracked)) { e.hp -= e.type === 'boss' ? 1 : 1; e.flash = 0.06; e.spr.setTintFill(0xffffff); }
+      this.burst(e.theta, e.h + e.ch, 'spark', 3, 0.5);
+      P.vh = Math.max(P.vh, 330); P.diving = false; P.bounceT = 0.2;
+      this.popup(P.theta, P.h + 60, 'TAP', '#9aa4c8');
+      Sound.sfx('tink');
+      return 1;
+    }
+    return 0;
   },
   // a spiked rat hits the deck: a shockwave knocks the rats around it
   spikeLand(e) {
