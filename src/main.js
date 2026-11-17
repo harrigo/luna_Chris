@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.41';
+const BUILD = 'v3.42';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -212,7 +212,7 @@ class Level1 extends Phaser.Scene {
     this.def = LEVELS[this.levelId];
     R = this.def.radius || 420;
     this.waves = (Run.on ? Run.trimWaves(this.def.waves) : this.def.waves).concat([{ name: 'BOSS FIGHT!', spawns: [{ type: 'boss', t: 0.6 }] }]);
-    this.camp = false; this.campCave = null; this.cvKO = false; this.cvLeaving = false; if (data && data.camp) this.campInit(data);
+    this.camp = false; this.campCave = null; this.striker = null; this.cvKO = false; this.cvLeaving = false; if (data && data.camp) this.campInit(data);
     this.training = null; if (data && data.training) this.trainInit(data);
     if (data && data.cavern) this.cavernInit(data);                          // (v3.41) the secret cavern under camp (cavern.js)     // (v3.16) the training ground (training.js)     // (v3.07) MOON CAMP: run mode's home (runhub.js)   // the boss (and its tune) lands just after the fill's crash
   }
@@ -3354,7 +3354,8 @@ class Level1 extends Phaser.Scene {
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
     if (this.ball) this.ballBash(dir, cy);
-    if (this.campCave && this.camp) this.campCaveBash(dir, cy);                                  // (v3.32) the camp's beach ball (beachball.js)
+    if (this.campCave && this.camp) this.campCaveBash(dir, cy);
+    if (this.camp && this.striker) this.toyBash(dir, cy);                                  // (v3.32) the camp's beach ball (beachball.js)
     if (P.upper) { P.upper = false; this.uppercutHit(); this.reapEnemies(); return; }   // (v3.17) UPPERCUT: down + bash on the ground (style.js)
     if (P.spikeArm) { P.spikeArm = false; if (this.spikeHit()) { this.reapEnemies(); return; } }   // ...and a SPIKE in the air
     const reachT = CFG.bashRange / R;
@@ -4544,6 +4545,7 @@ class Level1 extends Phaser.Scene {
       }
       if (!dead && this.ball && this.ballShot(b)) dead = true;
       if (!dead && this.campCave && this.camp && this.campCaveShot(b)) dead = true;
+      if (!dead && this.camp && this.striker && this.toyShot(b)) dead = true;
       if (!dead && this.gz && this.gorgeHit(b.theta, b.h, 6)) dead = true;
       if (!dead && this.az && this.armadaHit(b.theta, b.h, 6, b.dmg || 1)) dead = true;
       if (false) {
@@ -5684,7 +5686,7 @@ Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
 Object.assign(Level1.prototype, LabMixin);
 if (typeof LabRoomsMixin !== "undefined") Object.assign(Level1.prototype, LabRoomsMixin);
-sfInstall(Level1); runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin, BallMixin, RushCampMixin, CampGrowMixin, CavernMixin); rushInstall(Level1);
+sfInstall(Level1); runInstall(Level1); ctInstall(Level1); Object.assign(Level1.prototype, CampMixin, SmashMixin, StyleMixin, TrainingMixin, BallMixin, RushCampMixin, CampGrowMixin, CavernMixin, CampToysMixin); rushInstall(Level1);
 { const die = Level1.prototype.die, leaveTo = Level1.prototype.leaveTo;                           // (v3.41) the cavern: knocked out or quitting just takes you back up to camp
   Level1.prototype.die = function () { if (this.def && this.def.cavern) { if (this.cvLeaving || this.cvKO) return; this.cvKO = true; this.state = 'dead'; this.banner('KNOCKED OUT!'); Sound.sfx('ouchBig'); this.time.delayedCall(1600, () => this.cavernLeave(true)); return; } return die.apply(this, arguments); };
   Level1.prototype.leaveTo = function (key) { if (this.def && this.def.cavern) { this.cavernLeave(false); return; } return leaveTo.call(this, key); }; }   // (v3.05) RUN MODE hooks (run.js)   // (v2.97) the labyrinth's rooms

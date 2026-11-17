@@ -2079,3 +2079,14 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - The layout is generated fresh each visit and reuses the Labyrinth's cave engine: 3 rings of dark tunnel, each split into chambers by 2-3 rock walls. Every chamber has at least one hole down, so wherever you land you can keep going. Gold crumb piles (3-8 golden crumbs each, banked straight away) and the odd cheese wedge, plus 3-5 vermin per ring (rind-ticks, gnawers, grubs, mice).
   - The bottom ring is one big vault with a TREASURE CHEST: 30-60 golden crumbs, then you're hauled back up and pop out of the hole at camp. Knocked out, you crawl back up with whatever you'd found. No lives or cheddar involved.
   - One raid per run: the cavern is picked clean until the next run finishes (lc_cave_ready).
+
+## v3.42: camp toys (camptoys.js)
+- HIGH STRIKER (-0.7): bash its pad and the puck flies up the tower.
+  - A plain bash scores ~40%, an UPPERCUT ~75%, and a SPIKE 62-98% depending on how fast you're falling. CHEESE TIME multiplies by 1.4 and your style rank adds a little.
+  - 100% rings the bell (DING!, or RINGER!! for well over). Your best % shows above the tower.
+- CLAY CHEESE (station at -2.55, Clank's trap; press DOWN for "PULL!"): 8 cheese wheels lobbed in slow arcs over ~12s. A shot scores 1; bashing one as it arrives PARRIES it for 2. Clank calls the score and the best is kept.
+- CRATE TOWER (2.4, replacing the old crate decor): a 3-2-1 stack of crates and barrels with simple physics.
+  - Shots, bashes (an uppercut throws them high), the beach ball at speed, flying crates and Chris barging at a run all knock blocks loose. Anything left unsupported falls.
+  - It rebuilds itself 6s after everything's down. TIMBER!
+- HOOP (0.86): a side-on basketball hoop with a rim ~58px wide (the ball is 44px). Its two ends are solid and clang the ball off. Ball through the middle going down scores SWISH!, Biscuit jumps for joy, and a streak counts if you keep scoring within 12s. Best streak kept.
+- Bests saved in lc_toys. The barrel at -2.6 went to make room.
