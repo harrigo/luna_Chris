@@ -2063,3 +2063,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Her rings are now purple GHOST-FIRE WISPS (mm_wisp0-2: flickering spirit flames with a white-hot head and hollow eyes, flying head-first with a purple glow and spark trail) instead of curds.
 - Fewer of them: 2 rings of 8 (10 in act 2), 0.7s apart, offset so the gaps don't line up. That's 18 shots per attack, down from 38 (44 in act 2). The two ground skimmers stay, also as wisps.
 - CHURN WHACK: get within ~105px of her while she's idle and she swoops down to your level. The tell is 0.42s of flashing violet with the churn drawn back. Then she swings: a big arc in front of her, aimed at wherever you are when she lets go. A hit does heavy damage and knocks you back hard. 2.6s cooldown.
+
+## v3.40: getting hit is getting hit
+- A hit gives a small flinch (vh 150, was 300) and sets P.hurtHop, so no stomps count until he's back on his feet. Before, the pop-up after a hit often dropped him onto the rat that hit him and squashed it.
+- Small fry (mouse, flyer, minigerm, drone, phantom) no longer blow themselves up when they touch Chris. They bump back and come again, so doing nothing keeps costing you hearts.
+- Invulnerability after a hit is 10% shorter: CFG.invuln 1.44s (was 1.6).

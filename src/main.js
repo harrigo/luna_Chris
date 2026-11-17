@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.39';
+const BUILD = 'v3.40';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -27,7 +27,7 @@ const CFG = {
   fireInterval: 0.085,
   bulletSpeed: 760,
   bulletLife: 0.6,
-  invuln: 1.6,
+  invuln: 1.44,                  // (v3.40: 10% shorter, was 1.6)
   jetAccel: 2400,   // jetpack thrust
   jetMaxV: 260,     // max climb speed under thrust
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
@@ -1422,7 +1422,8 @@ class Level1 extends Phaser.Scene {
     P.hp = Math.max(0, P.hp - (heavy ? 1 : 0.5)); this.hurtCount++;
     if (heavy) { this.popup(P.theta, P.h + 70, 'CRUNCH!', '#ff5a3a', true); this.hitStop = Math.max(this.hitStop || 0, 0.06); }
     P.invuln = CFG.invuln;
-    P.vh = Math.max(P.vh, 300);
+    // (v3.40) a small flinch, not a launch - and no stomping on the way down: getting hit shouldn't kill what hit you
+    P.vh = Math.max(P.vh, 150); P.hurtHop = true;
     this.updateHearts();
     Sound.sfx('hurt');
     // Chris yelps: an abstract chiptune 'owch' (three flavours), a bigger falling one on his last heart
@@ -4302,7 +4303,8 @@ class Level1 extends Phaser.Scene {
 
       // touching Chris
       // stomp: little enemies get squashed and Chris ploughs on down through them; big ones bounce him back off and take two
-      if (P.vh < -40 && e.hp > 0 && this.state === 'play' && !e.noStomp) {
+      if (P.hurtHop && P.h <= (P.floor || 0) + 1 && P.vh <= 0 && P.invuln < CFG.invuln - 0.15) P.hurtHop = false;   // (v3.40) back on his feet: stomps count again
+      if (P.vh < -40 && e.hp > 0 && this.state === 'play' && !e.noStomp && !P.hurtHop) {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
           const pound = P.diving && P.vh < -380;
@@ -4374,7 +4376,7 @@ class Level1 extends Phaser.Scene {
       }
       if (!fooled && !e.phased && !e.noTouch && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt(e.type === 'boss');                       // a boss landing on him or ramming him is a HEAVY hit
-        if (e.type === 'mouse' || e.type === 'flyer' || e.type === 'minigerm' || e.type === 'drone' || e.type === 'phantom') e.hp = 0;     // small fry go out in a blaze
+        if (e.type !== 'boss' && this.knock) this.knock(e, P.theta, 180);   // (v3.40) small fry bump off and come again - they no longer blow themselves up on him
       }
     }
     this.reapEnemies();
