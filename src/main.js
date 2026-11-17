@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.38';
+const BUILD = 'v3.39';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -71,7 +71,8 @@ const glowFx = (obj, col, strength, dist) => { try { if (Settings.glow && obj &&
 // animated enemy shots: frames, fps, and a trail of little particles behind them
 const FX_ANIM = {
   bspore: { anim: ['bspore', 'bspore1', 'bspore2'], animFps: 12, trailTex: 'spark', trailEvery: 0.04, scale: 1.15 },
-  cheeseglobe: { anim: ['cheeseglobe', 'cheeseglobe1', 'cheeseglobe2'], animFps: 7, trailTex: 'swampbub', trailEvery: 0.05, scale: 1.4 }
+  cheeseglobe: { anim: ['cheeseglobe', 'cheeseglobe1', 'cheeseglobe2'], animFps: 7, trailTex: 'swampbub', trailEvery: 0.05, scale: 1.4 },
+  mm_wisp: { anim: ['mm_wisp0', 'mm_wisp1', 'mm_wisp2'], animFps: 14, trailTex: 'spark', trailEvery: 0.05, scale: 1.5 }   // (v3.39) the Phantom Milkmaid's ghost-fire
 };
 const glowKey = (base, col, strength, d) => base + '_g' + col.toString(16) + '_' + strength + '_' + d;
 function makeGlowTexture(sc, base, col, strength, dist) {
@@ -4444,7 +4445,7 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, mm_wisp: 0xa050ff, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),

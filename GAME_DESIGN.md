@@ -2058,3 +2058,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - The check sweeps the shot's path over the frame, so fast shots can't skip through.
   - Swinging too soon at an incoming shot shows a grey MISS, and the shot carries on and hits you.
 - Every enemy shot now has an additive glow in its own colour: a breathing three-ring halo, a hot white core, a 12-point comet trail and the odd twinkle. Shots with radius 8 or more also light the ground as they pass. All drawn on one graphics layer (bulletFx), so it stays cheap. Parried shots glow pink.
+
+## v3.39: the Phantom Milkmaid - ghost-fire and the churn whack
+- Her rings are now purple GHOST-FIRE WISPS (mm_wisp0-2: flickering spirit flames with a white-hot head and hollow eyes, flying head-first with a purple glow and spark trail) instead of curds.
+- Fewer of them: 2 rings of 8 (10 in act 2), 0.7s apart, offset so the gaps don't line up. That's 18 shots per attack, down from 38 (44 in act 2). The two ground skimmers stay, also as wisps.
+- CHURN WHACK: get within ~105px of her while she's idle and she swoops down to your level. The tell is 0.42s of flashing violet with the churn drawn back. Then she swings: a big arc in front of her, aimed at wherever you are when she lets go. A hit does heavy damage and knocks you back hard. 2.6s cooldown.

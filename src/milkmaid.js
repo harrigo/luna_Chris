@@ -137,6 +137,14 @@ function makeMilkmaidTextures(scene) {
 
   pixSprite(scene, 'curd', 12, 12, p => { p.ell(6, 6, 5, 5, [0xfffbe0, 0xffe68a, 0xd8b040]); }, 1, (g, w) => { for (const [x, y] of [[5, 5], [6, 5], [5, 6], [6, 6]]) g[y * w + x] = -2; });
   pixSprite(scene, 'mm_rag', 7, 6, p => { p.poly([[0, 1], [6, 0], [5, 5], [1, 4]], [0xf8f8ff, 0xd8dcec, 0x9aa0bc]); }, 1);
+  // (v3.39) GHOST-FIRE WISPS: purple spirit flames, bright head leading, a ragged tail licking out behind (3 flicker frames)
+  const WISP_O = [0xc890ff, 0x8a3ae0, 0x3a0a7a], WISP_I = [0xf8e8ff, 0xe0b8ff, 0xb070ff];
+  [[0, 0], [1, 2], [2, -2]].forEach(([f, w]) => pixSprite(scene, 'mm_wisp' + f, 22, 14, p => {
+    p.poly([[21, 7], [16, 1], [9, 3 + (f === 1 ? -1 : 0)], [2 + f, 1 + w * 0.5], [6, 6], [0, 8 - w * 0.5], [8, 11 + (f === 2 ? 1 : 0)], [16, 13]], WISP_O);   // the outer flame
+    p.poly([[20, 7], [16, 3], [11, 5], [7 + f, 4 + w * 0.3], [11, 8], [8, 10], [16, 11]], WISP_I);                                                         // the hot inner flame
+    p.ell(17, 7, 2.6, 2.6, 0xffffff);                                                                                                                         // white-hot head
+    p.px(15, 5, 0x1a0030); p.px(15, 9, 0x1a0030);                                                                                                           // two tiny hollow eyes
+  }, 1));
   pixSprite(scene, 'mm_splat', 6, 6, p => { p.ell(3, 3, 3, 3, [0xfff0c0, 0xffa040, 0xd0601a]); }, 1);
 }
 
@@ -168,7 +176,31 @@ const MilkmaidMixin = {
     // ACT 2 begins
     if (phase2 && !S.p2 && S.st !== 'rage') { this.mmEnd(e); S.p2 = true; S.st = 'rage'; S.t = 0; e.mmLock = true; S.h0 = e.h; this.banner('THE SOUR STAMPEDE!\nSHOOT HER GLOWING HEART!'); Sound.sfx('wail'); }
     const arenaOn = M.arena && M.arena.st !== 'break';
+    // (v3.39) TOO CLOSE: she swings the milk churn at you - a quick wind-up (churn back, a flash), then WHACK
+    S.whackCd = (S.whackCd || 0) - dt;
+    if (S.st === 'idle' && S.whackCd <= 0 && Math.abs(angDiff(P.theta, e.theta)) * R < 105 && Math.abs(P.h + 30 - e.h) < 120) { this.mmStart(e, 'whack', P); S.whackCd = 2.6; }
     switch (S.st) {
+      case 'whack': {
+        e.mmLock = false; S.wide = 0.2;
+        const dir = S.wdir || 1;
+        if (S.t < 0.62) e.h += (Math.max(60, P.h + 60) - e.h) * Math.min(1, dt * 11);          // she swoops down to his level
+        else e.h += (MM.idleH - e.h) * Math.min(1, dt * 2.5);
+        if (S.t < 0.42) { S.tiltGoal = -1.3 * dir; e.spr.setTint(Math.floor(S.t * 20) % 2 ? 0xd8a0ff : 0xffffff); }        // the tell
+        else if (S.t < 0.62) {
+          e.spr.clearTint(); S.tiltGoal = 2.3 * (S.wdir || dir); S.wide = 0; S.scream = 0.2;
+          if (!S.swung) { S.swung = true; Sound.sfx('whoosh'); }
+          // the swing: a big arc in front of her, turned to wherever he is as she lets go
+          const px = angDiff(P.theta, e.theta) * R, py = P.h + 30;
+          if (!S.aimed) { S.aimed = true; S.wdir = Math.sign(px) || S.wdir; }
+          const c = this.mmPt(e, MM.churn[0], MM.churn[1]);
+          if (!S.hitDone && Math.abs(px - S.wdir * 55) < 70 && Math.abs(py - (e.h - 10)) < 75) {
+            S.hitDone = true; const had = P.invuln > 0;
+            this.hurt(true);
+            if (!had) { P.vx = S.wdir * 420; P.vh = 340; Sound.sfx('churnclang'); this.cameras.main.shake(200, 0.012); this.hitStop = 0.07; this.burst(c.theta, c.h, 'mm_splat', 10, 1.2); this.popup(P.theta, P.h + 80, 'WHACK!', '#d8a0ff', true); }
+          }
+        } else { S.tiltGoal = 0.12; if (S.t > 1.0) this.mmIdle(e, 0.5); }
+        break;
+      }
       case 'idle': {
         e.mmLock = false; S.tiltGoal = 0.12 + Math.sin(this.t * 1.3) * 0.08;
         if (arenaOn) e.theta = this.mmClampIn(e.theta, 0.1);
@@ -183,14 +215,15 @@ const MilkmaidMixin = {
       }
       case 'rings': {                                  // three volleys of spinning curd rings, then skimmers both ways
         e.mmLock = false; S.wide = 0.2;
-        if (S.t > 0.55 && S.n < 3 && S.t > 0.55 + S.n * 0.5) {
-          const m = this.mmMouth(e), n = S.p2 ? 14 : 12, curl = (S.n % 2 ? -1 : 1) * (S.p2 ? 0.95 : 0.75), off = S.n * 0.2;
+        // (v3.39) two rings of ghost-fire wisps, not three rings of curds - she was filling the sky
+        if (S.t > 0.55 && S.n < 2 && S.t > 0.55 + S.n * 0.7) {
+          const m = this.mmMouth(e), n = S.p2 ? 10 : 8, curl = (S.n % 2 ? -1 : 1) * (S.p2 ? 0.95 : 0.75), off = S.n * TAU / n / 2;
           for (let k = 0; k < n; k++) {
-            const a = off + k * TAU / n, b = this.addEBullet('curd', m.theta, m.h, 155 * Math.sin(a), 155 * Math.cos(a), 7, 5.5);
-            b.curl = curl; b.spinV = 9;
+            const a = off + k * TAU / n, b = this.addEBullet('mm_wisp', m.theta, m.h, 150 * Math.sin(a), 150 * Math.cos(a), 7, 5.5);
+            b.curl = curl; b.face = true;
           }
-          S.n++; Sound.sfx('fan'); S.tiltGoal = 0.5;
-          if (S.n === 3) for (const sd of [-1, 1]) { const b = this.addEBullet('curd', e.theta, 26, sd * 300, 0, 8, 11); b.spinV = 14; b.spr.bsx = b.spr.bsy = 1.4; }   // round the world and back
+          S.n++; Sound.sfx('whoo'); S.tiltGoal = 0.5;
+          if (S.n === 2) for (const sd of [-1, 1]) { const b = this.addEBullet('mm_wisp', e.theta, 26, sd * 280, 0, 9, 11); b.face = true; b.spr.bsx = b.spr.bsy = 1.6; }   // round the world and back
         }
         if (S.t > 2.2) this.mmIdle(e);
         break;
@@ -292,6 +325,7 @@ const MilkmaidMixin = {
   },
   mmStart(e, a, P) {
     const S = e.mmS; S.st = a; S.t = 0; S.n = 0; S.spawned = false;
+    if (a === 'whack') { S.wdir = Math.sign(angDiff(P.theta, e.theta)) || 1; S.swung = false; S.hitDone = false; S.aimed = false; e.spr.clearTint(); Sound.sfx('charge'); return; }
     if (a !== 'teleport') Sound.sfx('wail');
     if (a === 'cascade') S.tgt = wrap(P.theta + (Math.random() < 0.5 ? -1 : 1) * 0.1);
     if (a === 'teleport') { S.from = e.theta; S.h0 = e.h; S.tgt = wrap(P.theta - Math.sign(angDiff(e.theta, P.theta) || 1) * rnd(0.35, 0.5)); Sound.sfx('whoo'); }
