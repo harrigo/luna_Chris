@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.43';
+const BUILD = 'v3.44';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3922,14 +3922,16 @@ class Level1 extends Phaser.Scene {
         e.theta = wrap(e.theta + (mv * 42 / R) * dt);
         e.dir = dirP;
         e.shootCd -= dt;
-        if (e.shootCd <= 0 && distP < 460) {
-          const n = (e.volley++ % 3 === 2) ? 5 : 3;
-          Sound.sfx('cube');
-          for (let k = 0; k < n; k++) {
-            if (e.type === 'mgolem') { const b = this.addEBullet('crumb', e.theta + dirP * (32 / R), e.h + 40, dirP * (150 + k * 35), 260 + k * 30, 9, 3.5); b.grav = 500; }   // lobs molten cheese
-            else this.addEBullet('cube', e.theta + dirP * (32 / R), e.h + 30, dirP * 185, (k - (n - 1) / 2) * 45, 9, 3.5);
-          }
-          e.shootCd = rnd(1.8, 2.4);
+        // (v3.44) a volley comes out DOM... DOM... DOM over about a second, each at a slightly random height, not all at once
+        if (e.shootCd <= 0 && distP < 460 && !(e.burstQ > 0)) {
+          e.burstN = (e.volley++ % 3 === 2) ? 5 : 3; e.burstQ = e.burstN; e.burstT = 0;
+          e.shootCd = rnd(1.8, 2.4) + e.burstN * 0.46;
+        }
+        if (e.burstQ > 0 && (e.burstT -= dt) <= 0) {
+          const n = e.burstN, k = n - e.burstQ; e.burstQ--; e.burstT = rnd(0.4, 0.52);
+          Sound.sfx('cube'); e.spr.hsq = 1.25;
+          if (e.type === 'mgolem') { const b = this.addEBullet('crumb', e.theta + dirP * (32 / R), e.h + 40, dirP * (150 + k * 35 + rnd(-15, 15)), 260 + k * 30 + rnd(-30, 30), 9, 3.5); b.grav = 500; }   // lobs molten cheese
+          else this.addEBullet('cube', e.theta + dirP * (32 / R), e.h + 30 + rnd(-6, 10), dirP * rnd(170, 200), (k - (n - 1) / 2) * 38 + rnd(-28, 28), 9, 3.5);
         }
 
       } else if (ai === 'germ' || ai === 'minigerm') {
@@ -4470,24 +4472,33 @@ class Level1 extends Phaser.Scene {
       if (!b.trail) b.trail = [];
       const p = this.screenPos(b.theta, b.h); if (!p.vis) { b.trail.length = 0; continue; }
       const col = b.reflected ? 0xff8ad8 : (b.gcol || 0xffc040), r = Math.max(3, b.r || 6) * z;
+      b.age = (b.age || 0) + (this.lastDt || 0.016);
+      const K = 0.8 * Math.min(1, b.life > 0 ? b.life / 0.35 : 0);              // (v3.44) 20% dimmer than before, and it fades out with the shot
+      if (b.age < 0.12 && !b.reflected) { const f = 1 - b.age / 0.12; g.fillStyle(0xffffff, 0.55 * f).fillCircle(p.x, p.y, r * (1.6 + 1.6 * (1 - f))); g.fillStyle(col, 0.45 * f).fillCircle(p.x, p.y, r * (3 + 3 * (1 - f))); }   // the muzzle flash
       b.trail.unshift({ x: p.x, y: p.y }); if (b.trail.length > 12) b.trail.length = 12;
       for (let i = b.trail.length - 1; i >= 1; i--) {                           // the comet tail
         const q = b.trail[i], k = 1 - i / b.trail.length;
-        g.fillStyle(col, 0.32 * k).fillCircle(q.x, q.y, r * (0.4 + 0.75 * k));
+        g.fillStyle(col, 0.32 * k * K).fillCircle(q.x, q.y, r * (0.4 + 0.75 * k));
       }
       const pulse = 1 + 0.18 * Math.sin(t * 14 + b.theta * 50);
-      g.fillStyle(col, 0.1).fillCircle(p.x, p.y, r * 3.4 * pulse);              // the halo
-      g.fillStyle(col, 0.2).fillCircle(p.x, p.y, r * 2.2 * pulse);
-      g.fillStyle(col, 0.3).fillCircle(p.x, p.y, r * 1.4 * pulse);
-      g.fillStyle(0xffffff, 0.25).fillCircle(p.x, p.y, r * 0.75);
-      if (Math.sin(t * 23 + b.theta * 90) > 0.85) { g.fillStyle(0xffffff, 0.5).fillRect(p.x - r * 1.8, p.y - 0.5, r * 3.6, 1).fillRect(p.x - 0.5, p.y - r * 1.8, 1, r * 3.6); }   // a twinkle                  // a hot core
-      if ((b.r || 0) >= 8 && (b.litT = (b.litT || 0) - (this.lastDt || 0.016)) <= 0) { b.litT = 0.12; this.addLight(b.theta, b.h, 34 + b.r * 3, col, 0.5, 0.14); }
+      g.fillStyle(col, 0.1 * K).fillCircle(p.x, p.y, r * 3.4 * pulse);          // the halo
+      g.fillStyle(col, 0.2 * K).fillCircle(p.x, p.y, r * 2.2 * pulse);
+      g.fillStyle(col, 0.3 * K).fillCircle(p.x, p.y, r * 1.4 * pulse);
+      g.fillStyle(0xffffff, 0.25 * K).fillCircle(p.x, p.y, r * 0.75);
+      if (Math.sin(t * 23 + b.theta * 90) > 0.85) { g.fillStyle(0xffffff, 0.4 * K).fillRect(p.x - r * 1.8, p.y - 0.5, r * 3.6, 1).fillRect(p.x - 0.5, p.y - r * 1.8, 1, r * 3.6); }   // a twinkle                  // a hot core
+      if ((b.r || 0) >= 8 && (b.litT = (b.litT || 0) - (this.lastDt || 0.016)) <= 0) { b.litT = 0.12; this.addLight(b.theta, b.h, 34 + b.r * 3, col, 0.4 * K, 0.14); }
     }
   }
 
   clearEBullets() {
-    for (const b of this.eBullets) b.spr.destroy();
+    for (const b of this.eBullets) this.ebFade(b);
     this.eBullets = [];
+  }
+  // (v3.44) a shot that's being cleared away: a quick swell and fade with a wisp of smoke, not a blink
+  ebFade(b) {
+    const s = b.spr; if (!s || !s.active) return;
+    try { if (this.sys && this.sys.isActive() && this.tweens) { this.burst(b.theta, b.h, 'spark', 2, 0.4); this.tweens.add({ targets: s, alpha: 0, scaleX: s.scaleX * 1.6, scaleY: s.scaleY * 1.6, duration: 220, onComplete: () => s.destroy() }); return; } } catch (e) { /* the scene's going */ }
+    s.destroy();
   }
 
   updatePlayerBullets(dt) {
@@ -4656,6 +4667,7 @@ class Level1 extends Phaser.Scene {
         if (b.h <= 6) { this.burst(b.theta, 6, 'flame', 5, 0.7); this.burst(b.theta, 6, 'crumb', 8, 0.9); this.bang(b.theta, 6, 22); Sound.sfx('splat'); this.cameras.main.shake(60, 0.003); b.life = 0; }
       }
       if (b.shadow && b.h <= 4) { this.burst(b.theta, 4, 'crumb', 5, 0.6); Sound.sfx('clunk'); b.life = 0; }   // a falling bone lands
+      if (b.life < 0.35 && b.life > 0) b.spr.setAlpha(Math.max(0, b.life / 0.35));   // (v3.44) shots fade out at the end of their life, not blink out
       let dead = b.life <= 0 || b.h < -2;
       if (b.reflected && b.from && b.from.hp > 0 && this.enemies.includes(b.from)) {   // (v3.35) a parried sniper bolt homes in on its sniper
         const T = b.from, dx = angDiff(T.theta, b.theta) * R, dy = T.h + T.ch - b.h, L = Math.hypot(dx, dy) || 1, sp = Math.max(420, Math.hypot(b.vt, b.vh));

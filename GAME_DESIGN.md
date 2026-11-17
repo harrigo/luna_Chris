@@ -2101,3 +2101,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - More treasure: 3-5 gold piles per level, a small chest on level 1 (8-15), 1-2 on level 2 (12-19), one in the vault (16-23) plus the BIG chest (30-60). No chest ends the visit; the banner says when you've found them all.
   - Leaving: jet back up out of the entry hole, or the BACK TO CAMP button (H / pad SELECT) under the minimap. Getting knocked out still sends you home with your haul.
 - TOYS ARRIVE OVER TIME (TOY_UNLOCK), counted in runs finished, won or lost: hoop after 1, high striker 2, crate tower 3, Clank's clay trap 4, the cavern boulder 5. Test mode has everything. Fridge-o-tron announces the new ones with a sparkle (lc_toys_seen).
+
+## v3.44: softer shot glow with a muzzle flash, clean fade-outs, golem volleys
+- Enemy shot glow is 20% dimmer. Each shot gets a bright white-and-colour MUZZLE FLASH that blooms for its first 0.12s, then settles to the dimmer glow.
+- Shots fade out over their last 0.35s of life (sprite, glow and trail together) instead of blinking out.
+- Anything that wipes the screen (Moo Bomb, boss down, a ring change, etc.) makes each shot swell and fade with a wisp of sparks over 0.22s (ebFade) rather than vanish.
+- Gouda Golems (L1) and the L4 golems fire their volley one shot at a time, DOM... DOM... DOM, every 0.4-0.52s, each at a slightly random height and speed, with a recoil squash.
