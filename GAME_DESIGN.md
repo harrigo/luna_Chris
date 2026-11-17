@@ -2052,3 +2052,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v3.37: a more fun front end
 - The main menu is now three big bobbing cards: CAMPAIGN (Continue/Play, with your planet), RUN MODE (your crumbs) and TRAINING. A small row underneath holds New Game, Controls, Options (and The End). Keys/pad move left-right and up-down; mouse hovers and clicks; touch taps. The focused card wiggles and gets a gold ring. Sub-screens still use the text menu.
 - The logo wobbles. The title backdrop, used by the splash and the menu, plays little scenes: a rat scurries in and Chris blasts it into orbit (K.O.!), or Biscuit gallops past chasing the beach ball.
+
+## v3.38: precise parry; glowing enemy shots
+- PARRY tightened (PARRY in style.js). The shot must reach a sweet spot 22px in front of Chris (radius 18px plus the shot's size) within 0.1s of the swing (0.18s in Cheese Time). It used to be anywhere within ~80px for 0.16s.
+  - The check sweeps the shot's path over the frame, so fast shots can't skip through.
+  - Swinging too soon at an incoming shot shows a grey MISS, and the shot carries on and hits you.
+- Every enemy shot now has an additive glow in its own colour: a breathing three-ring halo, a hot white core, a 12-point comet trail and the odd twinkle. Shots with radius 8 or more also light the ground as they pass. All drawn on one graphics layer (bulletFx), so it stays cheap. Parried shots glow pink.

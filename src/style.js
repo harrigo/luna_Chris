@@ -27,6 +27,7 @@ const Style = { mult: 1 };
 
 const DODGE_WIN = 300;                                                 // (v3.30) whole double tap, first press to second, in 0.3s
 const DODGE_ANG = 10 * Math.PI / 180;                                  // (v3.29) how closely the two dodge flicks must match
+const PARRY = { win: 0.1, winCT: 0.18, fwd: 22, reach: 18 };              // (v3.38) the parry: timing window (s), sweet spot ahead of Chris, its radius (px)
 const StyleMixin = {
   styleInit() {
     this.styleP = 0; this.styleRank = 0; this.styleRecent = []; this.styleIdle = 0; this.styleSWave = -1; Style.mult = 1;
@@ -148,14 +149,28 @@ const StyleMixin = {
   },
 
   // ---- PARRY: called every frame while the bash is in its opening window
+  // (v3.38) PRECISE PARRY: the shot has to be right on the gun-butt - within ~30px in front of Chris (not 80) - inside
+  // a 0.1s window from the swing (0.18s in Cheese Time). The check sweeps along the shot's path this frame, so a
+  // fast shot can't skip through. Swing too early or too far off and it's a MISS: you're mid-swing and it hits you.
   parryCheck() {
-    const P = this.pl; if (P.bashT <= 0 || P.bashT < CFG.bashTime - (this.ctT > 0 ? 0.28 : 0.16) || P.parried) return;   // (a wider window in CHEESE TIME)
-    const dir = P.facing || 1, cy = P.h + (P.duck ? 22 : 34);
+    const P = this.pl; if (P.bashT <= 0 || P.parried) return;
+    const win = this.ctT > 0 ? PARRY.winCT : PARRY.win, dir = P.facing || 1, cy = P.h + (P.duck ? 22 : 34);
+    if (P.bashT < CFG.bashTime - win) {                                      // the window's shut: was there a shot coming that we swung at too soon?
+      if (!P.parryMissed) { P.parryMissed = true;
+        const near = this.eBullets.some(b => !b.reflected && !b.shadow && !b.bomb && !b.noParry && (b.r || 0) <= 16 && Math.hypot(angDiff(b.theta, P.theta) * R, b.h - cy) < 220 && angDiff(P.theta, b.theta) * b.vt > 0);
+        if (near) { this.popup(wrap(P.theta + dir * 20 / R), P.h + 70, 'MISS', '#8a90a8'); Sound.sfx('whoosh'); } }
+      return;
+    }
+    P.parryMissed = false;
+    const dt = this.lastDt || 0.016;
     let got = 0;
     for (const b of this.eBullets) {
       if (b.reflected || b.shadow || b.bomb || (b.r || 0) > 16 || b.noParry) continue;
-      const ex = angDiff(b.theta, P.theta) * R, ey = b.h - cy;
-      if (ex * dir < -26 || Math.hypot(ex, ey) > 78 + (b.r || 6)) continue;
+      // the closest the shot gets to the gun-butt this frame (from where it is to where it'll be)
+      const bx = dir * PARRY.fwd, ex0 = angDiff(b.theta, P.theta) * R, ey0 = b.h - cy, ex1 = ex0 + b.vt * dt, ey1 = ey0 + b.vh * dt;
+      const sx = ex1 - ex0, sy = ey1 - ey0, L2 = sx * sx + sy * sy, k = L2 ? Math.max(0, Math.min(1, ((bx - ex0) * sx + (0 - ey0) * sy) / L2)) : 0;
+      const px = ex0 + sx * k, py = ey0 + sy * k;
+      if (px * dir < -10 || Math.hypot(px - bx, py) > PARRY.reach + (b.r || 6)) continue;
       // swat it back at whoever's nearest in front, harder than it came
       let tgt = b.from && b.from.hp > 0 && this.enemies.includes(b.from) ? b.from : null, bd = tgt ? -1 : 1e9;   // (v3.35) a sniper's bolt goes home to its sniper
       if (!tgt) for (const e of this.enemies) { if (e.hp <= 0 || e.phased) continue; const dx = angDiff(e.theta, P.theta) * R; if (dx * dir < -40) continue; const d = Math.abs(dx) + Math.abs(e.h - P.h) * 0.5; if (d < bd) { bd = d; tgt = e; } }
@@ -166,7 +181,7 @@ const StyleMixin = {
       got++;
     }
     if (got) {
-      P.parried = true;
+      P.parried = true; P.parryMissed = true;
       this.slowT = Math.max(this.slowT || 0, 0.5); this.hitStop = Math.max(this.hitStop || 0, 0.08);
       P.ammo = 1; P.overheat = false; P.jam = null;
       Sound.sfx('shine'); Sound.sfx('zing'); buzz([20, 10, 60]); this.cameras.main.flash(90, 255, 200, 240); this.camPunch(0.04);

@@ -5,7 +5,7 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.37';
+const BUILD = 'v3.38';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4451,8 +4451,32 @@ class Level1 extends Phaser.Scene {
       spr: (() => { const im = this.add.image(0, 0, kind).setDepth(8); if (!FX_ANIM[kind]) bakedGlow(im, glow, 2, 6); return im; })()
     };
     if (FX_ANIM[kind]) { Object.assign(b, FX_ANIM[kind], { animPh: Math.floor(Math.random() * 3) }); if (b.scale) b.spr.bsx = b.spr.bsy = b.scale; }   // (animated: no baked glow, the bloom does that)
+    b.gcol = glow; b.trail = [];                                               // (v3.38) for the glow + trail (bulletFx)
     this.eBullets.push(b);
     return b;
+  }
+  // (v3.38) ENEMY SHOTS GLOW: a soft halo that breathes, a fading comet-trail behind them, and the biggest ones light
+  // up the ground as they pass. One additive graphics layer for the lot, so it's cheap.
+  bulletFx() {
+    if (!this.bfxG) this.bfxG = this.add.graphics().setDepth(7.95).setBlendMode(Phaser.BlendModes.ADD);
+    const g = this.bfxG, z = this.zoom || 1, t = this.t || 0; g.clear();
+    for (const b of this.eBullets) {
+      if (!b.trail) b.trail = [];
+      const p = this.screenPos(b.theta, b.h); if (!p.vis) { b.trail.length = 0; continue; }
+      const col = b.reflected ? 0xff8ad8 : (b.gcol || 0xffc040), r = Math.max(3, b.r || 6) * z;
+      b.trail.unshift({ x: p.x, y: p.y }); if (b.trail.length > 12) b.trail.length = 12;
+      for (let i = b.trail.length - 1; i >= 1; i--) {                           // the comet tail
+        const q = b.trail[i], k = 1 - i / b.trail.length;
+        g.fillStyle(col, 0.32 * k).fillCircle(q.x, q.y, r * (0.4 + 0.75 * k));
+      }
+      const pulse = 1 + 0.18 * Math.sin(t * 14 + b.theta * 50);
+      g.fillStyle(col, 0.1).fillCircle(p.x, p.y, r * 3.4 * pulse);              // the halo
+      g.fillStyle(col, 0.2).fillCircle(p.x, p.y, r * 2.2 * pulse);
+      g.fillStyle(col, 0.3).fillCircle(p.x, p.y, r * 1.4 * pulse);
+      g.fillStyle(0xffffff, 0.25).fillCircle(p.x, p.y, r * 0.75);
+      if (Math.sin(t * 23 + b.theta * 90) > 0.85) { g.fillStyle(0xffffff, 0.5).fillRect(p.x - r * 1.8, p.y - 0.5, r * 3.6, 1).fillRect(p.x - 0.5, p.y - r * 1.8, 1, r * 3.6); }   // a twinkle                  // a hot core
+      if ((b.r || 0) >= 8 && (b.litT = (b.litT || 0) - (this.lastDt || 0.016)) <= 0) { b.litT = 0.12; this.addLight(b.theta, b.h, 34 + b.r * 3, col, 0.5, 0.14); }
+    }
   }
 
   clearEBullets() {
@@ -5514,6 +5538,7 @@ class Level1 extends Phaser.Scene {
     this.drawBeam();
     this.drawLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
+    this.bulletFx();
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h + (p.kind === "cheddar" ? 6 : 0), 0);
     if (this.chaser) {                                   // spinning rind, upright furious face (dizzy wobble when stunned)
       const C = this.chaser; this.place(C.spr, C.theta, C.r, C.roll);
