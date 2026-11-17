@@ -2090,3 +2090,14 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - It rebuilds itself 6s after everything's down. TIMBER!
 - HOOP (0.86): a side-on basketball hoop with a rim ~58px wide (the ball is 44px). Its two ends are solid and clang the ball off. Ball through the middle going down scores SWISH!, Biscuit jumps for joy, and a streak counts if you keep scoring within 12s. Best streak kept.
 - Bests saved in lc_toys. The barrel at -2.6 went to make room.
+
+## v3.43: solid crates, a proper cavern raid, toys that turn up over time
+- CRATE TOWER: crates are solid.
+  - Walk into one and you shove it along at about half your walking speed (with a scrape), and it pushes the row in front of it in order, so nothing overlaps.
+  - Anything left without support tips off towards the overhang. Loose crates land on top of each other, bounce a little and settle square.
+  - It restacks once it's been messed about, everything's still, and you've wandered 160px+ away for 5s.
+- SECRET CAVERN:
+  - The boulder rolls back over the hole every restock. Shoot or bash it open, then just walk over the hole and you drop in (no button). Picked clean: the boarded-up hole says so.
+  - More treasure: 3-5 gold piles per level, a small chest on level 1 (8-15), 1-2 on level 2 (12-19), one in the vault (16-23) plus the BIG chest (30-60). No chest ends the visit; the banner says when you've found them all.
+  - Leaving: jet back up out of the entry hole, or the BACK TO CAMP button (H / pad SELECT) under the minimap. Getting knocked out still sends you home with your haul.
+- TOYS ARRIVE OVER TIME (TOY_UNLOCK), counted in runs finished, won or lost: hoop after 1, high striker 2, crate tower 3, Clank's clay trap 4, the cavern boulder 5. Test mode has everything. Fridge-o-tron announces the new ones with a sparkle (lc_toys_seen).

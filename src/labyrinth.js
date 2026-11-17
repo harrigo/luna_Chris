@@ -142,7 +142,7 @@ const LabMixin = {
       this.cave = { ring: 0, t: 0, vent: 0, fill: 0, cheeseH: 0, beatT: 0, beatN: 0, next: null, won: false, alive: {}, seen: {},
         rock: { hp: 10, alive: true, wob: 0, nextWob: 1.5, flash: 0 }, tw: [], twT: 2,
         valves: CV.rings.flatMap((rg, ri) => (rg.valves || []).map(o => ({ ring: ri, theta: this.caveAbs(o), hp: 3, alive: true }))),
-        loot: CV.rings.flatMap((rg, ri) => (rg.loot || []).map(([kind, o, val]) => ({ ring: ri, theta: this.caveAbs(o), kind, val, taken: false }))) };
+        loot: CV.rings.flatMap((rg, ri) => (rg.loot || []).map(([kind, o, val, big]) => ({ ring: ri, theta: this.caveAbs(o), kind, val, big: !!big, taken: false }))) };
       CV.rings.forEach((rg, ri) => { this.cave.alive[ri] = (rg.spawn || []).map((s, i) => i); });
     }
     const C = this.cave, ring = C.ring, RG = this.caveRing(ring);
@@ -166,7 +166,7 @@ const LabMixin = {
     }
     // loot in the dead ends: it bursts out when you get close (so it doesn't time out before you arrive)
     for (const L of C.loot) {
-      if (L.taken || L.ring !== ring || Math.abs(angDiff(P.theta, L.theta)) * R > (L.kind === 'gold' ? 36 : 150)) continue;
+      if (L.kind === 'chest' || L.taken || L.ring !== ring || Math.abs(angDiff(P.theta, L.theta)) * R > (L.kind === 'gold' ? 36 : 150)) continue;   // (chests: cavern.js opens them)
       L.taken = true;
       if (L.kind === 'stash') { this.spillCheddar(L.theta, 26, L.val); Sound.sfx('power'); this.banner('A RAT\'S HOARD! +' + L.val + ' CHEDDAR'); }
       else if (L.kind === 'gold' && this.cavernLoot) this.cavernLoot(L);

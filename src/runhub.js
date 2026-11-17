@@ -363,7 +363,7 @@ const CampMixin = {
   campSay(text, secs) { this.campBubble.setText(text).setVisible(true); this.campBubbleT = secs || 3.5; },
   campNear() {
     const P = this.pl; let best = null, bd = 1e9;
-    for (const s of this.campSt) { if (s.id === 'cave' && !this.cvFound) continue; const d = Math.abs(angDiff(P.theta, s.theta)) * R; if (d < bd) { bd = d; best = s; } }
+    for (const s of this.campSt) { if (s.id === 'cave' && !this.cvStation) continue; if (s.id === 'clay' && this.toyOpen && !this.toyOpen('clay')) continue; const d = Math.abs(angDiff(P.theta, s.theta)) * R; if (d < bd) { bd = d; best = s; } }
     return bd < 46 && P.h < 60 ? best : null;
   },
   campUpdate(dt, inp) {

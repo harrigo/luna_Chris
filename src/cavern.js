@@ -25,7 +25,11 @@ function makeCavernDef(seed) {
       RG.path = RG.holes[0];
     } else RG.bessie = +between(0, TWO).toFixed(3);                       // the bottom: one big vault, the chest somewhere in it
     // gold crumb piles and the odd cheese wedge, then the vermin
-    for (let k = 0; k < 2 + Math.floor(rnd() * 2); k++) RG.loot.push(rnd() < 0.75 ? ['gold', +between(0, TWO).toFixed(3), 3 + Math.floor(rnd() * 6)] : ['heal', +between(0, TWO).toFixed(3)]);
+    for (let k = 0; k < 3 + Math.floor(rnd() * 3); k++) RG.loot.push(rnd() < 0.8 ? ['gold', +between(0, TWO).toFixed(3), 3 + Math.floor(rnd() * 6)] : ['heal', +between(0, TWO).toFixed(3)]);
+    // (v3.43) treasure chests on every level: small ones up top, the big one (and a spare) in the vault
+    const nc = last ? 1 : i === 0 ? 1 : 1 + Math.floor(rnd() * 2);
+    for (let k = 0; k < nc; k++) RG.loot.push(['chest', +between(0.3, TWO - 0.3).toFixed(3), 8 + Math.floor(rnd() * 8) + i * 4, false]);
+    if (last) RG.loot.push(['chest', RG.bessie, 30 + Math.floor(rnd() * 31), true]);
     for (let k = 0; k < 3 + i; k++) { const a = between(0.25, TWO - 0.25); RG.spawn.push([pick(['rindtick', 'gnawer', 'grub', 'mouse', 'mouse']), +a.toFixed(3)]); }
     rings.push(RG);
   }
@@ -59,7 +63,7 @@ function makeCavernTextures(scene) {
 const CavernMixin = {
   cavernInit(data) {
     this.levelId = 8; this.def = makeCavernDef(data.cavern); R = this.def.radius || 420; this.waves = [];
-    this.cvCrumbs = 0; this.cvDone = false; this.cvChest = null; this.cvGold = []; this.cvLbl = false;
+    this.cvCrumbs = 0; this.cvDone = false; this.cvChest = null; this.cvGold = []; this.cvLbl = false; this.cvEntered = false; this.cvHomeBtn = null;
   },
   // a gold pile found: crumbs straight into the jar (they're yours even if you get knocked out)
   cavernLoot(L) {
@@ -80,67 +84,92 @@ const CavernMixin = {
       if (!L.spr) { L.spr = this.add.image(0, 0, 'cv_gold').setOrigin(0.5, 1).setDepth(5.6); L.spr.bsx = L.spr.bsy = 1.4; }
       const show = !L.taken && L.ring === C.ring; L.spr.setVisible(show); if (show) this.place(L.spr, L.theta, 0, 0);
     }
-    // the treasure chest at the bottom
-    const last = CV.rings.length - 1, RG = CV.rings[last];
-    if (!this.cvChest) { this.cvChest = this.add.image(0, 0, 'cv_chest0').setOrigin(0.5, 1).setDepth(5.7); this.cvChest.bsx = this.cvChest.bsy = 1.6; }
-    const here = C.ring === last; this.cvChest.setVisible(here);
-    if (here) {
-      const th = this.caveAbs(RG.bessie); this.place(this.cvChest, th, Math.abs(Math.sin(this.t * 2.5)) * (this.cvDone ? 0 : 2), 0);
-      if (!this.cvDone && Math.random() < dt * 4) this.burst(th, 30, 'spark', 1, 0.5);
+    // (v3.43) the treasure chests: one or two on every level, the BIG one in the vault. None of them ends the visit.
+    if (C.ring > 0) this.cvEntered = true;
+    if (this.cvEntered && C.ring === 0 && !this.cvLeaving) { this.banner('BACK UP TOP!'); this.cavernLeave(false); return; }   // jetted out of the hole: home
+    for (const L of C.loot) {
+      if (L.kind !== 'chest') continue;
+      if (!L.spr) { L.spr = this.add.image(0, 0, 'cv_chest0').setOrigin(0.5, 1).setDepth(5.7); L.spr.bsx = L.spr.bsy = L.big ? 1.8 : 1.2; }
+      const show = L.ring === C.ring; L.spr.setVisible(show); if (!show) continue;
+      this.place(L.spr, L.theta, L.taken ? 0 : Math.abs(Math.sin(this.t * 2.5 + L.theta * 7)) * 2, 0);
+      if (!L.taken && Math.random() < dt * (L.big ? 5 : 2)) this.burst(L.theta, L.big ? 34 : 22, 'spark', 1, 0.5);
       const P = this.pl;
-      if (!this.cvDone && P.h < 40 && Math.abs(angDiff(P.theta, th)) * R < 36) this.cavernOpen(th);
+      if (!L.taken && P.h < 40 && Math.abs(angDiff(P.theta, L.theta)) * R < (L.big ? 36 : 26)) this.cavernOpen(L);
     }
+    this.cavernHud();
   },
-  cavernOpen(th) {
-    this.cvDone = true; this.cvChest.setTexture('cv_chest1');
-    const n = 30 + Math.floor(Math.random() * 31); Meta.addCrumbs(n); this.cvCrumbs += n;
-    try { localStorage.setItem('lc_cave_ready', '0'); } catch (e) { /* ignore */ }
-    Sound.sfx('reveal'); Sound.sfx('power'); this.cameras.main.flash(250, 255, 230, 140); this.camPunch(0.05);
-    for (let k = 0; k < 30; k++) this.time.delayedCall(k * 40, () => { const im = this.add.image(0, 0, 'crumb').setDepth(9).setTint(k % 3 ? 0xffd23f : 0xffffff); im.bsx = im.bsy = rnd(1.2, 2); this.parts.push({ theta: th, h: 30, vt: rnd(-200, 200), vh: rnd(300, 560), life: 1.2, spr: im, rot: 0, rv: rnd(-12, 12) }); });
-    this.banner('TREASURE!\n+' + n + ' GOLDEN CRUMBS');
-    for (const e of this.enemies) if (e.type !== 'boss') { e.quietKill = true; e.hp = 0; }
-    this.pl.invuln = 99;
-    this.time.delayedCall(3000, () => this.cavernLeave(false));
+  cavernOpen(L) {
+    L.taken = true; L.spr.setTexture('cv_chest1');
+    const n = L.val, th = L.theta; Meta.addCrumbs(n); this.cvCrumbs += n;
+    Sound.sfx(L.big ? 'reveal' : 'shine'); Sound.sfx('power');
+    if (L.big) { this.cameras.main.flash(250, 255, 230, 140); this.camPunch(0.05); }
+    for (let k = 0; k < (L.big ? 30 : 12); k++) this.time.delayedCall(k * 40, () => { const im = this.add.image(0, 0, 'crumb').setDepth(9).setTint(k % 3 ? 0xffd23f : 0xffffff); im.bsx = im.bsy = rnd(1.2, 2); this.parts.push({ theta: th, h: 30, vt: rnd(-200, 200), vh: rnd(300, 560), life: 1.2, spr: im, rot: 0, rv: rnd(-12, 12) }); });
+    const left = this.cave.loot.filter(q => q.kind === 'chest' && !q.taken).length;
+    this.banner((L.big ? 'THE BIG ONE!\n+' : 'TREASURE! +') + n + ' GOLDEN CRUMBS' + (left ? '' : '\nALL THE CHESTS FOUND!'));
+  },
+  // the haul so far, and the way home
+  cavernHud() {
+    if (!this.cvHomeBtn) {
+      const dev = typeof inputDevice === 'function' ? inputDevice() : 'kb';
+      this.cvHomeBtn = this.add.text(0, 0, 'BACK TO CAMP' + (dev === 'pad' ? ' (SELECT)' : dev === 'touch' ? '' : ' [H]'), { fontFamily: PIXEL, fontSize: '8px', color: '#1a1020', backgroundColor: '#ffd23f', padding: { x: 6, y: 5 } })
+        .setOrigin(1, 0).setDepth(30).setScrollFactor(0).setInteractive({ useHandCursor: true });
+      this.cvHomeBtn.on('pointerup', () => this.cavernLeave(false));
+      if (this.input.keyboard) this.input.keyboard.on('keydown-H', () => this.cavernLeave(false));
+      this.cvPadOff = Pad.on(b => { if (b === 'back' || b === 'select') this.cavernLeave(false); });
+      this.events.once('shutdown', () => { if (this.cvPadOff) this.cvPadOff(); this.cvPadOff = null; this.cvHomeBtn = null; });
+    }
+    this.cvHomeBtn.setPosition(this.W - 12, 96);
   },
   cavernLeave(died) {
     if (this.cvLeaving) return; this.cvLeaving = true;
     try { localStorage.setItem('lc_cave_ready', '0'); } catch (e) { /* ignore */ }
+    this.cvChest = { taken: this.cave && this.cave.loot.some(q => q.kind === 'chest' && q.big && q.taken) };
     this.cameras.main.fadeOut(500, 0, 0, 0);
-    this.time.delayedCall(530, () => { Sound.music(null); this.scene.start('level1', { camp: true, sum: { cavern: true, died, crumbs: this.cvCrumbs, chest: this.cvDone } }); });
+    this.time.delayedCall(530, () => { Sound.music(null); this.scene.start('level1', { camp: true, sum: { cavern: true, died, crumbs: this.cvCrumbs, chest: !!(this.cvChest && this.cvChest.taken) } }); });
   },
   // ---- at camp: the boulder, the hole, and the result card
+  // (v3.43) the boulder rolls back over the hole every time the rats restock the cavern: shoot or bash it open, then just
+  // walk over the hole and you drop in. Picked clean: the hole's there, boarded over, until the next run's done.
   campCaveInit() {
     makeCavernTextures(this);
     let found = false, ready = true; try { found = localStorage.getItem('lc_cave_found') === '1'; ready = localStorage.getItem('lc_cave_ready') !== '0'; } catch (e) { /* ignore */ }
     this.cvFound = found; this.cvReady = ready;
-    const st = this.campSt.find(s => s.id === 'cave'); if (!st) return;
-    st.a.spr.setVisible(found);
-    this.campCave = { st, hp: 6, wob: 0, next: 2, rock: null };
-    if (!found && this.textures.exists('labboulder')) { const r = this.add.image(0, 0, 'labboulder').setOrigin(0.5, 0.92).setDepth(2.5); r.bsx = r.bsy = 1.1; this.campCave.rock = { spr: r, theta: st.theta, h: 0, rot: 0 }; this.actors.push(this.campCave.rock); }
+    const st = this.campSt.find(q => q.id === 'cave'); if (!st) return;
+    const open = !this.toyOpen || this.toyOpen('cave');
+    this.campCave = { st, hp: 6, wob: 0, next: 2, rock: null, open: false, on: open };
+    this.cvStation = open && !ready;                                         // (only to say it's picked clean)
+    st.a.spr.setVisible(open && (!ready || false));
+    if (open && ready && this.textures.exists('labboulder')) { const r = this.add.image(0, 0, 'labboulder').setOrigin(0.5, 0.92).setDepth(2.5); r.bsx = r.bsy = 1.1; this.campCave.rock = { spr: r, theta: st.theta, h: 0, rot: 0 }; this.actors.push(this.campCave.rock); }
   },
   campCaveTick(dt) {
-    const K = this.campCave; if (!K || !K.rock || this.cvFound) return;
+    const K = this.campCave; if (!K || !K.on) return;
+    if (K.open) {                                                            // the hole's open: walk over it and down you go
+      const P = this.pl;
+      if (!this.campGo && P.h <= 2 && Math.abs(angDiff(P.theta, K.st.theta)) * R < 16) { P.theta = K.st.theta; P.vh = -200; this.campCaveGo(); }
+      return;
+    }
+    if (!K.rock) return;
     K.next -= dt; if (K.next <= 0) { K.next = rnd(2.5, 5); K.wob = 0.6; this.burst(K.st.theta, 6, 'crumb', 4, 0.5); Sound.sfx('clunk'); if (Math.random() < 0.5) this.burst(K.st.theta, 30, 'spark', 3, 0.6); }   // ...a glint of gold?
     K.wob = Math.max(0, K.wob - dt); K.rock.rot = K.wob > 0 ? Math.sin(this.t * 38) * 0.07 * (K.wob / 0.6) : 0;
     K.flash = Math.max(0, (K.flash || 0) - dt); if (K.flash > 0) K.rock.spr.setTintFill(0xffffff); else K.rock.spr.clearTint();
   },
   campCaveHit(n) {
-    const K = this.campCave; if (!K || this.cvFound) return;
+    const K = this.campCave; if (!K || !K.rock || K.open) return;
     K.hp -= n; K.flash = 0.06; K.wob = 0.3; Sound.sfx('clunk'); this.burst(K.st.theta, 30, 'crumb', 5, 0.7);
     if (K.hp <= 0) {
-      this.cvFound = true; try { localStorage.setItem('lc_cave_found', '1'); } catch (e) { /* ignore */ }
-      K.rock.spr.setVisible(false); K.st.a.spr.setVisible(true);
+      K.open = true; K.rock.spr.setVisible(false); K.st.a.spr.setVisible(true);
       Sound.sfx('crash'); this.cameras.main.shake(300, 0.012); for (let k = 0; k < 4; k++) this.burst(K.st.theta, 20 + k * 10, 'crumb', 10, 1.2);
-      this.time.delayedCall(500, () => { this.campSay('A SECRET CAVERN! STAND ON THE HOLE AND PRESS DOWN TO DROP IN.', 5); Sound.sfx('reveal'); });
+      const first = !this.cvFound; this.cvFound = true; try { localStorage.setItem('lc_cave_found', '1'); } catch (e) { /* ignore */ }
+      this.time.delayedCall(500, () => { this.campSay(first ? 'A SECRET CAVERN! JUMP DOWN THE HOLE... IF YOU DARE.' : 'THE CAVERN\'S BEEN RESTOCKED! IN YOU GO.', 4); Sound.sfx('reveal'); });
     }
   },
   campCaveShot(b) {
-    const K = this.campCave; if (!K || this.cvFound || !K.rock) return false;
+    const K = this.campCave; if (!K || !K.rock || K.open) return false;
     if (Math.abs(angDiff(b.theta, K.st.theta)) * R > 28 || b.h > 70) return false;
     this.campCaveHit(1); return true;
   },
   campCaveBash(dir, cy) {
-    const K = this.campCave; if (!K || this.cvFound || !K.rock) return;
+    const K = this.campCave; if (!K || !K.rock || K.open) return;
     const a = angDiff(K.st.theta, this.pl.theta) * dir * R; if (a < -10 || a > 70 || this.pl.h > 60) return;
     this.campCaveHit(2);
   },
