@@ -107,6 +107,7 @@ const Run = {
   stages() { return RUN_ROUTE.length; },
   // the run's summary, and the best run on this device ({ planets, score })
   finish(reg, how) {
+    try { localStorage.setItem('lc_cave_ready', '1'); } catch (e) { /* ignore */ }   // (v3.41) the rats restock the secret cavern after every run
     const sum = { how, at: this.atLv || 0, planets: this.done.length, done: this.done.slice(), score: this.score, earned: this.earned, kills: this.kills, time: (Date.now() - this.t0) / 1000, perks: this.picked.slice() };
     const b = this.best();
     sum.newBest = !b || sum.planets > b.planets || (sum.planets === b.planets && sum.score > b.score);
@@ -322,8 +323,13 @@ class RunScene extends Phaser.Scene {
       if (i < 0) return;
       if (this.sel === i || this.phase === 'route') this.choose(i); else { this.sel = i; Sound.sfx('jump'); }
     });
+    this.input.on('pointermove', p => {                                  // (v3.41) on the map, pointing at a planet describes it
+      if (this.phase !== 'route' || p.wasTouch) return;
+      const i = (this.hits || []).findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
+      if (i >= 0 && i !== this.sel) { this.sel = i; if (this.mapShowInfo) this.mapShowInfo(); }
+    });
   }
-  move(d) { const n = (this.hits || []).length; if (!n || this.going) return; this.sel = (this.sel + d + n) % n; Sound.sfx('jump'); }
+  move(d) { const n = (this.hits || []).length; if (!n || this.going) return; this.sel = (this.sel + d + n) % n; Sound.sfx('jump'); if (this.mapShowInfo && this.phase === 'route') this.mapShowInfo(); }
   choose(i) {
     if (this.going || !this.hits || !this.hits[i]) return;
     this.sel = i; this.hits[i].act();
@@ -335,7 +341,7 @@ class RunScene extends Phaser.Scene {
   }
   build() {
     const W = this.scale.width, H = this.scale.height, f = RUN_UI.f;
-    this.ui.removeAll(true); this.hits = [];
+    this.ui.removeAll(true); this.hits = []; this.mapInfo = null; this.mapRocket = null; this.cards = null;
     const s = Shop.get(this.registry), small = H < 430;
     // top bar: the route so far
     const stg = Run.stages(), top = small ? 8 : 14;
@@ -366,7 +372,7 @@ class RunScene extends Phaser.Scene {
     this.ui.add(this.add.text(W - 14, by, Run.str().name + '   RUN SCORE ' + Run.score, f(9, '#e8ecf8')).setOrigin(1, 0.5));
     const midT = rowY + (small ? 30 : 44), midB = by - (small ? 22 : 30);
     if (this.phase === 'perk') this.buildPerks(W, midT, midB, small);
-    else this.buildRoute(W, midT, midB, small);
+    else this.buildRouteMap(W, midT, midB, small);                      // (v3.41) the star map (runmap.js)
     this.sel = Math.min(this.sel, this.hits.length - 1);
   }
   buildPerks(W, y0, y1, small) {
@@ -464,8 +470,10 @@ class RunScene extends Phaser.Scene {
     const h = this.hits && this.hits[this.sel];
     if (h) {
       const a = 0.6 + 0.4 * Math.sin(this.t * 6);
-      g.lineStyle(3, 0xffd23f, 0.75 + 0.25 * Math.sin(this.t * 6)).strokeRect(h.x - 5, h.y - 5, h.w + 10, h.h + 10);
+      if (h.map) g.lineStyle(3, 0xffd23f, 0.75 + 0.25 * Math.sin(this.t * 6)).strokeCircle(h.map.x, h.map.y, h.map.r + 7 + Math.sin(this.t * 6) * 2);   // (v3.41) a ring round the planet
+      else g.lineStyle(3, 0xffd23f, 0.75 + 0.25 * Math.sin(this.t * 6)).strokeRect(h.x - 5, h.y - 5, h.w + 10, h.h + 10);
     }
+    if (this.mapRocket && this.mapRocket.im.active) this.mapRocket.im.y = this.mapRocket.y + Math.sin(this.t * 3) * 3;
     if (this.cards) this.cards.forEach((c, i) => { if (c.icon && c.iy !== undefined) c.icon.y = c.iy + (i === this.sel ? Math.sin(this.t * 4) * 3 : 0); });
   }
 }

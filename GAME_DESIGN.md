@@ -2068,3 +2068,14 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - A hit gives a small flinch (vh 150, was 300) and sets P.hurtHop, so no stomps count until he's back on his feet. Before, the pop-up after a hit often dropped him onto the rat that hit him and squashed it.
 - Small fry (mouse, flyer, minigerm, drone, phantom) no longer blow themselves up when they touch Chris. They bump back and come again, so doing nothing keeps costing you hearts.
 - Invulnerability after a hit is 10% shorter: CFG.invuln 1.44s (was 1.6).
+
+## v3.41: the run map, and the Secret Cavern
+- RUN MAP (runmap.js): the route screen is a little random star map, seeded from the run's start so it stays put all run.
+  - Moon Camp on the left, then one column per stage (two planets at a fork), joined by bowed dotted gold paths that wander up and down. The bonus stop is a star hanging off the path.
+  - Cleared planets get a green ring and a tick, roads not taken go grey, stops ahead are dim. A bobbing rocket marks where you are, and the final boss is labelled.
+  - Pointing at (or keying to) a stop fills the panel underneath with its name, boss and blurb. SHOP and GIVE UP sit in the panel. The perk-pick screen is unchanged.
+- SECRET CAVERN (cavern.js), at camp 1.65 (the wheels decor went to make room):
+  - Finding it: a wobbling boulder that now and then glints gold. Shoot or bash it open (6 hits; a bash counts double) and a hole with a rope ladder appears; Fridge-o-tron points it out. Stand on it and press DOWN to drop in.
+  - The layout is generated fresh each visit and reuses the Labyrinth's cave engine: 3 rings of dark tunnel, each split into chambers by 2-3 rock walls. Every chamber has at least one hole down, so wherever you land you can keep going. Gold crumb piles (3-8 golden crumbs each, banked straight away) and the odd cheese wedge, plus 3-5 vermin per ring (rind-ticks, gnawers, grubs, mice).
+  - The bottom ring is one big vault with a TREASURE CHEST: 30-60 golden crumbs, then you're hauled back up and pop out of the hole at camp. Knocked out, you crawl back up with whatever you'd found. No lives or cheddar involved.
+  - One raid per run: the cavern is picked clean until the next run finishes (lc_cave_ready).

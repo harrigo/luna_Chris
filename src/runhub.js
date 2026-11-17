@@ -14,6 +14,7 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'board',  theta: -0.85, tex: 'cr_board',  sc: 1.7, name: 'NOTICEBOARD',   verb: 'READ' },
   { id: 'larder', theta: -1.6,  tex: 'cr_stall',  sc: 1.7, name: 'THE LARDER',    verb: 'TRADE CRUMBS' },
   { id: 'train',  theta: -2.35, tex: 'cr_dummy',  sc: 1.7, name: 'TRAINING DUMMY', verb: 'TRAIN' },
+  { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
@@ -21,7 +22,7 @@ const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
   ['cr_tent', -0.42, 1.9, 0, 2.3], ['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
   ['cr_crate', 2.36, 1.6, 0, 2.6], ['cr_crate', 2.4, 1.3, 30, 2.6], ['cr_barrel', 2.44, 1.6, 0, 2.6], ['cr_barrel', -1.15, 1.6, 0, 2.6],
   ['cr_lamp', -1.22, 1.7, 0, 2.25], ['cr_lamp', -0.55, 1.7, 0, 2.25], ['cr_lamp', 0.4, 1.7, 0, 2.25], ['cr_lamp', 1.02, 1.7, 0, 2.25],
-  ['cr_pen', 2.78, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], ['cr_wheels', 1.62, 1.6, 0, 2.3],
+  ['cr_pen', 2.78, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], 
   ['cr_barrel', -2.6, 1.5, 0, 2.6]
 ];
 const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strings of bulbs between the lamp posts
@@ -298,7 +299,7 @@ const CampMixin = {
     this.waves = []; this.autostart = true; this.campSum = (data && data.sum) || null;
   },
   campStart() {
-    makeCampTextures(this); makeGrowTextures(this);
+    makeCampTextures(this); makeGrowTextures(this); makeCavernTextures(this); if (typeof makeLabTextures === 'function') makeLabTextures(this);
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc;
@@ -307,6 +308,7 @@ const CampMixin = {
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
     this.campFolkInit();
     this.ball = null; this.ballInit();
+    this.campCaveInit();
     this.campGrowInit();                                                   // (v3.36) the camp grows (campgrow.js)                                     // (v3.32) the beach ball
     this.campGlow = this.add.image(0, 0, 'puff').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
     this.campLightG = this.add.graphics().setDepth(2.5);
@@ -319,7 +321,8 @@ const CampMixin = {
     this.campHudBuild();
     this.campLine = this.campPickLine();
     const P = this.pl; P.theta = this.campSum ? 0.42 : -0.14;
-    if (this.campSum) { P.h = 640; P.vh = -120; this.time.delayedCall(1500, () => this.campShowCard()); }
+    if (this.campSum && this.campSum.cavern) { P.theta = 1.65; P.h = 0; P.vh = 560; Sound.sfx('jump'); this.time.delayedCall(900, () => this.campShowCard()); }   // (v3.41) popping back out of the cavern hole
+    else if (this.campSum) { P.h = 640; P.vh = -120; this.time.delayedCall(1500, () => this.campShowCard()); }
     else this.time.delayedCall(900, () => this.campSay(this.campLine, 4.5));
   },
   // a flat-bottomed sprite on a round moon: drop it by the curve's sag under its half-width so its ends touch down
@@ -359,7 +362,7 @@ const CampMixin = {
   campSay(text, secs) { this.campBubble.setText(text).setVisible(true); this.campBubbleT = secs || 3.5; },
   campNear() {
     const P = this.pl; let best = null, bd = 1e9;
-    for (const s of this.campSt) { const d = Math.abs(angDiff(P.theta, s.theta)) * R; if (d < bd) { bd = d; best = s; } }
+    for (const s of this.campSt) { if (s.id === 'cave' && !this.cvFound) continue; const d = Math.abs(angDiff(P.theta, s.theta)) * R; if (d < bd) { bd = d; best = s; } }
     return bd < 46 && P.h < 60 ? best : null;
   },
   campUpdate(dt, inp) {
@@ -367,6 +370,7 @@ const CampMixin = {
     const near = this.campTarget();
     if (inp.down && !this.campDownHeld && near && this.campCool <= 0) this.campUse(near);
     this.campFolkUpdate(dt);
+    this.campCaveTick(dt);
     this.ballUpdate(dt);
     this.campDownHeld = !!inp.down;
     // the fire: sparks and smoke
@@ -424,7 +428,7 @@ const CampMixin = {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
     if (st.folk) { this.campTalk(st); return; }
     Sound.sfx('pickup');
-    ({ train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket(), rush: () => this.campRush() })[st.id]();
+    ({ train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket(), rush: () => this.campRush(), cave: () => this.campCaveGo() })[st.id]();
   },
   campLeave() { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('menu')); },
   campBoard() {
@@ -519,7 +523,8 @@ const CampMixin = {
   // ---- the run's summary card, when he lands back at camp
   campShowCard() {
     const S = this.campSum; if (!S || this.campCard) return;
-    if (S.rush) { this.rushCard(S); return; }                              // (v3.36) back from the Boss Rush
+    if (S.rush) { this.rushCard(S); return; }
+    if (S.cavern) { this.cavernCard(S); this.campSum = null; return; }                              // (v3.36) back from the Boss Rush
     this.state = 'campmenu';
     const W = this.scale.width, H = this.scale.height, f = RUN_UI.f, c = this.add.container(0, 0).setDepth(60);
     const small = H < 430, w = Math.min(W - 30, 470), x = (W - w) / 2, y = small ? 14 : 40;

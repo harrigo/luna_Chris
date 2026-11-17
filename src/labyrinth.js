@@ -166,9 +166,10 @@ const LabMixin = {
     }
     // loot in the dead ends: it bursts out when you get close (so it doesn't time out before you arrive)
     for (const L of C.loot) {
-      if (L.taken || L.ring !== ring || Math.abs(angDiff(P.theta, L.theta)) * R > 150) continue;
+      if (L.taken || L.ring !== ring || Math.abs(angDiff(P.theta, L.theta)) * R > (L.kind === 'gold' ? 36 : 150)) continue;
       L.taken = true;
       if (L.kind === 'stash') { this.spillCheddar(L.theta, 26, L.val); Sound.sfx('power'); this.banner('A RAT\'S HOARD! +' + L.val + ' CHEDDAR'); }
+      else if (L.kind === 'gold' && this.cavernLoot) this.cavernLoot(L);
       else if (L.kind === 'heal') { this.pickups.push({ kind: 'heal', theta: L.theta, h: 40, vh: 200, life: 30, spr: this.add.image(0, 0, 'wedge').setDepth(6) }); Sound.sfx('shine'); }
     }
     // the pump's beat: surges of molten cheese out of the outlet in this chamber
@@ -266,7 +267,7 @@ const LabMixin = {
     if (this.labRoomsBuild) this.labRoomsBuild(to); else if (to === 0) for (const q of this.labFurn || []) q.im.setVisible(false);
     if (from === 0 && to === 1 && !C.musicOn) { C.musicOn = true; Sound.music(this.def.music); }
     Sound.sfx(to > from ? 'whoosh' : 'jump');
-    if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(CV.rings[to].core ? 'SHE\'S RIGHT BELOW US...\nFIND THE HATCH TO THE CORE!' : (to === 1 ? 'IT\'S DARK DOWN HERE...\nFOLLOW THE PIPES' : 'DEEPER...')); }
+    if (to > from && !C['seen' + to]) { C['seen' + to] = true; this.banner(this.def.cavern ? (to === CV.rings.length - 1 ? 'THE TREASURE VAULT!\nFIND THE CHEST' : (to === 1 ? 'IT\'S DARK DOWN HERE...' : 'DEEPER...')) : CV.rings[to].core ? 'SHE\'S RIGHT BELOW US...\nFIND THE HATCH TO THE CORE!' : (to === 1 ? 'IT\'S DARK DOWN HERE...\nFOLLOW THE PIPES' : 'DEEPER...')); }
   },
   labSpawn(ri) {
     const RG = this.caveRing(ri), C = this.cave;
@@ -498,7 +499,7 @@ const LabMixin = {
     // milk pipes from the rings above plunging into it, a sign; it shudders, and something below MOOS
     if (this.caveBessie) this.caveBessie.setVisible(false);
     const core = CV.rings[CV.rings.length - 1], bth = this.caveAbs(core.bessie);
-    if (ring === CV.rings.length - 1 && inView(bth)) {
+    if (ring === CV.rings.length - 1 && inView(bth) && !this.def.cavern) {
       const sh = Math.sin(t * 30) * (Math.sin(t * 0.9) > 0.6 ? 1.5 : 0), a = pol(wrap(bth - 30 / R + sh / R), core.R + 2), b = pol(wrap(bth + 30 / R + sh / R), core.R + 2);
       for (let k = 0; k < 3; k++) fg.fillStyle(0xf4f8ff, 0.1 + 0.05 * Math.sin(t * 3 + k)).fillCircle((a.x + b.x) / 2, (a.y + b.y) / 2, (40 + k * 18) * z);
       fg.lineStyle(10 * z, 0x1a1020, 1).lineBetween(a.x, a.y, b.x, b.y); fg.lineStyle(6 * z, 0x8a929e, 1).lineBetween(a.x, a.y, b.x, b.y);
@@ -568,7 +569,8 @@ const LabMixin = {
   drawCaveHud() {
     const C = this.cave; if (!C || !this.caveG) return;
     this.labDark();
-    if (C.ring > 0) {
+    if (C.ring > 0 && this.def.cavern) this.caveTxt.setVisible(true).setText('GOLDEN CRUMBS FOUND: ' + (this.cvCrumbs || 0)).setPosition(this.W / 2, 84);   // (v3.41) the cavern: no flood, just your haul
+    else if (C.ring > 0) {
       const bw = 170, bx = this.W / 2 - bw / 2, by = 42, hg = this.hudG, t = this.t;
       hg.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, 12); hg.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, 10); hg.fillStyle(0x0c0a24, 1).fillRect(bx, by, bw, 8);
       hg.fillStyle(C.fill > 0.75 && Math.floor(t * 6) % 2 ? 0xff5a3a : 0xffb52a, 1).fillRect(bx, by, bw * C.fill, 8);

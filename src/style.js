@@ -31,7 +31,7 @@ const PARRY = { win: 0.1, winCT: 0.18, fwd: 22, reach: 18 };              // (v3
 const StyleMixin = {
   styleInit() {
     this.styleP = 0; this.styleRank = 0; this.styleRecent = []; this.styleIdle = 0; this.styleSWave = -1; Style.mult = 1;
-    Style.noEarn = !!this.training;
+    Style.noEarn = !!this.training || !!(this.def && this.def.cavern);   // (the cavern pays in golden crumbs, not cheddar)
     this.events.once('shutdown', () => { Style.mult = 1; Style.noEarn = false; });
     const f = { fontFamily: PIXEL, stroke: '#1a1020' };
     this.styleT = this.add.text(0, 0, 'D', Object.assign({ fontSize: '26px', color: '#9aa4c8', strokeThickness: 6 }, f)).setOrigin(0.5).setDepth(20).setScrollFactor(0);

@@ -32,7 +32,7 @@ function rushInstall(L) {
   const init = P.init; P.init = function (data) {
     init.call(this, data);
     this.rushTxt = null; this.rushGoing = false;                      // (a fresh level: the old HUD text is gone)
-    this.rushOn = Rush.on && !(data && (data.camp || data.training));
+    this.rushOn = Rush.on && !(data && (data.camp || data.training || data.cavern));
     if (this.rushOn) this.waves = [{ name: 'BOSS ' + (Rush.idx + 1) + ' OF ' + RUSH_ORDER.length, spawns: [{ type: 'boss', t: 0.8 }] }];
   };
   const update = P.update; P.update = function (time, delta) {
