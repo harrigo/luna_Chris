@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.49';
+const BUILD = 'v3.50';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4432,7 +4432,7 @@ class Level1 extends Phaser.Scene {
         for (const sd of [-1, 1]) { const c = this.makeEnemy('minigerm', wrap(e.theta + sd * 0.03), sd); c.h = e.h + e.ch * 0.5; c.vh = 260; this.enemies.push(c); }
       }
       const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
-      const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId));
+      const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId) && !BUFFS[k].off);   // (v3.50: 'off' = retired)
       const fresh = pool.filter(k => !(this.buffsSeen || []).includes(k));
       const firstOfWave = midSize && this.waveBuff !== this.waveIdx; if (firstOfWave) { this.waveBuff = this.waveIdx; this.waveBuffRoll = Math.random() < 0.5; }   // (v3.02) the wave's power-up: only half the time
       if (e.big && !this.gotPower) {                     // the first big enemy always drops the Parmesan Power-Up

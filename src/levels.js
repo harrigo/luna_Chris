@@ -1928,7 +1928,7 @@ const BUFFS = {
   slowmo:  { name: 'SLOW-MO BRIE!',     tex: 'pu_slowmo', t: 5,  from: 1, col: 0xb8a8ff },   // (v3.24: from L1 - it goes in your pocket as CHEESE TIME)
   giant:   { name: 'GOUDA GIGANTISM!',  tex: 'pu_giant',  t: 6,  from: 2, col: 0xff3a3a },
   moo:     { name: 'MOO BOMB!',         tex: 'pu_moo',    t: 0,  from: 4, col: 0xffffff },
-  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 7, from: 3, col: 0xff9db8 }
+  disguise:{ name: 'RAT DISGUISE!',     tex: 'pu_ears',   t: 7, from: 3, col: 0xff9db8, off: true }   // (v3.50: retired - never drops)
 };
 function makePowerupTextures(scene) {
   if (madeTex(scene, 'pu_sauce')) return;

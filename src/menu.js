@@ -198,7 +198,18 @@ class MenuScene extends Phaser.Scene {
       { label: 'RUN MODE', sub: crumbs ? crumbs + ' CRUMBS' : 'ONE LIFE. GO!', head: 'ROGUELITE', icon: 'cr_rocket', col: 0xd8402a, act: () => this.startRun() },
       { label: 'TRAINING', sub: 'LEARN THE MOVES', head: 'PRACTICE', icon: 'cr_dummy', col: 0x2a9a4a, act: () => { if (this.going) return; this.going = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(230, () => this.scene.start('level1', { training: { from: 'menu' } })); } }
     ];
-    this.pillDefs = (hasSave() ? [{ label: 'NEW GAME', act: () => sub(confirmNew(), 'NEW GAME?') }] : []).concat([
+    // (v3.50) NEW GAME asks which to start again: the campaign, or Run Mode (they're kept separately)
+    const confirmRun = () => [
+      { info: true, text: 'THIS WIPES RUN MODE:', color: '#ff7a5a' },
+      { info: true, text: 'GOLDEN CRUMBS, LARDER, STRENGTHS,', color: '#ffffff' },
+      { info: true, text: 'CAMP UNLOCKS, BEST RUNS, BOSS RUSH', color: '#ffffff' },
+      { label: () => 'YES, RESET RUN MODE', act: () => this.resetRuns() },
+      { label: () => 'NO, GO BACK', act: toMain }];
+    const which = () => [
+      { label: () => 'NEW CAMPAIGN', act: () => sub(confirmNew(), 'NEW GAME?') },
+      { label: () => 'RESET RUN MODE', act: () => sub(confirmRun(), 'RESET RUN MODE?') },
+      { label: () => 'BACK', act: toMain }];
+    this.pillDefs = [{ label: 'NEW GAME', act: () => sub(which(), 'START AGAIN') }].concat([
       { label: 'CONTROLS', act: () => sub(controls(), 'CONTROLS') },
       { label: 'OPTIONS', act: () => sub(opts(), 'OPTIONS') }
     ]).concat(Progress.best >= CFG.finalLevel ? [{ label: 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);
@@ -297,9 +308,17 @@ class MenuScene extends Phaser.Scene {
   }
   newGame() {                                       // wipe the save (settings, volume and cheat mode stay) and the run in hand, then off to the map
     if (this.going) return;
-    try { for (const k of Object.keys(localStorage)) if (/^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins|weapon|testmode)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+    try { for (const k of Object.keys(localStorage)) if (/^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins|megaspins|weapon|testmode)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
     this.registry.set('lives', CFG.startLives); this.registry.set('gunLv', {}); if (typeof Shop !== 'undefined') Shop.reset(this.registry);
     Sound.sfx('power'); this.go();
+  }
+  // (v3.50) wipe Run Mode only: crumbs, larder, kits, strengths, stats and bests, camp unlocks, the cavern, the Boss Rush, who's said what
+  resetRuns() {
+    if (this.going) return;
+    try { for (const k of Object.keys(localStorage)) if (/^lc_(crumbs|larder|kit|run_|rush_|camp_seen|cave_|toys|talk)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+    if (typeof Run !== 'undefined') Run.on = false;
+    Sound.sfx('power'); this.cameras.main.flash(200, 255, 220, 160);
+    this.scene.restart();
   }
   startRun() {                                      // (v3.05) a roguelite run (run.js): the campaign is put aside until it ends
     if (this.going) return; this.going = true;

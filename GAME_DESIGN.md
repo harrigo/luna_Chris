@@ -2148,3 +2148,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   | LIFE x2 | 7 | Two lives (cheddar for any over the cap) |
 
 - POWER and 2X carry to the next level via the registry (startBuff, cheddarX2) and are used up when it starts.
+
+## v3.50: reset Run Mode; Rat Disguise retired
+- NEW GAME (main menu) now asks which to start again: NEW CAMPAIGN (the old wipe, now also clearing Mega Spins) or RESET RUN MODE.
+  - Reset Run Mode clears golden crumbs, larder, kits, strengths, run stats and bests, camp unlocks and announcements, the cavern, the Boss Rush record and who's said what.
+  - The campaign is untouched. Guns are shared with the campaign, so they stay.
+  - The NEW GAME button now always shows.
+- RAT DISGUISE power-up retired: BUFFS.disguise has off: true, so it never drops. The code stays in case it's ever wanted back.
