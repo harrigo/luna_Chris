@@ -11,12 +11,12 @@ const SHOP = {
   armCost: [0, 160, 280, 430, 650],        // forging / upgrading TO this mark
   bootCost: [0, 150, 280, 430, 600, 800],   // (v3.26: 5 levels - the old Jet Tank folded in)
   bootMax: 5,
-  chipCost: [0, 295, 515, 810],            // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%)
+  chipCost: [0, 445, 775, 1215],           // chip 1 = that gun restarts at level 2, ... chip 3 = level 4  (v2.55: +50%; v3.47: +50% again)
   sellK: 0.5,                              // (v3.31) SELLING: anything bought goes back for half what that level cost
   magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
-const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['GUN +1', 10, 0x2a7a72], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
+const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['SLOW-MO', 10, 0x5a3aa0], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
 const Shop = {
   get(reg) { const s = reg.get('shop');
     if (s && s.tank > 0) { s.boots = Math.min(SHOP.bootMax, (s.boots || 0) + s.tank); s.tank = 0; }   // (v3.26) old Jet Tank levels become Moon Boots levels
@@ -296,11 +296,12 @@ class ShopScene extends Phaser.Scene {
     this.events.once('shutdown', () => this.scale.off('resize', this.build, this));
     const kb = this.input.keyboard;
     if (kb) {
-      kb.on('keydown-UP', () => this.move(-1)); kb.on('keydown-DOWN', () => this.move(1)); kb.on('keydown-W', () => this.move(-1)); kb.on('keydown-S', () => this.move(1));
+      kb.on('keydown-UP', () => this.move(0, -1)); kb.on('keydown-DOWN', () => this.move(0, 1)); kb.on('keydown-W', () => this.move(0, -1)); kb.on('keydown-S', () => this.move(0, 1));
+      kb.on('keydown-LEFT', () => this.move(-1, 0)); kb.on('keydown-RIGHT', () => this.move(1, 0)); kb.on('keydown-A', () => this.move(-1, 0)); kb.on('keydown-D', () => this.move(1, 0));
       kb.on('keydown-ENTER', () => this.buy(this.sel)); kb.on('keydown-SPACE', () => this.buy(this.sel)); kb.on('keydown-X', () => this.buy(this.sel));
       kb.on('keydown-ESC', () => { if (!this.spin) this.back(); }); kb.on('keydown-Q', () => this.toggleSell());
     }
-    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'lb') { this.toggleSell(); return; } if (b === 'up' || b === 'down') this.move(b === 'up' ? -1 : 1); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
+    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'lb') { this.toggleSell(); return; } if (b === 'up' || b === 'down') this.move(0, b === 'up' ? -1 : 1); else if (b === 'left' || b === 'right') this.move(b === 'left' ? -1 : 1, 0); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
     this.events.once('shutdown', padOff);
     this.spin = null; this.spinG = this.add.graphics().setDepth(10); this.moodG = this.add.graphics().setDepth(11.5); this.spinT = []; this.spinI = []; this.spinB = [];
     if (kb) { kb.on('keydown-L', () => this.startSpin()); kb.on('keydown-SPACE', () => { if (this.spin) this.pullLever(); }); kb.on('keydown-ESC', () => { if (this.spin) this.endSpin(); }); kb.on('keydown-ENTER', () => { if (this.spin) this.endSpin(); }); ['ONE', 'TWO', 'THREE'].forEach((k, i) => kb.on('keydown-' + k, () => { if (this.spin && this.spin.pick && this.spin.pick[i]) this.pickGun(this.spin.pick[i]); })); }
@@ -398,10 +399,9 @@ class ShopScene extends Phaser.Scene {
     if (k === 'PLATE') {
       if (s.armHp > 0 && s.armHp < SHOP.armHp[s.armMk]) { s.armHp++; msg = 'AN ARMOUR PLATE, WELDED ON!'; }
       else { s.coins += 50; msg = 'A SPARE PLATE. NO USE TO YOU: 50 CHEDDAR FOR SCRAP.'; }
-    } else if (k === 'GUN +1') {                         // you choose which gun
-      const can = WEAPONS.filter(w => this.gunLvOf(w) < 4 && weaponUnlocked(w, Progress.best + 1));
-      if (can.length) { this.spin.pick = can; Sound.sfx('power'); return 'GUN +1! CHOOSE YOUR GUN'; }
-      s.coins += 80; msg = 'GUNS ALL MAXED: 80 CHEDDAR INSTEAD.';
+    } else if (k === 'SLOW-MO') {                        // (v3.47: was GUN +1 - gun levels were coming far too easily)
+      if ((s.slowmo || 0) < CT.max) { s.slowmo = (s.slowmo || 0) + 1; msg = 'A SLOW-MO CHEESE!'; }
+      else { s.coins += 75; msg = 'POCKET FULL OF SLOW-MO: 75 CHEDDAR INSTEAD.'; }
     } else if (k === 'LIFE') {
       if ((reg.get('lives') || 0) < CFG.maxLives) { reg.set('lives', (reg.get('lives') || 0) + 1); msg = 'JACKPOT! AN EXTRA LIFE!'; }
       else { s.coins += 150; msg = 'LIVES FULL: 150 CHEDDAR INSTEAD.'; }
@@ -476,11 +476,11 @@ class ShopScene extends Phaser.Scene {
       g.lineStyle(3, 0x0a0b10, 1).lineBetween(cx, cy, cx + Math.cos(a) * R0, cy + Math.sin(a) * R0);
       g.fillStyle(0x9aa2ae, 1).fillCircle(cx + Math.cos(a) * (R0 - 5), cy + Math.sin(a) * (R0 - 5), 2.5); g.fillStyle(0x30343e, 1).fillCircle(cx + Math.cos(a) * (R0 - 5) + 1, cy + Math.sin(a) * (R0 - 5) + 1, 1.2);   // peg
       let im = this.spinI[i]; if (!im) im = this.spinI[i] = this.add.image(0, 0, 'wi_30').setDepth(10.1);
-      const isNum = /^\d+$/.test(key), tex = isNum ? (key === '500' ? 'wi_500' : key === '60' ? 'wi_60' : 'wi_30') : key === 'RAT!' ? 'wi_rat' : key === 'PLATE' ? 'wi_plate' : key === 'GUN +1' ? 'wi_gun' : 'wi_life';
+      const isNum = /^\d+$/.test(key), tex = isNum ? (key === '500' ? 'wi_500' : key === '60' ? 'wi_60' : 'wi_30') : key === 'RAT!' ? 'wi_rat' : key === 'PLATE' ? 'wi_plate' : key === 'SLOW-MO' ? 'pu_slowmo' : 'wi_life';
       const isc = Math.max(1, R0 / 76) * (win ? 1.15 : 1);
       im.setTexture(tex).setPosition(cx + Math.cos(am) * R0 * 0.64, cy + Math.sin(am) * R0 * 0.64).setRotation(am + Math.PI / 2).setScale(isc).setVisible(true).setAlpha(S.done && !win ? 0.55 : 1);
       let tx = this.spinT[i]; if (!tx) tx = this.spinT[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#f4e6c8', stroke: '#0a0b10', strokeThickness: 4 }).setOrigin(0.5).setDepth(10.15);
-      tx.setText(isNum ? key : key === 'GUN +1' ? '+1' : key === 'LIFE' ? '1-UP' : '').setPosition(cx + Math.cos(am) * R0 * 0.35, cy + Math.sin(am) * R0 * 0.35).setRotation(am + Math.PI / 2).setVisible(true);
+      tx.setText(isNum ? key : key === 'SLOW-MO' ? 'SLOW' : key === 'LIFE' ? '1-UP' : '').setPosition(cx + Math.cos(am) * R0 * 0.35, cy + Math.sin(am) * R0 * 0.35).setRotation(am + Math.PI / 2).setVisible(true);
     }
     // hub: a big hex bolt through a gold cheese wheel
     g.fillStyle(0x0a0b10, 1).fillCircle(cx, cy, R0 * 0.21); g.fillStyle(0xc8902a, 1).fillCircle(cx, cy, R0 * 0.19); g.fillStyle(0xe8b850, 1).fillCircle(cx - 2, cy - 2, R0 * 0.12);
@@ -584,7 +584,15 @@ class ShopScene extends Phaser.Scene {
     }
     this.rig.setFace(mood === 'joy' ? 'c_head_joy' : (mood === 'sad' || mood === 'meh') ? 'c_head_sad' : 'c_head_hope');
   }
-  move(d) { const n = (this.rows || []).length; if (n) { this.sel = ((this.sel + d) % n + n) % n; Sound.sfx('jump'); } }
+  // (v3.47) the shelves are a grid: left/right along a shelf, up/down between shelves (it used to be one long list)
+  move(dx, dy) {
+    const n = (this.rows || []).length; if (!n) return;
+    const c = this.cols || n, r = Math.floor(this.sel / c), k = this.sel % c, rows = Math.ceil(n / c);
+    let i = this.sel;
+    if (dx) { const rowN = Math.min(c, n - r * c); i = r * c + ((k + dx) % rowN + rowN) % rowN; }
+    if (dy) { const r2 = ((r + dy) % rows + rows) % rows; i = Math.min(n - 1, r2 * c + k); }
+    if (i !== this.sel) { this.sel = i; Sound.sfx('jump'); }
+  }
   say(m) { this.msg = m; this.msgT = 0; if (this.msgText) this.msgText.setText(m); }
   buy(i) {
     if (this.going || this.spin) return;
@@ -637,7 +645,7 @@ class ShopScene extends Phaser.Scene {
       this.spinBox = { x: bx, y: by2, w: bw2, h: bh2 }; }
     // (v2.53) the shelves: a grid of tiles, each a big picture, its name, level pips and a price tag
     const items = this.items(), x0 = lw + 22, rw = W - x0 - 12, backH = 24, n = items.length, gap = 6;
-    const cols = Math.min(n, Math.max(3, Math.floor((rw + gap) / 104))), rowsN = Math.ceil(n / cols);
+    const cols = Math.min(n, Math.max(3, Math.floor((rw + gap) / 104))), rowsN = Math.ceil(n / cols); this.cols = cols;
     const tw = (rw - gap * (cols - 1)) / cols, th = Math.min(150, (bot - top - backH - 8 - gap * (rowsN - 1)) / rowsN);
     this.rows = []; this.tileIcons = [];
     items.forEach((it, i) => {

@@ -168,7 +168,7 @@ const LabMixin = {
     for (const L of C.loot) {
       if (L.kind === 'chest' || L.taken || L.ring !== ring || Math.abs(angDiff(P.theta, L.theta)) * R > (L.kind === 'gold' ? 36 : 150)) continue;   // (chests: cavern.js opens them)
       L.taken = true;
-      if (L.kind === 'stash') { this.spillCheddar(L.theta, 26, L.val); Sound.sfx('power'); this.banner('A RAT\'S HOARD! +' + L.val + ' CHEDDAR'); }
+      if (L.kind === 'stash') { this.spillCheddar(L.theta, 26, L.val); Sound.sfx('power'); this.banner('A RAT\'S HOARD! +' + Math.max(1, Math.round(L.val * CHEDDAR_K)) + ' CHEDDAR'); }
       else if (L.kind === 'gold' && this.cavernLoot) this.cavernLoot(L);
       else if (L.kind === 'heal') { this.pickups.push({ kind: 'heal', theta: L.theta, h: 40, vh: 200, life: 30, spr: this.add.image(0, 0, 'wedge').setDepth(6) }); Sound.sfx('shine'); }
     }

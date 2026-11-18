@@ -5,7 +5,8 @@
 // The "camera" rotates so the player is always at the top of the screen, which is
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
-const BUILD = 'v3.46';
+const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
+const BUILD = 'v3.47';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4687,6 +4688,7 @@ class Level1 extends Phaser.Scene {
 
   // an enemy's cheddar bursts out of it as coins: grab them within 10 seconds or they're gone (they blink for the last 3)
   spillCheddar(theta, h, total) {
+    total = Math.max(1, Math.round(total * CHEDDAR_K));                    // (v3.47) 20% less cheddar everywhere: levelling up was too quick
     const n = Math.min(total, total >= 40 ? 10 : 5);
     for (let k = 0; k < n; k++) {
       const val = Math.floor(total / n) + (k < total % n ? 1 : 0), im = this.add.image(0, 0, 'cheddar').setDepth(6.1);

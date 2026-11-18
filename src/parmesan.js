@@ -301,7 +301,7 @@ const ParmMixin = {
     for (const e of S.taxmen) if (!e.refunded && e.hp <= 0) {
       e.refunded = true;
       if (e.escaped) continue;
-      if (e.loot > 0) { this.spillCheddar(e.theta, e.h + 30, e.loot * 2); this.banner('TAX REFUND!\n+' + e.loot * 2 + ' CHEDDAR'); Sound.sfx('power'); }
+      if (e.loot > 0) { this.spillCheddar(e.theta, e.h + 30, e.loot * 2); this.banner('TAX REFUND!\n+' + Math.max(1, Math.round(e.loot * 2 * CHEDDAR_K)) + ' CHEDDAR'); Sound.sfx('power'); }
     }
     S.taxmen = S.taxmen.filter(e => !e.refunded);
     S.sparkle += dt;

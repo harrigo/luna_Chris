@@ -2121,3 +2121,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - Shop and run screens: top-left.
   - Campaign map: just above the info panel on the left, clear of the space shop ship. Its small cheddar line in the stats panel is gone.
 - The run screen's test-mode +2000 CHEDDAR button moved to the top right to make room. In-level HUD unchanged.
+
+## v3.47: slower levelling, pricier chips, a proper shop grid
+- 20% less cheddar from every drop: CHEDDAR_K = 0.8, applied in spillCheddar, so it covers enemies, bosses, hoards, golden wheels and tax refunds. The hoard and refund banners show the real amount.
+- Gun START CHIPS cost 50% more: 445 / 775 / 1215 (were 295 / 515 / 810).
+- The Lucky Wheel's GUN +1 wedge is gone, replaced by SLOW-MO (a Slow-Mo cheese, or 75 cheddar if your pocket's full).
+- Shop navigation is a grid: left/right moves along a shelf, up/down between shelves (keys, WASD and d-pad). It used to be a single list where up/down stepped sideways.
