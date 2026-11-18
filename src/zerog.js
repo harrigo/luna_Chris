@@ -125,11 +125,11 @@ class ZeroGScene extends Phaser.Scene {
     // three rooms share this scene: after level 3, after level 6, and on the warp route (each its own layout and colours)
     this.room = (data && data.room) || this.room || 'zerog';
     const V = this.V = ({
-      zerog: { title: 'ZERO-G RECOIL ROOM', time: 30, bg: '#05061a', music: 'level6', zap: [[430, 450, 130, 0.9]], mines: 3,
+      zerog: { title: 'ZERO-G RECOIL ROOM', time: 40, bg: '#05061a', music: 'level6', zap: [[430, 450, 130, 0.9]], mines: 3,
         bumpers: [[300, 260, 46], [760, 420, 62, 0, 0], [1200, 250, 46], [420, 680, 40, 90, 0.5], [1120, 660, 50, 70, 0.7], [760, 130, 30], [760, 780, 30]] },
-      zerog2: { title: 'ZERO-G ROOM II', time: 28, bg: '#0a0516', music: 'level9', zap: [[420, 450, 130, -1.1], [1100, 450, 130, 1.1]], mines: 4,
+      zerog2: { title: 'ZERO-G ROOM II', time: 38, bg: '#0a0516', music: 'level9', zap: [[420, 450, 130, -1.1], [1100, 450, 130, 1.1]], mines: 4,
         bumpers: [[250, 450, 50, 120, 0.6], [560, 220, 40], [560, 680, 40], [960, 220, 40], [960, 680, 40], [1260, 450, 50, 120, 0.7], [760, 450, 36, 160, 0.9]] },
-      zerog3: { title: 'WARP BONUS ROOM', time: 25, bg: '#160608', music: 'level55', zap: [[560, 450, 120, 0.9], [960, 450, 120, -0.9]], mines: 5, wind: true,
+      zerog3: { title: 'WARP BONUS ROOM', time: 35, bg: '#160608', music: 'level55', zap: [[560, 450, 120, 0.9], [960, 450, 120, -0.9]], mines: 5, wind: true,
         bumpers: [[380, 300, 44, 110, 0.8], [1120, 300, 44, 110, 0.9], [380, 640, 44, 110, 0.7], [1120, 640, 44, 110, 0.85], [760, 160, 30, 200, 1.1], [760, 760, 30, 200, 1.2]] }
     })[this.room] || {};
     const RW = this.RW = 1500, RH = this.RH = 900;

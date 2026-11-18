@@ -2127,3 +2127,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Gun START CHIPS cost 50% more: 445 / 775 / 1215 (were 295 / 515 / 810).
 - The Lucky Wheel's GUN +1 wedge is gone, replaced by SLOW-MO (a Slow-Mo cheese, or 75 cheddar if your pocket's full).
 - Shop navigation is a grid: left/right moves along a shelf, up/down between shelves (keys, WASD and d-pad). It used to be a single list where up/down stepped sideways.
+
+## v3.48: more time in the Zero-G rooms
+- +10s on every Zero-G bonus room: Zero-G Recoil Room 40s (was 30), Zero-G Room II 38s (28), Warp Bonus Room 35s (25). Campaign and run mode share the definitions, so both get it (run mode always uses the first room).
