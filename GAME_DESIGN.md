@@ -2130,3 +2130,21 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.48: more time in the Zero-G rooms
 - +10s on every Zero-G bonus room: Zero-G Recoil Room 40s (was 30), Zero-G Room II 38s (28), Warp Bonus Room 35s (25). Campaign and run mode share the definitions, so both get it (run mode always uses the first room).
+
+## v3.49: the MEGA WHEEL
+- Every GOLDEN SET (all 3 golden wheels on a level) is one MEGA SPIN, tracked separately from normal spins (lc_megaspins).
+- The MEGA WHEEL button sits under the Lucky Wheel in Fridge-o-tron's shop once you've ever finished a golden set. M key / pad RB / tap. Not on runs, same as the Lucky Wheel.
+- Same wheel and lever, gold paint, NO RAT:
+
+  | Prize | Weight | What you get |
+  |---|---|---|
+  | 120 (x2 wedges) | 20 each | 120 cheddar |
+  | 250 | 14 | 250 cheddar |
+  | 1000 | 5 | 1000 cheddar |
+  | PLATE+ | 12 | Full armour repair (200 cheddar if it's fine) |
+  | SLOW x3 | 12 | Fills your Slow-Mo pocket |
+  | POWER | 16 | Next level starts with a random power-up, ~3s in: rocket boots, hot sauce, fondue shield, gouda gigantism, jalapeno or magnet fork |
+  | 2X | 12 | Double cheddar for the whole next level |
+  | LIFE x2 | 7 | Two lives (cheddar for any over the cap) |
+
+- POWER and 2X carry to the next level via the registry (startBuff, cheddarX2) and are used up when it starts.

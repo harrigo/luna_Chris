@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.48';
+const BUILD = 'v3.49';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -854,6 +854,9 @@ class Level1 extends Phaser.Scene {
     try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
     this.placeWheels(); this.placeOneUp(); this.ctPlace();
     this.state = 'play';
+    // (v3.48) MEGA WHEEL prizes that carry into the next level: a power-up to start with, and double cheddar
+    this.cheddarX2 = !!this.registry.get('cheddarX2') && !this.def.cavern; if (this.cheddarX2) { this.registry.set('cheddarX2', false); this.time.delayedCall(1800, () => this.banner('DOUBLE CHEDDAR\nALL LEVEL!')); }
+    { const sb = this.registry.get('startBuff'); if (sb && BUFFS[sb] && !this.def.cavern) { this.registry.set('startBuff', null); this.time.delayedCall(3200, () => { if (this.state === 'play') this.startBuff(sb); }); } }
     Sound.init();
     this.waveText.setText('LEVEL ' + this.levelId);
     if (this.warped) { this.warped = false; Sound.music('stinger', this.def.music); this.nextWave(); this.banner('WARP ZONE!\n' + this.def.name.toUpperCase()); this.cameras.main.fadeIn(600, 255, 255, 255); return; }
@@ -4688,7 +4691,7 @@ class Level1 extends Phaser.Scene {
 
   // an enemy's cheddar bursts out of it as coins: grab them within 10 seconds or they're gone (they blink for the last 3)
   spillCheddar(theta, h, total) {
-    total = Math.max(1, Math.round(total * CHEDDAR_K));                    // (v3.47) 20% less cheddar everywhere: levelling up was too quick
+    total = Math.max(1, Math.round(total * CHEDDAR_K * (this.cheddarX2 ? 2 : 1)));   // (v3.48: a MEGA WHEEL '2X' doubles it for a level)                    // (v3.47) 20% less cheddar everywhere: levelling up was too quick
     const n = Math.min(total, total >= 40 ? 10 : 5);
     for (let k = 0; k < n; k++) {
       const val = Math.floor(total / n) + (k < total % n ? 1 : 0), im = this.add.image(0, 0, 'cheddar').setDepth(6.1);

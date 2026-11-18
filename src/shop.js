@@ -16,7 +16,12 @@ const SHOP = {
   magnetCost: 485, setBonus: 75, lifeCost: 600, patchCost: 25, heartCost: [0, 380, 650]   // (v2.24: everything roughly 2.5x dearer; v2.70: 10% off; v3.02: 20% dearer)
 };
 // THE LUCKY WHEEL: each golden cheese wheel found is ONE spin, ever (spins used are remembered on the device). [label, weight, colour]
-const SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['SLOW-MO', 10, 0x5a3aa0], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];   // (v2.53: weathered paint, not sweet-shop colours)
+// (v3.48) THE MEGA WHEEL: every GOLDEN SET (all 3 golden wheels on a level) is one MEGA SPIN. Gold paint, no rat, bigger
+// cheddar, and prizes you can't get anywhere else: a power-up to start your next level with, double cheddar for a level,
+// a full armour repair, a pocketful of Slow-Mo, two lives.
+const SPIN_MEGA = [['120', 20, 0xc89a2a], ['PLATE+', 12, 0x6a7488], ['250', 14, 0xb8702a], ['POWER', 16, 0xa02a5a], ['120', 20, 0xc89a2a], ['SLOW x3', 12, 0x5a3aa0], ['2X', 12, 0x2a8a5a], ['1000', 5, 0xd8b030], ['LIFE x2', 7, 0x4a8a36]];
+let SPIN = [['30', 22, 0xb8862a], ['PLATE', 14, 0x4e5664], ['60', 16, 0xa4532a], ['RAT!', 10, 0x241e2a], ['30', 22, 0xb8862a], ['SLOW-MO', 10, 0x5a3aa0], ['500', 3, 0x8a2a36], ['LIFE', 2, 0x4a7a36]];
+const SPIN_NORMAL = SPIN;   // (v2.53: weathered paint, not sweet-shop colours)
 const Shop = {
   get(reg) { const s = reg.get('shop');
     if (s && s.tank > 0) { s.boots = Math.min(SHOP.bootMax, (s.boots || 0) + s.tank); s.tank = 0; }   // (v3.26) old Jet Tank levels become Moon Boots levels
@@ -27,6 +32,9 @@ const Shop = {
   earn(reg, n) { const s = this.get(reg); s.coins += n; this.set(reg, s); },
   spinsUsed() { try { return +(localStorage.getItem('lc_spins') || 0); } catch (e) { return 0; } },
   useSpin() { try { localStorage.setItem('lc_spins', String(this.spinsUsed() + 1)); } catch (e) { /* ignore */ } },
+  megaUsed() { try { return +(localStorage.getItem('lc_megaspins') || 0); } catch (e) { return 0; } },
+  useMega() { try { localStorage.setItem('lc_megaspins', String(this.megaUsed() + 1)); } catch (e) { /* ignore */ } },
+  megaLeft() { return Math.max(0, this.goldenSets() - this.megaUsed()); },
   spinsLeft() { let n = 0; for (let i = 1; i <= 9; i++) n += Progress.wheelCount(i); return Math.max(0, n - this.spinsUsed()); },
   goldenSets() { let n = 0; for (let i = 1; i <= 9; i++) if (Progress.wheelCount(i) >= 3) n++; return n; },   // levels with all 3 wheels found
   chip(reg, id) { return (this.get(reg).chips || {})[id] || 0; },
@@ -301,10 +309,10 @@ class ShopScene extends Phaser.Scene {
       kb.on('keydown-ENTER', () => this.buy(this.sel)); kb.on('keydown-SPACE', () => this.buy(this.sel)); kb.on('keydown-X', () => this.buy(this.sel));
       kb.on('keydown-ESC', () => { if (!this.spin) this.back(); }); kb.on('keydown-Q', () => this.toggleSell());
     }
-    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'lb') { this.toggleSell(); return; } if (b === 'up' || b === 'down') this.move(0, b === 'up' ? -1 : 1); else if (b === 'left' || b === 'right') this.move(b === 'left' ? -1 : 1, 0); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
+    const padOff = Pad.on(b => { if (this.spin) { const S = this.spin; if (S.pick) { const i = { x: 0, a: 1, b: 2, left: 0, down: 1, right: 2 }[b]; if (S.pick[i]) this.pickGun(S.pick[i]); else if (b === 'a') this.pickGun(S.pick[0]); } else if (b === 'y' || b === 'x' || b === 'a') this.pullLever(); else if (b === 'b' || b === 'back' || b === 'start') this.endSpin(); return; } if (b === 'y' || b === 'x') { this.startSpin(); return; } if (b === 'rb') { this.startSpin(true); return; } if (b === 'lb') { this.toggleSell(); return; } if (b === 'up' || b === 'down') this.move(0, b === 'up' ? -1 : 1); else if (b === 'left' || b === 'right') this.move(b === 'left' ? -1 : 1, 0); else if (b === 'a') this.buy(this.sel); else if (b === 'b' || b === 'back' || b === 'start') this.back(); });
     this.events.once('shutdown', padOff);
     this.spin = null; this.spinG = this.add.graphics().setDepth(10); this.moodG = this.add.graphics().setDepth(11.5); this.spinT = []; this.spinI = []; this.spinB = [];
-    if (kb) { kb.on('keydown-L', () => this.startSpin()); kb.on('keydown-SPACE', () => { if (this.spin) this.pullLever(); }); kb.on('keydown-ESC', () => { if (this.spin) this.endSpin(); }); kb.on('keydown-ENTER', () => { if (this.spin) this.endSpin(); }); ['ONE', 'TWO', 'THREE'].forEach((k, i) => kb.on('keydown-' + k, () => { if (this.spin && this.spin.pick && this.spin.pick[i]) this.pickGun(this.spin.pick[i]); })); }
+    if (kb) { kb.on('keydown-L', () => this.startSpin()); kb.on('keydown-M', () => { if (!this.spin) this.startSpin(true); }); kb.on('keydown-SPACE', () => { if (this.spin) this.pullLever(); }); kb.on('keydown-ESC', () => { if (this.spin) this.endSpin(); }); kb.on('keydown-ENTER', () => { if (this.spin) this.endSpin(); }); ['ONE', 'TWO', 'THREE'].forEach((k, i) => kb.on('keydown-' + k, () => { if (this.spin && this.spin.pick && this.spin.pick[i]) this.pickGun(this.spin.pick[i]); })); }
     this.input.on('pointermove', p => { if (this.spin || p.wasTouch) return; const i = (this.rows || []).findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h); if (i >= 0 && i !== this.sel) { this.sel = i; this.showInfo(); } });
     this.input.on('pointerdown', p => {
       if (this.spin) {
@@ -314,6 +322,7 @@ class ShopScene extends Phaser.Scene {
         const B = this.leaveBox; if (B && p.x >= B.x && p.x <= B.x + B.w && p.y >= B.y && p.y <= B.y + B.h) { this.endSpin(); return; }
         if ((S.done && S.doneT > 0.4) || S.idle) this.endSpin(); return; }
       if (this.spinBox && p.x >= this.spinBox.x && p.x <= this.spinBox.x + this.spinBox.w && p.y >= this.spinBox.y && p.y <= this.spinBox.y + this.spinBox.h) { this.startSpin(); return; }
+      if (this.megaBox && p.x >= this.megaBox.x && p.x <= this.megaBox.x + this.megaBox.w && p.y >= this.megaBox.y && p.y <= this.megaBox.y + this.megaBox.h) { this.startSpin(true); return; }
       if (this.backBox && p.x >= this.backBox.x && p.x <= this.backBox.x + this.backBox.w && p.y >= this.backBox.y && p.y <= this.backBox.y + this.backBox.h) { this.back(); return; }
       if (this.sellBox && p.x >= this.sellBox.x && p.x <= this.sellBox.x + this.sellBox.w && p.y >= this.sellBox.y && p.y <= this.sellBox.y + this.sellBox.h) { this.toggleSell(); return; }
       const i = (this.rows || []).findIndex(r => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h);
@@ -373,19 +382,22 @@ class ShopScene extends Phaser.Scene {
   }
   toggleSell() { if (this.going || this.spin) return; this.sellMode = !this.sellMode; this.sel = 0; Sound.sfx('jump'); this.say(this.sellMode ? 'SELLING? I PAY HALF. FRIDGE-O-TRON HAS OVERHEADS.' : 'BACK TO BUYING. EXCELLENT.'); this.build(); }
   // ---- the lucky wheel (v2.53: a lever, respins, Chris sweating it out, and a rugged look: caged work lamps, steel, rust)
-  startSpin() {
+  startSpin(mega) {
     if (typeof Run !== 'undefined' && Run.on) { Sound.sfx('clunk'); this.say('NO GAMBLING ON A RUN, CHEF.'); return; }                                          // open the wheel and pull the lever straight away
     if (this.going) return;
     if (!this.spin) {
-      if (Shop.spinsLeft() <= 0) { Sound.sfx('clunk'); this.say('NO SPINS LEFT. EVERY GOLDEN WHEEL YOU FIND IS ONE SPIN.'); return; }
+      this.mega = !!mega; SPIN = this.mega ? SPIN_MEGA : SPIN_NORMAL;
+      if (this.mega && Shop.megaLeft() <= 0) { Sound.sfx('clunk'); this.say('NO MEGA SPINS. FIND ALL 3 GOLDEN WHEELS ON A LEVEL FOR ONE.'); SPIN = SPIN_NORMAL; this.mega = false; return; }
+      if (!this.mega && Shop.spinsLeft() <= 0) { Sound.sfx('clunk'); this.say('NO SPINS LEFT. EVERY GOLDEN WHEEL YOU FIND IS ONE SPIN.'); return; }
+      if (this.mega) { Sound.sfx('reveal'); this.cameras.main.flash(200, 255, 220, 120); this.say('THE MEGA WHEEL! NO RATS ON THIS ONE.'); }
       this.spin = { idx: 0, a0: this.spinA || 0, a1: this.spinA || 0, t: 0, dur: 3.6, done: false, idle: true, lastSeg: 0, msg: '', lever: 0, mood: 'hope', moodT: 0 };
     }
     this.pullLever();
   }
   pullLever() {
     const S = this.spin; if (!S || S.pull || S.pick || (!S.idle && !S.done)) return;
-    if (Shop.spinsLeft() <= 0) { Sound.sfx('clunk'); S.lever = 0.25; S.msg = 'NO SPINS LEFT'; S.mood = 'sad'; S.moodT = 0; return; }
-    Shop.useSpin(); Sound.sfx('clang');
+    if ((this.mega ? Shop.megaLeft() : Shop.spinsLeft()) <= 0) { Sound.sfx('clunk'); S.lever = 0.25; S.msg = this.mega ? 'NO MEGA SPINS LEFT' : 'NO SPINS LEFT'; S.mood = 'sad'; S.moodT = 0; return; }
+    if (this.mega) Shop.useMega(); else Shop.useSpin(); Sound.sfx('clang');
     let tot = 0; for (const q of SPIN) tot += q[1];
     let r = Math.random() * tot, idx = 0; for (let i = 0; i < SPIN.length; i++) { r -= SPIN[i][1]; if (r <= 0) { idx = i; break; } }
     const seg = Math.PI * 2 / SPIN.length, a0 = S.done ? S.a1 % (Math.PI * 2) : S.a0;
@@ -399,6 +411,20 @@ class ShopScene extends Phaser.Scene {
     if (k === 'PLATE') {
       if (s.armHp > 0 && s.armHp < SHOP.armHp[s.armMk]) { s.armHp++; msg = 'AN ARMOUR PLATE, WELDED ON!'; }
       else { s.coins += 50; msg = 'A SPARE PLATE. NO USE TO YOU: 50 CHEDDAR FOR SCRAP.'; }
+    } else if (k === 'PLATE+') {                         // (mega) the armour, good as new
+      if (s.armMk > 0 && s.armHp < SHOP.armHp[s.armMk]) { s.armHp = SHOP.armHp[s.armMk]; msg = 'FULL ARMOUR REPAIR!'; }
+      else { s.coins += 200; msg = 'ARMOUR\'S FINE: 200 CHEDDAR INSTEAD.'; }
+    } else if (k === 'SLOW x3') {                        // (mega) a pocketful of Slow-Mo
+      const had = s.slowmo || 0; s.slowmo = CT.max; msg = had < CT.max ? 'POCKET FULL OF SLOW-MO!' : 'SLOW-MO FULL: 150 CHEDDAR INSTEAD.'; if (had >= CT.max) s.coins += 150;
+    } else if (k === 'POWER') {                          // (mega) start your next level powered up
+      const pool = ['boots', 'sauce', 'shield', 'giant', 'jalapeno', 'magnet'].filter(b => BUFFS[b]), b = pool[Math.floor(Math.random() * pool.length)];
+      reg.set('startBuff', b); msg = 'NEXT LEVEL STARTS WITH ' + BUFFS[b].name.replace('!', '') + '!';
+    } else if (k === '2X') {                             // (mega) double cheddar for a whole level
+      reg.set('cheddarX2', true); msg = 'DOUBLE CHEDDAR ON YOUR NEXT LEVEL!';
+    } else if (k === 'LIFE x2') {
+      const l = reg.get('lives') || 0, n = Math.min(2, CFG.maxLives - l);
+      if (n > 0) { reg.set('lives', l + n); msg = n === 2 ? 'TWO EXTRA LIVES!' : 'AN EXTRA LIFE (AND YOU\'RE FULL)!'; }
+      if (n < 2) { s.coins += 150 * (2 - n); msg = (n ? msg + ' +' : 'LIVES FULL: ') + 150 * (2 - n) + ' CHEDDAR'; }
     } else if (k === 'SLOW-MO') {                        // (v3.47: was GUN +1 - gun levels were coming far too easily)
       if ((s.slowmo || 0) < CT.max) { s.slowmo = (s.slowmo || 0) + 1; msg = 'A SLOW-MO CHEESE!'; }
       else { s.coins += 75; msg = 'POCKET FULL OF SLOW-MO: 75 CHEDDAR INSTEAD.'; }
@@ -410,7 +436,7 @@ class ShopScene extends Phaser.Scene {
     return msg;
   }
   // how Chris takes it: 'joy' (a good one), 'meh' (small change), 'sad' (the rat)
-  moodOf(idx) { const k = SPIN[idx][0]; return k === 'RAT!' ? 'sad' : (k === '30' || k === 'PLATE') ? 'meh' : 'joy'; }
+  moodOf(idx) { const k = SPIN[idx][0]; return k === 'RAT!' ? 'sad' : (k === '30' || k === 'PLATE' || k === '120') ? 'meh' : 'joy'; }
   gunLvOf(w) { const g = this.registry.get('gunLv') || {}, s = Shop.get(this.registry); return Math.max(g[w.id] || 1, 1 + ((s.chips || {})[w.id] || 0)); }
   pickGun(w) {
     const S = this.spin; if (!S || !S.pick || !S.pick.includes(w)) return;
@@ -421,7 +447,7 @@ class ShopScene extends Phaser.Scene {
   }
   endSpin() {
     const S = this.spin; if (!S || S.pick || S.pull || (!S.done && !S.idle)) return;
-    this.spinA = (S.done ? S.a1 : S.a0) % (Math.PI * 2); this.spin = null; this.spinG.clear(); this.moodG.clear();
+    this.spinA = (S.done ? S.a1 : S.a0) % (Math.PI * 2); this.spin = null; SPIN = SPIN_NORMAL; this.mega = false; this.spinG.clear(); this.moodG.clear();
     this.spinT.forEach(t => t.setVisible(false)); (this.spinB || []).forEach(t => t.setVisible(false)); (this.spinI || []).forEach(t => t.setVisible(false));
     this.rig.setFace(null); this.rig.root.setDepth(3); Object.assign(this.rigP, { h: 0, vh: 0, duck: false, aimA: 0, facing: 1 });
     this.build();
@@ -476,11 +502,11 @@ class ShopScene extends Phaser.Scene {
       g.lineStyle(3, 0x0a0b10, 1).lineBetween(cx, cy, cx + Math.cos(a) * R0, cy + Math.sin(a) * R0);
       g.fillStyle(0x9aa2ae, 1).fillCircle(cx + Math.cos(a) * (R0 - 5), cy + Math.sin(a) * (R0 - 5), 2.5); g.fillStyle(0x30343e, 1).fillCircle(cx + Math.cos(a) * (R0 - 5) + 1, cy + Math.sin(a) * (R0 - 5) + 1, 1.2);   // peg
       let im = this.spinI[i]; if (!im) im = this.spinI[i] = this.add.image(0, 0, 'wi_30').setDepth(10.1);
-      const isNum = /^\d+$/.test(key), tex = isNum ? (key === '500' ? 'wi_500' : key === '60' ? 'wi_60' : 'wi_30') : key === 'RAT!' ? 'wi_rat' : key === 'PLATE' ? 'wi_plate' : key === 'SLOW-MO' ? 'pu_slowmo' : 'wi_life';
+      const isNum = /^\d+$/.test(key), tex = isNum ? ((key === '500' || key === '1000') ? 'wi_500' : (key === '60' || key === '250') ? 'wi_60' : 'wi_30') : key === 'RAT!' ? 'wi_rat' : (key === 'PLATE' || key === 'PLATE+') ? 'wi_plate' : (key === 'SLOW-MO' || key === 'SLOW x3') ? 'pu_slowmo' : key === 'POWER' ? 'pu_boots' : key === '2X' ? 'cheddar' : 'wi_life';
       const isc = Math.max(1, R0 / 76) * (win ? 1.15 : 1);
       im.setTexture(tex).setPosition(cx + Math.cos(am) * R0 * 0.64, cy + Math.sin(am) * R0 * 0.64).setRotation(am + Math.PI / 2).setScale(isc).setVisible(true).setAlpha(S.done && !win ? 0.55 : 1);
       let tx = this.spinT[i]; if (!tx) tx = this.spinT[i] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#f4e6c8', stroke: '#0a0b10', strokeThickness: 4 }).setOrigin(0.5).setDepth(10.15);
-      tx.setText(isNum ? key : key === 'SLOW-MO' ? 'SLOW' : key === 'LIFE' ? '1-UP' : '').setPosition(cx + Math.cos(am) * R0 * 0.35, cy + Math.sin(am) * R0 * 0.35).setRotation(am + Math.PI / 2).setVisible(true);
+      tx.setText(isNum ? key : ({ 'SLOW-MO': 'SLOW', LIFE: '1-UP', 'LIFE x2': '2-UP', 'SLOW x3': 'x3', 'PLATE+': 'FULL', POWER: 'POWER', '2X': '2X' })[key] || '').setPosition(cx + Math.cos(am) * R0 * 0.35, cy + Math.sin(am) * R0 * 0.35).setRotation(am + Math.PI / 2).setVisible(true);
     }
     // hub: a big hex bolt through a gold cheese wheel
     g.fillStyle(0x0a0b10, 1).fillCircle(cx, cy, R0 * 0.21); g.fillStyle(0xc8902a, 1).fillCircle(cx, cy, R0 * 0.19); g.fillStyle(0xe8b850, 1).fillCircle(cx - 2, cy - 2, R0 * 0.12);
@@ -517,7 +543,7 @@ class ShopScene extends Phaser.Scene {
     for (let i = S.sparks.length - 1; i >= 0; i--) { const q = S.sparks[i]; q.l -= dt; if (q.l <= 0) { S.sparks.splice(i, 1); continue; } q.vy += 500 * dt; const x0 = q.x, y0 = q.y; q.x += q.vx * dt; q.y += q.vy * dt;
       g.lineStyle(2, q.l > 0.2 ? 0xffffff : 0xffb52a, Math.min(1, q.l * 5)).lineBetween(x0, y0, q.x, q.y); }
     // THE LEVER: a slot in a steel box, a shaft with a black knob. Pull it to spin; it glows when there's a spin left.
-    { const ready = (S.idle || (S.done && !S.pick)) && !S.pull, left = Shop.spinsLeft(), a = -1.05 + 2.0 * (S.lever || 0) + (ready && left ? Math.sin(t * 5) * 0.04 : 0);
+    { const ready = (S.idle || (S.done && !S.pick)) && !S.pull, left = this.mega ? Shop.megaLeft() : Shop.spinsLeft(), a = -1.05 + 2.0 * (S.lever || 0) + (ready && left ? Math.sin(t * 5) * 0.04 : 0);
       g.fillStyle(0x0a0b10, 1).fillRoundedRect(lx - 16, ly - 34, 32, 76, 5); g.fillStyle(0x2c3038, 1).fillRoundedRect(lx - 14, ly - 32, 28, 72, 4); g.fillStyle(0x3a3f4a, 1).fillRect(lx - 14, ly - 32, 28, 3);
       for (const [x, y] of [[-10, -28], [10, -28], [-10, 36], [10, 36]]) { g.fillStyle(0x8a929e, 1).fillCircle(lx + x, ly + y, 1.8); }
       g.fillStyle(0x0a0b10, 1).fillRoundedRect(lx - 3, ly - 24, 6, 56, 3);
@@ -542,7 +568,7 @@ class ShopScene extends Phaser.Scene {
     // the sign: a riveted steel plate, the result stencilled on it
     let tt = this.spinT[n]; if (!tt) tt = this.spinT[n] = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '12px', color: '#ffb04a', stroke: '#0a0b10', strokeThickness: 5, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } }).setOrigin(0.5).setDepth(10.2);
     const col = !S.done ? '#d8a040' : S.mood === 'sad' ? '#c8503a' : S.mood === 'joy' ? (Math.floor(t * 8) % 2 ? '#fff0c0' : '#ffb04a') : '#d8c8a0';
-    tt.setText(S.done || S.msg ? S.msg : S.idle ? 'PULL THE LEVER' : 'THE LUCKY WHEEL').setVisible(true).setRotation(0).setColor(col);
+    tt.setText(S.done || S.msg ? S.msg : S.idle ? 'PULL THE LEVER' : this.mega ? 'THE MEGA WHEEL' : 'THE LUCKY WHEEL').setVisible(true).setRotation(0).setColor(col);
     const mw = Math.max(200, tt.width + 44), mh = tt.height + 22, my = Math.min(H - mh / 2 - 6, cy + RG + 22 + mh / 2), mx = cx - mw / 2;
     tt.setPosition(cx, my);
     g.fillStyle(0x0a0b10, 1).fillRect(mx - 3, my - mh / 2 - 3, mw + 6, mh + 6); g.fillStyle(0x30343e, 1).fillRect(mx, my - mh / 2, mw, mh); g.fillStyle(0x3e434e, 1).fillRect(mx, my - mh / 2, mw, 3);
@@ -642,7 +668,19 @@ class ShopScene extends Phaser.Scene {
       this.ui.add(this.add.image(bx + 17, by2 + bh2 / 2, 'goldwheel').setScale(0.8).setAlpha(left > 0 ? 1 : 0.3));
       this.ui.add(this.add.text(bx + 34, by2 + 7, 'LUCKY WHEEL', f(8, left > 0 ? '#ffb04a' : '#6b7390', ink)));
       this.ui.add(this.add.text(bx + 34, by2 + 20, left > 0 ? left + ' SPIN' + (left > 1 ? 'S' : '') + ' LEFT' : 'NO SPINS LEFT', f(7, left > 0 ? '#ffffff' : '#4a5070')));
-      this.spinBox = { x: bx, y: by2, w: bw2, h: bh2 }; }
+      this.spinBox = { x: bx, y: by2, w: bw2, h: bh2 };
+      // (v3.48) the MEGA WHEEL button, once you've ever completed a golden set
+      if (Shop.goldenSets() > 0) {
+        const ml = Shop.megaLeft(), my = by2 + bh2 + 8, mg = this.add.graphics();
+        mg.fillStyle(0x0a0b10, 1).fillRect(bx - 2, my - 2, bw2 + 4, bh2 + 4); mg.fillStyle(ml > 0 ? 0x4a3a10 : 0x14141c, 1).fillRect(bx, my, bw2, bh2);
+        if (ml > 0) { mg.fillStyle(0x6a5418, 1).fillRect(bx, my, bw2, 3); mg.lineStyle(2, 0xffd23f, 1 ).strokeRect(bx, my, bw2, bh2); }
+        this.ui.add(mg);
+        this.ui.add(this.add.image(bx + 17, my + bh2 / 2, 'goldwheel').setScale(0.95).setTint(ml > 0 ? 0xfff0a0 : 0x666666).setAlpha(ml > 0 ? 1 : 0.4));
+        const dev = typeof inputDevice === 'function' ? inputDevice() : 'kb';
+        this.ui.add(this.add.text(bx + 34, my + 7, 'MEGA WHEEL' + (ml > 0 ? (dev === 'pad' ? ' (RB)' : dev === 'touch' ? '' : ' [M]') : ''), f(8, ml > 0 ? '#ffd23f' : '#6b7390', ink)));
+        this.ui.add(this.add.text(bx + 34, my + 20, ml > 0 ? ml + ' MEGA SPIN' + (ml > 1 ? 'S' : '') : 'FINISH A GOLDEN SET', f(7, ml > 0 ? '#ffffff' : '#4a5070')));
+        this.megaBox = { x: bx, y: my, w: bw2, h: bh2 };
+      } else this.megaBox = null; }
     // (v2.53) the shelves: a grid of tiles, each a big picture, its name, level pips and a price tag
     const items = this.items(), x0 = lw + 22, rw = W - x0 - 12, backH = 24, n = items.length, gap = 6;
     const cols = Math.min(n, Math.max(3, Math.floor((rw + gap) / 104))), rowsN = Math.ceil(n / cols); this.cols = cols;
@@ -686,7 +724,7 @@ class ShopScene extends Phaser.Scene {
       this.ui.add(this.add.text(x0, by + backH / 2, (this.sellMode ? (this.sys.game.device.input.touch ? 'TAP TWICE TO SELL' : 'CLICK TO SELL') + ' FOR HALF PRICE.' : (this.sys.game.device.input.touch ? 'TAP TO LOOK, TAP AGAIN TO BUY.' : 'CLICK TO BUY.')) + ' SELL/BUY' + key, f(7, '#6b7390', { wordWrap: { width: Math.max(80, sx - x0 - 10) } })).setOrigin(0, 0.5)); }
     if (this.sel >= n) this.sel = n - 1;
     // what the selected thing is: name and blurb in the panel on the left
-    this.infoT = this.add.text(12 + lw / 2, top + 120, '', f(7, '#c9cde0', { align: 'center', wordWrap: { width: lw - 28 }, lineSpacing: 4 })).setOrigin(0.5, 0);
+    this.infoT = this.add.text(12 + lw / 2, top + 120 + (this.megaBox ? 42 : 0), '', f(7, '#c9cde0', { align: 'center', wordWrap: { width: lw - 28 }, lineSpacing: 4 })).setOrigin(0.5, 0);
     this.ui.add(this.infoT); this.showInfo();
   }
   showInfo() {
