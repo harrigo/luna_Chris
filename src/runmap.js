@@ -92,7 +92,7 @@ Object.assign(RunScene.prototype, {
       this.hits.push({ x, y: bby, w: bw, h: bh, act });
     });
     if (Progress.testMode) {
-      const tb = this.add.text(8, 8, '+2000 CHEDDAR (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setInteractive({ useHandCursor: true });
+      const tb = this.add.text(W - SAFE_X, 12, '+2000 CHEDDAR (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true });
       tb.on('pointerup', () => { const s = Shop.get(this.registry); s.coins += 2000; s.slowmo = 3; Shop.set(this.registry, s); Sound.sfx('power'); this.build(); }); this.ui.add(tb);
     }
     this.mapShowInfo();

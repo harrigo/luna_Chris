@@ -264,6 +264,19 @@ function makeShopTextures(scene) {
   pixSprite(scene, 'cheddar', 12, 12, a => { a.ell(6, 6, 5, 5, [0xffe27a, 0xffb52a, 0xb86a08]); a.rect(5, 3, 6, 8, 0xfff6c0); a.px(8, 4, 0xfff6c0); }, true);
 }
 
+// (v3.46) the CHEDDAR badge for the shop and the maps: top-left, well in from the edge (phones with curved screens were
+// eating the old corner counters), big enough to read at a glance
+const SAFE_X = 34;
+function cheddarBadge(scene, add, x, y, coins) {
+  const t = scene.add.text(x + 30, y + 13, 'CHEDDAR ' + coins, { fontFamily: PIXEL, fontSize: '11px', color: '#ffe27a', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0, 0.5);
+  const w = t.width + 42, g = scene.add.graphics();
+  g.fillStyle(0x0a0b14, 0.88).fillRoundedRect(x, y, w, 26, 13); g.lineStyle(2, 0xffd23f, 0.75).strokeRoundedRect(x, y, w, 26, 13);
+  const im = scene.add.image(x + 16, y + 13, 'cheddar').setScale(1.7);
+  add(g); add(im); add(t);
+  if (!t.parentContainer) { im.setDepth(g.depth + 0.01); t.setDepth(g.depth + 0.02); }   // (the text's made first, to measure it: keep it on top)
+  return { g, im, t, w };
+}
+
 class ShopScene extends Phaser.Scene {
   constructor() { super('shop'); }
   create() {
@@ -600,8 +613,7 @@ class ShopScene extends Phaser.Scene {
     const f = (size, color, extra) => Object.assign({ fontFamily: PIXEL, fontSize: size + 'px', color }, extra || {});
     const ink = { stroke: '#1a1020', strokeThickness: 4 };
     this.ui.add(this.add.text(W / 2, Math.max(8, H * 0.03), this.sellMode ? "FRIDGE-O-TRON BUYS BACK" : "FRIDGE-O-TRON'S SPACE SHOP", f(Math.min(16, W / 30), '#ffd23f', { stroke: '#5a0a0a', strokeThickness: 5 })).setOrigin(0.5, 0));
-    this.ui.add(this.add.image(W - 118, 20, 'cheddar').setScale(2));
-    this.ui.add(this.add.text(W - 102, 13, 'CHEDDAR ' + s.coins, f(10, '#ffe27a', ink)));
+    cheddarBadge(this, o => this.ui.add(o), SAFE_X, 10, s.coins);
     // the counter on the left: Chris (in whatever he's wearing) and the shopkeeper
     const lw = Math.min(210, W * 0.27), top = Math.max(40, H * 0.13), bot = H - 12;
     const g = this.add.graphics();

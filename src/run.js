@@ -359,9 +359,8 @@ class RunScene extends Phaser.Scene {
     }
     // bottom bar: cheddar, hearts, lives, perks
     const by = H - (small ? 22 : 30);
-    this.ui.add(this.add.image(18, by, 'cheddar').setScale(2));
-    this.ui.add(this.add.text(32, by, String(s.coins), f(10, '#ffd23f')).setOrigin(0, 0.5));
-    let px = 100;
+    cheddarBadge(this, o => this.ui.add(o), SAFE_X, 10, s.coins);      // (v3.46) up top-left, in from the curved edge
+    let px = SAFE_X;
     for (const id of Object.keys(Run.perks)) {
       const p = RUN_PERKS.concat(RUN_GOLD).find(q => q.id === id); if (!p) continue;
       const im = RUN_UI.fit(this.add.image(px, by, RUN_UI.iconFor(this, p)), 22); this.ui.add(im);
@@ -451,7 +450,7 @@ class RunScene extends Phaser.Scene {
       this.hits.push({ x, y: yy, w: cw, h: chh, act: () => { Sound.sfx('power'); this.go('level1', { level: id, direct: true }); } });     // (v3.10: the gun is chosen at camp)
     });
     if (Progress.testMode) {                                         // (v3.25) TEST MODE: run cheddar on tap
-      const tb = this.add.text(8, 8, '+2000 CHEDDAR (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setInteractive({ useHandCursor: true });
+      const tb = this.add.text(W - SAFE_X, 12, '+2000 CHEDDAR (TEST)', f(6, '#1a1020', { strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 5, y: 4 } })).setOrigin(1, 0).setInteractive({ useHandCursor: true });
       tb.on('pointerup', () => { const s = Shop.get(this.registry); s.coins += 2000; s.slowmo = 3; Shop.set(this.registry, s); Sound.sfx('power'); this.build(); }); this.ui.add(tb);
     }
     // buttons: SHOP / GIVE UP

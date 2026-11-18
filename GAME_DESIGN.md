@@ -2114,3 +2114,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - It used to hit everything in that big box at once.
 - L1 Croque Monsieur and L2 Baron: boss hp 195 -> 166 (15% less).
 - L2 STINK FLIES aim their spores at Chris (leading him a little, 170px/s, light gravity) instead of dropping them, and fire from up to 320px away (was 230).
+
+## v3.46: a readable cheddar badge
+- The SHOP, the RUN screens (map and perk pick) and the CAMPAIGN MAP show cheddar in one shared badge (cheddarBadge in shop.js): a dark pill with a gold rim, a bigger cheddar icon and 11px text.
+- It sits on the left, 34px in from the edge (SAFE_X), because curved phone screens were eating the old corner counters.
+  - Shop and run screens: top-left.
+  - Campaign map: just above the info panel on the left, clear of the space shop ship. Its small cheddar line in the stats panel is gone.
+- The run screen's test-mode +2000 CHEDDAR button moved to the top right to make room. In-level HUD unchanged.

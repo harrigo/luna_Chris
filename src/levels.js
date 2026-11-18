@@ -1011,6 +1011,7 @@ class SelectScene extends Phaser.Scene {
   constructor() { super('select'); }
 
   create() {
+    this.cheddarB = null;                                                 // (v3.46) the top-left cheddar badge (made with the info box)
     makeTextures(this); makeLevelTextures(this); makePowerupTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020');
     this.cameras.main.fadeIn(250, 0, 0, 0);
@@ -1357,7 +1358,7 @@ class SelectScene extends Phaser.Scene {
     const hearts = Math.min(CFG.heartCap, CFG.maxHp + (sh.hearts || 0) + (sh.burgers || 0));
     for (let k = 0; k < hearts; k++) this.infoBox.add(this.add.image(rx + 6 + k * 15, ry(0), 'hud_cheese').setScale(1));
     put(rx, 1, 'LIVES ' + lives);
-    this.infoBox.add(this.add.image(rx + 5, ry(2), 'cheddar').setScale(0.9)); put(rx + 14, 2, 'CHEDDAR ' + sh.coins, '#ffe27a');
+    if (!this.cheddarB) this.cheddarB = cheddarBadge(this, o => o.setDepth(200), SAFE_X, y0 - 32, sh.coins); else { this.cheddarB.t.setText('CHEDDAR ' + sh.coins); }   // (v3.46) top-left, in from the edge
     this.wheelIcon = this.add.image(rx + 5, ry(3), 'goldwheel').setScale(0.5); this.infoBox.add(this.wheelIcon); put(rx + 14, 3, 'WHEELS ' + wheels + '/27');
     const lvlFor = typeof this.sel === 'number' ? this.sel : Progress.best + 1;
     WEAPONS.forEach((w, i) => {
