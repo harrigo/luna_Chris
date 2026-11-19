@@ -341,25 +341,29 @@ function makeChrisTextures(scene) {
   });
   // (v3.53) REAL ARMS: an upper arm and a forearm per side, solved every frame (shoulder -> elbow -> hand) so the gloves
   // stay ON the gun - a fist round the grip, the other hand cupped under the front. The far arm is a shade darker.
-  const SLV = [0xeef3fa, 0xbccbe2, 0x7f93b8], SUITD = [0xbccbe2, 0x93a6c8, 0x5f7098], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;   // (sleeves a tone darker than the chest, so they read against it)
-  for (const [sfx, SU, GL, RD] of [['', SLV, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
-    pixSprite(scene, 'c_uarm' + sfx, 15, 10, a => {                                       // upper arm: a puffy suit sleeve (1px clear all round for the outline)
-      a.rrect(1, 1, 13, 8, 3, SU); a.line([[5, 3], [9, 3]], SU[0]); a.px(7, 7, SU[2]);
+  // (v3.53b) fatter and whiter: a big puffy shoulder with the mission badge on it, sat over the back of the suit
+  const SUITD = [0xe6edf8, 0xbccbe2, 0x7f93b8], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;
+  for (const [sfx, SU, GL, RD] of [['', SUIT, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
+    pixSprite(scene, 'c_uarm' + sfx, 22, 14, a => {                                       // upper arm: shoulder ball (the joint, at x 7) and a fat sleeve to the elbow (x 19)
+      a.rrect(7, 2, 20, 11, 4, SU); a.ell(7, 7, 6, 6, SU);
+      a.line([[9, 4], [15, 4]], SU[0]); a.line([[12, 10], [18, 10]], SU[2]);
+      if (!sfx) { a.ell(7, 7, 3.4, 3.4, BLUE); a.ell(7, 7, 1.6, 1.6, 0xdfe8ff); a.px(6, 5, 0xffffff); }   // the mission badge
     });
-    pixSprite(scene, 'c_farm' + sfx, 16, 9, a => {                                        // forearm: sleeve, a red cuff, a hairy wrist
-      a.rrect(1, 1, 10, 7, 2, SU); a.rect(9, 1, 11, 7, RD); a.rect(9, 1, 11, 1, 0xff6a6a);
-      a.rect(12, 2, 14, 6, SKIN[1]); a.px(12, 2, HAIR); a.px(13, 4, HAIR); a.px(14, 3, HAIR);
+    pixSprite(scene, 'c_farm' + sfx, 19, 12, a => {                                       // forearm (joint at x 3, wrist at x 15): sleeve, a red cuff, a hairy wrist
+      a.rrect(1, 1, 13, 10, 4, SU); a.line([[4, 3], [9, 3]], SU[0]);
+      a.rect(12, 1, 14, 10, RD); a.rect(12, 1, 14, 1, 0xff6a6a);
+      a.rect(15, 3, 17, 8, SKIN[1]); a.px(15, 3, HAIR); a.px(16, 5, HAIR); a.px(17, 4, HAIR); a.px(15, 7, HAIR);
     });
-    if (sfx) pixSprite(scene, 'c_hold', 14, 12, a => {                                     // the support hand, cupped under the gun, fingertips curled up its side
-      a.rrect(1, 5, 12, 10, 3, GL);                                                       // palm and heel
-      for (const x of [4, 7, 10]) { a.rrect(x - 1, 1, x + 1, 6, 1, GL); a.px(x, 5, GL[2]); }   // three fingers curled up over the side
-      a.px(4, 1, 0xffffff); a.px(7, 1, 0xffffff);
+    if (sfx) pixSprite(scene, 'c_hold', 16, 13, a => {                                     // the support hand, cupped under the gun, fingertips curled up its side
+      a.rrect(1, 6, 14, 11, 3, GL);
+      for (const x of [4, 8, 12]) { a.rrect(x - 1, 1, x + 1, 7, 1, GL); a.px(x, 6, GL[2]); }
+      a.px(4, 1, 0xffffff); a.px(8, 1, 0xffffff);
     });
-    else pixSprite(scene, 'c_fistg', 14, 15, a => {                                       // the gun hand: a big glove wrapped round the grip
-      a.rrect(1, 2, 11, 13, 4, GL);                                                       // the fist
-      for (const y of [5, 8, 11]) a.line([[6, y], [11, y]], GL[2]);                        // fingers wrapped round the front
-      a.ell(4.5, 3.5, 3.5, 2.5, GL); a.px(3, 2, 0xffffff); a.px(6, 4, GL[2]);              // the thumb over the top
-      a.px(10, 3, 0xffffff);
+    else pixSprite(scene, 'c_fistg', 17, 18, a => {                                       // the gun hand: a big glove wrapped round the grip
+      a.rrect(1, 2, 14, 16, 5, GL);
+      for (const y of [6, 9, 12]) a.line([[8, y], [14, y]], GL[2]);                        // fingers round the front
+      a.ell(5.5, 4, 4, 3, GL); a.px(4, 2, 0xffffff); a.px(8, 5, GL[2]);                    // the thumb over the top
+      a.px(12, 3, 0xffffff);
     });
   }
   // popped stitches where the suit strains over the belly, and a gravy stain (laid over the body)
@@ -433,7 +437,7 @@ class ChrisRig {
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
     // the gun hangs off a pivot at the grip, so the melee bash can FLIP it round (butt first) without moving the arm
-    const BK = -3, GX = 20 + BK, GY = 5;                               // (v3.53: held a little further back and lower, at his belly, so both arms reach it)
+    const BK = -5, GX = 20 + BK, GY = 5;                               // (v3.53: held a little further back and lower, at his belly, so both arms reach it)
     this.gunPivot = scene.add.container(GX, GY);
     this.gun = img('c_gun', 4 + BK - GX, 1 - GY, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
     this.auger = img('auger0', 44 + BK - GX, 1 - GY, 0, 0.5).setScale(1.25);
@@ -442,9 +446,9 @@ class ChrisRig {
     this.gunArm.add([this.gArm, this.gunPivot, this.grip]);
     this.stars = [0, 1, 2].map(() => img('c_ouchstar', 0, 0, 0.5, 0.5).setVisible(false));
     this.gArm.setVisible(false); this.grip.setVisible(false);          // (v3.53: replaced by the jointed arms below)
-    const seg = key => img(key, 0, 0, 2.5 / scene.textures.get(key).getSourceImage().width, 0.5);
-    this.fUp = seg('c_uarmF'); this.fFo = seg('c_farmF'); this.fHand = img('c_hold', 0, 0, 0.5, 0.3);
-    this.nUp = seg('c_uarm'); this.nFo = seg('c_farm'); this.nHand = img('c_fistg', 0, 0, 0.45, 0.4);
+    const seg = (key, jx) => img(key, 0, 0, jx / scene.textures.get(key).getSourceImage().width, 0.5);
+    this.fUp = seg('c_uarmF', 7); this.fFo = seg('c_farmF', 3); this.fHand = img('c_hold', 0, 0, 0.5, 0.3);
+    this.nUp = seg('c_uarm', 7); this.nFo = seg('c_farm', 3); this.nHand = img('c_fistg', 0, 0, 0.45, 0.4);
     this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.torso, this.fUp, this.fFo, this.gunArm, this.fHand, this.nUp, this.nFo, this.nHand, ...this.stars]);   // (legs behind the torso, so the belly hangs over them)
 
     this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.handB, this.grip, this.hat, this.legF, this.bootF, this.gArm, this.gun, this.fUp, this.fFo, this.fHand, this.nUp, this.nFo, this.nHand];
@@ -482,18 +486,18 @@ class ChrisRig {
       const a = A * k, b = B * k, dd = Math.max(Math.abs(a - b) + 0.01, Math.min(a + b - 0.01, d));
       const ua = Math.atan2(dy, dx) + Math.acos(Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))));
       const ex = S[0] + Math.cos(ua) * a, ey = S[1] + Math.sin(ua) * a;
-      up.setVisible(true).setPosition(S[0], S[1]).setRotation(ua).setScale(a / 10, 1);
-      fo.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(Tg[1] - ey, Tg[0] - ex)).setScale(Math.hypot(Tg[0] - ex, Tg[1] - ey) / 11, 1);
+      up.setVisible(true).setPosition(S[0], S[1]).setRotation(ua).setScale(a / 12, 1);
+      fo.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(Tg[1] - ey, Tg[0] - ex)).setScale(Math.hypot(Tg[0] - ex, Tg[1] - ey) / 12, 1);
       hand.setVisible(true).setPosition(Tg[0], Tg[1]).setRotation(rot);
     };
     const held = G.visible, H = GUN_HOLD[gun.texture.key] || GUN_HOLD.c_gun, gunRot = gr + ps;
     // the gun hand: on the grip (or hanging at his side if the gun's gone)
-    const sN = fromT(-1, -24);
-    if (held) ik(sN, fromGun(H.g[0], H.g[1]), 11, 11, this.nUp, this.nFo, this.nHand, gunRot);
-    else ik(sN, [sN[0] + 5, sN[1] + 20], 11, 11, this.nUp, this.nFo, this.nHand, 1.4);
+    const sN = fromT(-9.5, -26.5);                                     // (the shoulder sits right over the suit's badge)
+    if (held) ik(sN, fromGun(H.g[0], H.g[1]), 14, 14, this.nUp, this.nFo, this.nHand, gunRot);
+    else ik(sN, [sN[0] + 6, sN[1] + 24], 14, 14, this.nUp, this.nFo, this.nHand, 1.4);
     // the support hand, cupped under the front
     const open = this.handB.visible, two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0);
-    if (two) { ik(fromT(-4, -25), fromGun(H.f[0], H.f[1]), 13, 13, this.fUp, this.fFo, this.fHand, gunRot); this.armB.setAlpha(0); }
+    if (two) { ik(fromT(-7, -27), fromGun(H.f[0], H.f[1]), 16, 16, this.fUp, this.fFo, this.fHand, gunRot); this.armB.setAlpha(0); }
     else { this.fUp.setVisible(false); this.fFo.setVisible(false); this.fHand.setVisible(false); this.armB.setAlpha(1); }
   }
 

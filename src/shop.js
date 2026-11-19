@@ -66,11 +66,12 @@ function makeArmourTextures(scene, mk) {
     a.ell(16, 9.5, 2.6, 1.8, PL); a.rect(13, 2, 13, 10, TR[1]);
   });
   for (const [sfx, P2] of [['', PL], ['F', [0x48527a, 0x22283c, 0x0e1018]]]) {         // (v3.53) the jointed arms: plated sleeves, a mail wrist, gauntlets
-    pixSprite(scene, K('c_uarm' + sfx), 15, 10, a => { a.rrect(1, 1, 13, 8, 3, P2); a.line([[4, 3], [10, 3]], HI); a.rect(7, 1, 7, 8, TR[1]); });
-    pixSprite(scene, K('c_farm' + sfx), 16, 9, a => { a.rrect(1, 1, 10, 7, 2, P2); a.line([[3, 2], [7, 2]], HI); a.rect(9, 1, 11, 7, TR[1]); a.px(9, 1, TR[0]); a.rect(12, 2, 14, 6, 0x1e2230); a.px(13, 3, 0x3a4058); a.px(12, 5, 0x3a4058); });
+    pixSprite(scene, K('c_uarm' + sfx), 22, 14, a => { a.rrect(7, 2, 20, 11, 4, P2); a.ell(7, 7, 6, 6, P2); a.line([[9, 4], [16, 4]], HI); a.rect(14, 2, 14, 11, TR[1]);
+      if (!sfx) { a.ell(7, 7, 3.4, 3.4, TR); a.ell(7, 7, 2, 2, EM[1]); a.px(7, 7, EM[0]); } });      // a pauldron with the reactor's twin on it
+    pixSprite(scene, K('c_farm' + sfx), 19, 12, a => { a.rrect(1, 1, 13, 10, 4, P2); a.line([[4, 3], [9, 3]], HI); a.rect(12, 1, 14, 10, TR[1]); a.px(12, 1, TR[0]); a.rect(15, 3, 17, 8, 0x1e2230); a.px(16, 4, 0x3a4058); a.px(15, 7, 0x3a4058); });
   }
-  pixSprite(scene, K('c_hold'), 14, 12, a => { a.rrect(1, 5, 12, 10, 3, PL); for (const x of [4, 7, 10]) { a.rrect(x - 1, 1, x + 1, 6, 1, PL); a.px(x, 2, hot ? EM[0] : TR[0]); } });
-  pixSprite(scene, K('c_fistg'), 14, 15, a => { a.rrect(1, 2, 11, 13, 4, PL); for (const y of [5, 8, 11]) a.line([[6, y], [11, y]], TR[1]); a.ell(4.5, 3.5, 3.5, 2.5, PL); a.px(3, 2, HI); for (const y of [4, 7, 10]) a.px(10, y, hot ? EM[0] : TR[0]); });
+  pixSprite(scene, K('c_hold'), 16, 13, a => { a.rrect(1, 6, 14, 11, 3, PL); for (const x of [4, 8, 12]) { a.rrect(x - 1, 1, x + 1, 7, 1, PL); a.px(x, 2, hot ? EM[0] : TR[0]); } });
+  pixSprite(scene, K('c_fistg'), 17, 18, a => { a.rrect(1, 2, 14, 16, 5, PL); for (const y of [6, 9, 12]) a.line([[8, y], [14, y]], TR[1]); a.ell(5.5, 4, 4, 3, PL); a.px(4, 2, HI); for (const y of [5, 8, 11]) a.px(13, y, hot ? EM[0] : TR[0]); });
   pixSprite(scene, K('c_grip'), 9, 12, a => { for (let k = 0; k < 4; k++) { a.rrect(1, k * 3, 7, k * 3 + 2, 1, PL); a.px(6, k * 3, HI); a.px(3, k * 3 + 1, hot ? EM[1] : TR[1]); } });
   pixSprite(scene, K('c_hand_open'), 17, 17, a => {
     for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) { a.line([[6, 8], [x, y]], PL[1], 3); a.ell(x, y, 1.6, 1.6, PL); a.px(x, y, TR[0]); }

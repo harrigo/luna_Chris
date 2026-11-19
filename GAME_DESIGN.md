@@ -2171,3 +2171,8 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The far hand lets go to thump a jammed gun, flail when grabbed or hit, and swing during a bash. With no gun, the near arm hangs at his side.
 - The gun sits a little further back and lower, at belly height, so both arms reach it. Hold points per gun are in GUN_HOLD (chris.js); the spatula in the intro is one-handed.
 - Black Rind armour has its own plated versions of the new arm parts.
+
+## v3.54: fatter, whiter arms
+- The arms are thicker and suit-white, with a puffy shoulder ball. The mission badge now sits on the shoulder, and the shoulder joint sits right over the suit's own badge, so the arm covers the back of the body.
+- The gun sits a touch further back (BK -5) and the arms are longer (near 14+14, far 16+16) to reach it.
+- Black Rind armour: plated versions of the bigger parts, with a reactor disc on the pauldron.
