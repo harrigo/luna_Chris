@@ -2164,3 +2164,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - After a bash the boss can't hurt Chris by touch for 0.8s, and Chris bounces back a little, so a hit is a chance to get clear.
 - Boss bash damage 3 → 4, with a damage number, a small shake and hit-stop.
 - The giant bosses (Dreadnought, Saucer King, Colossus) get the grace and damage but aren't shoved.
+
+## v3.53: real arms
+- Chris's arms are now jointed (shoulder, elbow, glove) and solved every frame with two-bone IK, so both hands stay on the gun through aiming, recoil, running, bashes and uppercuts.
+- Gun hand: a glove wrapped round the grip. Support hand: cupped under the front of the gun, on a slightly darker far arm.
+- The far hand lets go to thump a jammed gun, flail when grabbed or hit, and swing during a bash. With no gun, the near arm hangs at his side.
+- The gun sits a little further back and lower, at belly height, so both arms reach it. Hold points per gun are in GUN_HOLD (chris.js); the spatula in the intro is one-handed.
+- Black Rind armour has its own plated versions of the new arm parts.
