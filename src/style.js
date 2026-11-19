@@ -243,6 +243,7 @@ const StyleMixin = {
       if (a < -24 || a > 82 + (e.r || 14) * 0.5 || top < P.h - 24 || top > P.h + 150) continue;
       if (this.sfIs && this.sfIs(e) && this.sfUpper(e)) continue;          // (v3.35) flips a shield rat's shield
       e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1; hit++;
+      if (e.type === 'boss') this.bossRecoil(e, P.facing || 1, 'upper', 4);
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
         this.launchEnemy(e, dir, 1, e.hp <= 0);
@@ -280,6 +281,7 @@ const StyleMixin = {
       const e = best, top = e.h + e.ch;
       if (this.sfIs && this.sfIs(e)) this.sfCrack(e);                       // (v3.35) cracks a Rind Beetle's wax
       e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg + 1;
+      if (e.type === 'boss') this.bossRecoil(e, dir, 'spike', 4);
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.type !== 'boss' && this.canLaunch(e)) {
         this.launchEnemy(e, dir, 1, e.hp <= 0);

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.51';
+const BUILD = 'v3.52';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3370,7 +3370,8 @@ class Level1 extends Phaser.Scene {
       if (a < -14 / R || a > reachT + e.r / R) continue;
       if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
       if (this.sfIs(e) && this.sfBashBlock(e, dir)) { hit++; continue; }   // (v3.35) a shield / wax rind just clangs
-      e.hp -= e.type === 'boss' ? 3 : CFG.bashDmg; hit++;
+      e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg; hit++;
+      if (e.type === 'boss') this.bossRecoil(e, dir, 'bash', 4);       // (v3.52) bosses REEL from a bash
       if (e.hp <= 0 && e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3 && !this.wheels.some(w => w.i === 2)) {   // bash-finish a tough one: wheel #3
         this.addWheel(2, e.theta, e.h + e.ch + 10); const w = this.wheels.find(w => w.i === 2); if (w) { w.vh = 300; w.rest = 24; }
       }
@@ -4385,12 +4386,33 @@ class Level1 extends Phaser.Scene {
           continue;
         }
       }
-      if (!fooled && !e.phased && !e.noTouch && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
+      if (e.kbT > 0) { e.kbT -= dt; e.theta = wrap(e.theta + e.kbV * dt / (R + e.h)); e.kbV *= Math.max(0, 1 - dt * 7); }   // (v3.52) a boss reeling from a hit
+      if (e.kbLift > 0.5) { const back = e.kbLift * Math.min(1, dt * 3); e.h = Math.max(0, e.h - back); e.kbLift -= back; } else e.kbLift = 0;
+      if (e.graceT > 0) e.graceT -= dt;
+      if (!(e.graceT > 0) && !fooled && !e.phased && !e.noTouch && !(e.mmS && e.mmS.st === 'teleport') && !(e.kind === 'frog' && e.state === 'stun') && P.invuln <= 0 && dist2(e.theta, e.h + e.ch, P.theta, P.h + (P.duck ? 10 : 22)) < (e.r + (P.duck ? 9 : 12)) * (e.r + (P.duck ? 9 : 12))) {
         this.hurt(e.type === 'boss');                       // a boss landing on him or ramming him is a HEAVY hit
         if (e.type !== 'boss' && this.knock) this.knock(e, P.theta, 180);   // (v3.40) small fry bump off and come again - they no longer blow themselves up on him
       }
     }
     this.reapEnemies();
+  }
+
+  // (v3.52) BASHING A BOSS: it REELS - shoved away from you (an uppercut lifts it, a spike drives it down and away),
+  // flashes, shows the damage - and you bounce back off it, with a moment where touching it doesn't hurt, so you can get
+  // clear. The huge ones (the dreadnought, the saucer king, the colossus) don't budge, but you still get the bounce.
+  bossRecoil(e, dir, kind, dmg) {
+    const P = this.pl, big = ['dreadnought', 'saucerking', 'colossus'].includes(e.ai);
+    if (!big) {
+      e.kbV = dir * (kind === 'upper' ? 220 : kind === 'spike' ? 340 : 420); e.kbT = 0.35;
+      if (kind === 'upper') { e.h += 46; e.kbLift = (e.kbLift || 0) + 46; }
+      else if (kind === 'spike' && e.h > 0) e.h = Math.max(0, e.h - 30);   // a side-spike drives it sideways AND down   // (an offset that drains away: every boss AI settles back down)
+      e.spr.hsq = 1.3;
+    }
+    e.graceT = 0.8;                                                   // touching it right after doesn't hurt
+    if (kind !== 'spike') { P.vx = -dir * 260; if (P.h < 4) P.vh = Math.max(P.vh, 170); }
+    P.invuln = Math.max(P.invuln, 0.25);
+    this.popup(e.theta, e.h + e.ch + 40, '-' + dmg, kind === 'upper' ? '#ff9d3a' : '#ffffff');
+    this.cameras.main.shake(110, 0.006); this.hitStop = Math.max(this.hitStop || 0, 0.08);
   }
 
   reapEnemies() {

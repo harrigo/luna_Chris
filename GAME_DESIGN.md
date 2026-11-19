@@ -2158,3 +2158,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.51: the Baron's claws are dodgeable
 - The Baron's rat-claw punch is 20% slower: wind-up tell 0.96s (0.72s angry, were 0.8 / 0.6) and the punch out 0.3s (was 0.24). Hold and snap-back unchanged.
+
+## v3.52: bosses reel from bashes
+- Every bash on a boss now knocks it back: a normal bash shoves it away from Chris, an uppercut lifts it (and it settles back down), a side spike drives it sideways and down.
+- After a bash the boss can't hurt Chris by touch for 0.8s, and Chris bounces back a little, so a hit is a chance to get clear.
+- Boss bash damage 3 → 4, with a damage number, a small shake and hit-stop.
+- The giant bosses (Dreadnought, Saucer King, Colossus) get the grace and damage but aren't shoved.
