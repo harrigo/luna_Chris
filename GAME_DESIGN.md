@@ -2176,3 +2176,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - The arms are thicker and suit-white, with a puffy shoulder ball. The mission badge now sits on the shoulder, and the shoulder joint sits right over the suit's own badge, so the arm covers the back of the body.
 - The gun sits a touch further back (BK -5) and the arms are longer (near 14+14, far 16+16) to reach it.
 - Black Rind armour: plated versions of the bigger parts, with a reactor disc on the pauldron.
+
+## v3.55: smaller gloves
+- Both arm gloves (grip fist and support hand) drawn at 80% size.
