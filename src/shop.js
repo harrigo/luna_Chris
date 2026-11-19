@@ -77,10 +77,9 @@ function makeArmourTextures(scene, mk) {
     for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) { a.line([[6, 8], [x, y]], PL[1], 3); a.ell(x, y, 1.6, 1.6, PL); a.px(x, y, TR[0]); }
     a.line([[5, 7], [3, 2]], PL[1], 3); a.ell(3, 2, 1.6, 1.6, PL); a.ell(6, 8.5, 4.6, 4.6, PL); a.ell(3, 9, 2, 3.6, PL); a.px(6, 8, EM[1]);
   });
-  pixSprite(scene, K('c_leg'), 16, 18, a => {                               // a greave, a big knee cop
-    a.poly([[2, 0], [14, 0], [15, 7], [13, 17], [4, 17], [1, 8]], PL);
-    a.line([[5, 1], [4, 6]], HI); a.line([[6, 13], [11, 13]], EM[1]); a.rect(4, 16, 13, 17, TR[1]);
-    a.ell(8.5, 9, 5.5, 3.6, TR); a.px(8, 8, TR[0]); a.px(9, 10, TR[2]); a.px(8, 9, hot ? EM[0] : TR[0]);
+  pixSprite(scene, K('c_leg'), 16, 18, a => {                               // (v3.58) a slim greave, a knee cop
+    a.rrect(5, 0, 11, 17, 2, PL); a.line([[6, 1], [6, 15]], HI); a.rect(5, 16, 11, 17, TR[1]);
+    a.ell(8.5, 9, 4, 2.6, TR); a.px(8, 9, hot ? EM[0] : TR[0]);
   });
   pixSprite(scene, K('c_boot'), 28, 15, a => {                              // sabatons: a trimmed cuff, a capped toe, the sole glowing
     a.rrect(5, 0, 16, 6, 2, PL); a.rect(6, 1, 15, 1, TR[1]); a.px(6, 1, TR[0]);
@@ -137,10 +136,11 @@ function makeArmourTextures(scene, mk) {
   });
   copy('c_hat', (get, put, w, h) => {                                           // the toque stays white: a black studded band, a cheese-wedge badge
     const curve = x => 3.2 * (1 - Math.pow((x + 0.5 - 20.5) / 12, 2));
-    for (let x = 8; x <= 33; x++) { const c = curve(x), y0 = Math.round(25 + c * 0.6), y1 = Math.round(31 + c);
+    const oy = h - 36;                                                           // (v3.58: the taller toque - the band is at the bottom)
+    for (let x = 8; x <= 33; x++) { const c = curve(x), y0 = Math.round(25 + oy + c * 0.6), y1 = Math.round(31 + oy + c);
       for (let y = y0; y <= y1; y++) put(x, y, y === y0 ? TR[1] : y === y1 ? TR[2] : (y === y0 + 1 ? PL[0] : PL[1]));
       if (x % 4 === 2) put(x, Math.round((y0 + y1) / 2), hot ? EM[0] : TR[0]); }
-    for (const [x, y, c] of [[20, 26, TR[0]], [19, 27, TR[0]], [20, 27, TR[1]], [21, 27, TR[0]], [18, 28, TR[1]], [19, 28, EM[1]], [20, 28, TR[1]], [21, 28, TR[1]], [22, 28, TR[0]], [18, 29, TR[2]], [19, 29, TR[2]], [20, 29, TR[2]], [21, 29, TR[2]], [22, 29, TR[2]]]) put(x, y + 1, c);
+    for (const [x, y, c] of [[20, 26, TR[0]], [19, 27, TR[0]], [20, 27, TR[1]], [21, 27, TR[0]], [18, 28, TR[1]], [19, 28, EM[1]], [20, 28, TR[1]], [21, 28, TR[1]], [22, 28, TR[0]], [18, 29, TR[2]], [19, 29, TR[2]], [20, 29, TR[2]], [21, 29, TR[2]], [22, 29, TR[2]]]) put(x, y + 1 + oy, c);
   });
 }
 ChrisRig.prototype.setArmour = function (on, mk) {

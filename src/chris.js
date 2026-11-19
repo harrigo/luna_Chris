@@ -343,17 +343,18 @@ function makeChrisTextures(scene) {
   // stay ON the gun - a fist round the grip, the other hand cupped under the front. The far arm is a shade darker.
   // (v3.53b) fatter and whiter: a big puffy shoulder with the mission badge on it, sat over the back of the suit
   const SLV = [0xffffff, 0xe4ecf8, 0xaabbd8], SUITD = [0xeef2fa, 0xccd8ea, 0x93a6c8], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;   // (v3.57: a touch lighter than the suit, so they sit in)
+  const softInk = (g, w, h) => { for (let i = 0; i < g.length; i++) if (g[i] === 0x1a1020) g[i] = 0x6a7896; };   // (v3.58) a soft slate outline on the sleeves, so they don't ring the suit in black
   for (const [sfx, SU, GL, RD] of [['', SLV, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
     pixSprite(scene, 'c_uarm' + sfx, 22, 14, a => {                                       // upper arm: shoulder ball (the joint, at x 7) and a fat sleeve to the elbow (x 19)
       a.rrect(7, 2, 20, 11, 4, SU); a.ell(7, 7, 6, 6, SU);
       a.line([[9, 4], [15, 4]], SU[0]); a.line([[12, 10], [18, 10]], SU[2]);
       if (!sfx) { a.ell(7, 7, 3.4, 3.4, BLUE); a.ell(7, 7, 1.6, 1.6, 0xdfe8ff); a.px(6, 5, 0xffffff); }   // the mission badge
-    });
+    }, 1, softInk);
     pixSprite(scene, 'c_farm' + sfx, 19, 12, a => {                                       // forearm (joint at x 3, wrist at x 15): sleeve, a red cuff, a hairy wrist
       a.rrect(1, 1, 13, 10, 4, SU); a.line([[4, 3], [9, 3]], SU[0]);
       a.rect(12, 1, 14, 10, RD); a.rect(12, 1, 14, 1, 0xff6a6a);
       a.rect(15, 3, 17, 8, SKIN[1]); a.px(15, 3, HAIR); a.px(16, 5, HAIR); a.px(17, 4, HAIR); a.px(15, 7, HAIR);
-    });
+    }, 1, softInk);
     if (sfx) pixSprite(scene, 'c_hold', 16, 13, a => {                                     // the support hand, cupped under the gun, fingertips curled up its side
       a.rrect(1, 6, 14, 11, 3, GL);
       for (const x of [4, 8, 12]) { a.rrect(x - 1, 1, x + 1, 7, 1, GL); a.px(x, 6, GL[2]); }
