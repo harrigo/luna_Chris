@@ -10,6 +10,7 @@
 // Local units: feet at (0,0), +x = the way he faces, -y = up. The whole rig is scaled by RIG_SCALE.
 
 const RIG_SCALE = 0.95;
+const HAT_K = 0.82;   // (v3.59) the tall toque, drawn a bit smaller
 // (v3.53) where the hands go on each gun's texture: g = the grip (gun hand), f = under the front (support hand; none = one-handed)
 const GUN_HOLD = { c_gun: { g: [13, 20], f: [19, 20] }, c_gun2: { g: [13, 20], f: [19, 20] }, c_gun3: { g: [13, 20], f: [19, 21] }, ix_spatula: { g: [7, 15], f: null } };
 
@@ -652,7 +653,7 @@ class ChrisRig {
       this.hatA = Math.max(-0.7, Math.min(0.7, this.hatA + this.hatV * dt)); }
     this.hat.setPosition(3 - sw * 2.2 * run + this.hatA * 5, -54 + vyLag * 0.6 + Math.sin(t * 5) * 0.5);
     this.hat.setRotation(-0.09 - sw * (0.16 * run + 0.1 * wad) - P.vh * 0.0004 - 0.04 * Math.sin(t * 5) + this.hatA * 0.7);   // (it sits a bit crooked)
-    this.hat.setScale(1 + vyLag * -0.006, 1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015);
+    this.hat.setScale(HAT_K * (1 + vyLag * -0.006), HAT_K * (1 + vyLag * 0.012 + Math.sin(t * 5.5) * 0.015));
     const jS = P.jamShake || 0, jB = P.jamBang || 0;            // a clogged gun: he shakes it furiously, then thumps it
     this.head.setPosition(2 + sw * 0.6 * run + Math.sin(t * 37) * 1.3 * jS, -44 + vyLag * 0.2 + (jB > 0.55 && jB < 0.8 ? 1.5 : 0)); this.crack.setPosition(this.head.x, this.head.y);
     if (jS) { this.hat.x += Math.sin(t * 37 - 0.9) * 2.2 * jS; this.hat.rotation += Math.sin(t * 37 - 0.9) * 0.1 * jS; }

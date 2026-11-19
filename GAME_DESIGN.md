@@ -2190,3 +2190,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Hat (assets/sprites/c_hat.png, now 42x44): a proper tall chef's toque, with a big puffy top leaning back over a pleated column and the same curved band at the bottom. The Black Rind band recolour is offset to match (shop.js).
 - Legs (c_leg.png): slim white suit legs with a knee crease, replacing the stubby blue trousers. The armoured greave is slimmer to match.
 - Arm sleeves get a soft slate outline (0x6a7896) instead of black, so the shoulder doesn't ring the suit in black. The gloves keep their dark ink.
+
+## v3.59: smaller toque
+- The hat is drawn at 82% (HAT_K in chris.js), shrinking from the band up.
