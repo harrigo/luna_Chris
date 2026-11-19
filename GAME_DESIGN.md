@@ -2179,3 +2179,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.55: smaller gloves
 - Both arm gloves (grip fist and support hand) drawn at 80% size.
+
+## v3.56: gloves smaller again
+- Gloves now drawn at 70% size.

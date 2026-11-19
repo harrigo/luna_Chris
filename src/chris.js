@@ -488,7 +488,7 @@ class ChrisRig {
       const ex = S[0] + Math.cos(ua) * a, ey = S[1] + Math.sin(ua) * a;
       up.setVisible(true).setPosition(S[0], S[1]).setRotation(ua).setScale(a / 12, 1);
       fo.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(Tg[1] - ey, Tg[0] - ex)).setScale(Math.hypot(Tg[0] - ex, Tg[1] - ey) / 12, 1);
-      hand.setVisible(true).setPosition(Tg[0], Tg[1]).setRotation(rot).setScale(0.8);   // (v3.55: gloves 20% smaller)
+      hand.setVisible(true).setPosition(Tg[0], Tg[1]).setRotation(rot).setScale(0.7);   // (v3.56: gloves 30% smaller)
     };
     const held = G.visible, H = GUN_HOLD[gun.texture.key] || GUN_HOLD.c_gun, gunRot = gr + ps;
     // the gun hand: on the grip (or hanging at his side if the gun's gone)
