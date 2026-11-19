@@ -2155,3 +2155,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - The campaign is untouched. Guns are shared with the campaign, so they stay.
   - The NEW GAME button now always shows.
 - RAT DISGUISE power-up retired: BUFFS.disguise has off: true, so it never drops. The code stays in case it's ever wanted back.
+
+## v3.51: the Baron's claws are dodgeable
+- The Baron's rat-claw punch is 20% slower: wind-up tell 0.96s (0.72s angry, were 0.8 / 0.6) and the punch out 0.3s (was 0.24). Hold and snap-back unchanged.
