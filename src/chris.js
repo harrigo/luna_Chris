@@ -342,8 +342,8 @@ function makeChrisTextures(scene) {
   // (v3.53) REAL ARMS: an upper arm and a forearm per side, solved every frame (shoulder -> elbow -> hand) so the gloves
   // stay ON the gun - a fist round the grip, the other hand cupped under the front. The far arm is a shade darker.
   // (v3.53b) fatter and whiter: a big puffy shoulder with the mission badge on it, sat over the back of the suit
-  const SUITD = [0xe6edf8, 0xbccbe2, 0x7f93b8], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;
-  for (const [sfx, SU, GL, RD] of [['', SUIT, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
+  const SLV = [0xffffff, 0xe4ecf8, 0xaabbd8], SUITD = [0xeef2fa, 0xccd8ea, 0x93a6c8], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;   // (v3.57: a touch lighter than the suit, so they sit in)
+  for (const [sfx, SU, GL, RD] of [['', SLV, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
     pixSprite(scene, 'c_uarm' + sfx, 22, 14, a => {                                       // upper arm: shoulder ball (the joint, at x 7) and a fat sleeve to the elbow (x 19)
       a.rrect(7, 2, 20, 11, 4, SU); a.ell(7, 7, 6, 6, SU);
       a.line([[9, 4], [15, 4]], SU[0]); a.line([[12, 10], [18, 10]], SU[2]);

@@ -2182,3 +2182,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.56: gloves smaller again
 - Gloves now drawn at 70% size.
+
+## v3.57: lighter arms
+- Arm sleeve shading a touch lighter (near and far) so the arms sit in with the suit.
