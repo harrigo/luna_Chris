@@ -2217,3 +2217,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Every level now opens zoomed in on Chris in his cook's apron. He sets a determined face (a new derived head, c_head_det: heavy brows, narrowed eye, tongue out), spins the apron into his cape (the rig's spinToCape), poses with a grin, the camera pulls back and a shout pops up (GO!, LET'S COOK!, ORDER UP!, CAPE ON!, DINNER TIME!). About 2.3s; tap or press A to skip.
 - Four versions, picked at random and never the same twice running (lc_cape_last): twirl (spins on the spot), jump (leaps and spins in the air, lands in dust), top (spins like a top, hat flying, comes out dizzy), slow (a long squint with the moustache twitching, then one sudden whip).
 - Not played on a retry after a death, from a checkpoint, after a warp, or in Boss Rush, the cavern, camp or training. Code: src/capeintro.js (state 'capeup'); it reuses the game-over camera push-in (goCam).
+
+## v3.64: CAPE UP reworked - you see the cloth
+- Chris no longer flips left and right during the intro; he stays facing forward. The apron itself now comes off as a cloth that whirls round him with a trail (round his middle, right round him in a jump, lassoed over his head, or one fast flick), turning from white to cape-red as it goes, his free hand following it.
+- It lands on his shoulders as the cape with a springy pop, a white flash on the cloth, a billow and sparks. The camera holds on him for three quarters of a second before pulling back for the shout. Total about 3s (2.4s for the quick flick); still skippable.

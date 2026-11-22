@@ -688,7 +688,7 @@ class ChrisRig {
 
     // ---- the far arm
     const open = this.handB.visible, jam = jB > 0 && this.fist && this.fist.visible;
-    const two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0);
+    const two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0) && free == null;
     const sF = fromT(-7, -27);
     let tF, front = true, hand = null, aF = 0;
     if (two) { tF = fromGun(H.f[0], H.f[1]); hand = this.fHand; aF = gunRot; }
