@@ -2231,3 +2231,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.66: the palette lock dialled back
 - The hard 48-colour snap with dither (v3.65) banded gradients and broke up small dim text, so the menus, map and shop looked wrong. It is now off for every scene except the levels, and in the levels it is a gentle pull: each pixel moves 30% of the way to its nearest master colour, with no dither. The contrast curve and the lower bloom stay (levels only).
+
+## v3.67: no UFO over the camp
+- The rat UFO beaming Bessie up (the reminder that hangs in the level 1 sky) no longer shows at Moon Camp.

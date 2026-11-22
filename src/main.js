@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.66';
+const BUILD = 'v3.67';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -5359,7 +5359,7 @@ class Level1 extends Phaser.Scene {
     }
     if (this.abduct) {                                  // the rat UFO with Bessie: lives up in the world and keeps its distance
       const A = this.abduct, dtA = this.lastDt || 0.016, P = this.pl, z = this.zoom;
-      A.a += ((this.state === 'play' && !this.nap ? 1 : 0) - A.a) * Math.min(1, dtA * 2);
+      A.a += ((this.state === 'play' && !this.nap && !this.camp ? 1 : 0) - A.a) * Math.min(1, dtA * 2);
       if (A.theta === undefined) { A.theta = wrap(P.theta + 0.4); A.tgt = A.theta; A.st = 'hover'; A.vt = 0; A.wt = 0; A.h = 215; }
       const off = angDiff(A.theta, P.theta);
       if (A.st !== 'flee' && Math.abs(off) < 0.14) {                     // Chris got too close: zip off to one side
