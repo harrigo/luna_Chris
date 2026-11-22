@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.65';
+const BUILD = 'v3.66';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -5865,8 +5865,6 @@ const startPhaser = () => { window.game = new Phaser.Game({
   input: { activePointers: 4 },
   scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene]
 });
-// (v3.65) every scene's camera gets the grade (contrast + the palette lock: fx.js), so the menus match the levels
-window.game.events.once('ready', () => { for (const sc of window.game.scene.scenes) sc.sys.events.on('create', () => { if (!sc.fxApply) fxGrade(sc, 0.3); }); });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.
   const apply = () => {

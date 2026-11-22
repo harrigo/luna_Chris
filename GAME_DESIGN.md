@@ -2228,3 +2228,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Because the lock is on the finished frame it covers PNG sprites, drawn-in-code sprites, graphics, glows and the HUD alike; soft glows become dithered bands rather than a blur.
 - Grounding: a puff of dust where Chris lands, and a skid of dust when he turns at a run (`dustPuff`, tinted by `def.dustTint`).
 - Not done: matching pixel sizes. On a phone the world is drawn at about 83% (zoom = height / 470), so sprite pixels are not all one screen pixel. Fixing it means raising the logical height to 470 and scaling the HUD and touch controls up to compensate.
+
+## v3.66: the palette lock dialled back
+- The hard 48-colour snap with dither (v3.65) banded gradients and broke up small dim text, so the menus, map and shop looked wrong. It is now off for every scene except the levels, and in the levels it is a gentle pull: each pixel moves 30% of the way to its nearest master colour, with no dither. The contrast curve and the lower bloom stay (levels only).
