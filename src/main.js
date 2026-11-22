@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.62';
+const BUILD = 'v3.63';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -202,7 +202,7 @@ class Level1 extends Phaser.Scene {
   constructor() { super('level1'); }
 
   init(data) {
-    this.autostart = !!(data && data.autostart);
+    this.autostart = !!(data && data.autostart); this.capeDone = false; this.cape = null;   // (capeintro.js: once per level start)
     this.warped = !!(data && data.warped);                       // arrived through a warp hole
     this.direct = !!(data && data.direct);
     this.fromPrime = !!(data && data.fromPrime);                 // (v2.79) arrived hanging off the Royal Saucer's ladder from Parmesan Prime                       // arrived from the level-select screen
@@ -582,7 +582,8 @@ class Level1 extends Phaser.Scene {
       if (p.x >= 232 && p.x <= 300 && p.y >= 36 && p.y <= 86 && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }   // tap the weapon box to swap
       if (p.x > this.W - 74 && p.y > 70 && p.y <= 92) { this.leaveTo('select'); return; }   // MENU button
       if (this.state === 'intro' || this.state === 'dead' || this.state === 'won') this.wantFs = true;
-      if (this.state === 'intro') this.startGame();
+      if (this.state === 'capeup') { if (this.cape && this.cape.t > 0.25) this.cape.skip = true; }
+      else if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.wonNext();
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
@@ -596,7 +597,8 @@ class Level1 extends Phaser.Scene {
       if (b === 'rb' && this.state === 'play') { this.ctReq = true; return; }   // (v3.28) CHEESE TIME on RB (X fires)
       if (b === 'y' && (this.state === 'play' || this.state === 'rescue')) { this.switchWeapon(1); return; }
       if (b !== 'a' && b !== 'start') return;
-      if (this.state === 'intro') this.startGame();
+      if (this.state === 'capeup') { if (this.cape && this.cape.t > 0.25) this.cape.skip = true; }
+      else if (this.state === 'intro') this.startGame();
       else if (this.state === 'dead' && this.t - this.endT > 0.5) this.retry();
       else if (this.state === 'won' && this.t - this.endT > 0.8) this.wonNext();
       else if (this.state === 'gameover' && this.goReady) this.leaveGameOver();
@@ -850,6 +852,7 @@ class Level1 extends Phaser.Scene {
   startGame() {
     if (this.camp) { this.campStart(); return; }
     if (this.training) { this.trainStart(); return; }
+    if (this.capeIntroOK()) { this.capeIntro(); return; }       // (v3.63) CAPE UP: the apron spins into the cape, then we're off (capeintro.js)
     this.hideOverlay();
     try { Board.startRun(this.levelId, !this.cp); } catch (e) { /* offline: no board */ }
     this.placeWheels(); this.placeOneUp(); this.ctPlace();
@@ -1500,6 +1503,7 @@ class Level1 extends Phaser.Scene {
     this.fxTick(rawDt);
     this.t += dt;
     this.ctUpdate(rawDt);
+    if (this.state === 'capeup') this.capeTick(rawDt);
 
     if (this.state === 'play') {
       const ek = (this.buffOn('slowmo') ? 0.4 : 1) * this.ctK();          // Slow-Mo Brie / CHEESE TIME: everything but Chris crawls
@@ -5721,6 +5725,7 @@ class Level1 extends Phaser.Scene {
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
+Object.assign(Level1.prototype, CapeIntroMixin);     // the start-of-level apron spin (src/capeintro.js)
 Object.assign(Level1.prototype, MozzMixin, MagmaMixin);   // (magmagolem.js: the boss)
 Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);

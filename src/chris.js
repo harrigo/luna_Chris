@@ -94,6 +94,15 @@ function chrisGunParts(scene) {
     for (let x = 5; x <= 25; x++) if (get(x, 10)) put(x, 9, INK);
     put(13, 8, 0x5a6272); put(14, 8, 0x5a6272); put(13, 7, INK); put(14, 7, INK); put(12, 8, INK); put(15, 8, INK);   // the spindle the reel turns on
   });
+  // (v3.63) DETERMINED: both eyes narrowed under a great scowl of brow, and the tip of his tongue poking out
+  derive('c_head', 'c_head_det', (get, put) => {
+    const SK = 0xffd9c4, BR = 0x5a3216, on = (x, y, c) => { if (get(x, y)) put(x, y, c); };
+    for (let x = 17; x <= 24; x++) { on(x, 9, SK); on(x, 10, SK); on(x, 11, INK); }        // the big eye, half shut under a heavy lid
+    for (let x = 18; x <= 24; x++) on(x, 8 + (x > 21 ? 0 : 1), BR); for (let x = 16; x <= 21; x++) on(x, 10, BR);   // and its brow comes right down
+    on(21, 13, INK); on(22, 13, INK); on(21, 12, INK); on(20, 13, 0xffffff);                // a small hard pupil
+    for (let x = 6; x <= 13; x++) on(x, 10 + Math.round((x - 6) * 0.3), BR);                // the other brow, lower and thicker
+    for (const [x, y, c] of [[19, 24, 0xff8aa0], [20, 24, 0xff8aa0], [19, 25, 0xe85a7a], [20, 25, 0xff8aa0], [21, 25, 0xe85a7a], [19, 26, INK], [20, 26, INK], [21, 24, INK]]) on(x, y, c);   // the tongue
+  });
   const noInk = g => { for (let i = 0; i < g.length; i++) if (g[i] === INK) g[i] = -1; };
   if (!T.exists('c_hopfill')) {
     pixSprite(scene, 'c_hopfill', 19, 7, a => {                       // a hopperful of macaroni (texture x 0 = gun x 8, y 0 = gun y 3)
@@ -871,10 +880,10 @@ class ChrisRig {
     if ((this.blinkT -= dt) <= 0) { this.blinkT = 1.8 + Math.random() * 3.2; this.blinkOn = 0.12; }
     if ((this.twitchT -= dt) <= 0) { this.twitchT = 2.5 + Math.random() * 4; this.twitch = 0.22; }
     const angry = this.ouchT > 0 || jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed;
-    const fk = this.faceKey || (this.ouchT > 0 ? 'c_head_hurt' : (jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed) ? 'c_head_fire' : fly ? 'c_head_puff' : this.grinT > 0 ? 'c_head_grin' : this.blinkOn > 0 ? 'c_head_blink' : 'c_head');
+    const fk = this.faceKey || (this.ouchT > 0 ? 'c_head_hurt' : this.detFace ? this.detFace : (jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed) ? 'c_head_fire' : fly ? 'c_head_puff' : this.grinT > 0 ? 'c_head_grin' : this.blinkOn > 0 ? 'c_head_blink' : 'c_head');
     if (this.head.texture.key !== fk) this.head.setTexture(fk);
     this.head.setRotation(0.06 + (this.ouchT > 0.45 ? Math.sin(t * 60) * 0.12 : 0));                                // the helmet sits a touch crooked; it rattles when he's hit
-    const br = angry ? 1 : 0, tw = this.twitch > 0 ? Math.sin(this.twitch * 40) * 0.22 : 0;
+    const br = angry || this.detFace === 'c_head_det' ? 1 : 0, tw = this.twitch > 0 ? Math.sin(this.twitch * 40) * 0.22 : 0;
     this.tache.setVisible(!this.faceKey).setPosition(this.head.x, this.head.y + 6 + (fk === 'c_head_hurt' ? -1 : 0))
       .setRotation(0.06 + tw + Math.sin(t * 2.2) * 0.02 + (br ? Math.sin(t * 50) * 0.05 : 0)).setScale(1 + 0.16 * br + (fk === 'c_head_grin' ? 0.08 : 0), 1 + 0.3 * br);   // it bristles when he's riled
     const pk = this.ouchT > 0.45 && this.ouchHeavy && !this.faceKey ? (0.7 - this.ouchT) / 0.25 : -1;                  // a heavy hit: the eyes shoot out and snap back
