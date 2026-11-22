@@ -2234,3 +2234,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.67: no UFO over the camp
 - The rat UFO beaming Bessie up (the reminder that hangs in the level 1 sky) no longer shows at Moon Camp.
+
+## v3.68: smashable crates, tin cans
+- Crate tower: the crates no longer block or shove. Chris walks straight past them. Two shots or one bash bursts a crate into planks and gives one golden crumb (at most 12 per camp visit); whatever was resting on it falls. The stack is rebuilt 60s after the first crate goes. The beach ball still knocks them about.
+- Tin cans (new toy, unlocks after 1 run, at -1.9 beside the larder): five tins on a fence rail. Shoot or bash them off. All five down is a CLEAN SWEEP, timed from the first hit; the best time is saved (lc_toys.cans) and shown on the post. They stand back up 2.5s after a sweep, or 7s after the last hit if you stop part way.

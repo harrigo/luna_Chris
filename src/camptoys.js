@@ -5,13 +5,16 @@
 //                         hits harder still. Ring the bell! Your best is chalked on the board.
 //   CLAY CHEESE   (-2.55) Clank's trap. Press DOWN for "PULL!" and he lobs 8 little cheese wheels into the sky over
 //                         12 seconds: shoot them, or bash one as it comes in to PARRY it back (worth double).
-//   CRATE TOWER   (2.4)   a stack of crates and barrels. Shoot it, bash it, bowl the beach ball into it: everything
-//                         topples with a bit of physics. It stacks itself back up a while after.
+//   CRATE TOWER   (2.4)   (v3.68) a stack of crates and barrels to SMASH. You walk straight past them (they never block
+//                         you); two shots or one bash and a crate bursts into planks and drops a golden crumb. What was
+//                         on top comes tumbling down. The stack is rebuilt a minute after the first one goes.
+//   TIN CANS      (-1.9)  (v3.68) five tins on a fence rail. Shoot them off (or bash them): they ping away spinning.
+//                         Clear all five for a CLEAN SWEEP; your fastest sweep is chalked on the post.
 //   HOOP          (0.86)  a basketball hoop. Get the beach ball through it (shoot, bash, uppercut, header...). Biscuit
 //                         goes wild. Streaks count.
-const TOY_UNLOCK = { hoop: 1, striker: 2, tower: 3, clay: 4, cave: 5 };   // (v3.43) runs finished (won or lost) before each one turns up
-const TOY_NAME = { hoop: 'A BASKETBALL HOOP', striker: 'A HIGH STRIKER', tower: 'A CRATE TOWER', clay: 'CLANK\'S CLAY CHEESE TRAP', cave: 'SOMETHING UNDER A BOULDER...' };
-const TOY = { strikerTh: -0.7, hoopTh: 0.86, trapTh: -2.55, towerTh: 2.4, strikerH: 150, rimH: 141, rimHalf: 29, rimOff: -3 };
+const TOY_UNLOCK = { hoop: 1, cans: 1, striker: 2, tower: 3, clay: 4, cave: 5 };   // (v3.43) runs finished (won or lost) before each one turns up
+const TOY_NAME = { hoop: 'A BASKETBALL HOOP', striker: 'A HIGH STRIKER', tower: 'A CRATE TOWER', cans: 'TIN CANS ON THE FENCE', clay: 'CLANK\'S CLAY CHEESE TRAP', cave: 'SOMETHING UNDER A BOULDER...' };
+const TOY = { strikerTh: -0.7, hoopTh: 0.86, trapTh: -2.55, towerTh: 2.4, cansTh: -1.9, railH: 34, strikerH: 150, rimH: 141, rimHalf: 29, rimOff: -3 };
 
 function makeToyTextures(scene) {
   if (scene.textures.exists('ty_striker')) return;
@@ -24,6 +27,15 @@ function makeToyTextures(scene) {
     a.ell(17, 8, 8, 7, GOLD); a.px(14, 5, 0xffffff); a.rect(16, 0, 18, 2, 0x5a3212);                   // the bell
     a.rrect(2, 114, 32, 123, 2, RED); a.rect(4, 115, 30, 117, 0xffb0a0);                               // the pad you hit
   });
+  pixSprite(scene, 'ty_plank', 12, 4, a => { a.rect(0, 0, 11, 3, WD[1]); a.rect(0, 0, 11, 0, WD[0]); a.px(2, 2, WD[2]); a.px(8, 1, WD[2]); }, 1, g => { for (let i = 0; i < g.length; i++) if (g[i] === 0x1a1020) g[i] = -1; });
+  pixSprite(scene, 'ty_fence', 100, 40, a => {                                                     // a length of fence: two posts, two rails (the tins stand on the top one)
+    a.rrect(8, 4, 15, 39, 1, WD); a.rrect(84, 4, 91, 39, 1, WD); a.rect(2, 8, 97, 12, WD[1]); a.rect(2, 8, 97, 8, WD[0]); a.rect(2, 12, 97, 12, WD[2]);
+    a.rect(2, 24, 97, 27, WD[1]); a.rect(2, 24, 97, 24, WD[0]); for (const x of [11, 87]) { a.px(x, 10, 0x4e5868); a.px(x, 25, 0x4e5868); }
+    a.line([[30, 9], [44, 11]], WD[2]); a.line([[60, 25], [72, 26]], WD[2]);
+  });
+  [[0xe03a3a, 0x8a1818], [0x3a7ad8, 0x1a3a8a], [0x3aa84a, 0x1a5a22]].forEach(([c, d], i) => pixSprite(scene, 'ty_can' + i, 11, 14, a => {   // a tin: ridged steel, a bright label
+    a.rrect(1, 1, 9, 12, 1, ST); a.rect(1, 4, 9, 9, c); a.rect(8, 4, 9, 9, d); a.rect(2, 5, 3, 8, 0xffffff); a.rect(1, 2, 9, 2, 0xffffff); a.px(5, 6, 0xffe890); a.px(6, 7, 0xffe890);
+  }));
   pixSprite(scene, 'ty_puck', 10, 6, a => { a.rrect(0, 0, 9, 5, 1, ST); a.px(2, 1, 0xffffff); });
   pixSprite(scene, 'ty_trap', 36, 26, a => {
     a.rrect(2, 12, 34, 25, 2, ST); for (let x = 4; x < 34; x += 6) a.poly([[x, 25], [x + 3, 25], [x + 6, 12], [x + 3, 12]], 0xffd23f);   // hazard stripes
@@ -49,7 +61,7 @@ const CampToysMixin = {
     const add = (tex, th, sc, depth) => { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth); spr.bsx = spr.bsy = sc; const a = { spr, theta: th, h: -this.campSink(spr, sc), rot: 0 }; this.actors.push(a); return a; };
     let best = {}; try { best = JSON.parse(localStorage.getItem('lc_toys') || '{}'); } catch (e) { /* ignore */ }
     this.toyBest = best; this.toysOn = true;
-    this.striker = null; this.hoop = null; this.tower = { blocks: [], calmT: 0 }; this.clay = { on: false, n: 0, hits: 0, t: 0, next: 0, wheels: [] };
+    this.striker = null; this.hoop = null; this.tower = { blocks: [], calmT: 0, goneT: 0, paid: 0 }; this.cans = null; this.clay = { on: false, n: 0, hits: 0, t: 0, next: 0, wheels: [] };
     if (this.toyOpen('striker')) {
       this.striker = { a: add('ty_striker', TOY.strikerTh, 1.3, 2.4), puck: { h: 0, vh: 0 }, cd: 0,
         txt: this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '7px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3, align: 'center' }).setOrigin(0.5, 1).setDepth(2.47) };
@@ -57,6 +69,12 @@ const CampToysMixin = {
     }
     if (this.toyOpen('hoop')) this.hoop = { a: add('ty_hoop', TOY.hoopTh, 1.0, 2.38), streak: 0, cd: 0 };
     if (this.toyOpen('tower')) this.towerBuild();
+    if (this.toyOpen('cans')) {
+      this.cans = { a: add('ty_fence', TOY.cansTh, 1.0, 2.38), list: [], t0: -1, lastT: 0, doneT: 0,
+        txt: this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '7px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3, align: 'center' }).setOrigin(0.5, 1).setDepth(2.47) };
+      for (let i = 0; i < 5; i++) { const spr = this.add.image(0, 0, 'ty_can' + (i % 3)).setOrigin(0.5, 1).setDepth(2.5); spr.bsx = spr.bsy = 1.2; this.cans.list.push({ spr, i, up: true, theta: 0, h: 0, vt: 0, vh: 0, rot: 0, vr: 0 }); }
+      this.cansReset(true);
+    }
     const trap = this.campSt.find(q => q.id === 'clay'); if (trap) trap.a.spr.setVisible(this.toyOpen('clay'));
     // anything new since last time? Fridge-o-tron points it out
     let seen = []; try { seen = JSON.parse(localStorage.getItem('lc_toys_seen') || '[]'); } catch (e) { /* ignore */ }
@@ -65,14 +83,14 @@ const CampToysMixin = {
       try { localStorage.setItem('lc_toys_seen', JSON.stringify(seen.concat(fresh))); } catch (e) { /* ignore */ }
       this.time.delayedCall(this.campSum ? 5200 : 2400, () => {
         this.campSay('NEW AT CAMP: ' + fresh.map(id => TOY_NAME[id]).join(', ') + '!', 5); Sound.sfx('reveal');
-        for (const id of fresh) { const th = { hoop: TOY.hoopTh, striker: TOY.strikerTh, tower: TOY.towerTh, clay: TOY.trapTh, cave: 1.65 }[id]; for (let k = 0; k < 3; k++) this.time.delayedCall(k * 250, () => this.burst(th, 40, 'spark', 8, 1)); }
+        for (const id of fresh) { const th = { hoop: TOY.hoopTh, striker: TOY.strikerTh, tower: TOY.towerTh, clay: TOY.trapTh, cave: 1.65, cans: TOY.cansTh }[id]; for (let k = 0; k < 3; k++) this.time.delayedCall(k * 250, () => this.burst(th, 40, 'spark', 8, 1)); }
       });
     }
   },
   toySave() { try { localStorage.setItem('lc_toys', JSON.stringify(this.toyBest)); } catch (e) { /* ignore */ } },
 
-  // ---- CRATE TOWER (v3.43: solid crates you can shove; the ones on top tip off when their support slides away;
-  // loose crates land on each other instead of falling through; it tidies itself up a while after you leave it)
+  // ---- CRATE TOWER (v3.68: scenery to SMASH. No collision with Chris at all. Two shots or one bash bursts a crate into
+  // planks and a golden crumb; whatever was resting on it tumbles; the stack is rebuilt a minute after the first goes)
   towerBuild() {
     const T = this.tower; for (const b of T.blocks) b.spr.destroy(); T.blocks = [];
     const W = 27 / R, rows = [[-1, 0, 1], [-0.5, 0.5], [0]];
@@ -80,13 +98,23 @@ const CampToysMixin = {
       const tex = (ri + j) % 3 === 1 ? 'cr_barrel' : 'cr_crate';
       const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(2.6); spr.bsx = spr.bsy = 1.5;
       const th = wrap(TOY.towerTh + k * W);
-      T.blocks.push({ spr, theta: th, h: ri * 30, home: { theta: th, h: ri * 30 }, vt: 0, vh: 0, rot: 0, vr: 0, fly: false });
+      T.blocks.push({ spr, theta: th, h: ri * 30, home: { theta: th, h: ri * 30 }, vt: 0, vh: 0, rot: 0, vr: 0, fly: false, hp: 2, flash: 0 });
     }));
-    T.calmT = 0; T.cheer = false;
+    T.calmT = 0; T.goneT = 0; T.cheer = false;
   },
   towerKnock(b, vt, vh) {
     b.fly = true; b.vt += vt; b.vh = Math.max(b.vh, vh); b.vr += (Math.sign(vt) || 1) * rnd(4, 9);
-    if (!this.tower.cheer) { this.tower.cheer = true; this.time.delayedCall(250, () => { Sound.sfx('crash'); this.popup(TOY.towerTh, 110, 'TIMBER!', '#ffd23f', true); }); }
+  },
+  // a crate bursts: planks everywhere, a golden crumb (up to a dozen a visit), and a cheer for the first one
+  towerSmash(b, dir) {
+    const T = this.tower, i = T.blocks.indexOf(b); if (i < 0) return;
+    T.blocks.splice(i, 1);
+    for (let k = 0; k < 7; k++) { const im = this.add.image(0, 0, 'ty_plank').setDepth(2.7); im.bsx = im.bsy = rnd(1.1, 1.7); this.parts.push({ theta: b.theta, h: b.h + rnd(6, 26), vt: (dir || 0) * rnd(40, 160) + rnd(-140, 140), vh: rnd(120, 360), life: rnd(0.6, 1), spr: im, rot: rnd(0, 6), rv: rnd(-14, 14) }); }
+    this.burst(b.theta, b.h + 16, 'crumb', 6, 0.8); this.burst(b.theta, b.h + 16, 'puff', 3, 0.5); Sound.sfx('crash'); this.cameras.main.shake(70, 0.004);
+    b.spr.destroy();
+    if (T.paid < 12 && typeof Meta !== 'undefined') { T.paid++; Meta.addCrumbs(1); this.popup(b.theta, b.h + 44, '+1 CRUMB', '#ffd23f'); if (this.campCrumbT) this.campCrumbT.setText(String(Meta.crumbs())); Sound.sfx('pickup'); }
+    if (!T.cheer) { T.cheer = true; this.popup(TOY.towerTh, 120, 'SMASH!', '#ffd23f', true); }
+    if (!T.goneT) T.goneT = 0.001;
   },
   // the height of whatever's underneath a crate here (the ground, or a crate that's sitting still)
   towerFloor(b) {
@@ -95,19 +123,16 @@ const CampToysMixin = {
     return f;
   },
   towerUpdate(dt) {
-    const T = this.tower, B = this.ball, P = this.pl, HALF = 13.5;
+    const T = this.tower, B = this.ball, P = this.pl; if (!this.toyOpen('tower')) return;
     for (const b of T.blocks) {
+      b.flash = Math.max(0, b.flash - dt); if (b.flash > 0) b.spr.setTintFill(0xffffff); else b.spr.clearTint();
       if (!b.fly) {
-        // nothing (or not enough) underneath any more: it tips off towards the side that's hanging over
-        if (b.h > 1) {
-          const under = T.blocks.filter(o => o !== b && !o.fly && Math.abs(o.h + 30 - b.h) < 4 && Math.abs(angDiff(o.theta, b.theta)) * R < 18);
-          if (!under.length) { const nb = T.blocks.find(o => o !== b && !o.fly && Math.abs(o.h + 30 - b.h) < 4 && Math.abs(angDiff(o.theta, b.theta)) * R < 30); this.towerKnock(b, nb ? -Math.sign(angDiff(nb.theta, b.theta)) * 70 : rnd(-40, 40), 30); continue; }
-        }
+        // nothing underneath any more: down it comes
+        if (b.h > 1 && this.towerFloor(b) < b.h - 4) this.towerKnock(b, rnd(-40, 40), 20);
         // the beach ball barrelling into it
         if (B && Math.abs(angDiff(B.theta, b.theta)) * R < 24 && B.h - BALL.r < b.h + 30 && B.h + BALL.r > b.h && Math.hypot(B.vt, B.vh) > 160) { this.towerKnock(b, B.vt * 0.8, 200 + Math.abs(B.vh) * 0.3); B.vt *= -0.4; }
         continue;
       }
-      // flying
       b.vh -= 900 * dt; b.h += b.vh * dt; b.theta = wrap(b.theta + b.vt / R * dt); b.rot += b.vr * dt;
       const fl = this.towerFloor(b);
       if (b.h <= fl) {
@@ -116,34 +141,55 @@ const CampToysMixin = {
         else { b.vh = 0; b.vt *= Math.max(0, 1 - dt * 10); b.vr = 0; b.rot += (Math.round(b.rot / (Math.PI / 2)) * Math.PI / 2 - b.rot) * Math.min(1, dt * 12);
           if (Math.abs(b.vt) < 10) { b.fly = false; b.vt = 0; b.rot = Math.round(b.rot / (Math.PI / 2)) * Math.PI / 2; } }
       }
-      for (const o of T.blocks) if (o !== b && !o.fly && Math.abs(angDiff(o.theta, b.theta)) * R < 24 && Math.abs(o.h - b.h) < 26 && Math.hypot(b.vt, b.vh) > 140) this.towerKnock(o, b.vt * 0.6, 120);
-    }
-    // CHRIS: crates are solid. Walk into one and you shove it along (slower than you walk); shove the bottom of the stack
-    // and what's on top tips off.
-    for (const b of T.blocks) {
-      if (b.fly || P.h > b.h + 26 || P.h + 56 < b.h) continue;
-      const d = angDiff(b.theta, P.theta) * R, side = Math.sign(d) || 1;
-      if (Math.abs(d) >= HALF + 11) continue;
-      const pushing = (P.vx || 0) * side > 20;
-      if (pushing && P.h < b.h + 6) {
-        b.theta = wrap(b.theta + (P.vx || 0) * 0.55 / R * dt);
-        if (!b.scrape || (b.scrape -= dt) <= 0) { b.scrape = 0.25; Sound.sfx('grind', 0.4); this.burst(b.theta, 2, 'crumb', 1, 0.3); }
-        // ...and it shoves whatever's in front of it along the row, one after another, so nothing ends up inside anything
-        const row = T.blocks.filter(o => !o.fly && Math.abs(o.h - b.h) < 4 && angDiff(o.theta, b.theta) * side >= 0).sort((p, q) => angDiff(p.theta, b.theta) * side - angDiff(q.theta, b.theta) * side);
-        for (let k = 1; k < row.length; k++) { const gap = angDiff(row[k].theta, row[k - 1].theta) * side * R; if (gap < 27) row[k].theta = wrap(row[k - 1].theta + side * 27 / R); }
-      }
-      P.theta = wrap(b.theta - side * (HALF + 11) / R);                     // and you can't walk through it
     }
     for (const b of T.blocks) this.place(b.spr, b.theta, b.h, b.rot);
-    // tidy up: once it's been knocked about, everything's still, and you've wandered off, it stacks itself again
+    // rebuilt a minute after the first crate goes; or, if it's only been knocked about, once you've wandered off
+    if (T.goneT) { T.goneT += dt; if (T.goneT > 60) { for (const k of [-1, 0, 1]) this.burst(wrap(TOY.towerTh + k * 27 / R), 20, 'puff', 4, 0.6); Sound.sfx('reveal'); this.towerBuild(); } return; }
     const messy = T.blocks.some(b => Math.abs(angDiff(b.theta, b.home.theta)) * R > 6 || Math.abs(b.h - b.home.h) > 3), calm = T.blocks.every(b => !b.fly), away = Math.abs(angDiff(P.theta, TOY.towerTh)) * R > 160;
     T.calmT = messy && calm && away ? T.calmT + dt : 0;
     if (T.calmT > 5) { for (const b of T.blocks) this.burst(b.theta, 14, 'puff', 4, 0.6); Sound.sfx('reveal'); this.towerBuild(); }
   },
 
+  // ---- TIN CANS (v3.68): five on the fence rail. Shoot them off; all five = a clean sweep, timed
+  cansReset(quiet) {
+    const C = this.cans; if (!C) return;
+    for (const c of C.list) { c.up = true; c.theta = wrap(TOY.cansTh + (c.i - 2) * 17 / R); c.h = TOY.railH; c.vt = c.vh = c.vr = 0; c.rot = 0; if (!quiet) this.burst(c.theta, c.h + 8, 'puff', 2, 0.4); }
+    C.t0 = -1; C.doneT = 0; if (!quiet) Sound.sfx('reveal');
+  },
+  cansHit(c, dir, hard) {
+    const C = this.cans; if (!c.up) return;
+    c.up = false; c.vt = (dir || 1) * rnd(120, 240) * (hard ? 1.6 : 1); c.vh = rnd(200, 340) * (hard ? 1.3 : 1); c.vr = (dir || 1) * rnd(10, 22);
+    Sound.sfx('tink'); this.burst(c.theta, c.h + 8, 'spark', 4, 0.6);
+    if (C.t0 < 0) C.t0 = this.t; C.lastT = this.t;
+    if (C.list.every(q => !q.up)) {                                                 // CLEAN SWEEP
+      const tm = Math.round((this.t - C.t0) * 10) / 10, best = this.toyBest.cans;
+      C.doneT = 2.5; Sound.sfx('chime'); this.popup(TOY.cansTh, 96, 'CLEAN SWEEP! ' + tm.toFixed(1) + 's', '#ffd23f', true);
+      for (let k = 0; k < 2; k++) this.time.delayedCall(k * 140, () => this.burst(TOY.cansTh, 70, 'spark', 8, 1));
+      if (!(best > 0) || tm < best) { this.toyBest.cans = tm; this.toySave(); this.popup(TOY.cansTh, 120, 'NEW BEST!', '#7dff8a'); }
+    }
+  },
+  cansUpdate(dt) {
+    const C = this.cans; if (!C) return;
+    for (const c of C.list) {
+      if (!c.up && (c.vh || c.h > 0)) {
+        c.vh -= 900 * dt; c.h += c.vh * dt; c.theta = wrap(c.theta + c.vt / R * dt); c.rot += c.vr * dt;
+        if (c.h <= 0) { c.h = 0; if (c.vh < -140) { c.vh = -c.vh * 0.38; c.vt *= 0.6; c.vr *= 0.6; Sound.sfx('tink', 0.5); } else { c.vh = 0; c.vt = 0; c.vr = 0; c.rot = Math.PI / 2; } }
+      }
+      this.place(c.spr, c.theta, c.h + (c.up ? 0 : 5), c.rot);
+    }
+    if (C.doneT > 0) { C.doneT -= dt; if (C.doneT <= 0) this.cansReset(); }
+    else if (C.t0 >= 0 && this.t - C.lastT > 7) this.cansReset();                      // (gave up half way: they go back up)
+    const t = this.screenPos(TOY.cansTh, 62); C.txt.setPosition(t.x, t.y).setText(this.toyBest.cans > 0 ? 'BEST ' + this.toyBest.cans.toFixed(1) + 's' : '').setVisible(t.vis).setScale(this.zoom);
+  },
+
   // ---- shots and bashes on the toys (true = the shot's used up)
   toyShot(b) {
-    for (const k of this.tower.blocks) if (Math.abs(angDiff(b.theta, k.theta)) * R < 16 && b.h > k.h && b.h < k.h + 32) { this.towerKnock(k, Math.sign(b.vt || 1) * 160, 120); this.burst(k.theta, k.h + 16, 'spark', 3, 0.5); return true; }
+    for (const k of this.tower.blocks) if (Math.abs(angDiff(b.theta, k.theta)) * R < 16 && b.h > k.h && b.h < k.h + 32) {       // two shots and it's matchwood
+      k.hp--; k.flash = 0.07; this.burst(k.theta, k.h + 16, 'spark', 3, 0.5);
+      if (k.hp <= 0) this.towerSmash(k, Math.sign(b.vt || 1)); else Sound.sfx('clunk');
+      return true;
+    }
+    if (this.cans) for (const c of this.cans.list) if (c.up && Math.abs(angDiff(b.theta, c.theta)) * R < 9 && b.h > c.h - 2 && b.h < c.h + 19) { this.cansHit(c, Math.sign(b.vt || 1), false); return true; }
     for (const w of this.clay.wheels) if (!w.dead && Math.hypot(angDiff(b.theta, w.theta) * R, b.h - w.h) < 18) { this.clayBreak(w, false); return true; }
     return false;
   },
@@ -157,7 +203,8 @@ const CampToysMixin = {
       this.strikerHit(Math.max(0.12, pw));
     }
     // the crates
-    for (const k of this.tower.blocks) if (inFront(k.theta, 70) && Math.abs(k.h + 15 - cy) < 46) this.towerKnock(k, dir * (P.upper ? 140 : 420), P.upper ? 620 : 220);   // (a bash sends it flying)
+    for (const k of this.tower.blocks.slice()) if (inFront(k.theta, 70) && Math.abs(k.h + 15 - cy) < 46) this.towerSmash(k, dir);   // (one bash and it's matchwood)
+    if (this.cans) for (const c of this.cans.list) if (c.up && inFront(c.theta, 64) && Math.abs(c.h + 8 - cy) < 44) this.cansHit(c, dir, true);
     // a clay wheel coming in: PARRY it
     for (const w of this.clay.wheels) if (!w.dead && Math.hypot(angDiff(w.theta, P.theta) * R - dir * 24, w.h - cy) < 40) this.clayBreak(w, true);
   },
@@ -255,6 +302,6 @@ const CampToysMixin = {
   },
   toysUpdate(dt) {
     if (!this.toysOn) return;
-    this.strikerUpdate(dt); this.clayUpdate(dt); this.towerUpdate(dt); this.hoopUpdate(dt);
+    this.strikerUpdate(dt); this.clayUpdate(dt); this.towerUpdate(dt); this.cansUpdate(dt); this.hoopUpdate(dt);
   }
 };
