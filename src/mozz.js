@@ -1,28 +1,18 @@
 // LEVEL 4: MOUNT MOZZARELLA - "the Pizza Inferno". A charred pizza-crust planet with white-hot mozzarella pools,
 // marinara geysers and a volcano on the horizon that keeps erupting.
 //
-//  VOLCANO       every 8-12 s (and whenever the boss pounds the ground) the volcano behind the horizon erupts: the
-//                crater flares, lava spits into the sky, and 1-3 pepperoni-crust BOULDERS come bouncing in over the curve
-//                and roll at you. Jump them, or shoot them to bits (3 hits).
+//  VOLCANO       (v3.62) every 10-14 s in the waves the volcano behind the horizon erupts, and after a moment's warning
+//                EITHER one pepperoni-crust BOULDER comes bouncing in (an arrow at the edge of the screen shows which
+//                side: jump it, or shoot it to bits) OR two LAVA BOMBS drop where the target rings are. The boss sets
+//                off MAD ERUPTIONS: a whole carpet of rings sweeping across, shown two seconds ahead, with a gap in it.
 //  MARINARA      the geysers spew boiling marinara: blobs fly up and rain back down round the vent.
 //  ANCHOVY SWARMERS  little metal fish in a shoal of five that circles round a point drifting after you, snapping;
 //                every couple of seconds one darts straight at you, then rejoins the shoal.
 //  TOASTY OVEN DRONE  a hovering mini oven: follows you overhead, flings homing pizza-cutter wheels, and every few
 //                seconds shudders and SLAMS down onto the crust, sending shockwaves along the ground both ways.
-//  BOSS: THE MOZZARELLA MAGMA-GOLEM  a giant of molten cheese in charred crust armour. Three crust plates (head,
-//                shoulder, belly) soak up shots; break them off to expose his core (until then the rest of him only
-//                takes a third). Attacks: lobbed magma globs that leave burning puddles, a two-fisted GROUND POUND
-//                (shockwaves + it sets the volcano off), and a sweeping molten-cheese BREATH. Below half he BOILS
-//                OVER: any crust left blows off, he speeds up and calls down a magma rain (watch the target rings).
+//  BOSS: THE MOZZARELLA MAGMA-GOLEM  see magmagolem.js
 //
 // Mixed into Level1 (see main.js); level state in this.mz.
-
-const MG = {
-  plates: [{ key: 'mg_crust0', off: [0, -50], r: 26 }, { key: 'mg_crust1', off: [-50, -20], r: 24 }, { key: 'mg_crust2', off: [8, 26], r: 28 }],
-  core: [0, 2],
-  mouth: [0, -24],
-  footH: 82                // his centre's height when he stands on the crust (texture half-height x scale)
-};
 
 // mountains of molten mozzarella on the horizon: six different heaps (one to three lumpy peaks, drips running down,
 // browned blisters, a charred crust foot, some with a bubbling lava crater or cheese strings stretched between peaks).
@@ -109,34 +99,7 @@ function makeMozzTextures(scene) {
   makeMozzMountains(scene);
   const MOL = [0xfff6d0, 0xffc25a, 0xd0601a], CR = [0x7a4422, 0x40200e, 0x1c0c06], DARK = 0x2a0804;
   const crackIt = (p, pts) => p.line(pts, 0xff6a1a, 1);
-  // ---- the boss: a lumpy giant of molten mozzarella, fanged maw, burning eyes, dripping arms
-  // (v3.03) he moves now: a lumbering 4-frame walk (legs lift, the body bobs, the arms swing), fists raised overhead (the
-  // pound, and holding Chris up to throw him), and the maw gaping (the breath)
-  const golem = (key, o) => pixSprite(scene, key, 150, 132, p => {
-    const lL = o.lL || 0, lR = o.lR || 0, b = o.bob || 0, aL = o.aL || 0, aR = o.aR || 0, up = !!o.up, gape = o.gape || 0;
-    p.ell(52, 122 - lL, 17, 10, MOL); p.ell(98, 122 - lR, 17, 10, MOL);                                       // stumpy legs
-    p.ell(75, 74 + b, 52, 48, MOL);                                                                     // the body
-    if (up) { p.poly([[34, 50 + b], [22, 30], [26, 8], [42, 10], [44, 44 + b]], MOL); p.ell(32, 10, 14, 12, MOL); }
-    else { p.poly([[30, 50 + b], [12 - aL, 70 + b], [6 - aL, 86 + b], [22 - aL, 90 + b], [36, 72 + b]], MOL); p.ell(14 - aL, 90 + b, 14, 12, MOL); }      // left arm and fist
-    if (up) { p.poly([[116, 50 + b], [128, 30], [124, 8], [108, 10], [106, 44 + b]], MOL); p.ell(118, 10, 14, 12, MOL); }
-    else { p.poly([[120, 48 + b], [138 + aR, 60 + b], [146 + aR, 76 + b], [130 + aR, 80 + b], [114, 66 + b]], MOL); p.ell(136 + aR, 80 + b, 14, 12, MOL); }   // right arm and fist
-    p.ell(75, 34 + b, 33, 27, MOL);                                                                     // head
-    for (const [x, y, r] of [[48, 70, 4], [100, 92, 5], [62, 100, 3], [110, 60, 3], [40, 96, 3], [86, 112, 3], [20, 92, 2], [132, 84, 3]]) p.ell(x, y, r, r * 0.8, [0x8a3a14, 0x5a2008, 0x2a0c04]);   // charred spots
-    crackIt(p, [[60, 60], [66, 72], [62, 84]]); crackIt(p, [[96, 66], [90, 78], [96, 90], [92, 100]]); crackIt(p, [[34, 64], [26, 76]]); crackIt(p, [[118, 62], [128, 72]]);
-    for (const [x, y, l] of [[10, 100, 10], [20, 100, 6], [132, 90, 12], [140, 90, 7], [56, 110, 8], [92, 116, 6], [74, 120, 9]]) { p.line([[x, y], [x, y + l]], MOL[1], 2); p.ell(x, y + l + 1, 2, 2, MOL); }   // drips
-    p.poly([[50, 22], [68, 30], [66, 34], [48, 28]], DARK); p.poly([[100, 22], [82, 30], [84, 34], [102, 28]], DARK);   // furious brows
-    p.ell(60, 33, 5, 4, [0xffffd0, 0xff8a1a, 0xc02a0a]); p.ell(90, 33, 5, 4, [0xffffd0, 0xff8a1a, 0xc02a0a]);     // burning eyes
-    p.ell(75, 48 + gape / 2, 18 + gape / 2, 11 + gape, DARK); p.ell(75, 52 + gape, 11 + gape / 2, 6 + gape / 2, [0xffe080, 0xff7a1a, 0xc02a0a]);              // the maw, glowing inside
-    for (const x of [61, 68, 75, 82, 89]) p.poly([[x - 2, 38], [x + 2, 38], [x, 44]], 0xfff8e8);    // top fangs
-    for (const x of [65, 75, 85]) p.poly([[x - 2, 59 + gape * 1.6], [x + 2, 59 + gape * 1.6], [x, 54 + gape * 1.6]], 0xfff8e8);            // bottom fangs
-    for (const [x, y] of [[50, 16], [96, 14], [36, 44], [112, 40], [70, 90]]) p.ell(x, y, 2, 1.5, 0xffffff);   // bubbles on the cheese
-  });
-  golem('magmagolem', {});
-  golem('magmagolem_w1', { lL: 7, bob: -2, aL: -4, aR: 5 });
-  golem('magmagolem_w2', { bob: 1 });
-  golem('magmagolem_w3', { lR: 7, bob: -2, aL: 5, aR: -4 });
-  golem('magmagolem_up', { up: true, bob: -3 });
-  golem('magmagolem_roar', { gape: 7, bob: 1, aL: 6, aR: 6 });
+  makeMagmaGolemTextures(scene);                                    // the boss himself: magmagolem.js
   // ---- his charred crust armour plates (break them to expose the core)
   const plate = (key, w, h, shape) => pixSprite(scene, key, w, h, p => {
     p.poly(shape, [0xb8743a, 0x6a3418, 0x2a1008]);                                                   // baked golden on top, burnt black underneath
@@ -211,7 +174,7 @@ function makeMozzTextures(scene) {
 
 const MozzMixin = {
   mzInit() {
-    const z = this.mz = { boulderCd: rnd(5, 8), erupt: null, shards: [], puddles: [], rings: [], t: 0 };
+    const z = this.mz = { boulderCd: rnd(6, 9), erupt: null, shards: [], puddles: [], rings: [], waves: [], warn: null, eruptN: 0, t: 0 };
     z.volc = this.add.image(0, 0, 'volcano').setDepth(0.35).setOrigin(110 / 260, 120 / 180);
     z.vg = this.add.graphics().setDepth(0.36).setBlendMode(Phaser.BlendModes.ADD);   // crater glow + lava spitting (screen space)
     z.g = this.add.graphics().setDepth(2.9);                                          // burning puddles on the crust
@@ -224,17 +187,17 @@ const MozzMixin = {
     const z = this.mz || this.mzInit(), P = this.pl;
     z.t += dt;
     // the volcano
-    z.boulderCd -= dt;
-    if (z.boulderCd <= 0 && !this.bossDown) { z.boulderCd = rnd(8, 12); this.mozzErupt(); }
+    if (!this.enemies.some(q => q.type === 'boss')) z.boulderCd -= dt;                    // (in the boss fight only HE sets it off)
+    if (z.boulderCd <= 0 && !this.bossDown) { z.boulderCd = rnd(10, 14); this.mozzErupt(); }
     if (z.erupt) {
       z.erupt.t += dt;
       if (z.erupt.t > 1.3 && !z.erupt.sent) {
         z.erupt.sent = true;
-        const n = z.erupt.n;
-        for (let k = 0; k < n; k++) this.time.delayedCall(k * 420, () => { if (this.state === 'play') this.mozzBoulder(Math.random() < 0.5 ? -1 : 1); });
+        if (z.erupt.boulder && this.state === 'play') this.mozzBoulder(z.erupt.boulder);
       }
       if (z.erupt.t > 2.2) z.erupt = null;
     }
+    if (z.warn) { z.warn.t -= dt; if (z.warn.t <= 0) z.warn = null; }
     // boulders: fall in over the horizon, bounce, roll
     for (const b of this.eBullets) if (b.boulder) {
       if (b.h <= b.r) {
@@ -250,11 +213,31 @@ const MozzMixin = {
       if (D.life <= 0) { z.puddles.splice(i, 1); continue; }
       if (this.state === 'play' && P.invuln <= 0 && P.h < 6 && !(P.floor > 0) && Math.abs(angDiff(P.theta, D.theta)) < D.half * 0.9) { this.hurt(); Sound.sfx('hiss'); }
     }
-    for (const b of this.eBullets) if (b.lava && b.h <= 6) { b.life = 0; this.mozzPuddle(b.theta); }
-    // magma rain target rings
+    for (const b of this.eBullets) if (b.lava && b.h <= 6) { b.life = 0; this.mozzPuddle(b.theta, 2.4); }
+    // the boss's rolling lava wave: one big thing to JUMP
+    for (let i = z.waves.length - 1; i >= 0; i--) {
+      const Wv = z.waves[i]; Wv.life -= dt; Wv.theta = wrap(Wv.theta + Wv.dir * Wv.v / R * dt);
+      if (Wv.life <= 0) { z.waves.splice(i, 1); continue; }
+      const hh = Wv.hh * Math.min(1, Wv.life / 0.4) * Math.min(1, (Wv.max - Wv.life) / 0.15 + 0.4);
+      if (this.state === 'play' && P.invuln <= 0 && P.h < hh - 5 && !(P.floor > 0) && Math.abs(angDiff(P.theta, Wv.theta)) * R < 20) { this.hurt(); Sound.sfx('hiss'); }
+      if (Math.random() < 0.5) this.burst(wrap(Wv.theta - Wv.dir * 14 / R), rnd(4, hh), 'spark', 1, 0.3);
+    }
+    // landing rings: a lava bomb is on its way down to each (they stay lit until it lands)
     for (let i = z.rings.length - 1; i >= 0; i--) {
       const Rg = z.rings[i]; Rg.t -= dt;
-      if (Rg.t <= 0) { z.rings.splice(i, 1); const b = this.addEBullet('mg_glob', Rg.theta, 420, 0, -620, 12, 3); b.lava = true; b.spr.bsx = b.spr.bsy = 1.5; }
+      if (Rg.bomb && !Rg.sent && Rg.t <= 0.55) {                                    // the bomb itself, dropping in for the last half second
+        Rg.sent = true;
+        const im = this.add.image(0, 0, 'mg_bomb').setDepth(8); im.bsx = im.bsy = 1.5;
+        this.parts.push({ theta: Rg.theta, h: 460, vt: 0, vh: (-460 + 450 * 0.55 * 0.55) / 0.55, life: 0.55, spr: im, rot: 0, rv: 7 });
+      }
+      if (Rg.t <= 0) {
+        z.rings.splice(i, 1);
+        if (Rg.bomb) {
+          this.mozzPuddle(Rg.theta, 2.2); this.bang(Rg.theta, 10, 18);
+          if (Math.abs(angDiff(Rg.theta, P.theta)) < this.visHalf + 0.1) this.cameras.main.shake(90, 0.006);
+          if (this.state === 'play' && P.invuln <= 0 && P.h < 46 && Math.abs(angDiff(P.theta, Rg.theta)) * R < 30) this.hurt();
+        }
+      }
     }
     // the mozzarella mountains steam and blip
     z.steamT = (z.steamT || 0) - dt;
@@ -272,21 +255,44 @@ const MozzMixin = {
     // the boss's parts go when he does
     if (z.boss && !this.enemies.includes(z.boss)) { this.mgParts(z.boss); z.boss = null; }
   },
-  mozzErupt(big) {
-    const z = this.mz || this.mzInit();
+  // the volcano goes off. In the waves: one boulder OR two lava bombs, turn about. mad (the boss's doing): a carpet of
+  // bombs sweeping across the ground, every ring shown well ahead, with a gap in the carpet to stand in.
+  mozzErupt(mad) {
+    const z = this.mz || this.mzInit(), P = this.pl;
     if (z.erupt) return;
-    z.erupt = { t: 0, n: big ? 3 : (Math.random() < 0.5 ? 1 : 2) };
-    Sound.sfx('boom'); this.cameras.main.shake(300, 0.006);
-    if (!this.eruptTip) { this.eruptTip = true; this.banner('ERUPTION! BOULDERS INCOMING:\nJUMP THEM OR SHOOT THEM!'); }
+    z.erupt = { t: 0, mad: !!mad };
+    Sound.sfx('boom'); this.cameras.main.shake(mad ? 600 : 300, mad ? 0.012 : 0.006);
+    if (mad) {
+      const boss = z.boss, p2 = !!(boss && boss.mgS && boss.mgS.p2), n = p2 ? 10 : 8, sp = 62, first = p2 ? 1.75 : 2.1, each = p2 ? 0.14 : 0.17;
+      const dir = Math.random() < 0.5 ? -1 : 1, gap = 1 + Math.floor(Math.random() * (n - 3));       // two slots side by side stay clear
+      for (let k = 0; k < n; k++) {
+        if (k === gap || k === gap + 1) continue;
+        const t = first + k * each;
+        z.rings.push({ theta: wrap(P.theta + dir * (k - (n - 1) / 2) * sp / R), t, max: t, bomb: true });
+      }
+      this.banner('MAD ERUPTION!\nFIND THE GAP, OR GET CLEAR!'); Sound.sfx('alarm');
+      return;
+    }
+    if (!this.eruptTip) { this.eruptTip = true; this.banner('ERUPTION!\nWATCH FOR THE RINGS AND THE BOULDERS!'); }
+    if (z.eruptN++ % 2 === 0) { const side = Math.random() < 0.5 ? -1 : 1; z.erupt.boulder = side; z.warn = { side, t: 1.6 }; }
+    else {
+      const ahead = Math.sign(P.vx || 0) || (Math.random() < 0.5 ? -1 : 1);
+      z.rings.push({ theta: P.theta, t: 1.7, max: 1.7, bomb: true });
+      z.rings.push({ theta: wrap(P.theta + ahead * rnd(120, 170) / R), t: 2.05, max: 2.05, bomb: true });
+    }
   },
   mozzBoulder(side) {
-    const P = this.pl, b = this.addEBullet('boulder', wrap(P.theta + side * (this.visHalf + 0.12)), 300, -side * rnd(210, 260), -60, 15, 9);
+    const P = this.pl, b = this.addEBullet('boulder', wrap(P.theta + side * (this.visHalf + 0.12)), 300, -side * rnd(170, 210), -60, 15, 9);
     b.boulder = true; b.grav = 650; b.shootable = true; b.hp = 3; b.spr.bsx = b.spr.bsy = 1.3;
   },
-  mozzPuddle(theta) {
-    const z = this.mz || this.mzInit();
-    z.puddles.push({ theta, half: 30 / R, life: 3, max: 3 });
+  mozzPuddle(theta, life) {
+    const z = this.mz || this.mzInit(); life = life || 3;
+    z.puddles.push({ theta, half: 30 / R, life, max: life });
     this.burst(theta, 6, 'mg_glob', 6, 0.7); this.bang(theta, 6, 14); Sound.sfx('squelch');
+  },
+  mozzWave(theta, dir, v) {
+    const z = this.mz || this.mzInit();
+    z.waves.push({ theta, dir, v, life: 2.1, max: 2.1, hh: 34 });
   },
 
   // ---- drawing (from render)
@@ -316,9 +322,30 @@ const MozzMixin = {
       g.lineStyle(2 * zm, 0xffe080, a).strokePoints(top, false);
     }
     const gl = z.gl; gl.clear();
-    for (const Rg of z.rings) {                                                    // magma rain: where it'll land
-      const p = this.screenPos(Rg.theta, 4), k = 1 - Rg.t / Rg.max;
-      gl.lineStyle(2 * zm, 0xff4a1a, 0.5 + 0.5 * (Math.floor(this.t * 12) % 2)).strokeEllipse(p.x, p.y, (34 - 18 * k) * zm * 2, (10 - 4 * k) * zm * 2);
+    for (const Rg of z.rings) {                                                    // where a lava bomb will land: the ring closes in as it falls
+      const p = this.screenPos(Rg.theta, 3), k = Math.max(0, Math.min(1, 1 - Rg.t / Rg.max)), d = angDiff(Rg.theta, this.viewT()), fl = Math.floor(this.t * (8 + 10 * k)) % 2;
+      const rw = 30 * zm * 2, rh = 9 * zm * 2;
+      gl.save(); gl.translateCanvas(p.x, p.y); gl.rotateCanvas(d);
+      gl.fillStyle(Rg.bomb ? 0xff3a10 : 0xffa020, 0.16 + 0.22 * k).fillEllipse(0, 0, rw, rh);
+      gl.lineStyle(2 * zm, 0xff5a1a, 0.6 + 0.4 * fl).strokeEllipse(0, 0, rw, rh);
+      gl.lineStyle(2 * zm, 0xffe080, 0.9).strokeEllipse(0, 0, rw * (1 - 0.85 * k), rh * (1 - 0.85 * k));
+      gl.restore();
+    }
+    for (const Wv of z.waves) {                                                    // the rolling lava wave: a fat curling crest
+      const hh = Wv.hh * Math.min(1, Wv.life / 0.4) * Math.min(1, (Wv.max - Wv.life) / 0.15 + 0.4), n = 12, top = [], bot = [], in2 = [];
+      for (let k = 0; k <= n; k++) {
+        const u = k / n * 2 - 1, x = u * 30, lean = Wv.dir * 10 * Math.exp(-u * u * 3), hgt = hh * Math.exp(-u * u * 2.6) + Math.sin(this.t * 14 + k * 1.3) * 1.6;
+        top.push(this.screenPos(wrap(Wv.theta + (x + lean) / R), hgt)); in2.push(this.screenPos(wrap(Wv.theta + (x * 0.7 + lean) / R), hgt * 0.55)); bot.push(this.screenPos(wrap(Wv.theta + x / R), -3));
+      }
+      g.fillStyle(0xe0501a, 1).fillPoints(top.concat(bot.slice().reverse()), true);
+      g.fillStyle(0xffa030, 1).fillPoints(in2.concat(bot.slice().reverse()), true);
+      g.lineStyle(3 * zm, 0xfff0a0, 1).strokePoints(top, false);
+      gl.fillStyle(0xff8a1a, 0.25); const c = this.screenPos(Wv.theta, hh * 0.5); gl.fillCircle(c.x, c.y, 34 * zm);
+    }
+    if (z.warn && Math.floor(this.t * 8) % 2) {                                     // a boulder's on its way in: an arrow at that edge of the screen
+      const sd = z.warn.side, x = sd < 0 ? 26 : W - 26, y = H * 0.56, s = 12;
+      gl.fillStyle(0xff3a10, 0.95).fillTriangle(x - sd * s, y - s, x - sd * s, y + s, x + sd * s * 0.8, y);
+      gl.fillStyle(0xffe080, 0.95).fillRect(x - sd * s - sd * 8 - 2, y - s, 4, s * 1.3).fillRect(x - sd * s - sd * 8 - 2, y + s * 0.6, 4, 4);
     }
     if (z.boss) this.mgDraw(z.boss);
   },
@@ -395,178 +422,5 @@ const MozzMixin = {
     } else if (e.st === 'sit') { e.cd -= dt; if (e.cd <= 0) { e.st = 'rise'; } }
     else if (e.st === 'rise') { e.h += 220 * dt; if (e.h >= 190) { e.st = 'hover'; e.cd = rnd(3.5, 5); } }
     e.dir = dirP;
-  },
-
-  // ---- THE MOZZARELLA MAGMA-GOLEM (boss)
-  mgInit(e) {
-    const z = this.mz || this.mzInit();
-    const S = e.mgS = { st: 'walk', t: 0, cd: 2.5, i: 0, p2: false, lean: 0, mouth: 0 };
-    S.plates = MG.plates.map(q => ({ key: q.key, off: q.off, r: q.r, hp: 12, im: this.add.image(0, 0, q.key).setDepth(6.03) }));
-    S.core = this.add.image(0, 0, 'mg_core').setDepth(6.01).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    z.boss = e; e.mmLock = true; e.h = MG.footH; e.side = 1;
-    bakedGlow(e.spr, 0xff7a1a, 2, 8);
-    return S;
-  },
-  mgAI(e, dt, P, phase2) {
-    const S = e.mgS || this.mgInit(e);
-    S.t += dt; S.mouth = Math.max(0, S.mouth - dt); S.walking = false;
-    const d = angDiff(P.theta, e.theta), dist = Math.abs(d) * R;
-    if (phase2 && !S.p2) {                                                      // BOILING OVER
-      S.p2 = true; S.st = 'roar'; S.t = 0;
-      for (const pl of S.plates) if (pl.hp > 0) this.mgBreak(e, pl, true);
-      e.baseTint = 0xffd0a0; e.spr.setTint(e.baseTint);
-      this.banner('HE\'S BOILING OVER!\nWATCH THE SKY!'); Sound.sfx('crash'); Sound.sfx('boom'); this.cameras.main.shake(500, 0.016);
-    }
-    const walk = (spd) => {                                                     // lumber after Chris, keeping a little way off
-      const want = wrap(P.theta - Math.sign(d || 1) * 150 / R), dd = angDiff(want, e.theta);
-      e.theta = wrap(e.theta + Math.sign(dd) * Math.min(Math.abs(dd), spd / R * dt));
-      e.h = MG.footH + Math.abs(Math.sin(S.t * 3.2)) * 5;
-      e.dir = Math.sign(d) || 1; S.walking = true;
-    };
-    switch (S.st) {
-      case 'walk': {
-        walk(S.p2 ? 85 : 55);
-        S.cd -= dt;
-        if (S.cd <= 0) {
-          const seq = S.p2 ? ['pound', 'rain', 'lob', 'breath', 'rain', 'pound', 'lob'] : ['lob', 'pound', 'breath', 'lob', 'breath', 'pound'];
-          S.st = seq[S.i++ % seq.length]; S.t = 0; S.n = 0;
-        }
-        break;
-      }
-      case 'lob': {                                                             // wind up, then hurl magma globs that leave burning puddles
-        S.lean = -0.18 * Math.min(1, S.t / 0.5);
-        if (S.t > 0.6 && S.n < (S.p2 ? 5 : 3) && S.t > 0.6 + S.n * 0.18) {
-          const hand = this.mPt(e, (e.dir || 1) * 60, -10), T = 1.05, gv = 700;
-          const tx = angDiff(P.theta, hand.theta) * R + rnd(-50, 50) + (P.vx || 0) * 0.35;
-          const b = this.addEBullet('mg_glob', hand.theta, hand.h, tx / T, (0 - hand.h + 0.5 * gv * T * T) / T, 10, 3);
-          b.grav = gv; b.lava = true; b.spinV = 6; S.n++; Sound.sfx('fan');
-        }
-        if (S.t > 1.6) { S.lean = 0; this.mgWalk(e); }
-        break;
-      }
-      case 'pound': {                                                           // fists up... SLAM: shockwaves and the volcano goes off
-        if (S.t < 0.8) { e.h = MG.footH + 24 * Math.min(1, S.t / 0.5); e.theta = wrap(e.theta + Math.sin(S.t * 60) * 1.5 / R); S.lean = 0.08; }
-        else if (!S.n) {
-          S.n = 1; e.h = MG.footH; S.lean = -0.05;
-          Sound.sfx('churnclang'); Sound.sfx('boom'); buzz([60, 30, 100]); this.cameras.main.shake(380, 0.02); this.camPunch(0.05); this.hitStop = 0.06;
-          this.burst(e.theta, 6, 'crumb', 22, 1.6); this.bang(e.theta, 8, 40);
-          for (const sd of [-1, 1]) this.addEBullet('crumb', wrap(e.theta + sd * 70 / R), 10, sd * 270, 0, 11, 2.6);
-          if (S.p2) this.time.delayedCall(380, () => { if (e.hp > 0) for (const sd of [-1, 1]) this.addEBullet('crumb', wrap(e.theta + sd * 70 / R), 10, sd * 230, 0, 11, 2.6); });
-          this.mozzErupt(true);
-        }
-        if (S.t > 1.7) { S.lean = 0; this.mgWalk(e); }
-        break;
-      }
-      case 'breath': {                                                          // a sweep of molten cheese from his maw, high to low
-        // (v3.03) ...but it never comes down to the floor: DUCK under it, or get in close where it all goes over your head
-        S.mouth = 0.2;
-        if (S.t < 0.05 && !this.mgDuckTip) { this.mgDuckTip = true; this.banner('DUCK! OR GET IN CLOSE!'); }
-        if (S.t < 0.6) { if (Math.random() < 0.5) { const m = this.mPt(e, MG.mouth[0], MG.mouth[1]); this.burst(m.theta, m.h, 'spark', 1, 0.3); } }
-        else if (S.t < 2.0) {
-          S.bt = (S.bt || 0) - dt;
-          if (S.bt <= 0) {
-            S.bt = 0.06;
-            const k = (S.t - 0.6) / 1.4, m = this.mPt(e, MG.mouth[0], MG.mouth[1]), dir = Math.sign(d) || 1;
-            const a = (0.75 - 0.86 * k), v = 330;                                // from above his head down to just above crouching height
-            const b = this.addEBullet('mg_glob', m.theta, m.h, dir * v * Math.cos(a), v * Math.sin(a), 8, 2.2);
-            b.spr.bsx = b.spr.bsy = 0.75;
-            if (Math.random() < 0.3) Sound.sfx('hiss');
-          }
-        } else { S.bt = 0; this.mgWalk(e); }
-        break;
-      }
-      case 'rain': {                                                            // act 2: magma raining down on target rings
-        const z = this.mz;
-        if (!S.n) { S.n = 1; Sound.sfx('alarm'); for (let k = 0; k < 6; k++) z.rings.push({ theta: wrap(P.theta + rnd(-0.38, 0.38) + (k === 0 ? 0 : 0)), t: 0.9 + k * 0.22, max: 0.9 + k * 0.22 }); z.rings[z.rings.length - 6].theta = P.theta; }
-        walk(40);
-        if (S.t > 2.4) this.mgWalk(e);
-        break;
-      }
-      case 'grab': {                                                            // (v3.03) he caught Chris on his head: hoisted overhead... and THROWN
-        const hold = this.mPt(e, 0, -60);
-        P.theta = hold.theta; P.h = Math.max(0, hold.h + Math.sin(S.t * 40) * 2); P.vh = 0; P.vx = 0; P.invuln = Math.max(P.invuln, 0.2);
-        e.theta = wrap(e.theta + Math.sin(S.t * 50) * 1 / R);
-        if (S.t > 0.25 && !S.n) { S.n = 1; Sound.sfx('boom'); }
-        if (S.t > 0.95) {
-          const dir = (Math.sign(angDiff(P.theta, e.theta)) || S.throwDir || 1);
-          P.invuln = 0; this.hurt(); P.vx = dir * 520; P.vh = 520; P.jetArmed = false; P.h = Math.max(P.h, hold.h);
-          this.cameras.main.shake(220, 0.012); Sound.sfx('whoosh'); buzz([40, 20, 80]); this.popup(P.theta, P.h + 40, 'YEEEET!', '#ff8a3a', true);
-          this.mgWalk(e, 1.2);
-        }
-        break;
-      }
-      case 'roar': {
-        S.mouth = 0.2; e.theta = wrap(e.theta + Math.sin(S.t * 70) * 2 / R);
-        if (S.t > 1.4) { S.i = 0; this.mgWalk(e, 0.4); }
-        break;
-      }
-    }
-  },
-  // (v3.03) landing on his head: no free stomp - he grabs you
-  mgGrab(e) {
-    const S = e.mgS; if (!S || S.st === 'grab' || S.st === 'roar') return false;
-    S.st = 'grab'; S.t = 0; S.n = 0; S.lean = 0; S.throwDir = this.pl.facing || 1;
-    Sound.sfx('squelch'); this.cameras.main.shake(120, 0.008);
-    if (!this.mgGrabTip) { this.mgGrabTip = true; this.banner('GRABBED! DON\'T JUMP ON HIS HEAD!'); }
-    return true;
-  },
-  mgWalk(e, cd) { const S = e.mgS; S.st = 'walk'; S.t = 0; S.cd = cd !== undefined ? cd : (S.p2 ? rnd(0.9, 1.4) : rnd(1.4, 2)); S.lean = 0; },
-  mgBreak(e, pl, quiet) {
-    pl.hp = 0;
-    const w = this.mPt(e, pl.off[0], pl.off[1]);
-    for (let k = 0; k < 10; k++) { const im = this.add.image(0, 0, 'db_rock').setDepth(6.2).setTint(0x3a1e0e); im.bsx = im.bsy = rnd(0.8, 1.6); this.parts.push({ theta: w.theta, h: w.h, vt: rnd(-220, 220), vh: rnd(80, 320), life: rnd(0.6, 1.1), spr: im, rot: 0, rv: rnd(-10, 10) }); }
-    this.burst(w.theta, w.h, 'spark', 10, 1); Sound.sfx('crash');
-    if (pl.im) { pl.im.destroy(); pl.im = null; }
-    const left = e.mgS.plates.filter(q => q.hp > 0).length;
-    if (!quiet) this.banner(left ? 'CRUST CRACKED! ' + left + ' TO GO' : 'CORE EXPOSED!\nBLAST IT!');
-  },
-  // where a shot landed: a crust plate soaks it (and chips away); once they're gone the core takes the lot
-  mgHitK(e, th, h) {
-    const S = e.mgS; if (!S) return 1;
-    const alive = S.plates.filter(q => q.hp > 0);
-    if (!alive.length) return 1.25;
-    if (th === undefined) return 0.3;
-    for (const pl of alive) {
-      const w = this.mPt(e, pl.off[0], pl.off[1]);
-      if (dist2(th, h, w.theta, w.h) < (pl.r * 1.25 + 8) * (pl.r * 1.25 + 8)) {
-        pl.hp -= 1; pl.flash = 0.06;
-        this.burst(th, h, 'crumb', 2, 0.5);
-        if (pl.hp <= 0) this.mgBreak(e, pl);
-        return 0.15;
-      }
-    }
-    return 0.3;
-  },
-  mgOnHit(e, th, h) {
-    const S = e.mgS; if (!S) return;
-    if (!S.plates.some(q => q.hp > 0)) { for (let k = 0; k < 2; k++) { const s = this.add.image(0, 0, 'mg_glob').setDepth(6.2); s.bsx = s.bsy = rnd(0.3, 0.6); this.parts.push({ theta: th, h, vt: rnd(-150, 150), vh: rnd(60, 220), life: 0.4, spr: s, rot: 0, rv: 0 }); } }
-    S.hsCd = (S.hsCd || 0) - 0;
-    if (!(S.hsT > this.t)) { S.hsT = this.t + 0.14; this.hitStop = Math.max(this.hitStop || 0, 0.02); }
-  },
-  mgDraw(e) {
-    const S = e.mgS; if (!S) return;
-    const vis = e.spr.visible, rot = e.spr.rotation, sx = e.spr.scaleX, sy = e.spr.scaleY;
-    e.spr.setRotation(rot + (S.lean || 0) * (e.dir || 1));
-    S.wp = (S.wp || 0) + (S.walking ? (this.lastDt || 0.016) * (S.p2 ? 7 : 5) : 0);
-    const fr = S.st === 'grab' || (S.st === 'pound' && S.t < 0.8) ? 'magmagolem_up' : (S.st === 'breath' || S.st === 'roar') ? 'magmagolem_roar' : S.walking ? ['magmagolem', 'magmagolem_w1', 'magmagolem_w2', 'magmagolem_w3'][Math.floor(S.wp) % 4] : 'magmagolem';
-    if (e.spr.texture.key !== fr) e.spr.setTexture(fr);
-    if (S.walking && Math.floor(S.wp) !== S.lastStep && Math.floor(S.wp) % 2 === 1) { S.lastStep = Math.floor(S.wp); this.cameras.main.shake(60, 0.003); this.burst(e.theta, 2, 'crumb', 3, 0.5); }
-    const dt = this.lastDt || 0.016;
-    for (const pl of S.plates) if (pl.im) {
-      const p = this.mScreen(e, pl.off); pl.flash = Math.max(0, (pl.flash || 0) - dt);
-      pl.im.setPosition(p.x, p.y).setRotation(e.spr.rotation).setScale(sx, sy).setVisible(vis);
-      if (pl.flash > 0) pl.im.setTintFill(0xffffff); else pl.im.clearTint();
-    }
-    const exposed = !S.plates.some(q => q.hp > 0), c = this.mScreen(e, MG.core);
-    S.core.setPosition(c.x, c.y).setScale(sx * (1 + 0.15 * Math.sin(this.t * 8)), sy * (1 + 0.15 * Math.sin(this.t * 8))).setVisible(vis).setAlpha(exposed ? 0.85 : 0);
-    const gl = this.mz.gl;
-    if (S.mouth > 0 && vis) { const m = this.mScreen(e, MG.mouth); gl.fillStyle(0xffa030, 0.35 + 0.2 * Math.random()).fillCircle(m.x, m.y, 16 * this.zoom); }
-  },
-  mgParts(e) {
-    const S = e.mgS; if (!S) return;
-    for (const pl of S.plates) if (pl.im) pl.im.destroy();
-    if (S.core) S.core.destroy();
-    S.plates = []; S.core = null;
-    if (this.mz) { this.mz.rings = []; this.mz.puddles = []; }
   }
 };

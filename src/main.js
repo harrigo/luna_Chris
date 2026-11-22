@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.61';
+const BUILD = 'v3.62';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4480,7 +4480,7 @@ class Level1 extends Phaser.Scene {
   }
 
   addEBullet(kind, theta, h, vt, vh, r, life) {
-    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, mm_wisp: 0xa050ff, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
+    const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, mm_wisp: 0xa050ff, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, mg_bomb: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
     const b = {
       kind, theta: wrap(theta), h, vt: vt * Settings.dk.shot, vh: vh * Settings.dk.shot, r, life: life / Settings.dk.shot,
       spin: 0, spinV: (kind === 'cube' || kind === 'meatball' || kind === 'chili') ? rnd(-6, 6) : (kind === 'ham' ? rnd(-3, 3) : (kind === 'blade' ? 16 : (kind === 'pepper' ? 12 : 0))),
@@ -5721,7 +5721,7 @@ class Level1 extends Phaser.Scene {
 //    lit up on its rim, and a dot for every enemy round the world, further out the higher it flies.
 Object.assign(Level1.prototype, MandolineMixin);
 Object.assign(Level1.prototype, MilkmaidMixin);
-Object.assign(Level1.prototype, MozzMixin);
+Object.assign(Level1.prototype, MozzMixin, MagmaMixin);   // (magmagolem.js: the boss)
 Object.assign(Level1.prototype, GorgeMixin);
 Object.assign(Level1.prototype, SaucerMixin);
 Object.assign(Level1.prototype, ArmadaMixin);
