@@ -686,7 +686,7 @@ class FreefallScene extends Phaser.Scene {
     this.rig.root.setScale(sy * sgn * (1 + 0.3 * sq), sy * (1 - 0.25 * sq));
     // the wind tearing at him: the hat flapping on its spring, the arms shaking
     this.rig.hat.rotation += Math.sin(this.t * 34) * (0.08 + 0.18 * spd); this.rig.hat.y += Math.sin(this.t * 29) * 2 * spd;
-    this.rig.armB.setRotation(-2.2 * (1 - wk) + (-1.3 + Math.sin(this.t * 18) * 0.25) * wk + Math.sin(this.t * 10 + spd * 6) * (0.1 + 0.12 * spd));
+    this.rig.freeRot = -2.2 * (1 - wk) + (-1.3 + Math.sin(this.t * 18) * 0.25) * wk + Math.sin(this.t * 10 + spd * 6) * (0.1 + 0.12 * spd);
     if (wk > 0.05) {
       this.rig.capeS.forEach((c, i) => {
         const fl = Math.sin(this.t * 20 + i * 1.3);

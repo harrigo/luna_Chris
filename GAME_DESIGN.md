@@ -2193,3 +2193,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.59: smaller toque
 - The hat is drawn at 82% (HAT_K in chris.js), shrinking from the band up.
+
+## v3.60: bendy limbs (arms, legs, boots)
+- Arms and legs are no longer hinged segments. Each limb is one long sprite laid along a curve (a Phaser Rope) from shoulder through elbow to hand, or hip through knee to ankle, so it flexes and stretches like hand-drawn rubber. Painters and sizes are in LIMB / chrisArmPaint / chrisLegPaint / chrisBootPaint at the top of chris.js; the Black Rind armour re-skins the same shapes (shop.js). On a canvas-only device the limbs fall back to straight stretched images.
+- Arm art: a round shoulder with the mission badge, a sleeve pinching in to the elbow, a fat forearm, a red cuff ring, gloves drawn at their real size. Two hard cel tones (white, cool slate shadow), a soft outline round the shoulder inking up to black by the cuff.
+- Arm acting: the elbows trail on a spring (back when he runs, down when he lands, out when he fires), the gun pumps a beat behind his stride and sways at rest, recoil kicks harder and he braces back. The far arm lets go to thump a jam (it now reaches up to the big fist), flail when grabbed, hit or falling, and fling out behind a bash; when it is free it is drawn behind the body.
+- Legs: he stands 6px taller on thin bow legs you can see (front knee forward, back knee out behind). Running, each foot rides a loop (back along the floor, lifted and swung through heel first) and the legs back-pedal when he moves backwards while aiming. Knees tuck going up, legs dangle and pedal coming down, trail in the jetpack wash, and bow on a landing. Standing has a small knee bounce.
+- Boots: smaller, rounder moon boots (22x12, drawn in code; the old c_boot.png is gone) so there is leg above them.

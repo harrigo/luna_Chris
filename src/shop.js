@@ -65,28 +65,22 @@ function makeArmourTextures(scene, mk) {
     for (const [x, y] of [[16, 4], [18, 4], [20, 5]]) a.px(x, y, hot ? EM[0] : TR[0]);
     a.ell(16, 9.5, 2.6, 1.8, PL); a.rect(13, 2, 13, 10, TR[1]);
   });
-  for (const [sfx, P2] of [['', PL], ['F', [0x48527a, 0x22283c, 0x0e1018]]]) {         // (v3.53) the jointed arms: plated sleeves, a mail wrist, gauntlets
-    pixSprite(scene, K('c_uarm' + sfx), 22, 14, a => { a.rrect(7, 2, 20, 11, 4, P2); a.ell(7, 7, 6, 6, P2); a.line([[9, 4], [16, 4]], HI); a.rect(14, 2, 14, 11, TR[1]);
-      if (!sfx) { a.ell(7, 7, 3.4, 3.4, TR); a.ell(7, 7, 2, 2, EM[1]); a.px(7, 7, EM[0]); } });      // a pauldron with the reactor's twin on it
-    pixSprite(scene, K('c_farm' + sfx), 19, 12, a => { a.rrect(1, 1, 13, 10, 4, P2); a.line([[4, 3], [9, 3]], HI); a.rect(12, 1, 14, 10, TR[1]); a.px(12, 1, TR[0]); a.rect(15, 3, 17, 8, 0x1e2230); a.px(16, 4, 0x3a4058); a.px(15, 7, 0x3a4058); });
-  }
-  pixSprite(scene, K('c_hold'), 16, 13, a => { a.rrect(1, 6, 14, 11, 3, PL); for (const x of [4, 8, 12]) { a.rrect(x - 1, 1, x + 1, 7, 1, PL); a.px(x, 2, hot ? EM[0] : TR[0]); } });
-  pixSprite(scene, K('c_fistg'), 17, 18, a => { a.rrect(1, 2, 14, 16, 5, PL); for (const y of [6, 9, 12]) a.line([[8, y], [14, y]], TR[1]); a.ell(5.5, 4, 4, 3, PL); a.px(4, 2, HI); for (const y of [5, 8, 11]) a.px(13, y, hot ? EM[0] : TR[0]); });
   pixSprite(scene, K('c_grip'), 9, 12, a => { for (let k = 0; k < 4; k++) { a.rrect(1, k * 3, 7, k * 3 + 2, 1, PL); a.px(6, k * 3, HI); a.px(3, k * 3 + 1, hot ? EM[1] : TR[1]); } });
   pixSprite(scene, K('c_hand_open'), 17, 17, a => {
     for (const [x, y] of [[13, 2], [15, 6], [15, 11], [11, 15]]) { a.line([[6, 8], [x, y]], PL[1], 3); a.ell(x, y, 1.6, 1.6, PL); a.px(x, y, TR[0]); }
     a.line([[5, 7], [3, 2]], PL[1], 3); a.ell(3, 2, 1.6, 1.6, PL); a.ell(6, 8.5, 4.6, 4.6, PL); a.ell(3, 9, 2, 3.6, PL); a.px(6, 8, EM[1]);
   });
-  pixSprite(scene, K('c_leg'), 16, 18, a => {                               // (v3.58) a slim greave, a knee cop
-    a.rrect(5, 0, 11, 17, 2, PL); a.line([[6, 1], [6, 15]], HI); a.rect(5, 16, 11, 17, TR[1]);
-    a.ell(8.5, 9, 4, 2.6, TR); a.px(8, 9, hot ? EM[0] : TR[0]);
-  });
-  pixSprite(scene, K('c_boot'), 28, 15, a => {                              // sabatons: a trimmed cuff, a capped toe, the sole glowing
-    a.rrect(5, 0, 16, 6, 2, PL); a.rect(6, 1, 15, 1, TR[1]); a.px(6, 1, TR[0]);
-    a.poly([[3, 5], [16, 5], [20, 7], [26, 8], [27, 12], [1, 12], [1, 8]], PL); a.line([[4, 7], [14, 7]], HI);
-    a.ell(22, 9, 5.5, 3.8, TR); a.rect(21, 6, 23, 6, TR[0]); a.line([[16, 6], [17, 11]], PL[2]);
-    a.rect(0, 12, 27, 14, 0x12141e); a.rect(1, 12, 26, 12, EM[1]); for (let x = 2; x < 27; x += 3) a.px(x, 12, EM[0]);
-  });
+  // (v3.60) the bendy limbs, plated: the same shapes as the suit's (chris.js), in lacquered black with the mark's trim
+  const armC = far => ({ lite: far ? 0x22283c : PL[1], dark: far ? 0x0e1018 : PL[2], fold: far ? 0x48527a : HI, cuff: TR, skin: [0x1e2230, 0x12141e], badge: far ? null : TR, badgeIn: EM[1] });
+  pixSprite(scene, K('c_armN'), LIMB.armW, LIMB.armH, a => { chrisArmPaint(a, armC(false)); a.line([[11, 4], [19, 5]], HI); a.line([[24, 5], [28, 4]], HI); a.px(8, 8, EM[0]); });
+  pixSprite(scene, K('c_armF'), LIMB.armW, LIMB.armH, a => chrisArmPaint(a, armC(true)));
+  pixSprite(scene, K('c_legR'), LIMB.legW, LIMB.legH, a => { chrisLegPaint(a, { lite: PL[1], dark: PL[2], fold: TR[1] }); a.px(8, 2, hot ? EM[0] : TR[0]); });   // a slim greave, a knee cop
+  pixSprite(scene, K('c_legRF'), LIMB.legW, LIMB.legH, a => chrisLegPaint(a, { lite: 0x22283c, dark: 0x0e1018, fold: TR[2] }));
+  pixSprite(scene, K('c_boot'), LIMB.bootW, LIMB.bootH, a => chrisBootPaint(a, {   // sabatons: a trimmed cuff, a capped toe, the sole glowing
+    cuff: PL, cuffHi: TR[1], wb: PL, toe: TR, shine: TR[0], fold: PL[2], sole: 0x12141e, soleHi: EM[1], tread: EM[0] }));
+  pixSprite(scene, K('c_fistg'), 14, 15, a => { chrisFistPaint(a, PL, HI); for (const y of [4, 7, 10]) a.px(10, y, hot ? EM[0] : TR[0]); });   // gauntlets
+  pixSprite(scene, K('c_fistF'), 14, 15, a => chrisFistPaint(a, [0x48527a, 0x22283c, 0x0e1018], 0x6a76a0));
+  pixSprite(scene, K('c_hold'), 13, 11, a => chrisHoldPaint(a, PL, hot ? EM[0] : TR[0]));
   pixSprite(scene, K('c_tanks'), 14, 28, a => {                             // black tanks, trimmed caps, vents glowing hot
     a.rrect(0, 1, 5, 20, 2, PL); a.rrect(7, 1, 12, 20, 2, PL); a.rect(0, 1, 5, 3, TR[1]); a.rect(7, 1, 12, 3, TR[1]); a.px(1, 1, TR[0]); a.px(8, 1, TR[0]);
     a.line([[1, 6], [1, 16]], HI); a.line([[8, 6], [8, 16]], HI);
@@ -149,9 +143,9 @@ ChrisRig.prototype.setArmour = function (on, mk) {
   this.armoured = !!on; this.armourMk = mk;
   const sc = this.root.scene; if (on) makeArmourTextures(sc, mk);
   const set = (o, key) => { const ak = '__ar' + mk + '_' + key; o.setTexture(on && sc.textures.exists(ak) ? ak : key); };
-  set(this.tanks, 'c_tanks'); set(this.legB, 'c_leg'); set(this.legF, 'c_leg'); set(this.bootB, 'c_boot'); set(this.bootF, 'c_boot');
+  set(this.tanks, 'c_tanks'); set(this.legB, 'c_legRF'); set(this.legF, 'c_legR'); set(this.bootB, 'c_boot'); set(this.bootF, 'c_boot');
   set(this.body, 'c_body'); set(this.armB, 'c_arm'); set(this.gArm, 'c_arm'); set(this.hat, 'c_hat'); set(this.grip, 'c_grip'); set(this.handB, 'c_hand_open');
-  if (this.nUp) { set(this.nUp, 'c_uarm'); set(this.nFo, 'c_farm'); set(this.nHand, 'c_fistg'); set(this.fUp, 'c_uarmF'); set(this.fFo, 'c_farmF'); set(this.fHand, 'c_hold'); }
+  set(this.nArm, 'c_armN'); set(this.fArm, 'c_armF'); set(this.nHand, 'c_fistg'); set(this.fFist, 'c_fistF'); set(this.fHand, 'c_hold'); set(this.fOpen, 'c_hand_open');
   this.wear.setVisible(!on);                                                    // (the popped stitches are under the plate)
   if (on && !this.helm) {                                                       // the helmet ring, and the reactor's glow
     this.helm = sc.add.image(0, 0, 'blank').setOrigin(0.5); this.arGlow = sc.add.image(-9.5, -26.5, 'blank').setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);

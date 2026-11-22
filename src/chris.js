@@ -12,6 +12,53 @@
 const RIG_SCALE = 0.95;
 const HAT_K = 0.82;   // (v3.59) the tall toque, drawn a bit smaller
 // (v3.53) where the hands go on each gun's texture: g = the grip (gun hand), f = under the front (support hand; none = one-handed)
+// ================================================================= LIMBS (v3.60)
+// Each arm and leg is ONE long sprite laid along a curve (a Phaser Rope): shoulder -> elbow -> hand, hip -> knee -> ankle.
+// So a limb flexes like hand-drawn rubber instead of hinging like a paper doll, and it stretches when it has to reach.
+// The sprite runs left to right: for an arm, 8px of shoulder ball, then 14 of sleeve to the elbow, then 14 of forearm.
+// These painters are shared with the Black Rind armour (shop.js), which re-skins the same shapes.
+const LIMB = { armW: 36, armH: 18, armN: 19, armI0: 4, armIK: 11, legW: 16, legH: 10, legN: 9, legIK: 4, bootW: 22, bootH: 12, ankX: 7.5, ankH: 9.5 };
+function chrisArmPaint(a, C) {
+  const cy = 8.5;
+  const R = x => {                                                  // half-thickness along the arm
+    const d = x + 0.5 - 8, ball = d * d < 38 ? Math.sqrt(38 - d * d) : 0;                       // a big round shoulder (the joint is at x 8)
+    const r = x < 8 ? 0 : x < 22 ? 5.9 - (x - 8) / 14 * 1.8 : x < 30 ? 4.1 + (x - 22) / 8 * 1.9 : x < 33 ? 6.7 : 3.1;   // sleeve pinching in to the elbow, a Popeye forearm, the cuff ring, the wrist
+    return Math.max(ball, r);
+  };
+  for (let x = 1; x < 36; x++) { const r = R(x);
+    for (let y = Math.ceil(cy - r - 0.5); y <= Math.floor(cy + r - 0.5); y++) {
+      const k = (y + 0.5 - cy) / r, cuff = x >= 30 && x < 33, wrist = x >= 33;
+      a.px(x, y, cuff ? (k > 0.3 ? C.cuff[2] : k < -0.55 ? C.cuff[0] : C.cuff[1]) : wrist ? (k > 0.2 ? C.skin[1] : C.skin[0]) : (k > 0.34 ? C.dark : C.lite));   // two hard tones: lit above, a cool shadow underneath
+    } }
+  a.line([[21, 5], [22, 7]], C.fold); a.line([[23, 12], [22, 10]], C.fold); a.px(24, 6, C.fold);   // creases where the elbow bends
+  a.px(27, 12, C.fold); a.px(14, 13, C.fold);
+  if (C.hair) { a.px(34, 7, C.hair); a.px(33, 9, C.hair); }
+  if (C.badge) { a.ell(8, 8.5, 3.3, 3.3, C.badge); a.ell(8, 8.5, 1.5, 1.5, C.badgeIn || 0xdfe8ff); a.px(7, 6, 0xffffff); }
+}
+// a soft slate line round the shoulder (where the arm lies over the suit), inking up to full black by the cuff
+const chrisArmInk = (g, w) => { for (let i = 0; i < g.length; i++) if (g[i] === 0x1a1020) { const x = i % w; g[i] = x < 14 ? 0x8a97b6 : x < 24 ? 0x56628a : 0x1a1020; } };
+function chrisLegPaint(a, C) {                                       // hip at x 0, a knobbly knee at x 8, ankle at x 16 (top of the sprite = the FRONT of the leg)
+  const cy = 4.5, R = x => x < 5 ? 3.3 - x * 0.1 : x < 11 ? 2.8 + 1.0 * Math.sin((x - 5) / 6 * Math.PI) : 2.6;
+  for (let x = 0; x < 16; x++) { const r = R(x);
+    for (let y = Math.ceil(cy - r - 0.5); y <= Math.floor(cy + r - 0.5); y++) a.px(x, y, (y + 0.5 - cy) / r > 0.2 ? C.dark : C.lite); }
+  a.px(7, 2, C.fold); a.px(8, 3, C.fold); a.px(9, 2, C.fold); a.px(8, 7, C.fold); a.px(3, 6, C.fold); a.px(13, 3, C.fold);
+}
+function chrisBootPaint(a, C) {                                      // a clompy moon boot: ankle cuff, short heel, a great bulbous toe, thick tread
+  a.rrect(3, 0, 12, 4, 2, C.cuff); a.rect(4, 1, 11, 1, C.cuffHi);
+  a.poly([[2, 3], [12, 3], [15, 4], [20, 5], [21, 8], [1, 8], [1, 5]], C.wb);
+  a.ell(16, 5.2, 5.4, 3.9, C.toe || C.wb); a.px(15, 2, C.shine); a.px(16, 2, C.shine); a.px(14, 3, C.shine);
+  a.line([[11, 4], [12, 8]], C.fold); a.px(5, 6, C.fold); a.px(6, 7, C.fold);
+  a.rect(0, 9, 21, 11, C.sole); a.rect(0, 9, 21, 9, C.soleHi); for (let x = 1; x < 21; x += 3) a.px(x, 11, C.tread);
+}
+function chrisFistPaint(a, G, dot) {                                 // the gun hand: a fat glove wrapped round the grip
+  a.rrect(2, 2, 11, 12, 4, G);
+  a.line([[7, 5], [11, 5]], G[2]); a.line([[7, 8], [11, 8]], G[2]); a.px(8, 11, G[2]);        // fingers round the front
+  a.ell(5, 3.5, 3.4, 2.4, G); a.px(4, 2, dot || 0xffffff); a.px(7, 4, G[2]);                   // the thumb over the top
+}
+function chrisHoldPaint(a, G, dot) {                                 // the support hand: cupped under the gun, fingertips curled up its side
+  a.rrect(1, 5, 11, 9, 3, G);
+  for (const x of [3, 6, 9]) { a.rrect(x - 1, 1, x + 1, 6, 1, G); a.px(x, 5, G[2]); a.px(x, 1, dot || 0xffffff); }
+}
 const GUN_HOLD = { c_gun: { g: [13, 20], f: [19, 20] }, c_gun2: { g: [13, 20], f: [19, 20] }, c_gun3: { g: [13, 20], f: [19, 21] }, ix_spatula: { g: [7, 15], f: null } };
 
 function makeChrisTextures(scene) {
@@ -41,16 +88,8 @@ function makeChrisTextures(scene) {
 
   // space boots: chunky white moon-boots that read as FEET: a red ankle cuff the trouser leg tucks into, a rounded
   // heel at the back, a long rounded toe out front, and a thick dark tread sole flat on the floor (the bottom row)
-  pixSprite(scene, 'c_boot', 28, 15, a => {                                          // (v2.59: bigger and clompier, scuffed and dented)
-    const WB = [0xffffff, 0xd6e2f4, 0x8a9cc0];
-    a.rrect(5, 0, 16, 6, 2, RED); a.rect(6, 1, 15, 1, 0xff9a9a); a.px(9, 4, 0x8a1414); a.px(12, 3, 0x8a1414);   // ankle cuff, frayed
-    a.poly([[3, 5], [16, 5], [20, 7], [26, 8], [27, 12], [1, 12], [1, 8]], WB);               // the foot: short heel behind, long toe out front
-    a.ell(22, 9, 5.5, 3.8, WB); a.rect(21, 6, 23, 6, 0xffffff);                              // a great bulbous toe cap + shine
-    a.line([[16, 6], [17, 11]], 0xa8b8d8); a.line([[13, 7], [14, 11]], 0xa8b8d8);            // creases where the toe bends
-    a.px(8, 9, 0x8a9cc0); a.px(9, 10, 0x8a9cc0); a.px(10, 9, 0x8a9cc0); a.px(24, 10, 0x8a9cc0); a.px(5, 8, 0xb8a890); a.px(6, 9, 0xb8a890);   // scuffs and a smear of cheese
-    a.rect(0, 12, 27, 14, 0x3a3048); for (let x = 2; x < 27; x += 3) a.px(x, 14, 0x6a6080);   // thick tread sole, flat on the floor
-    a.rect(0, 12, 27, 12, 0x5a5070);
-  });
+  pixSprite(scene, 'c_boot', LIMB.bootW, LIMB.bootH, a => chrisBootPaint(a, {   // (v3.60: smaller and rounder, so there's leg to see above it)
+    cuff: RED, cuffHi: 0xff9a9a, wb: [0xffffff, 0xf0f4fb, 0xb4c4e0], shine: 0xffffff, fold: 0x9fb0d0, sole: 0x3a3048, soleHi: 0x5a5070, tread: 0x6a6080 }));
   pixSprite(scene, 'c_welly', 24, 19, a => {                                         // green wellies (at home on the farm): a tall rubber shaft up the shin
     const G = [0x6ad05a, 0x2f8f2f, 0x1a5a1e];
     a.rrect(4, 0, 15, 15, 2, G);                                                        // the shaft
@@ -340,34 +379,15 @@ function makeChrisTextures(scene) {
   pixSprite(scene, 'c_grip', 9, 12, a => {                                                // white-knuckled fingers wrapped round the gun's grip
     for (let k = 0; k < 4; k++) { a.rrect(1, k * 3, 7, k * 3 + 2, 1, GLV); a.px(6, k * 3, 0xffffff); a.px(2, k * 3 + 2, 0xbcc6d6); }
   });
-  // (v3.53) REAL ARMS: an upper arm and a forearm per side, solved every frame (shoulder -> elbow -> hand) so the gloves
-  // stay ON the gun - a fist round the grip, the other hand cupped under the front. The far arm is a shade darker.
-  // (v3.53b) fatter and whiter: a big puffy shoulder with the mission badge on it, sat over the back of the suit
-  const SLV = [0xffffff, 0xe4ecf8, 0xaabbd8], SUITD = [0xeef2fa, 0xccd8ea, 0x93a6c8], GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae], REDD = 0xb01e1e;   // (v3.57: a touch lighter than the suit, so they sit in)
-  const softInk = (g, w, h) => { for (let i = 0; i < g.length; i++) if (g[i] === 0x1a1020) g[i] = 0x6a7896; };   // (v3.58) a soft slate outline on the sleeves, so they don't ring the suit in black
-  for (const [sfx, SU, GL, RD] of [['', SLV, GLV, 0xd62828], ['F', SUITD, GLVD, REDD]]) {
-    pixSprite(scene, 'c_uarm' + sfx, 22, 14, a => {                                       // upper arm: shoulder ball (the joint, at x 7) and a fat sleeve to the elbow (x 19)
-      a.rrect(7, 2, 20, 11, 4, SU); a.ell(7, 7, 6, 6, SU);
-      a.line([[9, 4], [15, 4]], SU[0]); a.line([[12, 10], [18, 10]], SU[2]);
-      if (!sfx) { a.ell(7, 7, 3.4, 3.4, BLUE); a.ell(7, 7, 1.6, 1.6, 0xdfe8ff); a.px(6, 5, 0xffffff); }   // the mission badge
-    }, 1, softInk);
-    pixSprite(scene, 'c_farm' + sfx, 19, 12, a => {                                       // forearm (joint at x 3, wrist at x 15): sleeve, a red cuff, a hairy wrist
-      a.rrect(1, 1, 13, 10, 4, SU); a.line([[4, 3], [9, 3]], SU[0]);
-      a.rect(12, 1, 14, 10, RD); a.rect(12, 1, 14, 1, 0xff6a6a);
-      a.rect(15, 3, 17, 8, SKIN[1]); a.px(15, 3, HAIR); a.px(16, 5, HAIR); a.px(17, 4, HAIR); a.px(15, 7, HAIR);
-    }, 1, softInk);
-    if (sfx) pixSprite(scene, 'c_hold', 16, 13, a => {                                     // the support hand, cupped under the gun, fingertips curled up its side
-      a.rrect(1, 6, 14, 11, 3, GL);
-      for (const x of [4, 8, 12]) { a.rrect(x - 1, 1, x + 1, 7, 1, GL); a.px(x, 6, GL[2]); }
-      a.px(4, 1, 0xffffff); a.px(8, 1, 0xffffff);
-    });
-    else pixSprite(scene, 'c_fistg', 17, 18, a => {                                       // the gun hand: a big glove wrapped round the grip
-      a.rrect(1, 2, 14, 16, 5, GL);
-      for (const y of [6, 9, 12]) a.line([[8, y], [14, y]], GL[2]);                        // fingers round the front
-      a.ell(5.5, 4, 4, 3, GL); a.px(4, 2, 0xffffff); a.px(8, 5, GL[2]);                    // the thumb over the top
-      a.px(12, 3, 0xffffff);
-    });
-  }
+  // (v3.60) the limbs (see LIMB at the top): bendy arms and legs in two hard cel tones, the far ones a shade darker
+  const GLVD = [0xe4eaf4, 0xc2ccdc, 0x8a96ae];
+  pixSprite(scene, 'c_armN', LIMB.armW, LIMB.armH, a => chrisArmPaint(a, { lite: 0xffffff, dark: 0xb9c8e2, fold: 0x8696b8, cuff: [0xff7a6a, 0xd62828, 0x9a1616], skin: [SKIN[1], SKIN[2]], hair: HAIR, badge: BLUE }), 1, chrisArmInk);
+  pixSprite(scene, 'c_armF', LIMB.armW, LIMB.armH, a => chrisArmPaint(a, { lite: 0xdde6f4, dark: 0x9fb0d0, fold: 0x7686a8, cuff: [0xd84a4a, 0xb01e1e, 0x7a1010], skin: [SKIN[2], SKIN[2]], hair: HAIR }), 1, chrisArmInk);
+  pixSprite(scene, 'c_legR', LIMB.legW, LIMB.legH, a => chrisLegPaint(a, { lite: 0xffffff, dark: 0xb9c8e2, fold: 0x8696b8 }));
+  pixSprite(scene, 'c_legRF', LIMB.legW, LIMB.legH, a => chrisLegPaint(a, { lite: 0xe2e9f5, dark: 0xa6b6d4, fold: 0x7686a8 }));
+  pixSprite(scene, 'c_fistg', 14, 15, a => chrisFistPaint(a, GLV));
+  pixSprite(scene, 'c_fistF', 14, 15, a => chrisFistPaint(a, GLVD));
+  pixSprite(scene, 'c_hold', 13, 11, a => chrisHoldPaint(a, GLVD));
   // popped stitches where the suit strains over the belly, and a gravy stain (laid over the body)
   pixSprite(scene, 'c_wear', 44, 42, a => {
     for (const y of [17, 19, 21]) a.px(27, y, 0x93a8cc);                                  // the side seam...
@@ -413,12 +433,24 @@ class ChrisRig {
   constructor(scene) {
     makeChrisTextures(scene);
     const img = (key, x, y, ox, oy) => scene.add.image(x, y, key).setOrigin(ox, oy);
+    // a bendy limb (v3.60): a Rope under WebGL; on the canvas fallback, a plain image that's stretched straight between its ends
+    const webgl = scene.game.renderer.type === Phaser.WEBGL;
+    const limb = (key, n) => {
+      const o = webgl ? scene.add.rope(0, 0, key, null, n, true) : scene.add.image(0, 0, key).setOrigin(0, 0.5);
+      if (webgl) {
+        o.setTint = function (c) { this.setColors(c); return this; }; o.clearTint = function () { this.setColors(0xffffff); return this; };
+        const st = o.setTexture; o.setTexture = function (k, fr) { st.call(this, k, fr); this.updateUVs(); return this; };
+      }
+      o.limbN = n; o.isRope = webgl; return o;
+    };
     this.root = scene.add.container(0, 0).setDepth(7);
 
     this.capeS = [0, 1, 2, 3].map(i => img('c_capeS' + i, 0, 0, 0.5, 0));   // physics cape strips (behind everything)
     this.tanks = img('c_tanks', -16, -36, 0.5, 0.5);
-    this.legB = img('c_leg', -6, -16, 0.5, 0);
-    this.bootB = img('c_boot', -6, 0, 0.5, 1);
+    this.legB = limb('c_legRF', LIMB.legN);
+    this.bootB = img('c_boot', -6, 0, LIMB.ankX / LIMB.bootW, 1);
+    this.fFist = img('c_fistF', 0, 0, 0.45, 0.45).setVisible(false);      // the far hand when it's NOT on the gun (drawn behind the body)
+    this.fOpen = img('c_hand_open', 0, 0, 0.3, 0.5).setVisible(false);
     this.torso = scene.add.container(0, -16);
     this.body = img('c_body', 0, 3, 0.5, 1);
     this.belly = img('c_belly', 8, -12, 0.5, 0).setVisible(false);   // (the belly is part of c_body now)
@@ -434,8 +466,8 @@ class ChrisRig {
     this.crack = img('c_crack', 2, -44, 0.5, 0.5).setVisible(false);  // game over: cracked glass
     this.hat = img('c_hat', 3, -54, 0.5, 1);
     this.torso.add([this.body, this.wear, this.armB, this.handB, this.apron, this.apronB, this.belly, this.collar, this.head, this.crack, this.tache, this.hat, this.pop]);
-    this.legF = img('c_leg', 7, -16, 0.5, 0);
-    this.bootF = img('c_boot', 7, 0, 0.5, 1);
+    this.legF = limb('c_legR', LIMB.legN);
+    this.bootF = img('c_boot', 7, 0, LIMB.ankX / LIMB.bootW, 1);
     this.gunArm = scene.add.container(4, -42);
     this.gArm = img('c_arm', 0, 0, 0, 0.5);
     // the gun hangs off a pivot at the grip, so the melee bash can FLIP it round (butt first) without moving the arm
@@ -447,13 +479,14 @@ class ChrisRig {
     this.grip = img('c_grip', 20, 10, 0.5, 0.5);                      // fingers round the grip, over the gun
     this.gunArm.add([this.gArm, this.gunPivot, this.grip]);
     this.stars = [0, 1, 2].map(() => img('c_ouchstar', 0, 0, 0.5, 0.5).setVisible(false));
-    this.gArm.setVisible(false); this.grip.setVisible(false);          // (v3.53: replaced by the jointed arms below)
-    const seg = (key, jx) => img(key, 0, 0, jx / scene.textures.get(key).getSourceImage().width, 0.5);
-    this.fUp = seg('c_uarmF', 7); this.fFo = seg('c_farmF', 3); this.fHand = img('c_hold', 0, 0, 0.5, 0.3);
-    this.nUp = seg('c_uarm', 7); this.nFo = seg('c_farm', 3); this.nHand = img('c_fistg', 0, 0, 0.45, 0.4);
-    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.torso, this.fUp, this.fFo, this.gunArm, this.fHand, this.nUp, this.nFo, this.nHand, ...this.stars]);   // (legs behind the torso, so the belly hangs over them)
+    this.gArm.setVisible(false); this.grip.setVisible(false); this.armB.setAlpha(0); this.handB.setAlpha(0);   // (the old stub arms: replaced by the limbs below)
+    this.fArm = limb('c_armF', LIMB.armN); this.fHand = img('c_hold', 0, 0, 0.5, 0.35);
+    this.nArm = limb('c_armN', LIMB.armN); this.nHand = img('c_fistg', 0, 0, 0.45, 0.45);
+    // back to front: legs and boots, [the far arm when it's free], the body, [the far arm when it's on the gun], the gun, the near arm
+    this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.fFist, this.fOpen, this.torso, this.fArm, this.gunArm, this.fHand, this.nArm, this.nHand, ...this.stars]);
+    this.fArmFront = true;
 
-    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.armB, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.handB, this.grip, this.hat, this.legF, this.bootF, this.gArm, this.gun, this.fUp, this.fFo, this.fHand, this.nUp, this.nFo, this.nHand];
+    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.hat, this.legF, this.bootF, this.gun, this.fArm, this.fHand, this.fFist, this.fOpen, this.nArm, this.nHand];
     this.tinted = false;
     this.wp = 0;          // waddle phase
     this.t = 0;
@@ -472,35 +505,83 @@ class ChrisRig {
   grin() { this.grinT = 0.8; }
   setFace(key) { this.faceKey = key || null; }
 
-  // (v3.53) the arms: two-bone IK from each shoulder to its hold on the gun, elbows bending down and back.
-  // The far hand lets go to thump a jammed gun, flail when grabbed or hit, swing a bash, or when there's no gun.
-  updateArms(P, jB) {
-    const T = this.torso, tr = T.rotation, G = this.gunArm, gr = G.rotation, pv = this.gunPivot, ps = pv.rotation, gun = this.gun;
+  // lay a limb along a curve from A, THROUGH its joint K, to B. Points before index i0 run straight back from A (the
+  // shoulder ball); the joint lands on index iK, where the sprite's elbow / knee is drawn.
+  bendLimb(o, A, K, B, i0, iK) {
+    const n = o.limbN;
+    if (!o.isRope) {                                                    // canvas fallback: straight from A to B
+      const d = Math.hypot(B[0] - A[0], B[1] - A[1]), w = o.width, back = w * i0 / (n - 1);
+      o.setOrigin(back / w, 0.5).setPosition(A[0], A[1]).setRotation(Math.atan2(B[1] - A[1], B[0] - A[0])).setScale(d / (w - back), 1); return;
+    }
+    const cx = 2 * K[0] - (A[0] + B[0]) / 2, cy = 2 * K[1] - (A[1] + B[1]) / 2, P = o.points;   // a quadratic that passes through K at its middle
+    for (let i = 0; i < n; i++) {
+      const t = i <= iK ? 0.5 * (i - i0) / (iK - i0) : 0.5 + 0.5 * (i - iK) / (n - 1 - iK), u = 1 - t;
+      if (t < 0) { const m = (i0 - i) * 2 / (Math.hypot(cx - A[0], cy - A[1]) || 1); P[i].x = A[0] - (cx - A[0]) * m; P[i].y = A[1] - (cy - A[1]) * m; }   // (2px a step, as drawn: the shoulder ball keeps its shape)
+      else { P[i].x = u * u * A[0] + 2 * u * t * cx + t * t * B[0]; P[i].y = u * u * A[1] + 2 * u * t * cy + t * t * B[1]; }
+    }
+    o.updateVertices();
+  }
+  // where a two-bone limb's joint sits: A -> joint -> B with bone lengths a, b. sgn picks the side it bends to (and
+  // fractions of it flatten the bend). Out of reach, the bones stretch.
+  limbJoint(A, B, a, b, sgn) {
+    const dx = B[0] - A[0], dy = B[1] - A[1], d = Math.hypot(dx, dy) || 0.001, k = Math.max(1, d / (a + b) * 1.01);
+    a *= k; b *= k;
+    const dd = Math.max(Math.abs(a - b) + 0.01, Math.min(a + b - 0.01, d)), ang = Math.atan2(dy, dx) + Math.acos(Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd)))) * sgn;
+    return [A[0] + Math.cos(ang) * a, A[1] + Math.sin(ang) * a];
+  }
+
+  // (v3.60) THE ARMS. Both gloves stay on the gun (a fist round the grip, the other hand cupped under the front) while
+  // the elbows trail behind on a spring: they swing back as he runs, drop as he lands, and kick out when he fires.
+  // The far hand lets go to thump a jammed gun, flail when he's grabbed, hit or falling, and fling out behind a bash.
+  updateArms(P, jB, dt, sw, run, air, sq) {
+    const T = this.torso, tr = T.rotation, G = this.gunArm, gr = G.rotation, pv = this.gunPivot, ps = pv.rotation, gun = this.gun, t = this.t;
     const fromT = (lx, ly) => { const x = lx * T.scaleX, y = ly * T.scaleY; return [T.x + x * Math.cos(tr) - y * Math.sin(tr), T.y + x * Math.sin(tr) + y * Math.cos(tr)]; };
     const fromGun = (px, py) => {                                                      // a pixel on the gun's texture -> rig space
-      let x = gun.x + px * gun.scaleX, y = gun.y + (py - 15) * gun.scaleY;
+      const x = gun.x + px * gun.scaleX, y = gun.y + (py - 15) * gun.scaleY;
       const x1 = pv.x + x * Math.cos(ps) - y * Math.sin(ps), y1 = pv.y + x * Math.sin(ps) + y * Math.cos(ps);
       const x2 = x1 * G.scaleX, y2 = y1 * G.scaleY;
       return [G.x + x2 * Math.cos(gr) - y2 * Math.sin(gr), G.y + x2 * Math.sin(gr) + y2 * Math.cos(gr)];
     };
-    const ik = (S, Tg, A, B, up, fo, hand, rot) => {
-      const dx = Tg[0] - S[0], dy = Tg[1] - S[1], d = Math.hypot(dx, dy) || 0.001, k = Math.max(1, d / (A + B) * 1.02);   // out of reach: a cartoon stretch
-      const a = A * k, b = B * k, dd = Math.max(Math.abs(a - b) + 0.01, Math.min(a + b - 0.01, d));
-      const ua = Math.atan2(dy, dx) + Math.acos(Math.max(-1, Math.min(1, (a * a + dd * dd - b * b) / (2 * a * dd))));
-      const ex = S[0] + Math.cos(ua) * a, ey = S[1] + Math.sin(ua) * a;
-      up.setVisible(true).setPosition(S[0], S[1]).setRotation(ua).setScale(a / 12, 1);
-      fo.setVisible(true).setPosition(ex, ey).setRotation(Math.atan2(Tg[1] - ey, Tg[0] - ex)).setScale(Math.hypot(Tg[0] - ex, Tg[1] - ey) / 12, 1);
-      hand.setVisible(true).setPosition(Tg[0], Tg[1]).setRotation(rot).setScale(0.7);   // (v3.56: gloves 30% smaller)
-    };
-    const held = G.visible, H = GUN_HOLD[gun.texture.key] || GUN_HOLD.c_gun, gunRot = gr + ps;
-    // the gun hand: on the grip (or hanging at his side if the gun's gone)
-    const sN = fromT(-9.5, -26.5);                                     // (the shoulder sits right over the suit's badge)
-    if (held) ik(sN, fromGun(H.g[0], H.g[1]), 14, 14, this.nUp, this.nFo, this.nHand, gunRot);
-    else ik(sN, [sN[0] + 6, sN[1] + 24], 14, 14, this.nUp, this.nFo, this.nHand, 1.4);
-    // the support hand, cupped under the front
-    const open = this.handB.visible, two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0);
-    if (two) { ik(fromT(-7, -27), fromGun(H.f[0], H.f[1]), 16, 16, this.fUp, this.fFo, this.fHand, gunRot); this.armB.setAlpha(0); }
-    else { this.fUp.setVisible(false); this.fFo.setVisible(false); this.fHand.setVisible(false); this.armB.setAlpha(1); }
+    const cl = (v, m) => Math.max(-m, Math.min(m, v)), fc = P.facing < 0 ? -1 : 1, h = Math.min(0.033, dt);
+    // the elbow spring: where the body's motion wants to throw it
+    const E = this.elb || (this.elb = { x: 0, y: 0, vx: 0, vy: 0 });
+    const ex = cl(-(P.vx || 0) * fc * 0.011, 3) - this.recoil * 2.6, ey = cl((P.vh || 0) * 0.008 * air, 3.5) + this.recoil * 1.6 + Math.max(0, sq) * 4;
+    E.vx += ((ex - E.x) * 240 - E.vx * 13) * h; E.vy += ((ey - E.y) * 240 - E.vy * 13) * h;
+    E.x = cl(E.x + E.vx * h, 6); E.y = cl(E.y + E.vy * h, 6);
+
+    const held = G.visible, H = GUN_HOLD[gun.texture.key] || GUN_HOLD.c_gun, gunRot = gr + ps, free = this.freeRot;
+    // ---- the gun arm: on the grip (or swinging at his side if the gun's gone)
+    const sN = fromT(-9.5, -25.5);                                     // (the shoulder sits right over the suit's badge)
+    sN[0] += sw * 0.8 * run - this.recoil * 1.2; sN[1] -= Math.max(0, sq) * 1.5;                 // it rolls with his stride, shrugs on a landing
+    let aN = free != null ? free * 0.85 - 0.25 : 1.4 - sw * 0.75 * run - air * 0.9;
+    const tN = held ? fromGun(H.g[0], H.g[1]) : [sN[0] + Math.cos(aN) * 29, sN[1] + Math.sin(aN) * 29];
+    const kN = this.limbJoint(sN, tN, 16.5, 16.5, 1); kN[0] += E.x; kN[1] += E.y;
+    this.bendLimb(this.nArm, sN, kN, tN, LIMB.armI0, LIMB.armIK);
+    this.nHand.setPosition(tN[0], tN[1]).setRotation(held ? gunRot : aN - 0.4);
+
+    // ---- the far arm
+    const open = this.handB.visible, jam = jB > 0 && this.fist && this.fist.visible;
+    const two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0);
+    const sF = fromT(-7, -27);
+    let tF, front = true, hand = null, aF = 0;
+    if (two) { tF = fromGun(H.f[0], H.f[1]); hand = this.fHand; aF = gunRot; }
+    else if (jam) tF = [this.fist.x - 2, this.fist.y + 6];              // reaching up to the great fist that thumps the gun
+    else {
+      front = false;
+      aF = free != null ? free                                          // (set from outside: the skydive)
+        : P.grabbed ? -1.7 + Math.sin(t * 23 + 1) * 1.0                 // grabbed: waving hysterically
+        : this.ouchT > 0.3 ? -2.25 + Math.sin(t * 40) * 0.25            // hit: thrown up
+        : open ? -2.0 + Math.sin(t * 13) * 0.32                         // falling: up and back, flapping
+        : (P.bashSpin || 0) ? 2.75                                      // a bash: flung out behind for balance
+        : 1.75 + sw * 0.75 * run - air * 0.7;                           // nothing to hold: it swings as he walks
+      tF = [sF[0] + Math.cos(aF) * 27, sF[1] + Math.sin(aF) * 27];
+      hand = open || P.grabbed || free != null ? this.fOpen : this.fFist;
+    }
+    const kF = this.limbJoint(sF, tF, 16, 16, front ? 1 : (aF < 0 ? -1 : 1)); kF[0] += E.x * 1.3; kF[1] += E.y * 1.3;
+    this.bendLimb(this.fArm, sF, kF, tF, LIMB.armI0, LIMB.armIK);
+    if (front !== this.fArmFront) { this.fArmFront = front; if (front) this.root.moveAbove(this.fArm, this.torso); else this.root.moveBelow(this.fArm, this.fFist); }
+    for (const o of [this.fHand, this.fFist, this.fOpen]) o.setVisible(o === hand);
+    if (hand) hand.setPosition(tF[0], tF[1]).setRotation(hand === this.fHand ? aF : hand === this.fOpen ? aF + Math.sin(t * 20) * 0.15 : aF - 0.4);
   }
 
   // chef mode (the intro / ending at home): "Kiss the Cook" apron, no cape. Battle mode: just the cape.
@@ -575,7 +656,7 @@ class ChrisRig {
 
     // ---- phases
     const crawl = grounded && P.duck ? Math.min(1, spd / 50) : 0;      // crouch-walking: short quick waddle steps
-    if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8 * (1 + crawl * 1.4);
+    if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8 * (1 + crawl * 1.4) * ((P.vx || 0) * (P.facing < 0 ? -1 : 1) < 0 ? -1 : 1);   // (backing up while he aims: the legs back-pedal)
     if (!this.wasGround && grounded) { this.squash = 1; this.bv = (this.bv || 0) + 5; }   // landing squash (and a belly wobble)
     if (this.wasGround && !grounded && P.vh > 200) this.squash = -0.8;   // take-off stretch
     this.wasGround = grounded;
@@ -590,23 +671,37 @@ class ChrisRig {
     // whole sprite, the knees bend out and the legs compress, the boots stay planted, and the body DROPS onto them.
     this.dv = (this.dv || 0) + (((P.duck ? 1 : 0) - (this.duckA || 0)) * 320 - (this.dv || 0) * 24) * dt;
     this.duckA = Math.max(-0.1, Math.min(1.12, (this.duckA || 0) + this.dv * dt));
-    const dk = Math.max(0, this.duckA), DROP = 13.5 * dk, wad = crawl * dk;
+    const dk = Math.max(0, this.duckA), DROP = 13.5 * dk, wad = crawl * dk, RAISE = 6;   // (v3.60: he stands 6px taller, on legs you can see)
 
-    // ---- waddle: legs, boots and body roll
-    const legAmp = 0.38 * run;
-    const rotF = (sw * legAmp + air * (0.45 + fly * 0.1 * Math.sin(t * 22))) * (1 - dk) - 1.05 * dk + sw * 0.2 * wad;   // crouch: front knee out forward...
-    const rotB = (-sw * legAmp - air * (0.3 + fly * 0.1 * Math.cos(t * 22))) * (1 - dk) + 0.95 * dk + sw * 0.2 * wad;   // ...back knee out behind (both shuffle as he waddles)
-    const L = 16, hipY = -16 + DROP, Le = L * (1 - 0.36 * dk);
-    const place = (leg, boot, hipX, rot, liftPhase, squatX) => {
-      leg.setRotation(rot).setScale(1 + 0.2 * dk, 1 - 0.36 * dk);                  // bent + compressed (a bit chunkier)
-      const lift = run > 0 ? Math.max(0, liftPhase) * 3.2 * run * (1 + wad * 0.6) : 0;
-      const bx = hipX - Math.sin(rot) * Le, k = Math.min(1, dk * 1.4);
-      boot.setPosition(bx + (squatX - bx) * k, Math.min(air ? 99 : 0.5, hipY + Math.cos(rot) * Le) - lift + air * -3);   // boots stay on the ground (crouched: planted wide)
-      boot.setRotation(rot * 0.35 * (1 - dk)).setScale(1 + 0.06 * dk, 1);
-      leg.setPosition(hipX, hipY - lift * 0.6);
-    };
-    place(this.legF, this.bootF, 7, rotF, sw, 11 + sw * 2 * wad);
-    place(this.legB, this.bootB, -6, rotB, -sw, -9 - sw * 2 * wad);
+    // ---- the body: bob and roll. Running, it's lowest as a foot lands and highest as the legs pass; standing, a cocky
+    // little knee bounce. The hips sink into the knees on a landing and push up on take-off.
+    const idle = (1 - run) * (1 - air), up1 = 1 - Math.min(1, dk);
+    const lsq = (2.6 * Math.max(0, sq) - 1.4 * Math.max(0, -sq)) * up1;
+    this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk,
+      -16 - RAISE * up1 - (1 + Math.cos(this.wp * 2)) * (1.0 * run + 0.9 * wad) + Math.sin(t * 5.2) * 0.8 * idle * up1 + lsq + DROP);
+    this.torso.setRotation(sw * (0.1 * run + 0.11 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk - this.recoil * 0.035);  // leans in when crouched; rocks as he waddles; braces back against the gun
+
+    // ---- LEGS (v3.60): each boot has a spot to be, the knee is solved from the hip, and the leg bends through it.
+    // Standing: planted wide and bow-legged (front knee forward, back knee out behind). Running: each foot rides a loop,
+    // back along the floor then lifted and swung through, heel first. In the air: knees tucked going up, legs
+    // dangling and pedalling coming down, trailing in the jetpack's wash.
+    const AH = LIMB.ankH, upv = Math.max(-1, Math.min(1, (P.vh || 0) / 320)), ju = Math.max(0, upv), jf = Math.max(0, -upv), sk = Math.min(1, dk * 1.4);
+    for (const [leg, boot, hx, ph, side, squatX] of [[this.legF, this.bootF, 5, this.wp, 1, 11 + sw * 2 * wad], [this.legB, this.bootB, -5, this.wp + Math.PI, -1, -9 - sw * 2 * wad]]) {
+      const s1 = Math.sin(ph), c1 = Math.cos(ph), hip = [this.torso.x + hx, this.torso.y + 1];
+      let bx = this.torso.x * 0.4 + hx + side * (1 + 3 * (1 - run)) + s1 * 7.5 * run, by = -Math.max(0, c1) * 5 * run * (1 + wad * 0.6), br = -s1 * Math.max(0, c1 + 0.3) * 0.5 * run;
+      if (air) {
+        const q = t * 12 + side * 1.6;
+        let ax = side * 1.5 + (side > 0 ? 4.5 : -2.5) * ju + Math.sin(q) * 2.5 * jf, ay = 13 - (side > 0 ? 6 : 2.5) * ju + 1.5 * jf + Math.cos(q) * 1.2 * jf;
+        br = (side > 0 ? 0.6 : 0.9) * ju - 0.35 * jf + Math.sin(q) * 0.18 * jf;
+        if (fly) { ax = side * 2 - 2 + Math.sin(t * 22 + side) * 0.8; ay = 13.5; br = 0.5 + Math.sin(t * 22 + side * 2) * 0.12; }
+        bx = hip[0] + ax - Math.sin(br) * AH; by = hip[1] + ay + Math.cos(br) * AH;
+      }
+      bx += (squatX - bx) * sk; by *= 1 - sk; br *= 1 - sk;                          // crouched: the boots plant wide, out in front
+      boot.setPosition(bx, by).setRotation(br).setScale(1 + 0.06 * dk, 1);
+      const ank = [bx + Math.sin(br) * AH, by - Math.cos(br) * AH];
+      const bow = side > 0 ? -1 : 1 - 2 * Math.min(1, run * 1.5 + air);              // the back knee bows out behind when he's standing, and comes forward to run
+      this.bendLimb(leg, hip, this.limbJoint(hip, ank, 6.6, 6.6, bow), ank, 0, LIMB.legIK);
+    }
     // CROUCHED: he sits right down on his heels. The legs fold away out of sight and both boots come out in FRONT of
     // the body, planted wide, toes poking out from under the belly (instead of bent legs jutting out sideways)
     const squat = dk > 0.4;
@@ -614,12 +709,8 @@ class ChrisRig {
     if (squat !== this.squatOn) {
       this.squatOn = squat;
       if (squat) { this.root.moveAbove(this.bootB, this.torso); this.root.moveAbove(this.bootF, this.bootB); }
-      else { this.root.moveBelow(this.bootB, this.legF); this.root.moveBelow(this.bootF, this.torso); }
+      else { this.root.moveBelow(this.bootB, this.legF); this.root.moveBelow(this.bootF, this.fFist); }
     }
-
-    const idle = (1 - run) * (1 - air);
-    this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk, -16 - (1 - Math.cos(this.wp * 2)) * (0.9 * run + 0.9 * wad) + Math.sin(t * 2.6) * 0.7 * idle + DROP);
-    this.torso.setRotation(sw * (0.1 * run + 0.11 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk);  // leans in when crouched; rocks side to side as he waddles
     this.updateCloth(P, dt, grounded, fly);
     if (this.morph >= 0) {                                       // ~0.9s: the apron spins (faster and faster), then the cape unfurls
       this.morph = Math.min(1, this.morph + dt / 0.9);
@@ -702,15 +793,15 @@ class ChrisRig {
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     const jk = P.jamKick || 0;                                  // a jammed gun bucks back and up
-    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 3 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 23 + sw * 0.6 * run + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0));
+    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 4.5 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 23 + Math.cos(this.wp * 2 - 1) * 1.1 * run + Math.sin(t * 2.6 - 0.8) * 0.5 * idle + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0));
     const flail = P.grabbed ? Math.sin(this.t * 26) * 1.1 + Math.sin(this.t * 41) * 0.35 - 0.6 : 0;      // grabbed: waving the useless gun about hysterically
-    this.gunArm.setRotation(-this.recoil * 0.07 - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
+    this.gunArm.setRotation(-this.recoil * 0.1 + Math.sin(t * 2.6) * 0.02 * idle - Math.sin(this.wp * 2 - 1) * 0.035 * run - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
     this.gunArm.setScale(1 + this.recoil * 0.16, 1 - this.recoil * 0.07);                            // (v2.59) a smear: the arm stretches along the kick
     this.grip.setVisible(!(P.bashSpin || 0));
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
-    this.updateArms(P, jB);
+    this.updateArms(P, jB, dt, sw, run, air, sq);
 
     this.setPowered(P.power > 0);
     this.root.setPosition(x, y).setScale(z * RIG_SCALE * (P.facing < 0 ? -1 : 1), z * RIG_SCALE).setAlpha(alpha);   // (no whole-body squash: the crouch is in the legs)
