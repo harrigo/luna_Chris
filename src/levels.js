@@ -160,7 +160,7 @@ const LEVELS = {
 
   4: {
     id: 4, hpMul: 1.35, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'The Pizza Inferno: a charred crust planet\nwith molten mozzarella pools and an angry volcano.',
-    music: 'level4', bossName: 'THE MOZZARELLA MAGMA-GOLEM', tip: 'MOLTEN CHEESE GRABS YOU: MASH OR HOLD JUMP TO RIP FREE!',
+    music: 'level4', bloom: 0.28, bossName: 'THE MOZZARELLA MAGMA-GOLEM', tip: 'MOLTEN CHEESE GRABS YOU: MASH OR HOLD JUMP TO RIP FREE!',
     radius: 440, sky: [0x160302, 0x8a2408], bg: '#160302', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12, mozz: true,
     // the PIZZA INFERNO: a charred, cratered pizza crust (golden where it's baked, black where it's burnt), lava light on the rim
     surface: { pal: [0x1a0804, 0x4a200c, 0x8a4418, 0xc0782c, 0xe0a450, 0xf6d088], seed: 4444, rim: [0x120402, 0x4a1a08, 0xa04a18], spot: [0x0c0402, 0x2a1006], rimD: 0.925, rimLight: [255, 120, 40], dark: [40, 8, 2] },

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.64';
+const BUILD = 'v3.65';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3534,6 +3534,14 @@ class Level1 extends Phaser.Scene {
     if (e.type === 'boss') { Sound.sfx('boom'); Sound.sfx(m === 'metal' ? 'scrap' : m === 'ghost' ? 'whoo' : 'bigsplat'); return; }
     Sound.sfx(m === 'metal' ? 'scrap' : m === 'ghost' ? 'whoo' : (e.big ? 'bigsplat' : 'splat'));
   }
+  dustPuff(theta, h, n, dir) {
+    if (Math.abs(angDiff(theta, this.pl.theta)) > this.visHalf + 0.1 || !this.textures.exists('puff')) return;
+    const tint = this.def.dustTint || 0xe8dcc0;
+    for (let k = 0; k < n; k++) {
+      const im = this.add.image(0, 0, 'puff').setDepth(4.6).setAlpha(0.5).setTint(tint); im.bsx = im.bsy = rnd(0.12, 0.2);
+      this.parts.push({ theta: wrap(theta + rnd(-10, 10) / R), h: h + rnd(1, 5), vt: (dir || (k % 2 ? 1 : -1)) * rnd(40, 110), vh: rnd(10, 45), life: rnd(0.3, 0.5), noGrav: true, grow: 0.5, spr: im });
+    }
+  }
   camPunch(a) { if (Settings.shake) this.punch = Math.max(this.punch, a); }                        // quick zoom-in punch on big impacts
   addLight(theta, h, r, col, a, life) { if (Settings.lights && this.lights.length < 30) this.lights.push({ theta, h, r, col, a, life, max: life }); }
   fxTick(dt) {
@@ -5501,6 +5509,14 @@ class Level1 extends Phaser.Scene {
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    { // (v3.65) grounding: a puff of dust where he lands, and a skid of it when he turns on his heel at a run
+      const fl = P.floor || 0, g = P.h <= fl + 0.5 && P.vh <= 0, dir = Math.abs(P.vx || 0) > 120 ? Math.sign(P.vx) : 0;
+      if (this.state === 'play' && !this.cave) {
+        if (g && this._wasAir) this.dustPuff(P.theta, fl, 6, 0);
+        else if (g && dir && this._runDir && dir !== this._runDir) this.dustPuff(P.theta, fl, 4, -dir);
+      }
+      this._wasAir = !g; if (dir) this._runDir = dir; else if (!g) this._runDir = 0;
+    }
     this.rig.root.setRotation(this.camLag || 0);                       // (camera swing: he stands square to the planet, wherever it's turned)
     if (P.spinA) { const a = P.spinA, ch = 26 * this.zoom, r = this.rig.root, px = r.x, py = r.y - ch; r.setPosition(px - Math.sin(a) * ch, py + Math.cos(a) * ch).setRotation((this.camLag || 0) + a); }   // (v3.01) the somersault out of a pit, round his middle
     this.netTick();
@@ -5849,6 +5865,8 @@ const startPhaser = () => { window.game = new Phaser.Game({
   input: { activePointers: 4 },
   scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene]
 });
+// (v3.65) every scene's camera gets the grade (contrast + the palette lock: fx.js), so the menus match the levels
+window.game.events.once('ready', () => { for (const sc of window.game.scene.scenes) sc.sys.events.on('create', () => { if (!sc.fxApply) fxGrade(sc, 0.3); }); });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.
   const apply = () => {

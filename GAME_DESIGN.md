@@ -2221,3 +2221,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v3.64: CAPE UP reworked - you see the cloth
 - Chris no longer flips left and right during the intro; he stays facing forward. The apron itself now comes off as a cloth that whirls round him with a trail (round his middle, right round him in a jump, lassoed over his head, or one fast flick), turning from white to cape-red as it goes, his free hand following it.
 - It lands on his shoulders as the cape with a springy pop, a white flash on the cloth, a billow and sparks. The camera holds on him for three quarters of a second before pulling back for the shout. Total about 3s (2.4s for the quick flick); still skippable.
+
+## v3.65: the grade - one palette, more contrast
+- Every scene's camera now runs one post pass (fx.js, `fxGrade`): bloom (graphics HIGH only, default strength down from 0.6 to 0.45, Mount Mozzarella 0.28), then an S-curve for contrast and a touch more saturation, then a PALETTE LOCK that snaps every pixel to the nearest of 48 master colours with a fine 4x4 ordered dither. Graphics LOW turns the whole pass off.
+- The master palette (FX_PALETTE) was built from raw screenshots of all 11 levels plus the shop, map, camp and menu: colours bucketed per image (so one level's sky cannot swamp the rest), weighted k-means to 48, with ink (0x1a1020), white, black and Chris's key colours pinned. To rebuild it: capture the levels at graphics MEDIUM with the lock off, and re-run the k-means.
+- Because the lock is on the finished frame it covers PNG sprites, drawn-in-code sprites, graphics, glows and the HUD alike; soft glows become dithered bands rather than a blur.
+- Grounding: a puff of dust where Chris lands, and a skid of dust when he turns at a run (`dustPuff`, tinted by `def.dustTint`).
+- Not done: matching pixel sizes. On a phone the world is drawn at about 83% (zoom = height / 470), so sprite pixels are not all one screen pixel. Fixing it means raising the logical height to 470 and scaling the HUD and touch controls up to compensate.

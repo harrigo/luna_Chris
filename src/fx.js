@@ -1,6 +1,6 @@
 // NEO-RETRO LIGHTING for every level (mixed into Level1):
 //
-//  BLOOM     (graphics HIGH) a soft bloom on the camera: shots, lava, fondue and lights bleed a little.
+//  GRADE     bloom (graphics HIGH), contrast, and the 48-colour palette lock: one pass over the finished frame.
 //  VIGNETTE  (MEDIUM+) the corners of the screen fall away into the level's shadow colour, under the HUD.
 //  SHADOWS   (all) a soft blob of shadow on the ground under Chris and every enemy; it shrinks and fades as they
 //            climb, so heights read at a glance.
@@ -29,34 +29,70 @@ function makeFxTextures(scene) {
   }
 }
 
-// The bloom: one pass over the finished frame. Only the BRIGHT pixels bleed (a threshold), sampled on two little rings
-// and added back on top, so the pixel art itself stays crisp. (Phaser's own bloom FX blurs the whole picture.)
+// THE GRADE (v3.65): one pass over the finished frame that makes the whole game look like one hand drew it.
+//   1. bloom   (graphics HIGH) only the BRIGHT, colourful pixels bleed, sampled on little rings and added back on top
+//   2. contrast  an S-curve (darks down, lights up) and a touch more colour, so characters stand off the scenery
+//   3. palette lock  every pixel is snapped to the nearest of the game's 48 MASTER COLOURS, with a fine ordered dither
+//      between neighbours - so the hundreds of nearly-the-same yellows, blues and browns become one shared set, and soft
+//      glows turn into pixel-art banding instead of a smooth blur.
+// The master palette was built from screenshots of every level (weighted k-means, see GAME_DESIGN.md). Graphics LOW
+// switches the whole pass off.
+const FX_PALETTE = [0x000000, 0x1a1020, 0x191449, 0x4a120f, 0x0e3540, 0x322732, 0x331b82, 0x632b19, 0x8b1917, 0x404057, 0x17508d, 0x156143, 0x583798, 0x9c3918, 0x704b37, 0xd62828, 0x5c5f79, 0x188c64, 0x2b76b2, 0x9f5c21, 0x8258bc, 0x409937, 0xd6541a, 0x936d5e, 0x79839d, 0xbc7925, 0x3ec45c, 0x34b7c5, 0xf17d15, 0xe56f86, 0xa9907d, 0xa086dc, 0xd29638, 0x7cacce, 0xb1aaba, 0xf0ae2e, 0x5be0d0, 0xcbb97b, 0xefa3a3, 0x86ef70, 0xb9c8e2, 0xffd23f, 0xe5d1a0, 0xadebf0, 0xfcea54, 0xe5e1e6, 0xf6f0ad, 0xffffff];
 const FX_BLOOM_FRAG = `
 precision mediump float;
 uniform sampler2D uMainSampler;
 uniform vec2 uTexel;
 uniform float uStr;
+uniform vec3 uPal[48];
 varying vec2 outTexCoord;
 // (only bright AND colourful pixels: plain white - Chris's chef whites, the HUD text - gave everything a milky halo)
 vec3 hot(vec2 uv) { vec3 c = texture2D(uMainSampler, uv).rgb; float l = max(c.r, max(c.g, c.b)), lo = min(c.r, min(c.g, c.b)); return c * smoothstep(0.74, 1.0, l) * smoothstep(0.18, 0.5, (l - lo) / max(l, 0.001)); }
+float bayer2(vec2 a) { a = floor(a); return fract(a.x / 2.0 + a.y * a.y * 0.75); }
+float bayer4(vec2 a) { return bayer2(0.5 * a) * 0.25 + bayer2(a); }
 void main() {
   vec4 base = texture2D(uMainSampler, outTexCoord);
-  vec3 g = vec3(0.0);
-  for (int i = 0; i < 8; i++) {
-    float a = float(i) * 0.7853982;
-    vec2 d = vec2(cos(a), sin(a)) * uTexel;
-    g += hot(outTexCoord + d * 2.5) + hot(outTexCoord + d * 6.0) * 0.6 + hot(outTexCoord + d * 11.0) * 0.3;
+  vec3 c = base.rgb;
+  if (uStr > 0.001) {
+    vec3 g = vec3(0.0);
+    for (int i = 0; i < 8; i++) {
+      float a = float(i) * 0.7853982;
+      vec2 d = vec2(cos(a), sin(a)) * uTexel;
+      g += hot(outTexCoord + d * 2.5) + hot(outTexCoord + d * 6.0) * 0.6 + hot(outTexCoord + d * 11.0) * 0.3;
+    }
+    c += g * (uStr / 15.2);
   }
-  gl_FragColor = vec4(base.rgb + g * (uStr / 15.2), base.a);
+  c = clamp(c, 0.0, 1.0);
+  c = mix(c, c * c * (3.0 - 2.0 * c), 0.32);                                   // contrast
+  float l = dot(c, vec3(0.299, 0.587, 0.114));
+  c = clamp(mix(vec3(l), c, 1.1), 0.0, 1.0);                                   // a touch more colour
+  vec3 q = c + (bayer4(gl_FragCoord.xy) - 0.5) * 0.045;                        // ordered dither between neighbouring colours
+  float best = 1000.0; vec3 pick = c;
+  for (int i = 0; i < 48; i++) { vec3 d = (q - uPal[i]) * vec3(0.547, 0.766, 0.338); float dd = dot(d, d); if (dd < best) { best = dd; pick = uPal[i]; } }
+  gl_FragColor = vec4(pick, base.a);
 }`;
-let FxBloomPipe = null, FX_BLOOM_STR = 0.6;          // (a level with a very bright planet turns it down: def.bloom)
+let FxBloomPipe = null, FX_BLOOM_STR = 0.45;         // (a level with a very bright planet turns it down: def.bloom)
 function fxBloomClass() {
   if (FxBloomPipe) return FxBloomPipe;
+  const pal = new Float32Array(FX_PALETTE.length * 3);
+  FX_PALETTE.forEach((c, i) => { pal[i * 3] = ((c >> 16) & 255) / 255; pal[i * 3 + 1] = ((c >> 8) & 255) / 255; pal[i * 3 + 2] = (c & 255) / 255; });
   FxBloomPipe = class extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
     constructor(game) { super({ game, name: 'LCBloom', fragShader: FX_BLOOM_FRAG }); }
-    onPreRender() { this.set2f('uTexel', 1 / this.renderer.width, 1 / this.renderer.height); this.set1f('uStr', FX_BLOOM_STR); }
+    onPreRender() { this.set2f('uTexel', 1 / this.renderer.width, 1 / this.renderer.height); this.set1f('uStr', Settings.glow ? (this.lcStr === undefined ? 0.3 : this.lcStr) : 0); this.set3fv('uPal', pal); }
   };
   return FxBloomPipe;
+}
+// put the grade on a scene's camera (every scene: the menus, the shop and the map match the levels). str: bloom strength
+function fxGrade(scene, str) {
+  try {
+    const rn = scene.game.renderer, cam = scene.cameras && scene.cameras.main;
+    if (!cam || !rn || !rn.pipelines || rn.type !== Phaser.WEBGL) return false;
+    const has = cam.getPostPipeline('LCBloom'), on = Array.isArray(has) ? has.length > 0 : !!has;
+    if (Settings.gfx === 'low') { if (on) cam.removePostPipeline('LCBloom'); return false; }
+    if (!rn.pipelines.getPostPipeline('LCBloom')) rn.pipelines.addPostPipeline('LCBloom', fxBloomClass());
+    if (!on) cam.setPostPipeline('LCBloom');
+    const p = cam.getPostPipeline('LCBloom'), pp = Array.isArray(p) ? p[0] : p; if (pp) pp.lcStr = str;
+    return true;
+  } catch (e) { return false; }
 }
 
 const FxMixin = {
@@ -73,20 +109,13 @@ const FxMixin = {
     };
     X.vig = this.add.image(0, 0, '__vignette').setOrigin(0).setDepth(19.5).setScrollFactor(0)
       .setTint(Phaser.Display.Color.GetColor(Math.round(dk[0] * 0.5), Math.round(dk[1] * 0.5), Math.round(dk[2] * 0.5))).setAlpha(0.8);
-    FX_BLOOM_STR = this.def.bloom !== undefined ? this.def.bloom : 0.6;
+    FX_BLOOM_STR = this.def.bloom !== undefined ? this.def.bloom : 0.45;
     this.fxApply();
   },
   // the bloom follows the graphics setting (called when it changes, too)
   fxApply() {
     const X = this.fx; if (!X) return;
-    const cam = this.cameras.main;
-    try {
-      const rn = this.game.renderer;
-      if (rn && rn.pipelines && rn.type === Phaser.WEBGL) {          // (not the canvas renderer)
-        if (Settings.glow && !X.bloom) { if (!rn.pipelines.getPostPipeline('LCBloom')) rn.pipelines.addPostPipeline('LCBloom', fxBloomClass()); cam.setPostPipeline('LCBloom'); X.bloom = true; }
-        else if (!Settings.glow && X.bloom) { cam.removePostPipeline('LCBloom'); X.bloom = null; }
-      }
-    } catch (e) { X.bloom = null; }
+    X.bloom = fxGrade(this, FX_BLOOM_STR);
     X.vig.setVisible(Settings.lights);
   },
 
