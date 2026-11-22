@@ -61,6 +61,60 @@ function chrisHoldPaint(a, G, dot) {                                 // the supp
 }
 const GUN_HOLD = { c_gun: { g: [13, 20], f: [19, 20] }, c_gun2: { g: [13, 20], f: [19, 20] }, c_gun3: { g: [13, 20], f: [19, 21] }, ix_spatula: { g: [7, 15], f: null } };
 
+// ================================================================= GUN FX PARTS (v3.61)
+// The guns have moving parts now, so their sprites are split up at run time (this works on the PNGs in assets/sprites
+// and on the drawn-in-code versions alike): '<gun>_e' is the gun with the live bit taken out, and the live bit is drawn
+// over it every frame - macaroni to the level of the tank, a crank that turns, a reel that spins and unwinds.
+function chrisGunParts(scene) {
+  const T = scene.textures, INK = 0x1a1020;
+  const derive = (src, dst, fn) => {
+    if (T.exists(dst) || !T.exists(src)) return;
+    const fr = T.getFrame(src), w = fr.cutWidth, h = fr.cutHeight, ct = T.createCanvas(dst, w, h), ctx = ct.getContext();
+    ctx.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
+    const img = ctx.getImageData(0, 0, w, h), D = img.data;
+    const get = (x, y) => { const i = (y * w + x) * 4; return x < 0 || y < 0 || x >= w || y >= h || D[i + 3] < 200 ? null : [D[i], D[i + 1], D[i + 2]]; };
+    const put = (x, y, c) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const i = (y * w + x) * 4; if (c === null) { D[i + 3] = 0; return; } D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; D[i + 3] = 255; };
+    fn(get, put, w, h); ctx.putImageData(img, 0, 0); ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.NEAREST);
+  };
+  // Mac-Grinder: an EMPTY glass hopper, and no crank
+  derive('c_gun', 'c_gun_e', (get, put) => {
+    for (let y = 3; y <= 9; y++) for (let x = 8; x <= 26; x++) { const c = get(x, y); if (c && c[0] > 200 && c[1] > 120 && c[2] < 150) put(x, y, y < 5 ? 0xdcf2ff : y < 8 ? 0xb8e4ff : 0x9ad0f0); }
+    for (let y = 3; y <= 12; y++) for (let x = 0; x <= 3; x++) put(x, y, null);
+    for (let y = 13; y <= 15; y++) for (let x = 0; x <= 2; x++) put(x, y, null);
+    for (let y = 9; y <= 15; y++) { const c = get(4, y), l = get(3, y); if (c && (c[0] + c[1] + c[2]) > 150 && !l) put(3, y, INK); }   // re-ink the body's back edge where the crank crossed it
+  });
+  // Spaghetti Spinner: no reel, no loose strand (and the top of the body they sat on, made good)
+  derive('c_gun2', 'c_gun2_e', (get, put) => {
+    const body = [];
+    for (let x = 0; x <= 27; x++) { const c = get(x, 13); body[x] = !!c && x >= 3; }
+    for (let y = 0; y <= 9; y++) for (let x = 0; x <= 27; x++) put(x, y, null);
+    for (let y = 10; y <= 12; y++) for (let x = 0; x <= 22; x++) { const c = get(x, y); if (!c) continue;
+      const yel = c[0] > 170 && c[1] > 120 && c[2] < 160, dark = (c[0] + c[1] + c[2]) < 150;
+      if ((yel || dark) && x >= 5 && x <= 21) { const r = get(23, y); put(x, y, y === 11 ? 0xb8fff4 : r && (r[0] + r[1] + r[2]) > 150 ? (r[0] << 16 | r[1] << 8 | r[2]) : 0x7af0e0); } }
+    for (let x = 5; x <= 25; x++) if (get(x, 10)) put(x, 9, INK);
+    put(13, 8, 0x5a6272); put(14, 8, 0x5a6272); put(13, 7, INK); put(14, 7, INK); put(12, 8, INK); put(15, 8, INK);   // the spindle the reel turns on
+  });
+  const noInk = g => { for (let i = 0; i < g.length; i++) if (g[i] === INK) g[i] = -1; };
+  if (!T.exists('c_hopfill')) {
+    pixSprite(scene, 'c_hopfill', 19, 7, a => {                       // a hopperful of macaroni (texture x 0 = gun x 8, y 0 = gun y 3)
+      for (let ty = 0; ty < 7; ty++) { const y = 3 + ty, k = (y - 2) * 3 / 8;
+        for (let x = Math.ceil(9 + k); x <= Math.floor(25 - k); x++) a.px(x - 8, ty, (x * 3 + y * 5) % 7 < 2 ? 0xffa21a : (x + y * 2) % 5 === 0 ? 0xfff0a0 : 0xffd23f); }
+    }, 1, noInk);
+    pixSprite(scene, 'c_crank', 6, 11, a => { a.rect(2, 4, 3, 9, 0x7a8698); a.rect(2, 4, 2, 9, 0xb8c4d4); a.rrect(1, 1, 4, 4, 1, [0xff8a8a, 0xe03030, 0x901818]); });
+    const SP = [0xfff4b0, 0xffd23f, 0xc99a1a];
+    for (let fq = 0; fq < 4; fq++) pixSprite(scene, 'c_reel' + fq, 17, 16, a => {   // the reel, in four turns: two spiral strands and a notched hub
+      a.ell(8.5, 8, 7, 6.5, SP);
+      for (const arm of [0, Math.PI]) for (let k = 0; k < 30; k++) { const u = k / 30, r = 1.8 + u * 4.7, an = arm + fq * Math.PI / 4 + u * 4.2; a.px(8.5 + Math.cos(an) * r, 8 + Math.sin(an) * r * 0.92, 0xc99a1a); }
+      a.ell(8.5, 8, 1.7, 1.7, 0x5a6272); a.px(8.5 + Math.cos(fq * Math.PI / 4) * 1.1, 8 + Math.sin(fq * Math.PI / 4) * 1.1, 0xdfe6f0);
+      a.px(5, 3, 0xffffff); a.px(6, 3, 0xffffff);
+    });
+    pixSprite(scene, 'c_strand', 10, 6, a => { a.line([[1, 4], [3, 2], [5, 4], [8, 1]], 0xffd23f); });
+    pixSprite(scene, 'c_socket', 5, 5, a => { a.ell(2.5, 2.5, 1.6, 1.6, 0x3a4252); a.px(2, 2, 0x2a3040); });
+    pixSprite(scene, 'c_heat', 15, 15, a => { a.ell(7.5, 7.5, 7, 7, 0x3a0e00); a.ell(7.5, 7.5, 5.2, 5.2, 0x8a3000); a.ell(7.5, 7.5, 3.4, 3.4, 0xd87020); a.ell(7.5, 7.5, 1.7, 1.7, 0xffd890); }, 1, noInk);
+    pixSprite(scene, 'c_puff', 8, 8, a => { a.ell(4, 4, 3.4, 3.4, [0xffffff, 0xeef2f8, 0xc8d2e2]); }, 1, noInk);
+  }
+}
+
 function makeChrisTextures(scene) {
   if (madeTex(scene, 'c_head')) return;
   const OUT = 0x1a1020;
@@ -475,7 +529,12 @@ class ChrisRig {
     this.gunPivot = scene.add.container(GX, GY);
     this.gun = img('c_gun', 4 + BK - GX, 1 - GY, 0, 15 / 26).setScale(1.25);   // barrel centre lines up with the arm; a big chunky gun
     this.auger = img('auger0', 44 + BK - GX, 1 - GY, 0, 0.5).setScale(1.25);
-    this.gunPivot.add([this.gun, this.auger]);
+    chrisGunParts(scene);
+    { const gi = (key, ox, oy) => img(key, 0, 0, ox, oy).setVisible(false);     // (v3.61) the guns' live parts (see updateGunFx)
+      this.gfx = { crank: gi('c_crank', 0.5, 0.92), fill: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(() => gi('c_hopfill', 0, 0)), reel: gi('c_reel0', 0.5, 0.5), strand: gi('c_strand', 0.1, 0.7),
+        sock: [0, 1, 2].map(() => gi('c_socket', 0.5, 0.5)), heat: gi('c_heat', 0.5, 0.5).setBlendMode(Phaser.BlendModes.ADD),
+        px: GX, py: GY, q: 0, qv: 0, sl: 0, slv: 0, lv: 1, hot: 0, spin: 0, crankA: 0, reelA: 0, steamT: 0, shot: false, puffs: [] }; }
+    this.gunPivot.add([this.gfx.crank, this.gun, ...this.gfx.fill, this.gfx.reel, this.gfx.strand, ...this.gfx.sock, this.auger, this.gfx.heat]);
     this.grip = img('c_grip', 20, 10, 0.5, 0.5);                      // fingers round the grip, over the gun
     this.gunArm.add([this.gArm, this.gunPivot, this.grip]);
     this.stars = [0, 1, 2].map(() => img('c_ouchstar', 0, 0, 0.5, 0.5).setVisible(false));
@@ -486,7 +545,7 @@ class ChrisRig {
     this.root.add([...this.capeS, this.tanks, this.legB, this.bootB, this.legF, this.bootF, this.fFist, this.fOpen, this.torso, this.fArm, this.gunArm, this.fHand, this.nArm, this.nHand, ...this.stars]);
     this.fArmFront = true;
 
-    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.hat, this.legF, this.bootF, this.gun, this.fArm, this.fHand, this.fFist, this.fOpen, this.nArm, this.nHand];
+    this.parts = [...this.capeS, this.tanks, this.legB, this.bootB, this.body, this.belly, this.apron, this.apronB, this.collar, this.head, this.tache, this.wear, this.hat, this.legF, this.bootF, this.gun, this.fArm, this.fHand, this.fFist, this.fOpen, this.nArm, this.nHand, this.gfx.crank, ...this.gfx.fill, this.gfx.reel, this.gfx.strand];
     this.tinted = false;
     this.wp = 0;          // waddle phase
     this.t = 0;
@@ -504,6 +563,65 @@ class ChrisRig {
   ouch(heavy) { this.ouchT = 0.7; this.ouchHeavy = !!heavy; }
   grin() { this.grinT = 0.8; }
   setFace(key) { this.faceKey = key || null; }
+
+  // (v3.61) THE GUNS, ALIVE. Every shot squeezes the gun like a tube (long and thin, then fat, then settled); the tank
+  // shows ON the gun (macaroni sloshing in the Mac-Grinder's hopper, the Spinner's reel unwinding, the Swiss-Shot's
+  // drum emptying); the working parts turn while it fires; and as the tank runs down the muzzle glows, rattles when a
+  // jam is close, and steams as it cools.
+  updateGunFx(P, dt, sq, run) {
+    const F = this.gfx, gun = this.gun, aug = this.auger, T = this.root.scene.textures, t = this.t, h = Math.min(0.033, dt);
+    let key = gun.texture.key;
+    if (T.exists(key + '_e')) { gun.setTexture(key + '_e'); key += '_e'; }
+    const kind = key.startsWith('c_gun2') ? 'spin' : key.startsWith('c_gun3') ? 'swiss' : key.startsWith('c_gun') ? 'mac' : '';
+    const live = !!kind && this.gunArm.visible, ammo = P.ammo == null ? 1 : Math.max(0, Math.min(1, P.ammo));
+    const beam = !!P.beamOn, firing = P.firing > 0 || beam, charge = P.charge || 0, jam = !!(P.jamShake || P.jamBang);
+    // ---- squash and stretch
+    const shot = P.firing > 0.09; if (shot && !F.shot) { F.qv += 15; F.slv -= 2.2; } F.shot = shot;
+    const qT = live ? -0.75 * charge + (charge >= 1 ? Math.sin(t * 50) * 0.18 : 0) + (beam ? 0.12 + Math.sin(t * 34) * 0.1 : 0) : 0;   // charging: it swells; the beam: it throbs
+    F.qv += ((qT - F.q) * 320 - F.qv * 15) * h; F.q = Math.max(-1.1, Math.min(1.3, F.q + F.qv * h));
+    const sx = 1.25 * (1 + 0.11 * F.q), sy = 1.25 * (1 - 0.09 * F.q);
+    gun.setScale(sx, sy); aug.x = gun.x + 32 * sx; aug.setScale(1.25 * (1 + 0.2 * F.q), 1.25 * (1 - 0.06 * F.q));
+    const gp = (px, py) => [gun.x + px * sx, gun.y + (py - 15) * sy];
+    // ---- heat: how near the tank is to empty. Close to a jam the whole gun rattles
+    F.hot += ((live ? 1 - ammo : 0) - F.hot) * Math.min(1, h * 6); F.lv += (ammo - F.lv) * Math.min(1, h * 9);
+    const hk = Math.max(0, (F.hot - 0.35) / 0.65), near = live && firing && ammo < 0.22 ? 1 : 0;
+    this.gunPivot.setPosition(F.px + Math.sin(t * 61) * 0.8 * near, F.py + Math.cos(t * 53) * 0.7 * near);
+    aug.setTint(Phaser.Display.Color.GetColor(255, 255 - Math.round(125 * hk), 255 - Math.round(190 * hk)));
+    F.heat.setVisible(live && hk > 0.02).setPosition(aug.x + 7 * sx, aug.y).setAlpha(Math.min(1, hk * (0.75 + 0.2 * Math.sin(t * 23)) + near * 0.25)).setScale(sx * (0.9 + 0.9 * hk + near * 0.3 * Math.sin(t * 47)));
+    // ---- steam off the muzzle: in wisps as it cools, in a rush when it's about to jam (left behind in the world, not stuck to him)
+    F.steamT -= h;
+    if (live && F.steamT <= 0 && !jam && (near || (!firing && F.hot > 0.45))) {
+      F.steamT = near ? 0.09 : 0.3 - 0.18 * F.hot;
+      const sc = this.root.scene, m = aug.getWorldTransformMatrix(), tp = m.transformPoint(aug.width * (1 - aug.originX) - 3, -3);
+      let pf = F.puffs.find(o => !o.im.visible);
+      if (!pf && F.puffs.length < 10) { pf = { im: sc.add.image(0, 0, 'c_puff') }; F.puffs.push(pf); }
+      if (pf) { pf.t = 0; pf.T = 0.45 + Math.random() * 0.3; pf.vx = (Math.random() - 0.5) * 14; pf.im.setVisible(true).setPosition(tp.x, tp.y).setDepth((this.root.depth || 0) + 0.01); }
+    }
+    { const z = Math.abs(this.root.scaleY) || 1;
+      for (const pf of F.puffs) if (pf.im.visible) { pf.t += h; const k = pf.t / pf.T; if (k >= 1) { pf.im.setVisible(false); continue; }
+        pf.im.x += pf.vx * h * z; pf.im.y -= (26 - 12 * k) * h * z; pf.im.setAlpha(0.6 * (1 - k)).setScale(z * (0.7 + 1.5 * k)); } }
+    // ---- the working parts
+    F.spin += ((live && firing ? 1 : 0) - F.spin) * Math.min(1, h * (firing ? 9 : 3));                // they wind up fast and run down slowly
+    const mac = live && kind === 'mac', spin = live && kind === 'spin', swiss = live && kind === 'swiss';
+    // Mac-Grinder: the crank turns (seen side-on, it bobs over the top and round the back), the macaroni sits level as the gun tilts, and sloshes
+    F.crankA += h * F.spin * 24;
+    { const p = gp(4.5, 13.5), c = Math.cos(F.crankA); F.crank.setVisible(mac).setPosition(p[0], p[1]).setScale(sx, sy * (Math.abs(c) < 0.18 ? 0.18 * (c < 0 ? -1 : 1) : c)); }
+    const tilt = Math.max(-0.55, Math.min(0.55, -Math.tan(Math.max(-1.2, Math.min(1.2, this.gunArm.rotation + this.gunPivot.rotation)))));
+    if (sq > 0.9) F.slv += 3;
+    F.slv += ((tilt + Math.sin(this.wp * 2) * 0.12 * run - F.sl) * 110 - F.slv * 5.5) * h; F.sl = Math.max(-0.7, Math.min(0.7, F.sl + F.slv * h));
+    { const p = gp(8, 3);
+      F.fill.forEach((im, k) => {
+        const x0 = k * 2, w = k === 9 ? 1 : 2, top = Math.max(0, Math.round(7 - F.lv * 7 + (x0 + 1 - 9.5) * F.sl + (firing ? Math.sin(t * 38 + k * 1.9) * 0.6 : 0)));
+        im.setVisible(mac && top < 7); if (mac && top < 7) im.setPosition(p[0], p[1]).setScale(sx, sy).setCrop(x0, top, w, 7 - top);
+      }); }
+    // Spaghetti Spinner: the reel spins up, and unwinds as the tank drains
+    F.reelA += h * F.spin * 26;
+    { const p = gp(13.5, 6.5), rk = 0.68 + 0.32 * F.lv, fr = 'c_reel' + (Math.floor(F.reelA / (Math.PI / 4)) & 3), q = gp(19, 8.5);
+      F.reel.setVisible(spin).setPosition(p[0], p[1] + (1 - rk) * 3).setScale(sx * rk, sy * rk); if (spin && F.reel.texture.key !== fr) F.reel.setTexture(fr);
+      F.strand.setVisible(spin).setPosition(q[0], q[1]).setScale(sx, sy).setRotation(Math.sin(t * 7) * 0.2 + F.spin * Math.sin(t * 41) * 0.55); }
+    // Swiss-Shot: the balls in the drum go as the tank does
+    [[8, 3, 0.04], [12, 3, 0.36], [10, 6, 0.69]].forEach(([x, y, lim], k) => { const p = gp(x, y); F.sock[k].setVisible(swiss && ammo < lim).setPosition(p[0], p[1]).setScale(sx, sy); });
+  }
 
   // lay a limb along a curve from A, THROUGH its joint K, to B. Points before index i0 run straight back from A (the
   // shoulder ball); the joint lands on index iK, where the sprite's elbow / knee is drawn.
@@ -801,6 +919,7 @@ class ChrisRig {
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun
     if (this.tipSpins !== false) this.auger.setTexture('auger' + augerFrame);
     this.tanks.setPosition(this.torso.x - 16, this.torso.y - 24);
+    this.updateGunFx(P, dt, sq, run);
     this.updateArms(P, jB, dt, sw, run, air, sq);
 
     this.setPowered(P.power > 0);
