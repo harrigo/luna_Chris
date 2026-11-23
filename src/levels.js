@@ -402,7 +402,7 @@ const LEVELS = {
   // LEVEL 10 (the finale, in progress - open on the map for testing): the Rat King's flying saucer (saucer.js)
   10: {
     id: 10, hpMul: 1.7, name: "The Rat King's Saucer", short: 'THE ROYAL SAUCER', blurb: 'The top deck of the Royal Saucer, high over Parmesan Prime.\nThe Rat King is at the wheel. Do not fall off.',
-    music: 'level9', bossMusic: 'final', bossName: 'THE PARMESAN COLOSSUS', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
+    music: 'level9', bossMusic: 'final', bossName: 'THE RAT KING', tip: 'HE STEERS, YOU SLIDE: WATCH THE DECK LIGHTS. MIND THE EDGE!', saucer: true,
     radius: 1100, sky: [0x03040e, 0x1a1238], skyCols: [0x03040e, 0x070a1c, 0x0c1030, 0x141440, 0x1e164a, 0x2a1a50], bg: '#03040e', starTint: 0xc8d8ff, dustAlpha: 0.5, bgDecor: 'cosmic',
     planet: { fill: 0x4a5672, inner: 0x232a3e, rim: 0xb8c4e0, glow: 0x9fd8ff },
     dust: [0xffffff, 0x9fd8ff, 0xffd8a0, 0xc8d8ff], decorTint: 0x8a94a6, decorAlpha: 0.5,

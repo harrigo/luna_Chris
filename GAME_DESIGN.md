@@ -2322,3 +2322,5 @@ The v3.81 pool round Chris read as a blur (a big soft pool stacked on the old ha
 - After a hit: 1.44 -> 1.7 s of flashing invulnerability. You can stomp while flashing: the no-stomp flinch (hurtHop) now ends 0.4 s after the hit even in the air, not only on landing.
 - Pickups: grab radius 30 -> 36; without the magnet, cheddar tugs in from 70 all round (was a narrow strip along the ground).
 - Boss tells: bossWarn(e, dur) puts a big blinking '!' over the boss (with a zing) for the length of a wind-up. On: the Croque's slam, the Baron's claw punch, the Grand Paladin's sword waves and charge (which had no tell), the Colossus's stomp, the Rat King's toss and slam (his slam crouch is longer too, 0.5 -> 0.75 s).
+
+## v3.87: level 10's boss banner said THE PARMESAN COLOSSUS (copied from level 9): now THE RAT KING
