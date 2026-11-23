@@ -57,7 +57,14 @@ const Atlas = (() => {
       if (page.x + it.w + PAD > PAGE) { page.x = PAD; page.y += page.rowH + PAD; page.rowH = 0; }
       if (page.y + it.h + PAD > PAGE) newPage(mgr);
       it.pg = page; it.x = page.x; it.y = page.y;
-      page.ctx.drawImage(it.img, it.x, it.y);
+      let img = it.img;
+      // (v3.74) onto the master palette (palette.js), if the painter didn't do it already. The PNG sprites were snapped
+      // in the files themselves, so they're left alone (unless ?palfiles: how the files were made)
+      if (typeof Pal !== 'undefined' && !Pal.done.has(it.key) && (!SPRITE_FILES.has(it.key) || /[?&]palfiles\b/.test(location.search))) {
+        const cv = document.createElement('canvas'); cv.width = it.w; cv.height = it.h; const cx = cv.getContext('2d'); cx.drawImage(it.img, 0, 0);
+        if (Pal.snapCanvas(it.key, cv)) { img = cv; Pal.done.add(it.key); }
+      }
+      page.ctx.drawImage(img, it.x, it.y);
       page.x += it.w + PAD; page.rowH = Math.max(page.rowH, it.h); page.dirty = true;
     }
     for (const pg of pages) if (pg.dirty) { pg.ct.refresh(); pg.ct.setFilter(Phaser.Textures.FilterMode.NEAREST); pg.dirty = false; }

@@ -50,6 +50,7 @@ function pixSprite(scene, key, w, h, paint, outline, post) {   // post(grid, w, 
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (src[y * w + x] < 0 && (at(x - 1, y) >= 0 || at(x + 1, y) >= 0 || at(x, y - 1) >= 0 || at(x, y + 1) >= 0)) grid[y * w + x] = OUTL;
   }
   if (post) post(grid, w, h);
+  if (typeof Pal !== 'undefined') { Pal.snapGrid(key, grid, w, h); Pal.done.add(key); }   // (v3.74) onto the master palette (palette.js)
   const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
   for (let i = 0; i < w * h; i++) { const c = grid[i]; if (c < 0) continue; D[i * 4] = (c >> 16) & 255; D[i * 4 + 1] = (c >> 8) & 255; D[i * 4 + 2] = c & 255; D[i * 4 + 3] = 255; }
   ctx.putImageData(img, 0, 0); tex.refresh();
@@ -61,6 +62,7 @@ function pixArt(scene, key, palette, rows) {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   const h = rows.length, w = rows[0].length, tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
   rows.forEach((row, y) => [...row].forEach((ch, x) => { const c = palette[ch]; if (c === undefined) return; const i = (y * w + x) * 4; D[i] = (c >> 16) & 255; D[i + 1] = (c >> 8) & 255; D[i + 2] = c & 255; D[i + 3] = 255; }));
+  if (typeof Pal !== 'undefined' && Pal.wants(key, D, w, h)) { Pal.snap(D); if (!PAL_NOTEX.test(key)) Pal.texture(D, w, h); Pal.done.add(key); }   // (v3.74)
   ctx.putImageData(img, 0, 0); tex.refresh();
 }
 const OUTPX = 0x1a1020;
