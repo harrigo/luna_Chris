@@ -544,12 +544,15 @@ const LabMixin = {
   labDark() {
     const C = this.cave; if (!C || !this.def.cave) return;
     const W = this.W, H = this.H, z = this.zoom, t = this.t;
-    if (!this.labRT) { this.labRT = this.add.renderTexture(0, 0, W, H).setOrigin(0).setDepth(14).setScrollFactor(0); this.labStamp = this.make.image({ key: 'lamp', add: false }); this.labEyes = this.add.graphics().setDepth(14.2); }
-    if (this.labRT.width !== W || this.labRT.height !== H) this.labRT.setSize(W, H);
+    if (!this.labRT || !this.labRT.scene) { this.labRT = this.add.renderTexture(0, 0, W + 64, H + 64).setOrigin(0).setPosition(-32, -32).setDepth(14).setScrollFactor(0); this.labStamp = this.make.image({ key: 'lamp', add: false }); this.labEyes = this.add.graphics().setDepth(14.2); }
+    // (v3.88) the same size as the light map (W+64 x H+64, 32px over each edge): two render textures of different sizes
+    // made the GPU rebuild its drawing target twice a frame; and every lamp is rubbed out in ONE pass (batchDraw)
+    if (this.labRT.width !== W + 64 || this.labRT.height !== H + 64) this.labRT.setSize(W + 64, H + 64);
     const RT = this.labRT, S = this.labStamp, eg = this.labEyes; eg.clear();
     const under = C.ring > 0, dark = this.state === 'play' || this.state === 'dead' || this.paused ? (under ? 0.93 : 0.5) : (under ? 0.93 : 0.35);
     RT.clear(); RT.fill(under ? 0x05030a : 0x0a0614, dark); this.labLights = (this.labLights || []).slice(0, 26);
-    const rub = (x, y, r, a) => { S.setPosition(x, y).setScale(r * 2 / 128).setAlpha(a); RT.erase(S); };
+    RT.beginDraw();
+    const rub = (x, y, r, a) => { S.setPosition(x + 32, y + 32).setScale(r * 2 / 128).setAlpha(a); RT.batchDraw(S); };
     const P = this.pl, me = this.screenPos(P.theta, P.h + 26), fl = 1 + Math.sin(t * 13) * 0.02 + Math.sin(t * 31) * 0.015;
     rub(me.x, me.y, (under ? 200 : 330) * z * fl, 1); rub(me.x + (P.facing || 1) * 80 * z, me.y, (under ? 140 : 200) * z, 0.8);   // the lamp, throwing a bit further the way he faces
     if (under) {
@@ -564,6 +567,7 @@ const LabMixin = {
         eg.fillStyle(0xff3a1a, 0.9).fillCircle(q.x - 3 * z, q.y, 1.8 * z).fillCircle(q.x + 3 * z, q.y, 1.8 * z);
       }
     }
+    RT.endDraw(true);   // (all the lamps gathered in one pass, then rubbed out of the dark together)
   },
 
   drawCaveHud() {

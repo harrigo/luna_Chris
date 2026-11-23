@@ -160,10 +160,15 @@ const PixelLookMixin = {
     const ox = cam.scrollX - 32, oy = cam.scrollY - 32;          // the map sits 32px outside the screen on each side
     if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
     const st = X.stamp;
+    // (v3.88) all the lights in ONE pass over the map: draw() on its own switches the GPU to the map and back for every
+    // light (40+ switches a frame on Mount Mozzarella, which is what was slowing phones down); batchDraw inside one
+    // begin/end does them all in a single switch
+    rt.beginDraw();
     for (const l of L) {
       const sp = this.screenPos(l[0], l[1]); if (!sp.vis) continue;
       st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * 2 * z) / 256).setTint(l[3]).setAlpha(Math.min(1, l[4]));
-      rt.draw(st);
+      rt.batchDraw(st);
     }
+    rt.endDraw();
   }
 };

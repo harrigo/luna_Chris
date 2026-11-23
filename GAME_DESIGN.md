@@ -2324,3 +2324,12 @@ The v3.81 pool round Chris read as a blur (a big soft pool stacked on the old ha
 - Boss tells: bossWarn(e, dur) puts a big blinking '!' over the boss (with a zing) for the length of a wind-up. On: the Croque's slam, the Baron's claw punch, the Grand Paladin's sword waves and charge (which had no tell), the Colossus's stomp, the Rat King's toss and slam (his slam crouch is longer too, 0.5 -> 0.75 s).
 
 ## v3.87: level 10's boss banner said THE PARMESAN COLOSSUS (copied from level 9): now THE RAT KING
+
+## v3.88: performance (Mount Mozzarella slowdowns)
+Measured the GPU work per frame (headless, counting WebGL calls). The new light map was the problem: RenderTexture.draw() switches the GPU to the map and back for every light, and Mount Mozzarella has 40+ lights (lava, geysers, shots), so 54 render-target switches a frame (mobile GPUs hate these). Fixes:
+- Light map: all lights in one beginDraw / batchDraw / endDraw pass (same picture, checked pixel for pixel): 54 -> 16 switches a frame on L4.
+- Geyser vents: dropped their per-sprite shader glow (extra passes each, every frame); the lights already light them. L4 now 11 switches a frame.
+- Labyrinth (L8): its darkness RT was a different size from the light map, so the GPU rebuilt its drawing target twice a frame (two 800px texture uploads a frame). Now the same size (W+64 x H+64), and the lamps are rubbed out in one pass (gathered, then endDraw(true)): 31 -> 19 switches, 741k px of uploads a frame -> 0.
+- Text: the gun LV and the style rank re-rendered and re-uploaded their text every frame (setColor); now only when they change. 4 uploads a frame -> ~0.
+- Enemy redraws (densTex) are made a couple a frame while the level starts, not in the middle of a fight; and their nearest-colour search is cached.
+- AUTO QUALITY (perfTick): if play runs under ~45 fps for 3 s, the level steps down (moody light map off, then bloom off, then the light halos) until it's smooth. Off with ?noauto (and in test browsers).

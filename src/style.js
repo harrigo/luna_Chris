@@ -80,8 +80,13 @@ const StyleMixin = {
     this.styleT.setVisible(show); this.styleW.setVisible(show); this.styleG.clear();
     if (!show) return;
     const K = STYLE_RANKS[this.styleRank], x = this.W - 40, y = 150;
-    this.styleT.setText(K.r).setColor(K.col).setPosition(x, y + Math.sin(this.t * 8) * (this.styleRank >= 3 ? 1.5 : 0));
-    this.styleW.setText(K.word + (K.mult > 1 ? '\nCHEDDAR x' + K.mult : '')).setColor(K.col).setPosition(x, y + 18).setAlign('center');
+    if (this.styleT.__k !== this.styleRank) {                             // (v3.88) restyle the text only when the rank changes (each change re-uploads it)
+      this.styleT.__k = this.styleRank;
+      this.styleT.setText(K.r).setColor(K.col);
+      this.styleW.setText(K.word + (K.mult > 1 ? '\nCHEDDAR x' + K.mult : '')).setColor(K.col).setAlign('center');
+    }
+    this.styleT.setPosition(x, y + Math.sin(this.t * 8) * (this.styleRank >= 3 ? 1.5 : 0));
+    this.styleW.setPosition(x, y + 18);
     const nx = STYLE_RANKS[this.styleRank + 1], k = nx ? (this.styleP - K.at) / (nx.at - K.at) : 1, bw = 56;
     const g = this.styleG, by = y + (K.mult > 1 ? 41 : 31);
     if (typeof hudPlate === 'function') hudPlate(g, x - bw / 2 - 6, y - 18, bw + 12, by - y + 28);   // (v3.84) sits on a plate like the rest of the HUD

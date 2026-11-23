@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.87';
+const BUILD = 'v3.88';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -60,7 +60,7 @@ function densTex(scene, key, f) {
       const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1 || !op(i - 1) || !op(i + 1) || !op(i - w) || !op(i + w);
       if (edge && lum(i) < 90) dark.set(c, (dark.get(c) || 0) + 1);
     }
-    const pal = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 64).map(e => e[0]);
+    const pal = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 64).map(e => e[0]), near = new Map();   // (v3.88) near: nearest-colour cache
     let oc = -1, best = 0; for (const [c, n] of dark) if (n > best) { best = n; oc = c; }
     const outl = oc >= 0 && best > 8;
     const D = new Uint8ClampedArray(W * H * 4), A = new Float32Array(W * H), N = 4, pad = 0.35;
@@ -75,8 +75,11 @@ function densTex(scene, key, f) {
       a /= N * N; const o = Y * W + X; A[o] = a;
       if (a <= 0.43) continue;
       r /= a * N * N; g /= a * N * N; b /= a * N * N;
-      let pk = pal[0], pd = 1e9;
-      for (const c of pal) { const dr = r - (c >> 16), dg = g - ((c >> 8) & 255), db = b - (c & 255), dd = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11; if (dd < pd) { pd = dd; pk = c; } }
+      const qk = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+      let pk = near.get(qk);
+      if (pk === undefined) { pk = pal[0]; let pd = 1e9;
+        for (const c of pal) { const dr = r - (c >> 16), dg = g - ((c >> 8) & 255), db = b - (c & 255), dd = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11; if (dd < pd) { pd = dd; pk = c; } }
+        near.set(qk, pk); }
       D[o * 4] = pk >> 16; D[o * 4 + 1] = (pk >> 8) & 255; D[o * 4 + 2] = pk & 255; D[o * 4 + 3] = 255;
     }
     if (outl) for (let Y = 0; Y < H; Y++) for (let X = 0; X < W; X++) {
@@ -282,6 +285,7 @@ const dist2 = (t1, h1, t2, h2) => {
 // (v3.85) HITBOXES FITTED TO THE ART. A texture's solid shape, measured once from its pixels (texture px, y down): the box
 // holding the middle 90% of its solid pixels on each axis, and the radius holding 90% of them round the texture's centre.
 const TEX_SHAPE = {};
+const PERF_OFF = /[?&]noauto/.test(location.search) || !!navigator.webdriver;   // (automated test browsers run slowly on purpose)
 const HITBOX_DEBUG = /[?&]hitbox/.test(location.search);   // ?hitbox: draw every hitbox (see drawHitboxes)
 function texShape(scene, key) {
   if (key in TEX_SHAPE) return TEX_SHAPE[key];
@@ -351,7 +355,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = [];
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.perf = null; this.perfNoHalo = false;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -548,7 +552,7 @@ class Level1 extends Phaser.Scene {
       if (gd.float) glow.setTint(0xc8e0ff);                     // steam vents: a cool white glow, not molten orange
       const vent = this.add.image(0, 0, gd.vent || 'geyser_vent').setOrigin(0.5, 0.75).setDepth(2.6);
       glow.bsx = gd.float ? 0.6 : 1.3; glow.bsy = gd.float ? 1.2 : 2;
-      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0, fx: gd.float ? null : glowFx(vent, 0xff9a2a, 1, 10) });
+      this.geysers.push({ theta, glow, vent, st: 'idle', cd: rnd(1.5, gd.idle[1]), emitT: 0, fx: null });   // (v3.88: no shader glow on the vents - each one cost the GPU extra passes every frame; the light map and halos light them)
     }
 
     // ledges you can hop onto, plus scenery props standing on the surface (some behind Chris, some in front)
@@ -665,6 +669,10 @@ class Level1 extends Phaser.Scene {
     // particle emitters (screen space; positions come from screenPos())
     this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
     this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    { // (v3.88) redraw this level's enemies' frames finer now, a couple a frame (drawFrame), not the moment each one first appears
+      const Q = this.densQ = [], seen = new Set(), add = (k, f) => { if (k && !seen.has(k) && !TEX_DENS[k]) { seen.add(k); Q.push([k, f]); } };
+      for (const w of (this.def.waves || [])) for (const sp of (w.spawns || [])) { const st = ENEMY[sp.type], k = st && (st.k || 1.22); if (st && k >= DENS_K) { add(st.tex, k); for (const fr of (st.frames || [])) add(fr, k); } }
+      const bd = this.def.boss && BOSS_DENS[this.def.boss.tex]; if (bd) add(this.def.boss.tex, bd); }
     this.pxInit();                                        // (v3.81) the pixel look trial (pixellook.js): after fxBang, which it restyles
     this.fxHaze = this.add.particles(0, 0, 'blob', { lifespan: { min: 1100, max: 1700 }, speedY: { min: -40, max: -18 }, speedX: { min: -10, max: 10 }, scale: { start: 0.15, end: 0.55 }, alpha: { start: 0.18, end: 0 }, tint: [0xff9a2a, 0xffc04a], blendMode: 'ADD', emitting: false }).setDepth(2.9);
     this.fxNoodle = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 650 }, speedX: { min: -30, max: 30 }, speedY: { min: 10, max: 60 }, gravityY: 500, scale: { start: 1.3, end: 0.4 }, tint: [0xffd23f, 0xffb52a, 0xffe27a], emitting: false }).setDepth(8);
@@ -3669,7 +3677,7 @@ class Level1 extends Phaser.Scene {
   }
   // soft additive light halos (the "next-gen" layer over the pixel art): brightens whatever is near a light source
   drawLights() {
-    if (!Settings.lights || (this.px && this.px.on)) { for (const im of this.lightPool) im.setVisible(false); return; }   // (v3.82) the pixel look's light map replaces the soft halos
+    if (!Settings.lights || this.perfNoHalo || (this.px && this.px.on)) { for (const im of this.lightPool) im.setVisible(false); return; }   // (v3.82) the pixel look's light map replaces the soft halos
     makeHalo(this);
     const P = this.pl, L = [];
     for (const l of this.lights) L.push([l.theta, l.h, l.r, l.col, l.a * (l.life / l.max)]);
@@ -4624,6 +4632,22 @@ class Level1 extends Phaser.Scene {
     const Q = e.shape; if (!Q) return false;
     const px = pad * 0.6, dx = angDiff(b.theta, e.theta) * (R + b.h) - (e.spr.flipX ? -Q.cx : Q.cx), dy = b.h - (e.h + (e.lift || 0) + Q.cy);
     return (dx * dx) / ((Q.rx + px) * (Q.rx + px)) + (dy * dy) / ((Q.ry + px) * (Q.ry + px)) < 1;
+  }
+  // (v3.88) AUTO QUALITY: if the game is really running slowly (under ~45 fps over 3 seconds of play), step the costliest
+  // effects down for the rest of this level, one at a time: the moody light map, then the bloom, then the light halos
+  perfTick() {
+    const now = performance.now(), F = this.perf || (this.perf = { last: now, acc: 0, n: 0, step: 0 });
+    const d = (now - F.last) / 1000; F.last = now;
+    if (this.state !== 'play' || this.paused || d > 0.25 || F.step >= 3 || PERF_OFF) { F.acc = 0; F.n = 0; return; }   // (a long gap = backgrounded or loading: ignore it)
+    F.acc += d; F.n++;
+    if (F.acc < 3) return;
+    const fps = F.n / F.acc; F.acc = 0; F.n = 0;
+    if (fps >= 45) return;
+    F.step++;
+    if (F.step === 1 && this.px) { this.px.on = false; this.px.rt.setVisible(false); }
+    else if (F.step <= 2) { try { this.cameras.main.removePostPipeline('LCBloom'); } catch (e) { /* ignore */ } if (F.step === 1) F.step = 2; }
+    else { this.perfNoHalo = true; for (const im of this.lightPool) im.setVisible(false); }
+    if (typeof Tel !== 'undefined' && Tel.note) Tel.note('autoQuality ' + F.step + ' at ' + fps.toFixed(0) + 'fps');
   }
   // (v3.86) BOSS TELLS: a big blinking "!" over the boss for the length of a wind-up, so every big attack is readable
   bossWarn(e, dur) {
@@ -5787,6 +5811,8 @@ class Level1 extends Phaser.Scene {
     this.drawLights();
     if (HITBOX_DEBUG) this.drawHitboxes();
     this.drawWarns();
+    this.perfTick();
+    for (let i = 0; i < 2 && this.densQ && this.densQ.length; i++) { const [k, f] = this.densQ.shift(); if (this.textures.exists(k)) densTex(this, k, f); }   // (v3.88)
     this.pxLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
     this.bulletFx();
@@ -5886,7 +5912,8 @@ class Level1 extends Phaser.Scene {
       } }
     { const lv = this.lv; P.lvFlash = Math.max(0, (P.lvFlash || 0) - 0.016);                  // gun level by the gun icon (flashes when it goes up)
       if (lv !== this.lvShown) { this.lvShown = lv; this.lvText.setText(lv >= 4 ? 'LV MAX' : 'LV ' + lv); }
-      this.lvText.setColor(P.lvFlash > 0 && Math.floor(this.t * 12) % 2 ? '#ffffff' : '#ffe27a').setScale(1 + 0.5 * Math.min(1, P.lvFlash)); }
+      { const c = P.lvFlash > 0 && Math.floor(this.t * 12) % 2 ? '#ffffff' : '#ffe27a'; if (this.lvText.__c !== c) { this.lvText.__c = c; this.lvText.setColor(c); } }   // (v3.88: only when it changes - each setColor redraws the text and re-uploads it to the GPU)
+      this.lvText.setScale(1 + 0.5 * Math.min(1, P.lvFlash)); }
     this.macIcons.forEach((m, i) => m.setTexture(P.power > 0 ? (flash ? 'hud_mac_gold' : 'hud_mac') : P.overheat ? (flash ? 'hud_mac_hot' : 'hud_mac_off') : (i < lit ? 'hud_mac' : 'hud_mac_off')));
 
     // distance to the cow = progress through the level (waves, then the boss)
