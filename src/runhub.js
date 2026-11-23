@@ -339,7 +339,7 @@ const CampMixin = {
   campHudBuild() {
     const f = RUN_UI.f, W = this.scale.width; this.campHud.removeAll(true);
     const g = this.add.graphics(); this.campHud.add(g);
-    g.fillStyle(0x1a1020, 0.8).fillRect(8, 8, 128, 30); g.fillStyle(0xffd23f, 1).fillRect(8, 8, 128, 2);
+    if (typeof hudBox === 'function') hudBox(g, 10, 10, 124, 26, 0x2a1f5a); else g.fillStyle(0x1a1020, 0.8).fillRect(8, 8, 128, 30);   // (v3.84) the shared HUD panel
     this.campHud.add(this.add.image(24, 23, 'cr_crumb').setScale(2));
     this.campCrumbT = this.add.text(40, 16, String(Meta.crumbs()), f(10, '#ffd23f')); this.campHud.add(this.campCrumbT);
     this.campHud.add(this.add.text(40, 29, 'GOLDEN CRUMBS', f(5, '#c9cde0', { strokeThickness: 2 })));

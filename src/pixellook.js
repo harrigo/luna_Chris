@@ -5,9 +5,23 @@
 //     pickups) punch stepped pools of light back into it.
 //  3. Sparks, crumbs and splats become single grid pixels with gravity instead of little sprites.
 // (v3.83) the GRID and the pixel particles are dropped for now (still there with ?pixlook to compare). The LIGHT MAP stays,
-// softer, as "moody light" on level 1: menu LIGHTING: MOODY (LV 1) / CLASSIC, or ?classic in the URL.
+// softer, as "moody light" on level 1: menu LIGHTING: MOODY / CLASSIC, or ?classic in the URL.
 const PX_BLOCK = (() => { const m = /[?&]pixlook=(\d)/.exec(location.search); return m ? Math.max(2, Math.min(4, +m[1])) : 2; })();
-const PX_LEVELS = [1];                                   // the levels the trial runs on
+// (v3.84) MOODY LIGHT on every level, each with its own ambient (what the world is multiplied by) and Chris's light colour
+const MOOD = {
+  1: [0x9894b8, 0xfff0d0],      // Gruyère Globe: purple night
+  2: [0x8aa89c, 0xf0ffd8],      // Gorgonzola Gulch: swamp green gloom
+  3: [0x9890c0, 0xf0e8ff],      // Brie-muda Triangle: ghostly violet
+  4: [0xc09a8c, 0xffe0b8],      // Mount Mozzarella: red heat (the lava does the lighting)
+  5: [0x9c9caa, 0xfff0d8],      // the Great Grater: grey factory
+  5.5: [0xac9cb4, 0xfff0d0],    // Fondue Fountain: carnival dusk
+  6: [0xb8a290, 0xfff0d0],      // Cheddar Gorge: sunset
+  7: [0x8e9ec4, 0xe0f0ff],      // Astro-Rat Armada: deep blue sea
+  8: [0xb8b8c6, 0xfff0d8],      // Lactose Labyrinth: already dark underground, so only a touch
+  9: [0xbaa692, 0xfff0d0],      // Parmesan Prime: warm city
+  10: [0x9696b6, 0xfff0d0]      // the Royal Saucer: night
+};
+const pxLevelOK = s => !!(s.def && !s.camp && !s.training && !(s.def && s.def.cavern) && MOOD[s.levelId]);
 const PX_HUD_DEPTH = 19;                                 // anything at or above this is HUD (crisp, unlit)
 const PX_TEX = new Set(['spark', 'crumb', 'mm_splat', 'shard', 'flame', 'fdrop']);   // burst() textures that become single pixels
 
@@ -48,7 +62,7 @@ function makePxTextures(scene) {
 
 const PixelLookMixin = {
   pxWanted() {                                          // the light map
-    if (!this.def || this.camp || !PX_LEVELS.includes(this.levelId)) return false;
+    if (!pxLevelOK(this)) return false;
     if (/[?&]classic/.test(location.search)) return false;
     if (/[?&]pixlook/.test(location.search)) return true;
     return Settings.moody !== false;
@@ -56,7 +70,7 @@ const PixelLookMixin = {
   pxGridWanted() { return this.pxWanted() && /[?&]pixlook/.test(location.search); },   // the pixel grid + pixel particles
   pxInit() {
     this.px = null;
-    if (!this.def || this.camp || !PX_LEVELS.includes(this.levelId)) return;
+    if (!pxLevelOK(this)) return;
     const rn = this.game.renderer; if (!rn || rn.type !== Phaser.WEBGL) return;
     makePxTextures(this);
     const W = this.scale.width, H = this.scale.height, main = this.cameras.main;
@@ -80,7 +94,7 @@ const PixelLookMixin = {
   pxApply() {
     const X = this.px; if (!X) return;
     const on = this.pxWanted(), main = this.cameras.main, rn = this.game.renderer;
-    X.on = on; X.grid = this.pxGridWanted(); X.amb = X.grid ? (this.def.pxAmbient || 0x6e6a8c) : (this.def.moodAmbient || 0x9894b8);
+    X.on = on; X.grid = this.pxGridWanted(); X.amb = X.grid ? (this.def.pxAmbient || 0x6e6a8c) : (this.def.moodAmbient || MOOD[this.levelId][0]);
     const grid = X.grid;
     try {
       if (!rn.pipelines.getPostPipeline('LCPix')) rn.pipelines.addPostPipeline('LCPix', pxPipeClass());
@@ -132,7 +146,7 @@ const PixelLookMixin = {
     const rt = X.rt, cam = this.cameras.main, P = this.pl, z = this.zoom, L = [];
     const add = (theta, h, r, col, a) => { if (a > 0.02) L.push([theta, h, r, col, a]); };
     // Chris carries a warm pool of light, a little bigger when powered up
-    if (P && this.state !== 'dead') add(P.theta, P.h + 34, X.grid ? (P.power > 0 ? 120 : 95) : (P.power > 0 ? 170 : 140), 0xfff0d0, 0.85);
+    if (P && this.state !== 'dead') add(P.theta, P.h + 34, X.grid ? (P.power > 0 ? 120 : 95) : (P.power > 0 ? 170 : 140), MOOD[this.levelId] ? MOOD[this.levelId][1] : 0xfff0d0, 0.85);
     for (const l of this.lights) add(l.theta, l.h, l.r * 1.6, l.col, Math.min(1, l.a * 1.3) * (l.life / l.max));
     if (this.muzzle && (P.firing > 0 || P.beamOn)) add(this.muzzle.theta, this.muzzle.h, 110 + Math.random() * 30, 0xffd27a, 1);   // muzzle flash flickers
     for (const b of this.pBullets) add(b.theta, b.h, 64, 0xffe08a, 0.9);

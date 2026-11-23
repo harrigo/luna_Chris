@@ -411,7 +411,7 @@ const ToonMixin = {
       if (T.boing > 0) { const b = T.boing * Math.sin(T.boing * 24); qx *= 1 + 0.18 * b; qy *= 1 - 0.18 * b; }
       s.tqx = qx; s.tqy = qy; s.trot = rot;
       if (def.frames) {                                                                 // the walk / flap cycle (left alone while the AI is showing some other frame)
-        const cur = s.texture.key, n = def.frames.length;
+        const ck = s.texture.key, cur = ck.endsWith('@d') ? ck.slice(0, -2) : ck, n = def.frames.length;   // ('@d': its finer redraw, main.js densTex)
         if (def.frames.includes(cur)) {
           const fr = ground ? (e.h <= 2 && sp > 15 ? def.frames[Math.floor(T.ph * 2 / Math.PI) % n] : (e.h > 2 ? cur : def.frames[0])) : def.frames[Math.floor(this.t * (def.fps || 12) + T.ph) % n];
           if (fr !== cur) s.setTexture(fr);

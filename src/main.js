@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.83';
+const BUILD = 'v3.84';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -16,9 +16,80 @@ const PIX_HD_R = 620;
 // (v3.80) PIXEL SIZE for scenery: a sprite drawn 1.3x or 1.6x has some art pixels one screen pixel wide and some two. Scenery
 // (level props, decor, the camp's furniture and toys) is snapped to a whole number of screen pixels per art pixel, 1x or 2x
 // (or 3x for the really big ones), whichever's nearest. Sign is kept (a flipped sprite stays flipped).
+// (v3.84) THE HUD PANEL: every box in the HUD is drawn the same way - a 2px dark outline, a 1px bevelled rim (light on the
+// top and left, darker on the bottom and right, the same top-left light as the sprites) and a dark fill
+function hudBox(g, x, y, w, h, fill, a) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  g.fillStyle(0x1a1020, a === undefined ? 1 : a).fillRect(x - 2, y - 2, w + 4, h + 4);
+  g.fillStyle(0x6e74a0, 1).fillRect(x - 1, y - 1, w + 2, h + 2);               // shadow side
+  g.fillStyle(0xc9cde0, 1).fillRect(x - 1, y - 1, w + 1, 1).fillRect(x - 1, y - 1, 1, h + 1);   // lit side
+  if (fill !== null) g.fillStyle(fill === undefined ? 0x2a1f5a : fill, 1).fillRect(x, y, w, h);
+}
+// a soft backing plate behind a group of HUD readouts, so they sit together and read on any background
+function hudPlate(g, x, y, w, h) {
+  x = Math.round(x); y = Math.round(y);
+  g.fillStyle(0x1a1020, 0.5).fillRect(x, y, w, h);
+  g.fillStyle(0x1a1020, 0.35).fillRect(x + 2, y + h, w - 2, 2).fillRect(x + w, y + 2, 2, h);   // a little drop shadow
+}
 // (v3.83) CONSISTENCY: textures redrawn with more pixels so their pixel size matches Chris's and the ground's (1 art px = 1 world
 // unit). The number is how many times finer than before; place() shrinks them back by it, so they're the same size on screen.
-const TEX_DENS = { golem: 1.22, golem_b: 1.22, flyer: 1.22, flyer_b: 1.22, flyer_c: 1.22, flyer_d: 1.22, mouse: 1.1, mouse_b: 1.1 };
+const TEX_DENS = { admiral: 1.3, admiral_b: 1.3, anchovy0: 1.38, anchovy1: 1.38, baron: 1.35, baron_m0: 1.35, baron_m1: 1.35, baron_m2: 1.35, baron_pupil: 1.35, chiprat: 1.1, chiprat_b: 1.1, chiprat_c: 1.1, chiprat_d: 1.1, dipped: 1.1, drone: 1.22, flyer: 1.22, flyer_b: 1.22, flyer_c: 1.22, flyer_d: 1.22, forkrat0: 1.1, forkrat0b: 1.1, forkrat1: 1.1, frog: 1.22, germ: 1.22, germ_b: 1.22, ghostpirate: 1.22, ghostpirate_b: 1.22, gogglerat: 1.22, golem: 1.22, golem_b: 1.22, mgolem: 1.22, milkmaid: 1.25, minigerm: 1.22, minigerm_b: 1.22, miniwheel: 1.22, miniwheel_b: 1.22, mouse: 1.1, mouse_b: 1.1, paladin: 1.22, pepwasp: 1.22, pepwasp_b: 1.22, phantom: 1.22, phantom_b: 1.22, polterwedge: 1.22, rocketrat: 1.22, rocketrat_b: 1.22, rocketrat_c: 1.22, rocketrat_d: 1.22, skimmer: 1.15, skimmer_b: 1.15, slicer: 1.22, steward: 1.1, steward_b: 1.1, steward_c: 1.1, steward_d: 1.1, stinkfly: 1.22, stinkfly_b: 1.22, toff: 1.22, toff_b: 1.22, toff_c: 1.22, toff_d: 1.22 };
+// (v3.84) every enemy drawn bigger than 1 art px per world unit (its scale k >= 1.1, and the bosses below) is shown with a
+// finer redraw of whatever frame it's on: the PNGs above were redrawn offline, anything else is redrawn once at runtime (densTex)
+// the first time place() meets it, and its '@d' copy is used. Same size on screen, hitboxes unchanged.
+const DENS_K = 1.1;
+const BOSS_DENS = { baron: 1.35, milkmaid: 1.25, kingboss: 1.15 };
+// enemy eye-pop positions are in texture pixels: move them to the finer textures' pixels
+for (const t in ENEMY) { const e = ENEMY[t], k = e.k || 1.22; if (e.eyes && k >= DENS_K) e.eyes = e.eyes.map(q => q.map(v => v * k)); }
+// redraw a code-drawn texture with f times the pixels, as if drawn at that size: a soft area sample, snapped back to the sprite's own
+// colours, then a clean one-pixel outline in its own outline colour (the same as tools used offline for the PNGs)
+function densTex(scene, key, f) {
+  const nk = key + '@d', T = scene.textures;
+  if (T.exists(nk)) return nk;
+  if (densTex.bad[key] || key.endsWith('@d') || key.startsWith('__')) return null;
+  try {
+    const fr = T.getFrame(key), w = fr.cutWidth, h = fr.cutHeight, W = Math.max(1, Math.round(w * f)), H = Math.max(1, Math.round(h * f));
+    const sc = document.createElement('canvas'); sc.width = w; sc.height = h;
+    const sx = sc.getContext('2d'); sx.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
+    const S = sx.getImageData(0, 0, w, h).data, op = i => S[i * 4 + 3] > 128;
+    const lum = i => S[i * 4] * 0.299 + S[i * 4 + 1] * 0.587 + S[i * 4 + 2] * 0.114;
+    const cnt = new Map(), dark = new Map();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x; if (!op(i)) continue;
+      const c = (S[i * 4] << 16) | (S[i * 4 + 1] << 8) | S[i * 4 + 2]; cnt.set(c, (cnt.get(c) || 0) + 1);
+      const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1 || !op(i - 1) || !op(i + 1) || !op(i - w) || !op(i + w);
+      if (edge && lum(i) < 90) dark.set(c, (dark.get(c) || 0) + 1);
+    }
+    const pal = [...cnt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 64).map(e => e[0]);
+    let oc = -1, best = 0; for (const [c, n] of dark) if (n > best) { best = n; oc = c; }
+    const outl = oc >= 0 && best > 8;
+    const D = new Uint8ClampedArray(W * H * 4), A = new Float32Array(W * H), N = 4, pad = 0.35;
+    for (let Y = 0; Y < H; Y++) for (let X = 0; X < W; X++) {
+      const x0 = X / f - pad, y0 = Y / f - pad, sw = 1 / f + 2 * pad;
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let j = 0; j < N; j++) for (let k = 0; k < N; k++) {
+        const qx = Math.floor(x0 + (k + 0.5) * sw / N), qy = Math.floor(y0 + (j + 0.5) * sw / N);
+        if (qx < 0 || qy < 0 || qx >= w || qy >= h) continue;
+        const i = (qy * w + qx) * 4, al = S[i + 3] / 255; r += S[i] * al; g += S[i + 1] * al; b += S[i + 2] * al; a += al;
+      }
+      a /= N * N; const o = Y * W + X; A[o] = a;
+      if (a <= 0.43) continue;
+      r /= a * N * N; g /= a * N * N; b /= a * N * N;
+      let pk = pal[0], pd = 1e9;
+      for (const c of pal) { const dr = r - (c >> 16), dg = g - ((c >> 8) & 255), db = b - (c & 255), dd = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11; if (dd < pd) { pd = dd; pk = c; } }
+      D[o * 4] = pk >> 16; D[o * 4 + 1] = (pk >> 8) & 255; D[o * 4 + 2] = pk & 255; D[o * 4 + 3] = 255;
+    }
+    if (outl) for (let Y = 0; Y < H; Y++) for (let X = 0; X < W; X++) {
+      const o = Y * W + X; if (!D[o * 4 + 3]) continue;
+      const on = (x, y) => x >= 0 && y >= 0 && x < W && y < H && D[(y * W + x) * 4 + 3];
+      if (!on(X - 1, Y) || !on(X + 1, Y) || !on(X, Y - 1) || !on(X, Y + 1)) { D[o * 4] = oc >> 16; D[o * 4 + 1] = (oc >> 8) & 255; D[o * 4 + 2] = oc & 255; }
+    }
+    const t = T.createCanvas(nk, W, H); t.getContext().putImageData(new ImageData(D, W, H), 0, 0); t.refresh();
+    TEX_DENS[nk] = f;
+    return nk;
+  } catch (e) { densTex.bad[key] = 1; return null; }
+}
+densTex.bad = {};
 const pixSnap = s => { const a = Math.abs(s); if (a < 0.75) return s; return Math.sign(s) * Math.max(1, Math.round(a)); };   // (v3.79) planets up to this radius are drawn at full resolution (see the level create)
 
 const CFG = {
@@ -734,8 +805,8 @@ class Level1 extends Phaser.Scene {
     this.bannerText.setPosition(W / 2, H * 0.22).setWordWrapWidth(W - 40);
     this.jetText.setPosition(66, 46);
     this.macText.setPosition(66, 63);
-    this.menuText.setPosition(W - 10, 76);
-    this.pauseBtnText.setPosition(W - 10, 98);
+    this.menuText.setPosition(W - 33, 82);
+    this.pauseBtnText.setPosition(W - 33, 104);
     this.zoneText.setPosition(W / 2, 52);
     this.fpsText.setPosition(10, 66);
     this.cheatText.setPosition(10, 76);
@@ -771,11 +842,12 @@ class Level1 extends Phaser.Scene {
     this.livesText = this.add.text(0, 0, '', f(10, '#ffffff', { stroke: '#1a1020', strokeThickness: 4 })).setOrigin(1, 1).setDepth(20.7);
     this.cowIcon = this.add.image(0, 0, 'bessie').setScale(0.36).setDepth(20.5);
     this.chrisMark = this.textures.exists('portrait') ? this.add.image(0, 0, 'portrait').setScale(0.5).setDepth(20.6) : null;
-    this.menuText = this.add.text(0, 0, 'MENU', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
-    this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#9fa6c2')).setOrigin(1, 0).setDepth(20);
+    this.menuText = this.add.text(0, 0, 'MENU', f(8, '#ffffff')).setOrigin(0.5, 0.5).setDepth(20);       // (v3.84) small buttons now (hudBox)
+    this.pauseBtnText = this.add.text(0, 0, 'PAUSE', f(8, '#ffffff')).setOrigin(0.5, 0.5).setDepth(20);
     this.zoneText = this.add.text(0, 0, '', f(9, '#9bff6a', { stroke: '#1a1020', strokeThickness: 3 })).setOrigin(0.5, 0).setDepth(20);
     this.bannerText = this.add.text(0, 0, '', f(17, '#ffd23f', { align: 'center', stroke: '#1a1020', strokeThickness: 4, lineSpacing: 8 })).setOrigin(0.5).setDepth(20).setAlpha(0);
     this.hudG = this.add.graphics().setDepth(20);
+    this.hudBackG = this.add.graphics().setDepth(19.8);   // (v3.84) plates and buttons behind the HUD text
   }
 
   buildControls() {
@@ -2868,7 +2940,7 @@ class Level1 extends Phaser.Scene {
       }, 1);
       O.crown = this.add.image(0, 0, 'baron_crown').setDepth(6.12).setOrigin(0.5, 1); O.stars = this.add.graphics().setDepth(6.4);
     }
-    const dazed = e.slam && e.slam.st === 'land', topOff = -(e.spr.height / 2) + 10;
+    const dazed = e.slam && e.slam.st === 'land', topOff = -(e.spr.height / (TEX_DENS[e.spr.texture.key] || 1) / 2) + 10;   // (texture px of the original art)
     e.crownPuff = Math.max(0, (e.crownPuff || 0) - (this.lastDt || 0.016));
     atOff(O.crown, 0, topOff);
     O.crown.setScale(O.crown.scaleX * 1.1 * (1 + e.crownPuff * 0.6), O.crown.scaleY * 1.1 * (dazed ? 0.35 : 1 + e.crownPuff * 0.8)).setAlpha(e.spr.alpha).setTint(dazed ? 0x6a8a90 : 0xffffff);
@@ -3858,6 +3930,7 @@ class Level1 extends Phaser.Scene {
       t: 0, seed: rnd(0, 6), flash: 0, vx: 0, dh: 0, dir: -(side || 1)
     };
     e.spr.bsx = e.spr.bsy = k;
+    { const df = type === 'boss' ? BOSS_DENS[tex] : (k >= DENS_K ? k : 0); if (df) e.spr.densF = df; }   // (v3.84) shown with finer redraws of its frames
     e.kind = type === 'boss' ? 'boss' : ((ENEMY[type] && ENEMY[type].ai) || type);   // which behaviour it uses (new enemies reuse old ones)
     const kind = e.kind;
     if (type === 'boss') {
@@ -5050,7 +5123,9 @@ class Level1 extends Phaser.Scene {
     o.setRotation(d + (extraRot || 0) + (o.trot || 0));                    // (trot / tqx / tqy: the cartoon squash-and-stretch, toons.js)
     const hq = o.hsq || 0;                                   // hit squash (impact) on top of any other squash
     let bx = (o.bsx || 1) * z, by = (o.bsy || 1) * z;
-    { const dn = o.texture && TEX_DENS[o.texture.key]; if (dn) { bx /= dn; by /= dn; } }   // (v3.83) art redrawn at a finer density: same size on screen
+    { let tk = o.texture && o.texture.key;
+      if (o.densF && tk && !TEX_DENS[tk]) { const nk = densTex(this, tk, o.densF); if (nk) { o.setTexture(nk); tk = nk; } }   // (v3.84) an enemy frame: its finer copy
+      const dn = TEX_DENS[tk]; if (dn) { bx /= dn; by /= dn; } }   // (v3.83) art redrawn at a finer density: same size on screen   // (v3.83) art redrawn at a finer density: same size on screen
     if (o.pixSnap) { bx = pixSnap(bx); by = pixSnap(by); }   // (v3.80) scenery: whole screen pixels per art pixel, so they're all one size
     o.setScale(bx * (o.sqx || 1) * (o.tqx || 1) * (1 + 0.28 * hq), by * (o.sqy || 1) * (o.tqy || 1) * (1 - 0.22 * hq));
   }
@@ -5698,19 +5773,21 @@ class Level1 extends Phaser.Scene {
     if (this.def.cave && this.state === 'play') this.drawCaveHud();
     if (boss) {
       const w = this.landscape ? Math.min(this.W * 0.5, 420) : this.W - 40;
-      const x0 = (this.W - w) / 2, y0 = this.landscape ? 90 : 96;            // below the HUD panel and weapon box
+      const x0 = (this.W - w) / 2, y0 = this.landscape ? 104 : 108;          // below the HUD plate (v3.84: was 90, over the gun's LV)
       const frac = Math.max(0, boss.hp / boss.maxHp);
-      hg.fillStyle(0x000000, 0.5).fillRect(x0, y0, w, 10);
-      hg.fillStyle(0xff8c1a, 1).fillRect(x0, y0, w * frac, 10);
-      hg.lineStyle(2, 0xffffff, 0.8).strokeRect(x0, y0, w, 10);
+      hudBox(hg, x0, y0, w, 10, 0x0c0a24);                                     // (v3.84) the HUD panel, filled in blocks like the JET bar
+      const nb = Math.max(8, Math.round(w / 10)), bw = w / nb, lit = Math.ceil(frac * nb - 0.001);
+      for (let i = 0; i < lit; i++) { const x = Math.round(x0 + i * bw); hg.fillStyle(frac < 0.25 && Math.floor(this.t * 8) % 2 ? 0xff5a3c : 0xff8c1a, 1).fillRect(x + 1, y0 + 1, Math.round(bw) - 2, 8); hg.fillStyle(0xffd27a, 0.7).fillRect(x + 1, y0 + 1, Math.round(bw) - 2, 2); }
     }
 
     // 16-bit HUD: framed portrait, JET bar, macaroni ammo icons, distance-to-cow track, rolling score
-    const pix = (x, y, w, h, fill) => {                 // chunky framed box: dark outline, light bevel
-      hg.fillStyle(0x1a1020, 1).fillRect(x - 2, y - 2, w + 4, h + 4);
-      hg.fillStyle(0xc9cde0, 1).fillRect(x - 1, y - 1, w + 2, h + 2);
-      hg.fillStyle(fill, 1).fillRect(x, y, w, h);
-    };
+    const pix = (x, y, w, h, fill) => hudBox(hg, x, y, w, h, fill);   // (v3.84) the shared HUD panel
+    { const bg = this.hudBackG; bg.clear();
+      {
+        if (this.nameText.visible) hudPlate(bg, 4, 4, 292, 94);                // Chris: portrait, hearts, JET, ammo, gun
+        if (this.hud && this.distText.visible) hudPlate(bg, this.hud.dx0 - 6, 4, this.W - this.hud.dx0 + 2, this.landscape ? 60 : 32);   // the cow track and radar
+        for (const b of [this.menuText, this.pauseBtnText]) if (b.visible) hudBox(bg, b.x - 23, b.y - 7, 46, 14, 0x2a1f5a);
+      } }
     if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);
     pix(244, 42, 44, 28, 0x2a1f5a);                                              // weapon box (tap / Q / Y to swap)
     const flash = Math.floor(this.t * 8) % 2;
@@ -5819,9 +5896,7 @@ Level1.prototype.drawRadar = function (g) {
   // -- planet radar (landscape only: there's room under the cow track)
   if (!this.landscape || !this.hud) return;
   const bx = W - 58, by = 10, bw = 48, bh = 48, rx = bx + 24, ry = by + 24, rr = 11;   // mirrors Chris's portrait box on the left
-  g.fillStyle(0x1a1020, 1).fillRect(bx - 2, by - 2, bw + 4, bh + 4);
-  g.fillStyle(0xc9cde0, 1).fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-  g.fillStyle(0x2a1f5a, 1).fillRect(bx, by, bw, bh);
+  hudBox(g, bx, by, bw, bh, 0x2a1f5a);                                // (v3.84) the shared HUD panel
   this.drawMiniPlanet(g, rx, ry, rr, -P.theta);
   g.lineStyle(3, 0x5ce1ff, 0.9).beginPath().arc(rx, ry, rr + 2, -Math.PI / 2 - this.visHalf, -Math.PI / 2 + this.visHalf).strokePath();   // what's on screen
   for (const e of this.enemies) {
