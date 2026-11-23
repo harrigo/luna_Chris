@@ -11,6 +11,10 @@
 
 const RIG_SCALE = 1.0;    // (v3.83: 0.95 -> 1, so one of his art pixels is one world unit, the same as the ground and the redrawn enemies)
 const HAT_K = 0.82;   // (v3.59) the tall toque, drawn a bit smaller
+// (v3.85) the stride: how far each boot swings fore and aft (world units). The steps come as fast as the ground goes by
+// (cadence = speed / STRIDE), so the planted boot keeps up with the floor instead of skating along it. It was a 7.5 swing at a
+// fixed 8 rad/s at full speed: the feet moved at about a quarter of his speed.
+const STRIDE = 10;
 // (v3.53) where the hands go on each gun's texture: g = the grip (gun hand), f = under the front (support hand; none = one-handed)
 // ================================================================= LIMBS (v3.60)
 // Each arm and leg is ONE long sprite laid along a curve (a Phaser Rope): shoulder -> elbow -> hand, hip -> knee -> ankle.
@@ -783,7 +787,7 @@ class ChrisRig {
 
     // ---- phases
     const crawl = grounded && P.duck ? Math.min(1, spd / 50) : 0;      // crouch-walking: short quick waddle steps
-    if (grounded && spd > 10) this.wp += dt * (spd / 230) * 8 * (1 + crawl * 1.4) * ((P.vx || 0) * (P.facing < 0 ? -1 : 1) < 0 ? -1 : 1);   // (backing up while he aims: the legs back-pedal)
+    if (grounded && spd > 10) this.wp += dt * (spd / (STRIDE * Math.max(0.35, Math.min(1, spd / 140)))) * 1.1 * (1 + crawl * 0.5) * ((P.vx || 0) * (P.facing < 0 ? -1 : 1) < 0 ? -1 : 1);   // (backing up while he aims: the legs back-pedal)
     if (!this.wasGround && grounded) { this.squash = 1; this.bv = (this.bv || 0) + 5; }   // landing squash (and a belly wobble)
     if (this.wasGround && !grounded && P.vh > 200) this.squash = -0.8;   // take-off stretch
     this.wasGround = grounded;
@@ -815,7 +819,7 @@ class ChrisRig {
     const AH = LIMB.ankH, upv = Math.max(-1, Math.min(1, (P.vh || 0) / 320)), ju = Math.max(0, upv), jf = Math.max(0, -upv), sk = Math.min(1, dk * 1.4);
     for (const [leg, boot, hx, ph, side, squatX] of [[this.legF, this.bootF, 5, this.wp, 1, 11 + sw * 2 * wad], [this.legB, this.bootB, -5, this.wp + Math.PI, -1, -9 - sw * 2 * wad]]) {
       const s1 = Math.sin(ph), c1 = Math.cos(ph), hip = [this.torso.x + hx, this.torso.y + 1];
-      let bx = this.torso.x * 0.4 + hx + side * (1 + 3 * (1 - run)) + s1 * 7.5 * run, by = -Math.max(0, c1) * 5 * run * (1 + wad * 0.6), br = -s1 * Math.max(0, c1 + 0.3) * 0.5 * run;
+      let bx = this.torso.x * 0.4 + hx + side * (1 + 3 * (1 - run)) + s1 * STRIDE * run, by = -Math.max(0, c1) * 5 * run * (1 + wad * 0.6), br = -s1 * Math.max(0, c1 + 0.3) * 0.5 * run;
       if (air) {
         const q = t * 12 + side * 1.6;
         let ax = side * 1.5 + (side > 0 ? 4.5 : -2.5) * ju + Math.sin(q) * 2.5 * jf, ay = 13 - (side > 0 ? 6 : 2.5) * ju + 1.5 * jf + Math.cos(q) * 1.2 * jf;

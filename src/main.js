@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.84';
+const BUILD = 'v3.85';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -279,6 +279,27 @@ const dist2 = (t1, h1, t2, h2) => {
   const dy = h1 - h2;
   return dx * dx + dy * dy;
 };
+// (v3.85) HITBOXES FITTED TO THE ART. A texture's solid shape, measured once from its pixels (texture px, y down): the box
+// holding the middle 90% of its solid pixels on each axis, and the radius holding 90% of them round the texture's centre.
+const TEX_SHAPE = {};
+const HITBOX_DEBUG = /[?&]hitbox/.test(location.search);   // ?hitbox: draw every hitbox (see drawHitboxes)
+function texShape(scene, key) {
+  if (key in TEX_SHAPE) return TEX_SHAPE[key];
+  let S = null;
+  try {
+    const fr = scene.textures.getFrame(key), w = fr.cutWidth, h = fr.cutHeight;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d'); x.drawImage(fr.source.image, fr.cutX, fr.cutY, w, h, 0, 0, w, h);
+    const D = x.getImageData(0, 0, w, h).data, xs = [], ys = [], ds = [];
+    for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) if (D[(y * w + i) * 4 + 3] >= 160) { xs.push(i + 0.5); ys.push(y + 0.5); ds.push(Math.hypot(i + 0.5 - w / 2, y + 0.5 - h / 2)); }
+    if (xs.length > 4) {
+      const q = (a, f) => a[Math.min(a.length - 1, Math.floor(a.length * f))];
+      xs.sort((a, b) => a - b); ys.sort((a, b) => a - b); ds.sort((a, b) => a - b);
+      S = { x0: q(xs, 0.05), x1: q(xs, 0.95), y0: q(ys, 0.05), y1: q(ys, 0.95), r90: q(ds, 0.9), w, h };
+    }
+  } catch (e) { S = null; }
+  return (TEX_SHAPE[key] = S);
+}
 
 class Level1 extends Phaser.Scene {
   constructor() { super('level1'); }
@@ -4588,6 +4609,41 @@ class Level1 extends Phaser.Scene {
     }
   }
 
+  // (v3.85) does player shot b hit enemy e? The old circle round its centre, OR an ellipse fitted to its sprite's solid
+  // pixels, so a shot that visibly hits the art always counts (never harder to hit than before, only fairer)
+  shotHits(e, b, pad) {
+    if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < (e.r + pad) * (e.r + pad)) return true;
+    if (e.type === 'boss') return false;
+    if (e.shape === undefined) {
+      const S = texShape(this, e.spr.texture.key.replace(/@d$/, '')), k = e.spr.bsx || 1;
+      e.shape = S ? { cx: ((S.x0 + S.x1) / 2 - S.w * e.spr.originX) * k, cy: -((S.y0 + S.y1) / 2 - S.h * e.spr.originY) * k, rx: (S.x1 - S.x0) / 2 * k, ry: (S.y1 - S.y0) / 2 * k } : null;
+    }
+    const Q = e.shape; if (!Q) return false;
+    const px = pad * 0.6, dx = angDiff(b.theta, e.theta) * (R + b.h) - (e.spr.flipX ? -Q.cx : Q.cx), dy = b.h - (e.h + (e.lift || 0) + Q.cy);
+    return (dx * dx) / ((Q.rx + px) * (Q.rx + px)) + (dy * dy) / ((Q.ry + px) * (Q.ry + px)) < 1;
+  }
+  // ?hitbox: player shots hit the yellow circle OR the cyan ellipse; touching the red circle hurts Chris;
+  // Chris's green circle is where he can be hit (enemy contact adds the enemy's red circle, enemy shots their orange one)
+  drawHitboxes() {
+    if (!this.hbG || !this.hbG.scene) this.hbG = this.add.graphics().setDepth(9.9);   // (the scene object is reused: a destroyed one is left over from the last run)
+    const g = this.hbG, z = this.zoom, P = this.pl, sp = (t, h) => this.screenPos(t, h);
+    g.clear().setVisible(true);
+    const ell = (t, h, rx, ry, col) => { const c = sp(t, h); if (!c.vis) return; g.lineStyle(1.5, col, 0.9); g.save(); g.translateCanvas(c.x, c.y); g.rotateCanvas(angDiff(t, this.viewT())); g.strokeEllipse(0, 0, rx * 2 * z, ry * 2 * z); g.restore(); };
+    for (const e of this.enemies) {
+      if (e.hp <= 0) continue;
+      ell(e.theta, e.h + e.ch, e.r + 8, e.r + 8, 0xffd23f);
+      ell(e.theta, e.h + e.ch, e.r, e.r, 0xff3a3a);
+      if (e.type !== 'boss') { if (e.shape === undefined) this.shotHits(e, { theta: 9, h: -9999 }, 8); const Q = e.shape;
+        if (Q) ell(wrap(e.theta + (e.spr.flipX ? -Q.cx : Q.cx) / (R + e.h)), e.h + (e.lift || 0) + Q.cy, Q.rx + 5, Q.ry + 5, 0x5ce1ff); }
+    }
+    for (const b of this.eBullets) ell(b.theta, b.h, this.eShotR(b), this.eShotR(b), 0xff9a2a);
+    if (P) ell(P.theta, P.h + (P.duck ? 10 : 22), P.duck ? 8 : 12, P.duck ? 8 : 12, 0x6aff6a);
+  }
+  // (v3.85) an enemy shot's hit radius against Chris: never bigger than what you can see of it
+  eShotR(b) {
+    if (b.hr === undefined) { const S = texShape(this, b.kind); b.hr = S ? Math.min(b.r, Math.max(3, S.r90 * (b.spr.bsx || 1))) : b.r; }
+    return b.hr;
+  }
   addEBullet(kind, theta, h, vt, vh, r, life) {
     const glow = { spore: 0x7dff8a, blade: 0xdfe6f0, pepper: 0xff6a3a, ghostorb: 0x9fd8ff, chili: 0xff4a2a, psyorb: 0xc080ff, curd: 0xffe68a, mm_wisp: 0xa050ff, ghostcow0: 0x7ab8ff, marinara: 0xff3a1a, mg_glob: 0xff8a2a, mg_bomb: 0xff8a2a, boulder: 0xff6a1a, pizzacutter: 0xdfe6f0 }[kind] || 0xffc040;
     const b = {
@@ -4703,8 +4759,7 @@ class Level1 extends Phaser.Scene {
         if (!b.hits) b.hits = [];
         for (const e of this.enemies) {
           if (e.hp <= 0 || e.phased || b.hits.includes(e)) continue;
-          const rr = e.r + 9 * b.spr.bsx;
-          if (dist2(b.theta, b.h, e.theta, e.h + e.ch) >= rr * rr) continue;
+          if (!this.shotHits(e, b, 9 * b.spr.bsx)) continue;
           if (e.type === 'boss') { dead = true; break; }  // too big to plough through: burst on it
           b.hits.push(e);
           if (this.hitK(e) === 0) { this.deflect(e, b.theta, b.h, b); break; }
@@ -4721,8 +4776,7 @@ class Level1 extends Phaser.Scene {
         for (const e of this.enemies) {
           if (e.phased) continue;                                // a poltergeist out of phase: shots pass right through
           if (b.hits && b.hits.includes(e)) continue;           // a piercing noodle hits each enemy once
-          const rr = e.r + 8;
-          if (dist2(b.theta, b.h, e.theta, e.h + e.ch) < rr * rr) {
+          if (this.shotHits(e, b, 8)) {
             const hk = this.hitK(e, b.theta, b.h);
             if (hk === 0) { this.deflect(e, b.theta, b.h, b); break; }
             if (e.ai === 'milkmaid') this.mmOnHit(e, b.theta, b.h);
@@ -4813,7 +4867,7 @@ class Level1 extends Phaser.Scene {
       if (b.reflected) { if (!dead && this.reflectHit(b)) dead = true; if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); } continue; }   // (v3.16) parried back
       if (!dead && P.dash) { const rr = b.r + 22; if (dist2(b.theta, b.h, P.theta, P.h + 22) < rr * rr) this.closeCall(); }   // (v3.20) dodged right through it
       if (!dead && P.invuln <= 0 && !P.dash) {
-        const rr = b.r + (P.duck ? 8 : 12);
+        const rr = this.eShotR(b) + (P.duck ? 8 : 12);
         if (dist2(b.theta, b.h, P.theta, P.h + (P.duck ? 10 : 22)) < rr * rr) { this.hurt(); dead = true; }
       }
       if (dead) { b.spr.destroy(); this.eBullets.splice(i, 1); }
@@ -5711,6 +5765,7 @@ class Level1 extends Phaser.Scene {
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, b.blast ? b.rot : Math.atan2(-b.vh, b.vt));   // (the Swiss ball spins)
     this.drawBeam();
     this.drawLights();
+    if (HITBOX_DEBUG) this.drawHitboxes();
     this.pxLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
     this.bulletFx();
