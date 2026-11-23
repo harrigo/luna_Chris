@@ -21,8 +21,10 @@ function depthCanvas(scene, key, w, h, fill) {
   ctx.putImageData(img, 0, 0); tex.refresh(); tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }
 
-function makeDepthTextures(scene, id, Rw, cfg) {
-  const S = Math.round(Rw), c = S / 2, L = cfg.light || [-0.55, -0.75, 0.45], Ln = Math.hypot(L[0], L[1], L[2]);
+function makeDepthTextures(scene, id, Rw, cfg, res) {
+  res = res || 1; const sfx = res > 1 ? 'hd' : '';                         // (v3.79) res 2: full resolution (the pixels match the sprites')
+  if (res > 1) id = id + sfx;
+  const S = Math.round(Rw * res), c = S / 2, L = cfg.light || [-0.55, -0.75, 0.45], Ln = Math.hypot(L[0], L[1], L[2]);
   const lx = L[0] / Ln, ly = L[1] / Ln, lz = L[2] / Ln, DK = cfg.dark || [20, 8, 30];
   // sphere shading (normal blend: dark pixels at four strengths, dithered between)
   depthCanvas(scene, 'dshade' + id, S, S, D => {
@@ -48,7 +50,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
   });
   // parallax hill rings
   (cfg.ridges || []).forEach((rg, n) => {
-    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40, skyline: 150, machines: 160, reef: 140 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
+    const outer = Rw + rg.off + rg.amp + ({ wrecks: 90, factory: 130, cogs: 50, tiers: 40, skyline: 150, machines: 160, reef: 140 }[rg.style] || 0) * (rg.size || 1), Sr = Math.round(outer * res), cr = Sr / 2;   // (room for the ships' masts)   // half resolution (like the planet)
     const rnd = rng(rg.seed || (77 + n * 31)), steps = 720, prof = [];
     let v = 0; for (let i = 0; i < steps; i++) { v += (rnd() - 0.5) * 0.35; v *= 0.96; prof.push(v); }
     const walk = a => prof[Math.floor((a / (Math.PI * 2)) * steps + steps * 4) % steps];
@@ -422,10 +424,10 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       for (let n = 0; n < (veins ? 46 : 70); n++) {
         let a = rnd() * Math.PI * 2, r = c * (0.8 + rnd() * 0.16);
         for (let k = 0; k < (veins ? 30 : 14); k++) {
-          if (veins) { a += (rnd() - 0.5) * 0.05; if (rnd() < 0.08) { let b = a, rr = r; for (let j = 0; j < 8; j++) { b += (rnd() - 0.5) * 0.06 + 0.012; rr -= 0.7; put(c + Math.cos(b) * rr, c + Math.sin(b) * rr, 170); } } }
+          if (veins) { a += (rnd() - 0.5) * 0.05; if (rnd() < 0.08) { let b = a, rr = r; for (let j = 0; j < 8; j++) { b += (rnd() - 0.5) * 0.06 + 0.012; rr -= 0.7 * res; put(c + Math.cos(b) * rr, c + Math.sin(b) * rr, 170); } } }
           const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
           put(x, y, 255); if (rnd() < 0.5) put(x + 1, y, 160);
-          a += (rnd() - 0.5) * 0.02; r -= 0.6 + rnd() * 0.8;
+          a += (rnd() - 0.5) * 0.02 / res; r -= (0.6 + rnd() * 0.8) * res;
           if (rnd() < 0.15) { const b = a + (rnd() < 0.5 ? 0.01 : -0.01); put(c + Math.cos(b) * r, c + Math.sin(b) * r, 200); }
         }
       }
@@ -437,14 +439,15 @@ const DepthMixin = {
   depthInit() {
     const cfg = this.def.depth; if (!cfg || !this.planetImg) return;
     const id = this.levelId;
-    makeDepthTextures(this, id, R, cfg);
-    const F = this.depthFx = { cfg, ridges: [] };
-    (cfg.ridges || []).forEach((rg, n) => F.ridges.push({ im: this.add.image(0, 0, 'dridge' + id + '_' + n).setDepth(rg.depth || 0.36), k: rg.k || 0.6 }));
-    F.shade = this.add.image(0, 0, 'dshade' + id).setDepth(1.108);
-    F.rim = this.add.image(0, 0, 'drim' + id).setDepth(1.115).setBlendMode(Phaser.BlendModes.ADD);
-    if (cfg.cracks) F.crack = this.add.image(0, 0, 'dcrack' + id).setDepth(1.06).setBlendMode(Phaser.BlendModes.ADD);
-    if (cfg.ornate) F.orn = this.add.image(0, 0, 'dorn' + id).setDepth(1.125);
-    if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + id).setDepth(8.45).setScrollFactor(0); F.fgRb = 700; }
+    const res = this.pixRes || 1, did = res > 1 ? id + 'hd' : id;
+    makeDepthTextures(this, id, R, cfg, res);
+    const F = this.depthFx = { cfg, ridges: [], res };
+    (cfg.ridges || []).forEach((rg, n) => F.ridges.push({ im: this.add.image(0, 0, 'dridge' + did + '_' + n).setDepth(rg.depth || 0.36), k: rg.k || 0.6 }));
+    F.shade = this.add.image(0, 0, 'dshade' + did).setDepth(1.108);
+    F.rim = this.add.image(0, 0, 'drim' + did).setDepth(1.115).setBlendMode(Phaser.BlendModes.ADD);
+    if (cfg.cracks) F.crack = this.add.image(0, 0, 'dcrack' + did).setDepth(1.06).setBlendMode(Phaser.BlendModes.ADD);
+    if (cfg.ornate) F.orn = this.add.image(0, 0, 'dorn' + did).setDepth(1.125);
+    if (cfg.fg) { F.fg = this.add.image(0, 0, 'dfg' + did).setDepth(8.45).setScrollFactor(0); F.fgRb = 700; }
   },
   drawDepth(cx, cy, Rz, unwV) {
     const F = this.depthFx; if (!F) return;

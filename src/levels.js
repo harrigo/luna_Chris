@@ -1498,8 +1498,9 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   };
   // features
   const craters = [], holes = [];
-  for (let i = 0; i < 70; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.86; craters.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: 3 + rand() * rand() * 16 }); }
-  for (let i = 0; i < 45; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.8; holes.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: 2 + rand() * 7 }); }
+  const RS = S / Math.round(Rw / (opts.res || 1));                 // (v3.79) drawn at full resolution: the same features, in finer pixels
+  for (let i = 0; i < 70; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.86; craters.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: (3 + rand() * rand() * 16) * RS }); }
+  for (let i = 0; i < 45; i++) { const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.8; holes.push({ x: c + Math.cos(a) * d, y: c + Math.sin(a) * d, r: (2 + rand() * 7) * RS }); }
   const tex = scene.textures.createCanvas(key, S, S), ctx = tex.getContext(), img = ctx.createImageData(S, S), D = img.data;
   const put = (i, t) => { const col = P[Math.max(0, Math.min(P.length - 1, t))]; D[i] = col[0]; D[i + 1] = col[1]; D[i + 2] = col[2]; D[i + 3] = 255; };
   // pass 1: base cheese tone per pixel (T), then craters and holes are stamped over just their own bounding boxes
@@ -1550,7 +1551,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring
   // crumbs & debris: scattered 1-2px specks
   const speck = (x, y, t) => { if (x < 0 || y < 0 || x >= S || y >= S) return; const dd = Math.hypot(x - c, y - c) / r; if (dd > 0.96) return; put((y * S + x) * 4, t); };
-  for (let i = 0; i < S * (opts.clean !== false ? 0.9 : 3); i++) {
+  for (let i = 0; i < S * RS * (opts.clean !== false ? 0.9 : 3); i++) {
     const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.95, x = Math.round(c + Math.cos(a) * d), y = Math.round(c + Math.sin(a) * d);
     const kind = rand();
     if (kind < 0.55) speck(x, y, P.length - 1);                       // light crumb

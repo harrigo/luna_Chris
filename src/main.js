@@ -6,12 +6,13 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.78';
+const BUILD = 'v3.79';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
 const TAU = Math.PI * 2;
 let R = 420; // planet radius in world units (set per level from LEVELS[n].radius)
+const PIX_HD_R = 620;   // (v3.79) planets up to this radius are drawn at full resolution (see the level create)
 
 const CFG = {
   finalLevel: 10,         // Bessie only stays rescued after this level; before it the rats always snatch her back
@@ -400,11 +401,18 @@ class Level1 extends Phaser.Scene {
     this.decor = [];
     this.planetImg = null;
     if (this.def.surface) {                              // pixel-art planet surface (rotates with the world) + fixed shading
-      const key = 'surf' + this.levelId;
-      makePlanetTexture(this, key, R, this.def.surface.pal, this.def.surface.seed, this.def.surface);
-      makePlanetShade(this, 'shade' + this.levelId, R, this.def.surface.rimLight, this.def.surface.dark);
+      // (v3.79) PIXEL SIZE: the planet used to be drawn at half resolution (each of its pixels twice the size of a sprite's);
+      // planets up to 620 across now get a full-resolution copy for play, so the ground's pixels match everyone's on it.
+      // (The half-size one is still made at boot for the maps.) The special planets draw their own way and keep theirs.
+      const sf = this.def.surface, hd = R <= PIX_HD_R && !sf.grater && !sf.fountain && !sf.parm;
+      this.pixRes = hd ? 2 : 1;
+      // (the full-resolution layers are big: only keep the current planet's)
+      for (const k of Object.keys(this.textures.list)) { const m = /^(?:surfhd|shadehd)([\d.]+)$/.exec(k) || /^d(?:shade|rim|ridge|crack|orn|fg)([\d.]+)hd/.exec(k); if (m && m[1] !== String(this.levelId)) this.textures.remove(k); }
+      const key = (hd ? 'surfhd' : 'surf') + this.levelId;
+      makePlanetTexture(this, key, R * this.pixRes, sf.pal, sf.seed, Object.assign({}, sf, { res: this.pixRes }));
+      makePlanetShade(this, (hd ? 'shadehd' : 'shade') + this.levelId, R * this.pixRes, sf.rimLight, sf.dark);
       this.planetImg = this.add.image(0, 0, key).setDepth(1.05);
-      this.planetShade = this.add.image(0, 0, 'shade' + this.levelId).setDepth(1.1);
+      this.planetShade = this.add.image(0, 0, (hd ? 'shadehd' : 'shade') + this.levelId).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
     }
     this.fx = null; this.toon = null;
@@ -5425,7 +5433,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.saucer) { /* no planet: saucerDraw draws the hull */ } else if (this.planetImg) {
       const ps = (2 * Rz) / this.planetImg.width;
       this.planetImg.setPosition(cx, cy).setScale(ps).setRotation(-unwV);
-      this.planetShade.setPosition(cx, cy).setScale(ps);
+      this.planetShade.setPosition(cx, cy).setScale((2 * Rz) / this.planetShade.width);
       this.drawDepth(cx, cy, Rz, unwV);
       this.rimG.clear().lineStyle(3, 0x1a1020, 1).strokeCircle(cx, cy, Rz + 1);
       if (this.def.rimGlow) {                           // neon rim light (level 2)

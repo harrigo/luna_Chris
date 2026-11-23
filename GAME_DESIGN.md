@@ -2282,3 +2282,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.78: the hand-shaded pass on every level
 - surface.clean, skyClean, depth.clean and ridge shade are now on by default for every level (set any of them to false in a level's def to opt out). The special planets (the grater, the fountain, the Parmesan wheel) draw their own surfaces and are unchanged.
+
+## v3.79: pixel size, step 1 - the ground at full resolution
+- Planets and their depth layers (sphere shading, atmosphere ring, parallax hills, cracks, gilded rim) used to be generated at half resolution and shown at 2x, so the ground's pixels were twice the size of the sprites'. For planets up to radius 620 (PIX_HD_R) that draw the standard way, play now uses full-resolution copies ('surfhd'/'shadehd' + id, depth layers with an 'hd' suffix), with crater and hole sizes and speck counts scaled so they look the same, just in finer pixels. This applies to levels 1, 2, 3, 4, 6 and 7. The half-size versions are still made at boot for the maps. Only the current planet's full-resolution layers are kept in memory. It costs about a second of extra generation the first time each level loads on a slow device.
+- Still to do: the big planets (levels 5, 8, 10), the special planets (the fountain 5.5, the Parmesan wheel 9), sprites drawn at in-between scales (1.25, 1.5), and the world zoom of about 0.83 on phones.
