@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.82';
+const BUILD = 'v3.83';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -16,6 +16,9 @@ const PIX_HD_R = 620;
 // (v3.80) PIXEL SIZE for scenery: a sprite drawn 1.3x or 1.6x has some art pixels one screen pixel wide and some two. Scenery
 // (level props, decor, the camp's furniture and toys) is snapped to a whole number of screen pixels per art pixel, 1x or 2x
 // (or 3x for the really big ones), whichever's nearest. Sign is kept (a flipped sprite stays flipped).
+// (v3.83) CONSISTENCY: textures redrawn with more pixels so their pixel size matches Chris's and the ground's (1 art px = 1 world
+// unit). The number is how many times finer than before; place() shrinks them back by it, so they're the same size on screen.
+const TEX_DENS = { golem: 1.22, golem_b: 1.22, flyer: 1.22, flyer_b: 1.22, flyer_c: 1.22, flyer_d: 1.22, mouse: 1.1, mouse_b: 1.1 };
 const pixSnap = s => { const a = Math.abs(s); if (a < 0.75) return s; return Math.sign(s) * Math.max(1, Math.round(a)); };   // (v3.79) planets up to this radius are drawn at full resolution (see the level create)
 
 const CFG = {
@@ -4904,7 +4907,7 @@ class Level1 extends Phaser.Scene {
     }
   }
   burst(theta, h, tex, n, spd) {
-    if (this.px && this.px.on && PX_TEX.has(tex)) return this.pxBurst(theta, h, tex, n, spd);
+    if (this.px && this.px.grid && PX_TEX.has(tex)) return this.pxBurst(theta, h, tex, n, spd);
     for (let i = 0; i < n; i++) {
       this.parts.push({
         theta, h, vt: rnd(-160, 160) * spd, vh: rnd(60, 300) * spd, life: rnd(0.3, 0.6),
@@ -5047,6 +5050,7 @@ class Level1 extends Phaser.Scene {
     o.setRotation(d + (extraRot || 0) + (o.trot || 0));                    // (trot / tqx / tqy: the cartoon squash-and-stretch, toons.js)
     const hq = o.hsq || 0;                                   // hit squash (impact) on top of any other squash
     let bx = (o.bsx || 1) * z, by = (o.bsy || 1) * z;
+    { const dn = o.texture && TEX_DENS[o.texture.key]; if (dn) { bx /= dn; by /= dn; } }   // (v3.83) art redrawn at a finer density: same size on screen
     if (o.pixSnap) { bx = pixSnap(bx); by = pixSnap(by); }   // (v3.80) scenery: whole screen pixels per art pixel, so they're all one size
     o.setScale(bx * (o.sqx || 1) * (o.tqx || 1) * (1 + 0.28 * hq), by * (o.sqy || 1) * (o.tqy || 1) * (1 - 0.22 * hq));
   }

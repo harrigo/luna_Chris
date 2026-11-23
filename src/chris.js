@@ -9,7 +9,7 @@
 // Everything is drawn with code (outlined EWJ-ish look). Swap any texture for real art under the same key later.
 // Local units: feet at (0,0), +x = the way he faces, -y = up. The whole rig is scaled by RIG_SCALE.
 
-const RIG_SCALE = 0.95;
+const RIG_SCALE = 1.0;    // (v3.83: 0.95 -> 1, so one of his art pixels is one world unit, the same as the ground and the redrawn enemies)
 const HAT_K = 0.82;   // (v3.59) the tall toque, drawn a bit smaller
 // (v3.53) where the hands go on each gun's texture: g = the grip (gun hand), f = under the front (support hand; none = one-handed)
 // ================================================================= LIMBS (v3.60)

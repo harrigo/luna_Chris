@@ -138,7 +138,7 @@ const FxMixin = {
     }
     for (const e of this.enemies) {
       if (!e.spr || !e.spr.visible || e.hp <= 0 || e.noShadow || e.h < -6 || e.over) continue;
-      shadow(e.theta, e.h - (e.type === 'boss' ? e.r * 0.8 : 0), 0, Math.min(170, e.spr.width * (e.spr.bsx || 1) * 0.8), false);
+      shadow(e.theta, e.h - (e.type === 'boss' ? e.r * 0.8 : 0), 0, Math.min(170, e.spr.width / ((typeof TEX_DENS !== 'undefined' && TEX_DENS[e.spr.texture.key]) || 1) * (e.spr.bsx || 1) * 0.8), false);
     }
     for (let i = ns; i < X.shadows.length; i++) X.shadows[i].setVisible(false);
     // ---- RIM LIGHT: light-coloured copies tucked behind, nudged towards the light

@@ -42,6 +42,8 @@ const ENEMY = {
   stinkfly: { hp: 2,  r: 15, ch: 12, tex: 'stinkfly', oy: 0.55,    drop: 0.2,  ai: 'flyer', frames: ['stinkfly', 'stinkfly_b'], fps: 18, eyes: [[26.5, 11, 4.6], [31.5, 14.5, 3]] },          // L2: bloated swamp fly that drops spore bombs
   paladin:  { hp: 8,  r: 17, ch: 12, tex: 'paladin',  oy: 0.92,    drop: 0.5,  big: true, ai: 'mouse' } // armoured Rat-Paladin
 };
+// (v3.83) the redrawn enemies' eye positions are in their new, finer texture pixels
+for (const [t, f] of [['mouse', 1.1], ['flyer', 1.22], ['golem', 1.22]]) if (ENEMY[t] && ENEMY[t].eyes) ENEMY[t].eyes = ENEMY[t].eyes.map(e => e.map(v => v * f));
 
 const LEVELS = {
   1: {

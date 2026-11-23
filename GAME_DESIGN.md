@@ -2301,3 +2301,8 @@ A step towards the Noita look, behind a switch (menu: LOOK: PIXEL (LV 1) / CLASS
 
 ## v3.82: pixel look, crisper light
 The v3.81 pool round Chris read as a blur (a big soft pool stacked on the old halos and the bloom). Now: the light stamp is a solid core plus three hard steps; Chris's pool is half the size (95, 120 powered); the soft halos and bloom are off while the pixel look is on, so the light map is the only lighting layer; shots, the muzzle flash (flickering), enemy shots and spark bursts carry more of the light.
+
+## v3.83: grid parked; moody light; consistency pass (level 1 cast)
+- The pixel grid and single-pixel particles are parked (only with ?pixlook). Full resolution is back.
+- The light map stays on level 1 as MOODY lighting (menu: LIGHTING: MOODY (LV 1) / CLASSIC; ?classic): ambient 0x9894b8 (def.moodAmbient), Chris's pool 140 (170 powered), a 256px stamp with a solid core and three clean steps, bloom on, the old soft halos off.
+- Consistency: one pixel density for the cast. Measured on screen, Chris drew at 0.95 world units per art pixel, the planet at 1.0, mice 1.1 and golems/flyers 1.22. Now Chris RIG_SCALE = 1 and the mouse, flyer and golem PNGs are redrawn finer (resampled smooth, snapped to their own colours, a clean 1px outline) by 1.1 / 1.22 / 1.22. TEX_DENS (main.js) shrinks them back in place() so they're the same size on screen and hitboxes are unchanged; eye-pop positions are scaled to match.

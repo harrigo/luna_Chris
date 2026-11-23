@@ -4,7 +4,8 @@
 //  2. A light map: the world is multiplied by a dim ambient, and light sources (Chris, the gun, shots, lava, glows,
 //     pickups) punch stepped pools of light back into it.
 //  3. Sparks, crumbs and splats become single grid pixels with gravity instead of little sprites.
-// Switch: Settings.pixLook (menu: LOOK), or ?pixlook / ?classic in the URL.
+// (v3.83) the GRID and the pixel particles are dropped for now (still there with ?pixlook to compare). The LIGHT MAP stays,
+// softer, as "moody light" on level 1: menu LIGHTING: MOODY (LV 1) / CLASSIC, or ?classic in the URL.
 const PX_BLOCK = (() => { const m = /[?&]pixlook=(\d)/.exec(location.search); return m ? Math.max(2, Math.min(4, +m[1])) : 2; })();
 const PX_LEVELS = [1];                                   // the levels the trial runs on
 const PX_HUD_DEPTH = 19;                                 // anything at or above this is HUD (crisp, unlit)
@@ -35,10 +36,10 @@ function makePxTextures(scene) {
   const T = scene.textures;
   if (!T.exists('pxdot')) { const t = T.createCanvas('pxdot', 1, 1); const c = t.getContext(); c.fillStyle = '#fff'; c.fillRect(0, 0, 1, 1); t.refresh(); }
   if (!T.exists('pxlight')) {
-    const N = 64, t = T.createCanvas('pxlight', N, N), c = t.getContext(), img = c.createImageData(N, N), D = img.data;
+    const N = 256, t = T.createCanvas('pxlight', N, N), c = t.getContext(), img = c.createImageData(N, N), D = img.data;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const d = Math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N / 2), i = (y * N + x) * 4;
-      const s = d >= 1 ? 0 : d < 0.42 ? 1 : d < 0.68 ? 0.62 : d < 0.88 ? 0.32 : 0.14;   // (v3.82) a hard core and three steps: a pixel shape, not a haze
+      const s = d >= 1 ? 0 : d < 0.4 ? 1 : d < 0.62 ? 0.72 : d < 0.82 ? 0.45 : 0.2;   // a solid core and three clean steps (v3.83: drawn big, so the edge is smooth at full resolution)
       D[i] = D[i + 1] = D[i + 2] = Math.round(s * 255); D[i + 3] = 255;
     }
     c.putImageData(img, 0, 0); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -46,19 +47,20 @@ function makePxTextures(scene) {
 }
 
 const PixelLookMixin = {
-  pxWanted() {
+  pxWanted() {                                          // the light map
     if (!this.def || this.camp || !PX_LEVELS.includes(this.levelId)) return false;
     if (/[?&]classic/.test(location.search)) return false;
     if (/[?&]pixlook/.test(location.search)) return true;
-    return Settings.pixLook !== false;
+    return Settings.moody !== false;
   },
+  pxGridWanted() { return this.pxWanted() && /[?&]pixlook/.test(location.search); },   // the pixel grid + pixel particles
   pxInit() {
     this.px = null;
     if (!this.def || this.camp || !PX_LEVELS.includes(this.levelId)) return;
     const rn = this.game.renderer; if (!rn || rn.type !== Phaser.WEBGL) return;
     makePxTextures(this);
     const W = this.scale.width, H = this.scale.height, main = this.cameras.main;
-    const X = this.px = { on: false, cols: {}, amb: this.def.pxAmbient || 0x6e6a8c };
+    const X = this.px = { on: false, cols: {}, amb: this.def.pxAmbient || 0x6e6a8c, grid: false };
     X.hud = this.cameras.add(0, 0, W, H); X.hud.transparent = true;
     X.rt = this.add.renderTexture(0, 0, W + 64, H + 64).setOrigin(0).setPosition(-32, -32).setScrollFactor(0).setDepth(9.65).setBlendMode(Phaser.BlendModes.MULTIPLY);
     // fades and flashes on the world camera: do the HUD too, so the screen still goes to black at the end
@@ -68,7 +70,7 @@ const PixelLookMixin = {
     // which camera draws what: HUD depths on the HUD camera, everything else on the world camera
     const split = () => {
       const m = main.id, h = X.hud.id;
-      for (const o of this.children.list) o.cameraFilter = X.on ? (o.depth >= PX_HUD_DEPTH ? m : h) : h;
+      for (const o of this.children.list) o.cameraFilter = X.grid ? (o.depth >= PX_HUD_DEPTH ? m : h) : h;
     };
     this.events.on('prerender', split);
     this.events.once('shutdown', () => { this.events.off('prerender', split); this.scale.off('resize', onResize); this.px = null; });
@@ -78,21 +80,22 @@ const PixelLookMixin = {
   pxApply() {
     const X = this.px; if (!X) return;
     const on = this.pxWanted(), main = this.cameras.main, rn = this.game.renderer;
-    X.on = on;
+    X.on = on; X.grid = this.pxGridWanted(); X.amb = X.grid ? (this.def.pxAmbient || 0x6e6a8c) : (this.def.moodAmbient || 0x9894b8);
+    const grid = X.grid;
     try {
       if (!rn.pipelines.getPostPipeline('LCPix')) rn.pipelines.addPostPipeline('LCPix', pxPipeClass());
       const has = main.getPostPipeline('LCPix'), there = Array.isArray(has) ? has.length > 0 : !!has;
-      if (on && !there) main.setPostPipeline('LCPix');
-      if (!on && there) main.removePostPipeline('LCPix');
+      if (grid && !there) main.setPostPipeline('LCPix');
+      if (!grid && there) main.removePostPipeline('LCPix');
     } catch (e) { /* no post pipelines: the light map and particles still work */ }
     try {                                                 // (v3.82) no bloom under the pixel look: the light map is the only light
       const bp = main.getPostPipeline('LCBloom'), b = Array.isArray(bp) ? bp[0] : bp;
-      if (b) { if (b.lcStrClassic === undefined) b.lcStrClassic = b.lcStr; b.lcStr = on ? 0 : b.lcStrClassic; }
+      if (b) { if (b.lcStrClassic === undefined) b.lcStrClassic = b.lcStr; b.lcStr = grid ? 0 : b.lcStrClassic; }
     } catch (e) { /* ignore */ }
-    X.hud.setVisible(on);
+    X.hud.setVisible(grid);
     X.rt.setVisible(on);
     if (this.fxBang) {                                    // the hit-spark emitter: single pixels, no shrink
-      if (on) { this.fxBang.setTexture('pxdot'); this.fxBang.setParticleScale(PX_BLOCK, PX_BLOCK); }
+      if (grid) { this.fxBang.setTexture('pxdot'); this.fxBang.setParticleScale(PX_BLOCK, PX_BLOCK); }
       else { this.fxBang.setTexture('spark'); this.fxBang.setParticleScale(1.5, 0); }
     }
   },
@@ -129,7 +132,7 @@ const PixelLookMixin = {
     const rt = X.rt, cam = this.cameras.main, P = this.pl, z = this.zoom, L = [];
     const add = (theta, h, r, col, a) => { if (a > 0.02) L.push([theta, h, r, col, a]); };
     // Chris carries a warm pool of light, a little bigger when powered up
-    if (P && this.state !== 'dead') add(P.theta, P.h + 34, P.power > 0 ? 120 : 95, 0xfff0d0, 0.85);
+    if (P && this.state !== 'dead') add(P.theta, P.h + 34, X.grid ? (P.power > 0 ? 120 : 95) : (P.power > 0 ? 170 : 140), 0xfff0d0, 0.85);
     for (const l of this.lights) add(l.theta, l.h, l.r * 1.6, l.col, Math.min(1, l.a * 1.3) * (l.life / l.max));
     if (this.muzzle && (P.firing > 0 || P.beamOn)) add(this.muzzle.theta, this.muzzle.h, 110 + Math.random() * 30, 0xffd27a, 1);   // muzzle flash flickers
     for (const b of this.pBullets) add(b.theta, b.h, 64, 0xffe08a, 0.9);
@@ -145,7 +148,7 @@ const PixelLookMixin = {
     const st = X.stamp;
     for (const l of L) {
       const sp = this.screenPos(l[0], l[1]); if (!sp.vis) continue;
-      st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * 2 * z) / 64).setTint(l[3]).setAlpha(Math.min(1, l[4]));
+      st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * 2 * z) / 256).setTint(l[3]).setAlpha(Math.min(1, l[4]));
       rt.draw(st);
     }
   }

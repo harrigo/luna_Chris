@@ -1,13 +1,16 @@
 # Luna Chris: style guide (the pixel look)
 
 One page of rules for art, so new sprites, levels and effects all look like they belong in the same game.
-The aim is the Noita feel: simple shapes, one pixel size, light doing the heavy lifting.
+The aim: a 90s grotesque cartoon in pixels. Consistent art, detailed characters, quiet backgrounds, light for mood.
 
 ## 1. One pixel size
-- The world is drawn on a single grid: **one art pixel = 2 screen pixels** (`PX_BLOCK` in `src/pixellook.js`).
-- Draw sprites at the size they will appear. Don't draw big and scale down: the grid throws the detail away.
+- Characters, enemies and the ground share one pixel density: **one art pixel = one world unit**
+  (Chris's rig at `RIG_SCALE = 1`, the full-resolution planets, enemies at their display scale).
+- If a sprite has to be bigger on screen, redraw it with more pixels rather than scaling it up.
+  Sprites redrawn finer are listed in `TEX_DENS` (main.js) so they keep their size on screen.
 - Never smooth-scale art. No soft gradients in sprites; if it needs a gradient, use 3–4 flat steps.
-- The HUD (depth 19 and above) is the exception: it stays crisp at screen resolution.
+- Far background (sky, nebulae, distant ships) may be chunkier or finer: distance is allowed to break the rule.
+- The pixel grid post-pass (`?pixlook`) is parked; the game runs at full resolution.
 
 ## 2. Colour
 - Only colours from the master palette (`PAL_RAMPS` in `src/palette.js`). Pick from a ramp, don't invent.
@@ -17,14 +20,14 @@ The aim is the Noita feel: simple shapes, one pixel size, light doing the heavy 
   Backgrounds and scenery use the duller, darker ends of their ramps.
 
 ## 3. Light and dark
-- Levels sit in a dim ambient light (`def.pxAmbient`, default `0x6e6a8c`).
+- Levels sit in a gently dimmed ambient light (`def.moodAmbient`, default `0x9894b8`), so lit things stand out.
 - Light comes from things in the world, not from the screen: Chris's pool, the gun, shots, lava, geysers, pickups, the boss.
-- Light pools fall off in **five hard bands**, never a smooth gradient.
+- Light pools are a solid core plus three clean steps, never a smooth gradient.
 - Use colour in light to tell the player things: warm = friendly or fire, red-orange = enemy shots, pale yellow = power.
 - Don't paint glows into sprites. Give the object a light instead (`addLight`, or a source in `pxLights()`).
 
 ## 4. Effects
-- Sparks, crumbs, splats and drops are **single grid pixels** with gravity, coloured from the thing that broke.
+- Sparks, crumbs, splats and drops are small and plentiful, coloured from the thing that broke.
 - Hot things (sparks, flames) are additive; solid debris is not.
 - More, smaller pieces beat fewer, bigger sprites. Cap a burst at about 40.
 - Smoke and dust stay as chunky puff frames that break apart, not soft fades.

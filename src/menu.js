@@ -9,7 +9,7 @@ const Settings = (() => {
     rumble: load('rumble', true),
     diff: load('diff', 'normal'),                    // easy | normal | hard
     padUpJump: load('padUpJump', false),
-    pixLook: load('pixLook', true),                  // (v3.81) the pixel look trial on level 1 (pixellook.js)
+    moody: load('moody', true),                      // (v3.83) moody light map on level 1 (pixellook.js)
     cam: load('cam', load('camSwing', true) ? 'swing' : 'locked'),   // camera: locked on Chris | swing (lags a little behind) | full (up stays up: run right round, upside down at the bottom)             // controller: push the left stick up to jump (hold = jetpack), like touch
     cycleDiff(dir) { const o = ['easy', 'normal', 'hard'], i = o.indexOf(this.diff); this.set('diff', dir ? o[Math.max(0, Math.min(2, i + dir))] : o[(i + 1) % 3]); },
     get dk() { return { easy: { hp: 0.85, shot: 0.85, spd: 0.95, more: 0 }, normal: { hp: 1.2, shot: 1.1, spd: 1.1, more: 0.25 }, hard: { hp: 1.5, shot: 1.25, spd: 1.2, more: 0.4 } }[this.diff] || { hp: 1.2, shot: 1.1, spd: 1.1, more: 0.25 }; },   // (v3.33: everything up a notch - Chris got a lot more moves)
@@ -42,7 +42,7 @@ function optionItems(onGfx) {
   return [
     { label: () => 'DIFFICULTY: ' + Settings.diff.toUpperCase(), act: d => Settings.cycleDiff(d) },
     { label: () => 'GRAPHICS: ' + Settings.gfx.toUpperCase(), act: d => { Settings.cycleGfx(d); if (onGfx) onGfx(); } },
-    { label: () => 'LOOK: ' + (Settings.pixLook ? 'PIXEL (LV 1)' : 'CLASSIC'), act: () => { Settings.set('pixLook', !Settings.pixLook); if (onGfx) onGfx(); } },
+    { label: () => 'LIGHTING: ' + (Settings.moody ? 'MOODY (LV 1)' : 'CLASSIC'), act: () => { Settings.set('moody', !Settings.moody); if (onGfx) onGfx(); } },
     { label: () => 'SOUND: ' + (Settings.soundOn() ? 'ON' : 'OFF'), act: () => Settings.toggleSound() },
     volItem('MUSIC', 'music'),
     volItem('SFX', 'sfx'),
