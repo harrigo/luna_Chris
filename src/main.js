@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.68';
+const BUILD = 'v3.69';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -4468,11 +4468,11 @@ class Level1 extends Phaser.Scene {
       const midSize = e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3;   // medium and big enemies can drop a timed power-up
       const pool = Object.keys(BUFFS).filter(k => BUFFS[k].from <= Math.floor(this.levelId) && !BUFFS[k].off);   // (v3.50: 'off' = retired)
       const fresh = pool.filter(k => !(this.buffsSeen || []).includes(k));
-      const firstOfWave = midSize && this.waveBuff !== this.waveIdx; if (firstOfWave) { this.waveBuff = this.waveIdx; this.waveBuffRoll = Math.random() < 0.5; }   // (v3.02) the wave's power-up: only half the time
+      const firstOfWave = midSize && this.waveBuff !== this.waveIdx; if (firstOfWave) { this.waveBuff = this.waveIdx; this.waveBuffRoll = Math.random() < 0.7; }   // (v3.02) the wave's power-up: only half the time (v3.69: 7 times in 10)
       if (e.big && !this.gotPower) {                     // the first big enemy always drops the Parmesan Power-Up
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
-      } else if (midSize && ((firstOfWave && this.waveBuffRoll) || Math.random() < 0.04) && !this.pickups.some(p => p.kind === 'buff') && !this.pl.buff && pool.length) {   // (v2.41: 1 in 12 after the first, and never while one's running)
+      } else if (midSize && ((firstOfWave && this.waveBuffRoll) || Math.random() < 0.07) && !this.pickups.some(p => p.kind === 'buff') && !this.pl.buff && pool.length) {   // (v3.69: 4% -> 7% after the wave's first)   // (v2.41: 1 in 12 after the first, and never while one's running)
         // every wave's first medium/big kill drops a timed power-up, then 1 in 4 after that; ones not yet had this level come first
         const from = fresh.length ? fresh : pool, bk = from[Math.floor(Math.random() * from.length)], B = BUFFS[bk];
         (this.buffsSeen = this.buffsSeen || []).push(bk);

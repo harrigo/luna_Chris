@@ -70,7 +70,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('golem', 0), S('mouse', 0.8), S('flyer', 1.6), S('mouse', 2.4), S('flyer', 3), S('golem', 4), S('mouse', 4.6), S('flyer', 5.2), S('mouse', 6), S('flyer', 6.8), S('mouse', 7.4), S('flyer', 8.4), S('mouse', 9)] },
       { name: 'WAVE 3', spawns: [S('golem', 0), S('mouse', 1), S('flyer', 1.8), S('golem', 2.6), S('mouse', 3), S('flyer', 3.6), S('mouse', 4.2), S('golem', 5.4), S('flyer', 6), S('mouse', 6.6), S('flyer', 7.6), S('mouse', 8.2), S('golem', 9), S('flyer', 9.6), S('mouse', 10.2)] }
     ],
-    boss: { tex: 'croque', hp: 166, ai: 'croque', armouredTop: true },   // (v3.45: 195 -> 166, 15% less)
+    boss: { tex: 'croque', hp: 149, ai: 'croque', armouredTop: true },   // (v3.45: 195 -> 166, 15% less; v3.69: 166 -> 149, 10% less)
     win: 'The Croque Monsieur is toast. Literally.\nBessie was safe... for about ten seconds.\nAfter that rat-ship!'
   },
 
