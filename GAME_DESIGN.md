@@ -2270,3 +2270,9 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
   - `depth.clean` (depth.js): the sphere shading in flat bands with checker seams; the atmosphere as one solid ring plus one checker ring instead of a Bayer fade.
   - `ridge.shade` (depth.js): hills get a crisp lit cap, a darker, cooler lower part, and shadowed hole lips.
 - Level 1 has all four turned on.
+
+## v3.76: smoke and glows the 16-bit way
+- Smoke (`puff`): a chunky cel-shaded pixel cloud (2x2 pixels, three greys lit from the top left) instead of a soft see-through blob; the old puff.png is gone. As it goes it breaks up through puff_1..puff_3 (lobes shrinking, splitting into wisps) instead of fading: updateParticles swaps the frame by remaining life. Callers' tints and alphas still apply.
+- Baked glows on shots and pickups (bakedGlow / makeGlowTexture): solid stepped rings instead of a blurred fade (a solid ring hugging the sprite, a checker ring, a sparse dot ring).
+- The light halo (`halo`): a bright core, two solid rings and a faint checker ring, in chunky 2x2 pixels with nearest filtering, instead of a smooth radial gradient. Used for lights, mushroom glows, lava and geyser glows.
+- The bloom pass (graphics HIGH) is unchanged.

@@ -1003,7 +1003,24 @@ function makeLevelTextures(scene) {
     for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; g.fillRect(90 + Math.cos(a) * 28 - 5, 90 + Math.sin(a) * 28 - 5, 10, 10); }
   });
   // spore-cloud puff for the gravity zones
-  mk('puff', 64, 64, g => { for (let i = 0; i < 10; i++) g.fillStyle(0xffffff, 0.09).fillCircle(32, 32, 32 - i * 3); });
+  // (v3.76) smoke: a chunky cel-shaded pixel cloud (2x2 pixels, three greys lit from the top left, a soft grey edge),
+  // not a soft see-through blob. puff_1..3: the same cloud thinning and breaking into wisps as it goes - the lobes
+  // shrink, and the cloud splits into smaller pieces - instead of fading
+  { const L0 = [[11, 19, 7.5], [17, 12, 8.5], [24, 16, 7], [22, 23, 7.5], [13, 25, 6], [7, 14, 5]];
+    const frames = [L0,
+      L0.map(([x, y, r], k) => [x + (x - 16) * 0.12, y + (y - 18) * 0.12 - 1, r * (k === 1 ? 0.8 : 0.86)]),
+      [[8, 17, 4.6], [18, 10, 5.4], [25, 17, 4.4], [21, 25, 4.6], [11, 26, 3.4]],
+      [[7, 15, 2.8], [19, 8, 3.4], [27, 18, 2.6], [20, 27, 2.6]]];
+    ['puff', 'puff_1', 'puff_2', 'puff_3'].forEach((key, f) => pixTex(scene, key, 64, 64, put => {
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+        let best = 0, lit = 0;
+        for (const [cx, cy, r] of frames[f]) { const dx = (x + 0.5 - cx) / r, dy = (y + 0.5 - cy) / r, q = 1 - (dx * dx + dy * dy); if (q > best) { best = q; lit = -0.65 * dx - 0.75 * dy; } }
+        if (best <= 0) continue;
+        const c = best < 0.2 ? 0xb8c0cc : lit > 0.25 ? 0xffffff : lit > -0.3 ? 0xe4e8ee : 0xc8ced8;
+        put(x * 2, y * 2, c); put(x * 2 + 1, y * 2, c); put(x * 2, y * 2 + 1, c); put(x * 2 + 1, y * 2 + 1, c);
+      }
+    }));
+  }
 }
 
 // ---------------------------------------------------------------- level select
@@ -2347,9 +2364,16 @@ function makeCosmicTextures(scene) {
 // soft additive light halo (smooth-filtered, so it stays OFF the pixel atlas)
 function makeHalo(scene) {
   if (madeTex(scene, 'halo')) return;
-  const t = scene.textures.createCanvas('halo', 128, 128), c = t.getContext(), gr = c.createRadialGradient(64, 64, 0, 64, 64, 64);
-  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
-  c.fillStyle = gr; c.fillRect(0, 0, 128, 128); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  // (v3.76) stepped like a 16-bit light: a bright core, two solid rings and a faint checker ring at the rim (chunky
+  // 2x2 pixels, nearest filtering), instead of a smooth radial fade
+  const t = scene.textures.createCanvas('halo', 128, 128), c = t.getContext(), img = c.createImageData(128, 128), D = img.data;
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const d = Math.hypot(x + 0.5 - 32, y + 0.5 - 32) / 32;
+    const a = d < 0.18 ? 255 : d < 0.4 ? 140 : d < 0.66 ? 62 : d < 0.82 ? (((x + y) & 1) ? 40 : 0) : 0;
+    if (!a) continue;
+    for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const i = ((y * 2 + oy) * 128 + x * 2 + ox) * 4; D[i] = D[i + 1] = D[i + 2] = 255; D[i + 3] = a; }
+  }
+  c.putImageData(img, 0, 0); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }
 
 // ---------------------------------------------------------------- 16-bit HUD icons
