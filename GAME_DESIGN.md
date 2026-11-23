@@ -2279,3 +2279,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.77: glows slightly stepped (neo-retro)
 - The hard rings and dither patterns of v3.76 looked odd round floating power-ups. Baked glows are soft again, but quantised to five even steps of strength. The light halo has its original soft fall-off (bright core, long tail) in eight even bands. Pixel-art smoke stays.
+
+## v3.78: the hand-shaded pass on every level
+- surface.clean, skyClean, depth.clean and ridge shade are now on by default for every level (set any of them to false in a level's def to opt out). The special planets (the grater, the fountain, the Parmesan wheel) draw their own surfaces and are unchanged.

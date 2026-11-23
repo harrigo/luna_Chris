@@ -1511,7 +1511,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
     const j = y * S + x; dist[j] = d;
     const th = BAYER4[(y & 3) * 4 + (x & 3)];
     // base cheese: noise picks a tone, the Bayer threshold dithers between neighbouring tones
-    let v = opts.clean ? 2.7 + (noise(x, y) - 0.5) * 3.2 + (noise(x * 2.2, y * 2.2) - 0.5) * 0.7 : 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
+    let v = opts.clean !== false ? 2.7 + (noise(x, y) - 0.5) * 3.2 + (noise(x * 2.2, y * 2.2) - 0.5) * 0.7 : 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
     // rind crust towards the edge
     if (RIM >= 0 && d > (opts.rimD || 0.952) + (noise(x * 4, y * 4) - 0.5) * 0.03) {   // a ragged mossy crust in its own tones
       const m = 1.2 + (noise(x * 5, y * 5) - 0.5) * 2 + (d - 0.95) * 25;
@@ -1519,7 +1519,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
     }
     if (d > 0.935) v = 1.5 + (noise(x * 2, y * 2) - 0.5) * 1.6 - (d - 0.935) * 8;
     else if (d > 0.9) v -= (d - 0.9) / 0.035 * 1.2;
-    if (opts.clean) {   // (v3.75) hand-shaded the 16-bit way: broad flat areas of one tone, a checker dither only along the seam between two
+    if (opts.clean !== false) {   // (v3.75; every level from v3.78) hand-shaded the 16-bit way: broad flat areas of one tone, a checker dither only along the seam between two
       const lo = Math.floor(v), f = v - lo;
       T[j] = lo + (f > 0.64 ? 1 : f > 0.4 ? ((x + y) & 1) : 0);
     } else T[j] = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
@@ -1550,7 +1550,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring
   // crumbs & debris: scattered 1-2px specks
   const speck = (x, y, t) => { if (x < 0 || y < 0 || x >= S || y >= S) return; const dd = Math.hypot(x - c, y - c) / r; if (dd > 0.96) return; put((y * S + x) * 4, t); };
-  for (let i = 0; i < S * (opts.clean ? 0.9 : 3); i++) {
+  for (let i = 0; i < S * (opts.clean !== false ? 0.9 : 3); i++) {
     const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.95, x = Math.round(c + Math.cos(a) * d), y = Math.round(c + Math.sin(a) * d);
     const kind = rand();
     if (kind < 0.55) speck(x, y, P.length - 1);                       // light crumb
@@ -1771,7 +1771,7 @@ function makeSkyDither(scene, key, w, h, cols, clean) {
       const v = (y / (h - 1)) * n;
       const lo = Math.floor(v), f = v - lo;
       // clean (v3.75): flat bands, with the dither only in a strip where each band meets the next (the SNES way)
-      const g = clean ? Math.max(0, (f - 0.7) / 0.3) : f;
+      const g = clean !== false ? Math.max(0, (f - 0.7) / 0.3) : f;
       for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (g > bay(x, y) ? 1 : 0))]);
     }
   });
