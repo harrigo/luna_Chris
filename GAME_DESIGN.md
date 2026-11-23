@@ -2250,3 +2250,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v3.71: level 2 eased
 - Baron Von Blue (level 2 boss) health 166 -> 149 (10% less).
 - His claw punch 20% slower again: the wind-up tell 0.96s -> 1.15s (phase 2: 0.72 -> 0.86), the punch out 0.3 -> 0.36s, the snap back 0.42 -> 0.5s.
+
+## v3.72: spiral fungi on level 2
+- p_stalk.png (the blue cone spikes in the Brie-muda swamp) redrawn as a clump of spiral fungus: three thin twisting tendrils that unroll into open fiddlehead curls, shelf gills and glowing spore dots, on a mossy bulb (38x48, was 22x40). Drawn by a script in the session scratchpad (fungi/draw2.py).
