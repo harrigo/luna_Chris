@@ -2242,3 +2242,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v3.69: easier start
 - Croque Monsieur (level 1 boss) health 166 -> 149 (10% less).
 - Timed power-ups drop a little more often: the first medium or big enemy killed in a wave drops one 70% of the time (was 50%), and later ones 7% of the time (was 4%). Still only one at a time, and never while one is running.
+
+## v3.70: level 1 gives a taste of the power
+- Level 1 only: the first medium or big enemy killed in every wave always drops a timed power-up (other levels 70%), and later ones 15% of the time (other levels 7%).
+- Level 1 only: about 2 seconds after the Croque Monsieur arrives, a random power-up falls in just ahead of Chris (if he has none running). Not in Boss Rush.
