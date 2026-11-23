@@ -2364,14 +2364,13 @@ function makeCosmicTextures(scene) {
 // soft additive light halo (smooth-filtered, so it stays OFF the pixel atlas)
 function makeHalo(scene) {
   if (madeTex(scene, 'halo')) return;
-  // (v3.76) stepped like a 16-bit light: a bright core, two solid rings and a faint checker ring at the rim (chunky
-  // 2x2 pixels, nearest filtering), instead of a smooth radial fade
+  // (v3.77) soft light, SLIGHTLY stepped: the same soft fall-off as before (bright core, long gentle tail) but in eight
+  // even bands instead of a smooth gradient, so the big light pools stay soft and modern while still reading as pixel art
   const t = scene.textures.createCanvas('halo', 128, 128), c = t.getContext(), img = c.createImageData(128, 128), D = img.data;
-  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-    const d = Math.hypot(x + 0.5 - 32, y + 0.5 - 32) / 32;
-    const a = d < 0.18 ? 255 : d < 0.4 ? 140 : d < 0.66 ? 62 : d < 0.82 ? (((x + y) & 1) ? 40 : 0) : 0;
-    if (!a) continue;
-    for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) { const i = ((y * 2 + oy) * 128 + x * 2 + ox) * 4; D[i] = D[i + 1] = D[i + 2] = 255; D[i + 3] = a; }
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const d = Math.hypot(x + 0.5 - 64, y + 0.5 - 64) / 64; if (d >= 1) continue;
+    const s = d < 0.35 ? 1 - (d / 0.35) * 0.55 : 0.45 * (1 - (d - 0.35) / 0.65), q = Math.ceil(s * 8) / 8;
+    const i = (y * 128 + x) * 4; D[i] = D[i + 1] = D[i + 2] = 255; D[i + 3] = Math.round(q * 255);
   }
   c.putImageData(img, 0, 0); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }

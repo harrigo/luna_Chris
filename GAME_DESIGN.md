@@ -2276,3 +2276,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Baked glows on shots and pickups (bakedGlow / makeGlowTexture): solid stepped rings instead of a blurred fade (a solid ring hugging the sprite, a checker ring, a sparse dot ring).
 - The light halo (`halo`): a bright core, two solid rings and a faint checker ring, in chunky 2x2 pixels with nearest filtering, instead of a smooth radial gradient. Used for lights, mushroom glows, lava and geyser glows.
 - The bloom pass (graphics HIGH) is unchanged.
+
+## v3.77: glows slightly stepped (neo-retro)
+- The hard rings and dither patterns of v3.76 looked odd round floating power-ups. Baked glows are soft again, but quantised to five even steps of strength. The light halo has its original soft fall-off (bright core, long tail) in eight even bands. Pixel-art smoke stays.

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.76';
+const BUILD = 'v3.77';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -93,10 +93,9 @@ function makeGlowTexture(sc, base, col, strength, dist) {
       }
       const r = (col >> 16) & 255, g = (col >> 8) & 255, bl = col & 255, k = 0.75 * strength;
       for (let i = 0; i < N; i++) {
-        // (v3.76) the glow in solid 16-bit steps, not a soft fade: a solid ring hugging the sprite, a checker ring outside
-        // it, a sparse dot ring outside that
-        const x = i % W, y = (i / W) | 0, g0 = Math.min(1, A[i] * k);
-        const gq = g0 > 0.5 ? 0.9 : g0 > 0.24 ? (((x + y) & 1) ? 0.9 : 0) : g0 > 0.1 ? ((!(x & 1) && !(y & 1)) ? 0.75 : 0) : 0;
+        // (v3.77) SLIGHTLY stepped: the soft glow kept, but in five even steps of strength rather than a smooth fade, so it
+        // reads as pixel-art light (no hard rings or dither patterns: those looked odd round the floating power-ups)
+        const g0 = Math.min(1, A[i] * k), gq = g0 < 0.06 ? 0 : Math.ceil(g0 * 5) / 5;
         const oa = D[i * 4 + 3] / 255, ga = gq * (1 - oa);
         const a = oa + ga; if (a <= 0) continue;
         D[i * 4] = (D[i * 4] * oa + r * ga) / a; D[i * 4 + 1] = (D[i * 4 + 1] * oa + g * ga) / a; D[i * 4 + 2] = (D[i * 4 + 2] * oa + bl * ga) / a; D[i * 4 + 3] = a * 255;
