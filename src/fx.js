@@ -114,6 +114,7 @@ const FxMixin = {
     const X = this.fx; if (!X) return;
     X.bloom = fxGrade(this, FX_BLOOM_STR);
     X.vig.setVisible(Settings.lights);
+    if (this.pxApply) this.pxApply();
   },
 
   fxDraw() {

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.80';
+const BUILD = 'v3.81';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -570,6 +570,7 @@ class Level1 extends Phaser.Scene {
     // particle emitters (screen space; positions come from screenPos())
     this.fxJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 160, max: 340 }, speedY: { min: 140, max: 280 }, speedX: { min: -45, max: 45 }, scale: { start: 1.4, end: 0 }, alpha: { start: 0.95, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(6);
     this.fxBang = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 750 }, speed: { min: 60, max: 300 }, angle: { min: 0, max: 360 }, scale: { start: 1.5, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 260, color: [0xfff3a0, 0xff9a2a, 0x8a2a10], colorEase: 'quad.out', blendMode: 'ADD', emitting: false }).setDepth(9);
+    this.pxInit();                                        // (v3.81) the pixel look trial (pixellook.js): after fxBang, which it restyles
     this.fxHaze = this.add.particles(0, 0, 'blob', { lifespan: { min: 1100, max: 1700 }, speedY: { min: -40, max: -18 }, speedX: { min: -10, max: 10 }, scale: { start: 0.15, end: 0.55 }, alpha: { start: 0.18, end: 0 }, tint: [0xff9a2a, 0xffc04a], blendMode: 'ADD', emitting: false }).setDepth(2.9);
     this.fxNoodle = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 650 }, speedX: { min: -30, max: 30 }, speedY: { min: 10, max: 60 }, gravityY: 500, scale: { start: 1.3, end: 0.4 }, tint: [0xffd23f, 0xffb52a, 0xffe27a], emitting: false }).setDepth(8);
     this.fxRatJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 220, max: 420 }, speedY: { min: 30, max: 80 }, speedX: { min: -14, max: 14 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(4.8);
@@ -4903,6 +4904,7 @@ class Level1 extends Phaser.Scene {
     }
   }
   burst(theta, h, tex, n, spd) {
+    if (this.px && this.px.on && PX_TEX.has(tex)) return this.pxBurst(theta, h, tex, n, spd);
     for (let i = 0; i < n; i++) {
       this.parts.push({
         theta, h, vt: rnd(-160, 160) * spd, vh: rnd(60, 300) * spd, life: rnd(0.3, 0.6),
@@ -5630,6 +5632,7 @@ class Level1 extends Phaser.Scene {
     for (const b of this.pBullets) this.place(b.spr, b.theta, b.h, b.blast ? b.rot : Math.atan2(-b.vh, b.vt));   // (the Swiss ball spins)
     this.drawBeam();
     this.drawLights();
+    this.pxLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
     this.bulletFx();
     for (const p of this.pickups) this.place(p.spr, p.theta, p.h + (p.kind === "cheddar" ? 6 : 0), 0);
@@ -5780,6 +5783,7 @@ Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
+Object.assign(Level1.prototype, PixelLookMixin);    // (v3.81) the pixel look: one grid, light and dark, pixel particles (src/pixellook.js)
 Object.assign(Level1.prototype, FxMixin);            // neo-retro lighting: bloom, vignette, ground shadows, rim light (src/fx.js)         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
 Level1.prototype.drawRadar = function (g) {

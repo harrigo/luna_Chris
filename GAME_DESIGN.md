@@ -2291,3 +2291,10 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Scenery drawn at in-between scales (1.3x, 1.6x...) had some art pixels one screen pixel wide and some two. Objects with `pixSnap` set are now drawn at the nearest whole number of screen pixels per art pixel (1x, 2x, 3x; tiny ones under 0.75x are left alone), in place() (main.js, pixSnap()). Squash, stretch and hit effects still multiply on top.
 - On: level props and decor, the camp's stations, decorations and grown-in things, the tin-can fence and the crates. Off: the hoop and high striker (their rim and puck are lined up with the art in world units), enemies (at about 1.0x on a phone already), Chris (a rig of rotated, stretched parts), and anything a hitbox depends on.
 - Side effect: random-sized scenery now comes in two sizes instead of a smooth range, so some props are a bit smaller and some a bit bigger than before.
+
+## v3.81: the pixel look (trial, level 1 only)
+A step towards the Noita look, behind a switch (menu: LOOK: PIXEL (LV 1) / CLASSIC; URL ?pixlook, ?pixlook=3, ?classic). Code: src/pixellook.js (PixelLookMixin).
+- One pixel grid: a post pass (LCPix) snaps the world camera to 2-screen-pixel blocks, so planet, sprites, scenery and effects share one pixel size. The HUD (depth 19+) moves to its own camera and stays crisp.
+- Light and dark: a light map (MULTIPLY render texture at depth 9.65) dims the world to def.pxAmbient (default 0x6e6a8c); Chris, the gun, shots, enemy shots, pickups, lava, geysers, the boss and every addLight punch banded pools (5 hard steps) back in.
+- Single-pixel particles: burst() of spark/crumb/mm_splat/shard/flame/fdrop becomes twice as many grid pixels coloured from the source sprite; the hit-spark emitter uses pixels too.
+- STYLE_GUIDE.md: the rules for new art.
