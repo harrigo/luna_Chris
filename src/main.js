@@ -6,13 +6,17 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.79';
+const BUILD = 'v3.80';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
 const TAU = Math.PI * 2;
 let R = 420; // planet radius in world units (set per level from LEVELS[n].radius)
-const PIX_HD_R = 620;   // (v3.79) planets up to this radius are drawn at full resolution (see the level create)
+const PIX_HD_R = 620;
+// (v3.80) PIXEL SIZE for scenery: a sprite drawn 1.3x or 1.6x has some art pixels one screen pixel wide and some two. Scenery
+// (level props, decor, the camp's furniture and toys) is snapped to a whole number of screen pixels per art pixel, 1x or 2x
+// (or 3x for the really big ones), whichever's nearest. Sign is kept (a flipped sprite stays flipped).
+const pixSnap = s => { const a = Math.abs(s); if (a < 0.75) return s; return Math.sign(s) * Math.max(1, Math.round(a)); };   // (v3.79) planets up to this radius are drawn at full resolution (see the level create)
 
 const CFG = {
   finalLevel: 10,         // Bessie only stays rescued after this level; before it the rats always snatch her back
@@ -419,12 +423,12 @@ class Level1 extends Phaser.Scene {
     this.depthFx = null; this.depthInit();               // neo-retro depth: sphere shading, parallax hills, foreground rocks (depth.js)
     if (!this.def.surface && !this.def.saucer) for (let i = 0; i < 28; i++) {
       const spr = this.add.image(0, 0, 'crater').setDepth(2).setTint(this.def.decorTint).setAlpha(this.def.decorAlpha);
-      spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3);
+      spr.bsx = rnd(0.6, 1.5); spr.bsy = rnd(0.8, 1.3); spr.pixSnap = true;
       this.decor.push({ spr, theta: rnd(0, TAU), h: -8 });
     }
     if (!this.def.surface && !this.def.saucer) for (let i = 0; i < 60; i++) {
       const spr = this.add.image(0, 0, 'hole').setDepth(2).setTint(this.def.decorTint).setAlpha(rnd(0.5, 1) * this.def.decorAlpha);
-      spr.bsx = spr.bsy = rnd(0.5, 2.2);
+      spr.bsx = spr.bsy = rnd(0.5, 2.2); spr.pixSnap = true;
       this.decor.push({ spr, theta: rnd(0, TAU), h: -rnd(30, 170) });
     }
 
@@ -509,7 +513,7 @@ class Level1 extends Phaser.Scene {
         const cd = spr.texture.customData; if (pr.oy || (cd && cd.oy)) spr.setOrigin(0.5, pr.oy || cd.oy);   // feet below the base row (mozz.js mountains)
         if (pr.tint) spr.setTint(pr.tint);
         if (pr.alpha) spr.setAlpha(pr.alpha);
-        spr.bsx = spr.bsy = (spot ? spot[1] : rnd(pr.sc[0], pr.sc[1])) * 1.35;
+        spr.bsx = spr.bsy = (spot ? spot[1] : rnd(pr.sc[0], pr.sc[1])) * 1.35; spr.pixSnap = true;
         if (spot ? spot[2] : Math.random() < 0.5) spr.setFlipX(true);
         let halo = null;
         if (pr.glow && Settings.lights) {                // a soft pulsing glow behind it (bioluminescent mushrooms, crystals)
@@ -5040,7 +5044,9 @@ class Level1 extends Phaser.Scene {
     o.setPosition(this.cx + r * Math.sin(d), this.cy - r * Math.cos(d));
     o.setRotation(d + (extraRot || 0) + (o.trot || 0));                    // (trot / tqx / tqy: the cartoon squash-and-stretch, toons.js)
     const hq = o.hsq || 0;                                   // hit squash (impact) on top of any other squash
-    o.setScale((o.bsx || 1) * z * (o.sqx || 1) * (o.tqx || 1) * (1 + 0.28 * hq), (o.bsy || 1) * z * (o.sqy || 1) * (o.tqy || 1) * (1 - 0.22 * hq));
+    let bx = (o.bsx || 1) * z, by = (o.bsy || 1) * z;
+    if (o.pixSnap) { bx = pixSnap(bx); by = pixSnap(by); }   // (v3.80) scenery: whole screen pixels per art pixel, so they're all one size
+    o.setScale(bx * (o.sqx || 1) * (o.tqx || 1) * (1 + 0.28 * hq), by * (o.sqy || 1) * (o.tqy || 1) * (1 - 0.22 * hq));
   }
 
   // ================================================================= level hazards (roadmap levels)

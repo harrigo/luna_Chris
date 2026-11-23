@@ -58,7 +58,7 @@ const CampToysMixin = {
   toyOpen(id) { return Progress.testMode || (Meta.stats().runs || 0) >= (TOY_UNLOCK[id] || 0); },
   toysInit() {
     makeToyTextures(this);
-    const add = (tex, th, sc, depth) => { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth); spr.bsx = spr.bsy = sc; const a = { spr, theta: th, h: -this.campSink(spr, sc), rot: 0 }; this.actors.push(a); return a; };
+    const add = (tex, th, sc, depth) => { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth); spr.bsx = spr.bsy = sc; spr.pixSnap = tex !== 'ty_hoop' && tex !== 'ty_striker';   /* (their rim and puck are lined up with the art in world units) */ const a = { spr, theta: th, h: -this.campSink(spr, sc), rot: 0 }; this.actors.push(a); return a; };
     let best = {}; try { best = JSON.parse(localStorage.getItem('lc_toys') || '{}'); } catch (e) { /* ignore */ }
     this.toyBest = best; this.toysOn = true;
     this.striker = null; this.hoop = null; this.tower = { blocks: [], calmT: 0, goneT: 0, paid: 0 }; this.cans = null; this.clay = { on: false, n: 0, hits: 0, t: 0, next: 0, wheels: [] };
@@ -96,7 +96,7 @@ const CampToysMixin = {
     const W = 27 / R, rows = [[-1, 0, 1], [-0.5, 0.5], [0]];
     rows.forEach((row, ri) => row.forEach((k, j) => {
       const tex = (ri + j) % 3 === 1 ? 'cr_barrel' : 'cr_crate';
-      const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(2.6); spr.bsx = spr.bsy = 1.5;
+      const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(2.6); spr.bsx = spr.bsy = 1.5; spr.pixSnap = true;
       const th = wrap(TOY.towerTh + k * W);
       T.blocks.push({ spr, theta: th, h: ri * 30, home: { theta: th, h: ri * 30 }, vt: 0, vh: 0, rot: 0, vr: 0, fly: false, hp: 2, flash: 0 });
     }));

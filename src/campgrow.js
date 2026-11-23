@@ -76,7 +76,7 @@ const CampGrowMixin = {
     this.campGrown = [];
     for (const G of CAMP_GROW) {
       if (!G.need() || !this.textures.exists(G.tex)) continue;
-      const spr = this.add.image(0, 0, G.tex).setOrigin(0.5, 1).setDepth(2.4); spr.bsx = spr.bsy = G.sc;
+      const spr = this.add.image(0, 0, G.tex).setOrigin(0.5, 1).setDepth(2.4); spr.bsx = spr.bsy = G.sc; spr.pixSnap = true;
       if (G.id === 'bessie') spr.setFlipX(true);
       const a = { spr, theta: G.theta, h: (G.h || 0) - (G.h ? 0 : this.campSink(spr, G.sc)), rot: 0 };
       this.actors.push(a); this.campGrown.push({ G, a });
