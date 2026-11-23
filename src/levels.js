@@ -161,7 +161,7 @@ const LEVELS = {
   4: {
     id: 4, hpMul: 1.35, name: 'Mount Mozzarella', short: 'MOUNT MOZZARELLA', blurb: 'The Pizza Inferno: a charred crust planet\nwith molten mozzarella pools and an angry volcano.',
     music: 'level4', bloom: 0.28, bossName: 'THE MOZZARELLA MAGMA-GOLEM', tip: 'MOLTEN CHEESE GRABS YOU: MASH OR HOLD JUMP TO RIP FREE!',
-    radius: 440, sky: [0x160302, 0x8a2408], bg: '#160302', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12, mozz: true,
+    radius: 440, sky: [0x36100a, 0x9a2c0a], bg: '#36100a', starTint: 0xffb080, dustAlpha: 0.8, bgDecor: 'oven', lava: 12, mozz: true,
     // the PIZZA INFERNO: a charred, cratered pizza crust (golden where it's baked, black where it's burnt), lava light on the rim
     surface: { pal: [0x1a0804, 0x4a200c, 0x8a4418, 0xc0782c, 0xe0a450, 0xf6d088], seed: 4444, rim: [0x120402, 0x4a1a08, 0xa04a18], spot: [0x0c0402, 0x2a1006], rimD: 0.925, rimLight: [255, 120, 40], dark: [40, 8, 2] },
     rimGlow: 0xff5a1a,
@@ -2252,9 +2252,10 @@ function makeOvenTextures(scene) {
     const r = rng(700 + i * 31), n1 = vnoise(r, 5), n2 = vnoise(r, 11);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       const u = x / w - 0.5, v = y / h - 0.5, d = Math.hypot(u * 1.1, v * 1.8);
-      const den = n1(x / w, y / h) * 0.8 + n2(x / w, y / h) * 0.4 - d * 1.7 + 0.25, t = bay(x, y);
+      const ex = Math.min(1, Math.min(x, w - 1 - x) / (w * 0.14)), ey = Math.min(1, Math.min(y, h - 1 - y) / (h * 0.18));   // (v3.89) thins out to nothing at its edges (it was cut off square)
+      const den = n1(x / w, y / h) * 0.8 + n2(x / w, y / h) * 0.4 - d * 1.7 + 0.25 - (1 - ex) * 0.7 - (1 - ey) * 0.7, t = bay(x, y);
       if (den < 0.1 + t * 0.15) continue;
-      put(x, y, den > 0.45 ? 0x0e0806 : (den > 0.3 ? 0x1e1210 : 0x2e1c18), 255);
+      put(x, y, den > 0.45 ? 0x2a1008 : (den > 0.3 ? 0x3e1a0c : 0x5a2a18), 255);   // (v3.89: dark ember-brown, not black)
     }
   });
 }

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.88';
+const BUILD = 'v3.89';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -467,7 +467,7 @@ class Level1 extends Phaser.Scene {
     } else if (this.def.bgDecor === 'oven') {           // level 4: inside a cosmic oven - greasy black smoke drifting in layers,
       makeOvenTextures(this);                            // glowing embers rising, and the rat UFO with Bessie far off in the smoke
       for (let i = 0; i < 12; i++) {
-        const s = this.add.image(0, 0, 'smokecloud' + (i % 3)).setDepth(0.3 + (i % 3) * 0.02).setScale(rnd(2.5, 4.5)).setAlpha(rnd(0.45, 0.8)).setFlipX(i % 2 === 1);
+        const s = this.add.image(0, 0, 'smokecloud' + (i % 3)).setDepth(0.3 + (i % 3) * 0.02).setScale(rnd(2.5, 4.5)).setAlpha(rnd(0.35, 0.65)).setFlipX(i % 2 === 1);
         this.bgStars.push({ s, a: i * TAU / 12 + rnd(-0.2, 0.2), r: rnd(0.05, 0.85), k: [0.06, 0.12, 0.2][i % 3], rv: rnd(-0.01, 0.01) });
       }
       const ufo = this.add.image(0, 0, 'ratship').setDepth(0.25).setScale(0.45).setAlpha(0.75).setTint(0xffb08a);
@@ -5886,8 +5886,7 @@ class Level1 extends Phaser.Scene {
     const pix = (x, y, w, h, fill) => hudBox(hg, x, y, w, h, fill);   // (v3.84) the shared HUD panel
     { const bg = this.hudBackG; bg.clear();
       {
-        if (this.nameText.visible) hudPlate(bg, 4, 4, 292, 94);                // Chris: portrait, hearts, JET, ammo, gun
-        if (this.hud && this.distText.visible) hudPlate(bg, this.hud.dx0 - 6, 4, this.W - this.hud.dx0 + 2, this.landscape ? 60 : 32);   // the cow track and radar
+        // (v3.89: no dark plates behind the readouts - they sit straight on the scene again)
         for (const b of [this.menuText, this.pauseBtnText]) if (b.visible) hudBox(bg, b.x - 23, b.y - 7, 46, 14, 0x2a1f5a);
       } }
     if (this.portrait) pix(10, 10, 48, 48, 0x2a1f5a);

@@ -164,12 +164,44 @@ function makeMozzTextures(scene) {
     for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; p.line([[9 + Math.cos(a) * 4, 9 + Math.sin(a) * 4], [9 + Math.cos(a) * 7, 9 + Math.sin(a) * 7]], 0x6a7488); }
   });
   // the volcano on the horizon (drawn at 2x so it holds up big)
-  pixSprite(scene, 'volcano', 260, 180, p => {                     // (its foot runs on down out of sight behind the planet)
-    p.poly([[0, 180], [20, 150], [70, 34], [92, 22], [128, 22], [150, 34], [210, 150], [250, 180]], [0x5a2a18, 0x2a1008, 0x120604]);
-    p.poly([[88, 24], [132, 24], [124, 30], [96, 30]], [0xffe080, 0xff7a1a, 0xc02a0a]);            // the glowing crater
-    for (const pts of [[[100, 30], [94, 50], [86, 66], [80, 90]], [[118, 30], [124, 52], [132, 70], [140, 98]], [[110, 30], [108, 46]]]) p.line(pts, 0xff5a1a, 2);   // lava rivers
-    for (const [x, y] of [[60, 80], [160, 84], [40, 104], [180, 108], [104, 70]]) p.ell(x, y, 6, 3, [0x7a3a1c, 0x4a2010, 0x2a1008]);
+  // (v3.89) the background volcano, redrawn with soft rounded shading: lit from the left, glowing from the crater and its
+  // lava rivers, fading into the haze at its foot. (It used to be three flat bands split by hard straight lines.)
+  pixTex(scene, 'volcano', 260, 180, (put, w, h) => {
+    const SIL = [[0, 180], [20, 150], [70, 34], [92, 22], [128, 22], [150, 34], [210, 150], [250, 180]];
+    const inside = (x, y) => { let c = false; for (let i = 0, j = SIL.length - 1; i < SIL.length; j = i++) { const [xi, yi] = SIL[i], [xj, yj] = SIL[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+    const R = [0x120604, 0x2a1008, 0x3e1a0c, 0x5a2a18, 0x7a3a1c, 0x9a5028];   // dark to light, warm rock
+    const r = rng(4242), n1 = vnoise(r, 9), n2 = vnoise(r, 23);
+    const rivers = [[[100, 30], [94, 50], [86, 66], [80, 90]], [[118, 30], [124, 52], [132, 70], [140, 98]], [[110, 30], [108, 46]]];
+    const segD = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy))); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); };
+    const riverD = (x, y) => { let d = 99; for (const pts of rivers) for (let k = 0; k < pts.length - 1; k++) d = Math.min(d, segD(x, y, pts[k], pts[k + 1])); return d; };
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!inside(x + 0.5, y + 0.5)) continue;
+      const cx = 110 + (y - 22) * 0.12, half = 20 + (y - 22) * 0.62, u = (x - cx) / Math.max(1, half);   // -1 left edge .. 1 right edge
+      let lum = 0.62 - 0.42 * u - 0.25 * u * u;                       // a rounded cone, lit from the left
+      lum *= 1 - Math.max(0, (y - 95) / 85) * 0.75;                   // its foot sinks into the haze
+      lum += (n1(x / w, y / h) - 0.5) * 0.3 + (n2(x / w, y / h) - 0.5) * 0.18;   // rough rock
+      const rd = riverD(x, y), heat = Math.max(0, 1 - Math.hypot(x - 110, y - 26) / 34) * 0.5 + Math.max(0, 1 - rd / 7) * 0.35;   // the crater's glow and the rivers' warmth
+      lum += heat * 0.5;
+      const q = Math.max(0, Math.min(R.length - 1, Math.floor(lum * (R.length - 1) + bay(x, y) / 16 - 0.25)));
+      let col = R[q];
+      if (heat > 0.25 && q >= 3) col = heat > 0.4 ? 0xc0582a : 0xa04420;   // rock warmed orange by the lava
+      put(x, y, col);
+    }
+    for (const [x, y] of [[60, 80], [160, 84], [40, 104], [180, 108], [104, 70]]) for (let dy = -2; dy <= 2; dy++) for (let dx = -5; dx <= 5; dx++) {   // boulders on its flanks
+      if ((dx * dx) / 30 + (dy * dy) / 7 > 1 || !inside(x + dx, y + dy)) continue;
+      put(x + dx, y + dy, dy < 0 && dx < 2 ? 0x7a3a1c : dy > 0 ? 0x2a1008 : 0x4a2010);
+    }
+    for (const pts of rivers) for (let k = 0; k < pts.length - 1; k++) {   // the lava rivers: a bright core with a hot edge
+      const [a, b] = [pts[k], pts[k + 1]], n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]));
+      for (let i = 0; i <= n; i++) { const x = Math.round(a[0] + (b[0] - a[0]) * i / n), y = Math.round(a[1] + (b[1] - a[1]) * i / n);
+        put(x - 1, y, 0xc02a0a); put(x + 1, y, 0xc02a0a); put(x, y, i % 5 === 0 ? 0xffe080 : 0xff7a1a); }
+    }
+    for (let y = 22; y <= 30; y++) for (let x = 86; x <= 134; x++) {      // the glowing crater
+      const k = Math.abs(x - 110) / 24 + (y - 22) / 10; if (k > 1.1 || !inside(x + 0.5, y + 0.5)) continue;
+      put(x, y, k < 0.45 ? 0xffe080 : k < 0.8 ? 0xff7a1a : 0xc02a0a);
+    }
   });
+
 }
 
 const MozzMixin = {

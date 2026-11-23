@@ -7,18 +7,19 @@
 // (v3.83) the GRID and the pixel particles are dropped for now (still there with ?pixlook to compare). The LIGHT MAP stays,
 // softer, as "moody light" on level 1: menu LIGHTING: MOODY / CLASSIC, or ?classic in the URL.
 const PX_BLOCK = (() => { const m = /[?&]pixlook=(\d)/.exec(location.search); return m ? Math.max(2, Math.min(4, +m[1])) : 2; })();
-// (v3.84) MOODY LIGHT on every level, each with its own ambient (what the world is multiplied by) and Chris's light colour
+// (v3.84) MOODY LIGHT on every level, each with its own ambient (what the world is multiplied by) and Chris's light colour.
+// (v3.89) A third number lifts the dimming off the sky at the top of the screen (0-1), for levels whose sky is already dark.
 const MOOD = {
   1: [0x9894b8, 0xfff0d0],      // Gruyère Globe: purple night
   2: [0x8aa89c, 0xf0ffd8],      // Gorgonzola Gulch: swamp green gloom
   3: [0x9890c0, 0xf0e8ff],      // Brie-muda Triangle: ghostly violet
-  4: [0xc09a8c, 0xffe0b8],      // Mount Mozzarella: red heat (the lava does the lighting)
+  4: [0xc09a8c, 0xffe0b8, 0.9], // Mount Mozzarella: red heat (the lava does the lighting); its sky is already dark, so leave it be
   5: [0x9c9caa, 0xfff0d8],      // the Great Grater: grey factory
   5.5: [0xac9cb4, 0xfff0d0],    // Fondue Fountain: carnival dusk
-  6: [0xb8a290, 0xfff0d0],      // Cheddar Gorge: sunset
+  6: [0xb8a290, 0xfff0d0, 0.6], // Cheddar Gorge: sunset
   7: [0x8e9ec4, 0xe0f0ff],      // Astro-Rat Armada: deep blue sea
   8: [0xb8b8c6, 0xfff0d8],      // Lactose Labyrinth: already dark underground, so only a touch
-  9: [0xbaa692, 0xfff0d0],      // Parmesan Prime: warm city
+  9: [0xbaa692, 0xfff0d0, 0.5], // Parmesan Prime: warm city
   10: [0x9696b6, 0xfff0d0]      // the Royal Saucer: night
 };
 const pxLevelOK = s => !!(s.def && !s.camp && !s.training && !(s.def && s.def.cavern) && MOOD[s.levelId]);
@@ -49,12 +50,17 @@ function pxPipeClass() {
 function makePxTextures(scene) {
   const T = scene.textures;
   if (!T.exists('pxdot')) { const t = T.createCanvas('pxdot', 1, 1); const c = t.getContext(); c.fillStyle = '#fff'; c.fillRect(0, 0, 1, 1); t.refresh(); }
+  if (!T.exists('pxsky')) {                                                   // (v3.89) white at the top, fading out by 60% of the way down
+    const t = T.createCanvas('pxsky', 4, 64), c = t.getContext();
+    for (let y = 0; y < 64; y++) { const a = Math.pow(Math.max(0, 1 - (y / 63) / 0.6), 1.2); c.fillStyle = 'rgba(255,255,255,' + a.toFixed(3) + ')'; c.fillRect(0, y, 4, 1); }
+    t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  }
   if (!T.exists('pxlight')) {
     const N = 256, t = T.createCanvas('pxlight', N, N), c = t.getContext(), img = c.createImageData(N, N), D = img.data;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const d = Math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N / 2), i = (y * N + x) * 4;
       const s = d >= 1 ? 0 : d < 0.4 ? 1 : d < 0.62 ? 0.72 : d < 0.82 ? 0.45 : 0.2;   // a solid core and three clean steps (v3.83: drawn big, so the edge is smooth at full resolution)
-      D[i] = D[i + 1] = D[i + 2] = Math.round(s * 255); D[i + 3] = 255;
+      D[i] = D[i + 1] = D[i + 2] = 255; D[i + 3] = Math.round(s * 255);   // (v3.89: see-through outside the pool, so lights drawn together can't leave a square)
     }
     c.putImageData(img, 0, 0); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.NEAREST);
   }
@@ -158,12 +164,18 @@ const PixelLookMixin = {
     const A = this.abduct; if (A && A.theta !== undefined && A.a > 0.05) add(A.theta, A.h - 70, 160, 0xffd23f, 0.8 * A.a);
     rt.clear().fill(X.amb, 1);
     const ox = cam.scrollX - 32, oy = cam.scrollY - 32;          // the map sits 32px outside the screen on each side
-    if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.ADD);
+    if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.SCREEN);   // (v3.89: SCREEN, not ADD - ADD's dest-alpha factor dimmed a square round each light)
     const st = X.stamp;
     // (v3.88) all the lights in ONE pass over the map: draw() on its own switches the GPU to the map and back for every
     // light (40+ switches a frame on Mount Mozzarella, which is what was slowing phones down); batchDraw inside one
     // begin/end does them all in a single switch
     rt.beginDraw();
+    const lift = !X.grid && MOOD[this.levelId] && MOOD[this.levelId][2];
+    if (lift) {                                                                  // (v3.89) keep the sky's own colour
+      if (!X.sky) X.sky = this.make.image({ key: 'pxsky', add: false }).setOrigin(0, 0);
+      X.sky.setPosition(0, 0).setDisplaySize(rt.width, rt.height).setAlpha(lift);
+      rt.batchDraw(X.sky);
+    }
     for (const l of L) {
       const sp = this.screenPos(l[0], l[1]); if (!sp.vis) continue;
       st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * 2 * z) / 256).setTint(l[3]).setAlpha(Math.min(1, l[4]));

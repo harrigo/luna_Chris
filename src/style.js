@@ -89,7 +89,6 @@ const StyleMixin = {
     this.styleW.setPosition(x, y + 18);
     const nx = STYLE_RANKS[this.styleRank + 1], k = nx ? (this.styleP - K.at) / (nx.at - K.at) : 1, bw = 56;
     const g = this.styleG, by = y + (K.mult > 1 ? 41 : 31);
-    if (typeof hudPlate === 'function') hudPlate(g, x - bw / 2 - 6, y - 18, bw + 12, by - y + 28);   // (v3.84) sits on a plate like the rest of the HUD
     if (typeof hudBox === 'function') hudBox(g, x - bw / 2, by, bw, 5, 0x0c0a24); else g.fillStyle(0x1a1020, 0.85).fillRect(x - bw / 2 - 2, by - 1, bw + 4, 7);
     g.fillStyle(Phaser.Display.Color.HexStringToColor(K.col).color, 1).fillRect(x - bw / 2, by, bw * Math.max(0, Math.min(1, k)), 5);
   },

@@ -2333,3 +2333,10 @@ Measured the GPU work per frame (headless, counting WebGL calls). The new light 
 - Text: the gun LV and the style rank re-rendered and re-uploaded their text every frame (setColor); now only when they change. 4 uploads a frame -> ~0.
 - Enemy redraws (densTex) are made a couple a frame while the level starts, not in the middle of a fight; and their nearest-colour search is cached.
 - AUTO QUALITY (perfTick): if play runs under ~45 fps for 3 s, the level steps down (moody light map off, then bloom off, then the light halos) until it's smooth. Off with ?noauto (and in test browsers).
+
+## v3.89: Mount Mozzarella's sky, the HUD backdrops gone, light map squares
+- HUD: the soft dark plates behind the readouts (v3.84) are gone; the panels, buttons and bars keep the shared style.
+- Mount Mozzarella: the sky ran to near-black at the top (0x160302) and the moody light darkened it further. Sky is now 0x36100a -> 0x9a2c0a, and MOOD can lift the dimming off the top of the screen (third number; L4 0.9, L6 0.6, L9 0.5) with a soft white gradient drawn into the light map first.
+- The greasy smoke clouds were cut off square at the texture edges (hard straight edges when scaled up 3-4x) and near-black: they now thin out to nothing at their edges, in ember browns, a little more see-through.
+- The background volcano was three flat bands split by hard straight lines: redrawn in code with rounded shading lit from the left, rough rock, warmed by the crater and lava rivers, sinking into the haze at its foot (the PNG override is gone).
+- Light map: with the lights drawn in one pass (v3.88), the ADD blend's dest-alpha factor dimmed a square round each light where the sky lift was. The stamp is now see-through outside its pool and drawn with SCREEN, so nothing outside a pool changes.
