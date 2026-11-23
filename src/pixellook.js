@@ -13,7 +13,7 @@ const MOOD = {
   1: [0x9894b8, 0xfff0d0],      // Gruyère Globe: purple night
   2: [0x8aa89c, 0xf0ffd8],      // Gorgonzola Gulch: swamp green gloom
   3: [0x9890c0, 0xf0e8ff],      // Brie-muda Triangle: ghostly violet
-  4: [0xc09a8c, 0xffe0b8, 0.9], // Mount Mozzarella: red heat (the lava does the lighting); its sky is already dark, so leave it be
+  4: [0xc09a8c, 0xffe0b8, 0.55], // Mount Mozzarella: red heat (the lava does the lighting); its sky is already dark, so leave it be
   5: [0x9c9caa, 0xfff0d8],      // the Great Grater: grey factory
   5.5: [0xac9cb4, 0xfff0d0],    // Fondue Fountain: carnival dusk
   6: [0xb8a290, 0xfff0d0, 0.6], // Cheddar Gorge: sunset

@@ -2340,3 +2340,5 @@ Measured the GPU work per frame (headless, counting WebGL calls). The new light 
 - The greasy smoke clouds were cut off square at the texture edges (hard straight edges when scaled up 3-4x) and near-black: they now thin out to nothing at their edges, in ember browns, a little more see-through.
 - The background volcano was three flat bands split by hard straight lines: redrawn in code with rounded shading lit from the left, rough rock, warmed by the crater and lava rivers, sinking into the haze at its foot (the PNG override is gone).
 - Light map: with the lights drawn in one pass (v3.88), the ADD blend's dest-alpha factor dimmed a square round each light where the sky lift was. The stamp is now see-through outside its pool and drawn with SCREEN, so nothing outside a pool changes.
+
+## v3.90: Mount Mozzarella a touch moodier: sky 0x22080a -> 0x8e280a (one smooth gradient), sky lift 0.9 -> 0.55
