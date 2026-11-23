@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.72';
+const BUILD = 'v3.73';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2546,7 +2546,7 @@ class Level1 extends Phaser.Scene {
     if (e.fanCd <= 0 && !e.slam) {
       e.fanCd = st >= 3 ? 7 : st === 2 ? 9 : 11; M.f = 2; M.t = 1.1; e.screamT = 1.1;
       Sound.sfx('growl'); Sound.sfx('crash'); buzz([60, 40, 120]); this.cameras.main.shake(700, 0.012);
-      for (const q of this.props) if (q.spr.texture && (q.spr.texture.key === 'bg_ribcage' || q.spr.texture.key === 'bg_skull')) q.shakeT = 1.4;
+      for (const q of this.props) if (q.spr.texture && (q.spr.texture.key === 'bg_swamptree' || q.spr.texture.key === 'bg_swamptree2')) q.shakeT = 1.4;
       const nb = st >= 3 ? 7 : 5;
       for (let k = 0; k < nb; k++) {
         const th = wrap(P.theta + (rnd(-1, 1) * 220 + (k === 0 ? 0 : 0)) / R);

@@ -2253,3 +2253,6 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 
 ## v3.72: spiral fungi on level 2
 - p_stalk.png (the blue cone spikes in the Brie-muda swamp) redrawn as a clump of spiral fungus: three thin twisting tendrils that unroll into open fiddlehead curls, shelf gills and glowing spore dots, on a mossy bulb (38x48, was 22x40). Drawn by a script in the session scratchpad (fungi/draw2.py).
+
+## v3.73: swamp trees on level 2
+- The ribcages, beast skulls and bone piles are gone from level 2 (bones belong to the Brie-muda Triangle). In their place, two creepy swamp trees stand behind the horizon: bg_swamptree (112x132) and bg_swamptree2 (92x112, snapped top). Gnarled S-bent trunks on arching mangrove roots, drooping boughs ending in hooked claws, ragged curtains of Spanish moss, and a knot-hole face with glowing green eyes. They shake when the Baron slams, as the bones did. Drawn by trees/draw.py in the session scratchpad.

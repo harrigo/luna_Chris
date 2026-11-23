@@ -97,14 +97,14 @@ const LEVELS = {
       // the skyline, composed by hand round the planet: [theta, scale, flipX]. Big and small pieces alternate so it reads
       // as a rhythm (tall mushroom, ribcage, little pair, skull...) rather than random clumps. They stand behind the horizon.
       { tex: 'bg_shroom', at: [[0.35, 1.5], [2.75, 1.3, 1], [4.55, 1.6], [5.95, 1.2, 1]], depth: 2.38, tint: 0x8ac8cc, oy: 98 / 104, h: -1, glow: 0x3ae8ff, glowA: 0.38 },   // standing ON the planet, behind everything else on it
-      { tex: 'bg_ribcage', at: [[1.2, 2.3], [3.55, 2.1, 1], [5.25, 2.0]], depth: 0.95, tint: 0x5a8c80, alpha: 0.7, h: -22 },
+      // (v3.73) creepy swamp trees instead of the bones (those belong to the Brie-muda Triangle): gnarled, moss-hung, a face in the bark
+      { tex: 'bg_swamptree', at: [[1.2, 1.7], [3.55, 1.6, 1], [5.25, 1.75]], depth: 0.95, tint: 0x9ac0b4, alpha: 0.85, h: -18 },
       { tex: 'bg_shroom2', at: [[0.75, 1.4, 1], [1.85, 1.2], [3.05, 1.5], [4.2, 1.3, 1], [6.25, 1.2]], depth: 2.39, tint: 0x9ad0d0, oy: 58 / 64, h: -1, glow: 0x3ae8ff, glowA: 0.4 },
-      { tex: 'bg_skull', at: [[2.25, 1.6, 1], [4.95, 1.5]], depth: 0.95, tint: 0x6a9a8c, alpha: 0.72, h: -20 },
+      { tex: 'bg_swamptree2', at: [[2.25, 1.5, 1], [4.95, 1.45]], depth: 0.95, tint: 0x8ab4a8, alpha: 0.82, h: -16 },
       // dark mossy boulders: a few behind Chris, a couple of small ones in front
       { tex: 'rock_dark', at: [[0.55, 1.6], [1.62, 1.9, 1], [2.6, 1.5], [3.35, 2.0, 1], [4.75, 1.7], [5.75, 1.8, 1]], depth: 2.45, h: -3 },
       { tex: 'rock_dark2', at: [[0.95, 1.4], [2.35, 1.3, 1], [3.85, 1.5], [5.35, 1.3, 1]], depth: 2.46, h: -2 },
       { tex: 'rock_dark2', at: [[1.4, 1.0, 1], [4.4, 1.1]], fg: true, h: -6 },
-      { tex: 'pile_bones', n: 2, sc: [1.1, 1.5], tint: 0xc8d8c8, alpha: 0.85 },
       { tex: 'p_shroom', n: 9, sc: [0.9, 1.6], tint: 0xc8f6ff, glow: 0x5ce1ff, oy: 36 / 42 }, { tex: 'p_reed', n: 14, sc: [0.9, 1.5], sway: true }, { tex: 'p_stalk', n: 6, sc: [0.9, 1.4], glow: 0x6fe8ff },
       { tex: 'p_tuft2', n: 16, sc: [0.8, 1.4], fg: true, sway: true }],
     waves: [
