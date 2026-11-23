@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.70';
+const BUILD = 'v3.71';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -2490,7 +2490,7 @@ class Level1 extends Phaser.Scene {
       F.dx = F.side * 26 + Math.sin(F.t * 2.2) * 4; F.dy = -18 + Math.sin(F.t * 3.1) * 5; F.len = Math.hypot(F.dx, F.dy);
       if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.side = toP >= 0 ? 1 : -1; F.st = 'whirl'; F.t = 0; M.f = 1; Sound.sfx('growl'); }
     } else if (F.st === 'whirl') {                               // the tell: the claw pulls right back, trembling
-      const tell = phase2 ? 0.72 : 0.96, k2 = Math.min(1, F.t / tell)   /* (v3.51: 20% slower, was 0.6 / 0.8) */, sh = 3 + 8 * k2;              // shaking HARD, harder as it winds up
+      const tell = phase2 ? 0.86 : 1.15, k2 = Math.min(1, F.t / tell)   /* (v3.51: 20% slower, was 0.6 / 0.8; v3.71: 20% slower again) */, sh = 3 + 8 * k2;              // shaking HARD, harder as it winds up
       F.dx = F.side * (26 - 30 * k2) + Math.sin(F.t * 47) * sh; F.dy = -18 + 14 * k2 + Math.cos(F.t * 61) * sh * 0.8; F.len = Math.hypot(F.dx, F.dy);
       F.tell = k2;
       if (Math.random() < dt * 16) this.burst(F.theta, F.h, 'swampbub', 1, 0.5);                                  // slobbering mould off it
@@ -2501,7 +2501,7 @@ class Level1 extends Phaser.Scene {
         Sound.sfx('whoosh'); Sound.sfx('stretch'); M.f = 2; M.t = 0.5;
       }
     } else if (F.st === 'throw') {
-      const out = 0.3, hold = 0.16, back = 0.42;                 // (v3.51: the punch 20% slower, was 0.24 - dodgeable)
+      const out = 0.36, hold = 0.16, back = 0.5;                 // (v3.51: the punch 20% slower, was 0.24 - dodgeable; v3.71: 20% slower again)
       let k2;
       if (F.t < out) k2 = 1 - Math.pow(1 - F.t / out, 3);
       else if (F.t < out + hold) k2 = 1;

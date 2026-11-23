@@ -116,7 +116,7 @@ const LEVELS = {
     // swamp goo in the level's own colours (it was the default purple, which sat ON the planet): a murky bioluminescent teal,
     // like the mushrooms - still nothing like the yellow-green of the ground it's sunk into
     goopPal: { edge: 0x03141a, deep: 0x0a4250, mid: 0x1a9a96, top: 0x52e6cc, gloss: 0xe0fff6 }, goopGlow: 0x3ae8d0, goopBub: 'swampbub',
-    boss: { tex: 'baron', hp: 166, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog; v3.45: 195 -> 166, 15% less)
+    boss: { tex: 'baron', hp: 149, ai: 'baron', scale: 1.35 },   // (175 -> 166: 5% less, it was a slog; v3.45: 195 -> 166, 15% less; v3.71: 166 -> 149, 10% less)
     win: 'Baron von Blue is mould-y history!\nBessie squelched free... and got nabbed AGAIN.\nThe rats are heading for a giant grater...'
   },
 

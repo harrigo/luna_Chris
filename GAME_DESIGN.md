@@ -2246,3 +2246,7 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 ## v3.70: level 1 gives a taste of the power
 - Level 1 only: the first medium or big enemy killed in every wave always drops a timed power-up (other levels 70%), and later ones 15% of the time (other levels 7%).
 - Level 1 only: about 2 seconds after the Croque Monsieur arrives, a random power-up falls in just ahead of Chris (if he has none running). Not in Boss Rush.
+
+## v3.71: level 2 eased
+- Baron Von Blue (level 2 boss) health 166 -> 149 (10% less).
+- His claw punch 20% slower again: the wind-up tell 0.96s -> 1.15s (phase 2: 0.72 -> 0.86), the punch out 0.3 -> 0.36s, the snap back 0.42 -> 0.5s.
