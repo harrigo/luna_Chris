@@ -691,7 +691,7 @@ Object.assign(ParmMixin, {
         if (C.lift <= 0) { e.spr.rotation = 0; this.colStomp(wrap(e.theta + side * 30 / R)); }
       } else {
         if (Math.abs(toP) * R > 170) e.theta = wrap(e.theta + side * (fast ? 55 : 40) / R * dt);
-        if (C.stompCd <= 0) { C.lift = 0.6; C.stompCd = fast ? 2.4 : 3.3; Sound.sfx('grind'); }
+        if (C.stompCd <= 0) { C.lift = 0.6; C.stompCd = fast ? 2.4 : 3.3; Sound.sfx('grind'); if (this.bossWarn) this.bossWarn(e, 0.6); }   // (v3.86: the '!' tell)
         else if (C.laserCd <= 0) { this.colLaser(e, 185 * e.spr.bsy / 1.35); if (fast) this.time.delayedCall(900, () => { if (e.hp > 0 && e.cs.ph === 2) this.colLaser(e, 185 * e.spr.bsy / 1.35); }); C.laserCd = fast ? 3.8 : 4.6; }
       }
       e.dir = side; e.spr.setFlipX(side < 0); e.h = 0;

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.85';
+const BUILD = 'v3.86';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -107,7 +107,7 @@ const CFG = {
   fireInterval: 0.085,
   bulletSpeed: 760,
   bulletLife: 0.6,
-  invuln: 1.44,                  // (v3.40: 10% shorter, was 1.6)
+  invuln: 1.7,                   // (v3.40: 10% shorter, was 1.6; v3.86: 1.44 -> 1.7, a little more breathing room after a hit)
   jetAccel: 2400,   // jetpack thrust
   jetMaxV: 260,     // max climb speed under thrust
   jetDrain: 0.5,    // fuel per second (full tank = 2s)
@@ -351,7 +351,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = [];
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -2600,7 +2600,7 @@ class Level1 extends Phaser.Scene {
     const kk = e.spr.bsx || 1, anchor = { theta: wrap(e.theta + F.side * 46 * kk / (R + e.h)), h: e.h - 4 * kk };   // the shoulder on the punching side
     if (F.st === 'hang') {                                       // claws hovering at his sides, flexing
       F.dx = F.side * 26 + Math.sin(F.t * 2.2) * 4; F.dy = -18 + Math.sin(F.t * 3.1) * 5; F.len = Math.hypot(F.dx, F.dy);
-      if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.side = toP >= 0 ? 1 : -1; F.st = 'whirl'; F.t = 0; M.f = 1; Sound.sfx('growl'); }
+      if (F.cd <= 0 && distP < 420 && this.state === 'play') { F.side = toP >= 0 ? 1 : -1; F.st = 'whirl'; F.t = 0; M.f = 1; Sound.sfx('growl'); this.bossWarn(e, phase2 ? 0.86 : 1.15); }   // (v3.86: the '!' tell)
     } else if (F.st === 'whirl') {                               // the tell: the claw pulls right back, trembling
       const tell = phase2 ? 0.86 : 1.15, k2 = Math.min(1, F.t / tell)   /* (v3.51: 20% slower, was 0.6 / 0.8; v3.71: 20% slower again) */, sh = 3 + 8 * k2;              // shaking HARD, harder as it winds up
       F.dx = F.side * (26 - 30 * k2) + Math.sin(F.t * 47) * sh; F.dy = -18 + 14 * k2 + Math.cos(F.t * 61) * sh * 0.8; F.len = Math.hypot(F.dx, F.dy);
@@ -4263,7 +4263,7 @@ class Level1 extends Phaser.Scene {
               e.underT = under ? (e.underT || 0) + dt : Math.max(0, (e.underT || 0) - dt * 2);
               if (!e.slam && e.slamCd <= 0 && e.underT > 1.7) e.slam = { st: 'rise', t: 0, th: e.theta, h0: e.h };
             }
-            if (e.slam && !e.slam.started) { e.slam.started = true; e.charge = 1; e.underT = 0; e.huntV = 0; Sound.sfx('grind'); }
+            if (e.slam && !e.slam.started) { e.slam.started = true; e.charge = 1; e.underT = 0; e.huntV = 0; Sound.sfx('grind'); this.bossWarn(e, st === 1 ? 0.75 : st === 2 ? 0.5 : 0.55); }   // (v3.86: the '!' tell)
             if (e.slam) {
               const SL = e.slam; SL.t += dt;
               if (SL.st === 'rise') {                      // the tell: a nervous shudder and a little lift
@@ -4395,13 +4395,16 @@ class Level1 extends Phaser.Scene {
           }
           if (e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = phase2 ? 6 : 9; this.spawnEnemy('drone'); }
         } else if (e.ai === 'paladin') {                 // L8: sword waves at different heights, shield-first charges
+          if (e.rainCd < 0.45 && !e.rainWarn) { e.rainWarn = true; this.bossWarn(e, Math.max(0.2, e.rainCd)); }   // (v3.86) the tells
+          if (e.fanCd < 0.6 && !e.fanWarn && !(e.charge > 0)) { e.fanWarn = true; this.bossWarn(e, Math.max(0.25, e.fanCd)); e.spr.setTint(0xffb0a0); }
           if (e.rainCd <= 0) {
+            e.rainWarn = false;
             e.rainCd = phase2 ? 1.5 : 2.2;
             for (const hh of (phase2 ? [14, 80] : [14])) this.addEBullet('blade', e.theta, hh, dirP * (phase2 ? 300 : 260), 0, 11, 3);
             Sound.sfx('zing');
           }
           if (e.fanCd <= 0) {                                         // CHARGE: a quick dash across at Chris's height
-            e.fanCd = phase2 ? 3.5 : 5; e.charge = 0.9; e.chargeDir = dirP; e.spr.setTint(0xff8080); Sound.sfx('whoosh');
+            e.fanWarn = false; e.fanCd = phase2 ? 3.5 : 5; e.charge = 0.9; e.chargeDir = dirP; e.spr.setTint(0xff8080); Sound.sfx('whoosh');
           }
           if (e.charge > 0) { e.charge -= dt; e.theta = wrap(e.theta + e.chargeDir * 420 / R * dt); e.h += (Math.max(40, P.h + 30) - e.h) * Math.min(1, dt * 6); if (e.charge <= 0) e.spr.clearTint(); }
           if (phase2 && e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = 8; this.spawnEnemy('paladin'); }
@@ -4445,7 +4448,7 @@ class Level1 extends Phaser.Scene {
 
       // touching Chris
       // stomp: little enemies get squashed and Chris ploughs on down through them; big ones bounce him back off and take two
-      if (P.hurtHop && P.h <= (P.floor || 0) + 1 && P.vh <= 0 && P.invuln < CFG.invuln - 0.15) P.hurtHop = false;   // (v3.40) back on his feet: stomps count again
+      if (P.hurtHop && ((P.h <= (P.floor || 0) + 1 && P.vh <= 0 && P.invuln < CFG.invuln - 0.15) || P.invuln < CFG.invuln - 0.4)) P.hurtHop = false;   // (v3.40) back on his feet: stomps count again (v3.86: or 0.4 s after the hit, even in the air - you can stomp while you're still flashing)
       if (P.vh < -40 && e.hp > 0 && this.state === 'play' && !e.noStomp && !P.hurtHop) {
         const top = e.h + e.ch + e.r * 0.6;
         if (Math.abs(angDiff(P.theta, e.theta)) * (R + e.h) < e.r + 8 && P.h >= top - 18 && P.h <= top + 20) {
@@ -4621,6 +4624,23 @@ class Level1 extends Phaser.Scene {
     const Q = e.shape; if (!Q) return false;
     const px = pad * 0.6, dx = angDiff(b.theta, e.theta) * (R + b.h) - (e.spr.flipX ? -Q.cx : Q.cx), dy = b.h - (e.h + (e.lift || 0) + Q.cy);
     return (dx * dx) / ((Q.rx + px) * (Q.rx + px)) + (dy * dy) / ((Q.ry + px) * (Q.ry + px)) < 1;
+  }
+  // (v3.86) BOSS TELLS: a big blinking "!" over the boss for the length of a wind-up, so every big attack is readable
+  bossWarn(e, dur) {
+    if (!e || !(dur > 0)) return;
+    const tx = this.add.text(0, 0, '!', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5, 1).setDepth(9.8);
+    this.warns.push({ e, t: dur, max: dur, tx }); Sound.sfx('zing');
+  }
+  drawWarns() {
+    const dt = this.lastDt || 0.016;
+    for (let i = this.warns.length - 1; i >= 0; i--) {
+      const W = this.warns[i]; W.t -= dt;
+      if (W.t <= 0 || !W.e || W.e.hp <= 0) { W.tx.destroy(); this.warns.splice(i, 1); continue; }
+      const e = W.e, top = e.h + (e.ch || 0) + (e.r || 30) + 26, k = 1 - W.t / W.max;
+      W.tx.bsx = W.tx.bsy = 1 + 0.25 * Math.abs(Math.sin(k * Math.PI * 4));
+      this.place(W.tx, e.theta, top, 0);
+      W.tx.setColor(Math.floor(this.t * 14) % 2 ? '#ff3a2a' : '#ffd23f');
+    }
   }
   // ?hitbox: player shots hit the yellow circle OR the cyan ellipse; touching the red circle hurts Chris;
   // Chris's green circle is where he can be hit (enemy contact adds the enemy's red circle, enemy shots their orange one)
@@ -4894,7 +4914,7 @@ class Level1 extends Phaser.Scene {
       if (p.kind === 'cheddar' && this.bossDown && !p.suck && (p.h <= 2 || p.life < 28.3)) p.suck = true;   // (v3.04) the boss is down: once his coins land they all come flying to Chris
       if (p.kind === 'cheddar' && (this.state === 'play' || this.state === 'rescue')) {   // CHEDDAR sucks in by itself once you're close: within ~140px, or anywhere in a column above / below you
         const cx = angDiff(p.theta, P.theta) * R, cy = p.h - (P.h + 24), cd = Math.hypot(cx, cy), big = this.magOwned || magB;
-        const near = big ? (cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300)) : (Math.abs(cx) < 55 && p.h < 40 && P.h < 50);   // (no magnet: just a little tug along the ground)
+        const near = big ? (cd < 140 || (Math.abs(cx) < 80 && Math.abs(cy) < 300)) : (cd < 70 || (Math.abs(cx) < 75 && p.h < 50 && P.h < 60));   // (v3.86: a wider tug without the magnet)   // (no magnet: just a little tug along the ground)
         if (p.suck || near || p.pull) {
           p.suck = true; p.pull = true; p.pullT = (p.pullT || 0) + dt;
           const sp = Math.min(cd, (260 + 1100 * p.pullT) * dt) / (cd || 1);                  // homes straight in, faster and faster
@@ -4915,7 +4935,7 @@ class Level1 extends Phaser.Scene {
       if (p.h <= 0) { p.h = 0; p.vh = 0; }
       p.life -= dt;
       let dead = p.life <= 0;
-      if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 30 * 30) {
+      if (!dead && dist2(p.theta, p.h + 8, P.theta, P.h + 22) < 36 * 36) {   // (v3.86: 30 -> 36, pickups are easier to grab)
         if (p.pull) { this.burst(P.theta, P.h + 26, 'spark', 3, 0.6); if (this.t - (this.magLT || 0) > 0.25) { this.magLT = this.t; this.addLight(P.theta, P.h + 26, 46, 0x8ad8ff, 0.5, 0.12); } }   // snapped onto the fork
         if (p.kind === 'buff' && p.bk === 'magnet' && this.magOwned) {       // already own the fork for good: it's worth cheddar instead
           Shop.earn(this.registry, 40); P.coinPop = 0.4; Sound.sfx('power'); this.addScore(300); this.banner('SPARE MAGNET FORK!\n+40 CHEDDAR');
@@ -5766,6 +5786,7 @@ class Level1 extends Phaser.Scene {
     this.drawBeam();
     this.drawLights();
     if (HITBOX_DEBUG) this.drawHitboxes();
+    this.drawWarns();
     this.pxLights();
     for (const b of this.eBullets) this.place(b.spr, b.theta, b.h, b.face ? Math.atan2(-b.vh, b.vt) : b.spin);
     this.bulletFx();

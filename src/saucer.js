@@ -578,8 +578,8 @@ Object.assign(SaucerMixin, {
         const moves = ['sweep', 'toss', 'sweep', 'slam'];
         const m = moves[K.seq++ % moves.length];
         if (m === 'sweep') { K.st = 'sweep'; K.t = 0; K.high = Math.random() < 0.5; K.dir = dirP; e.spr.setTexture('kingboss_b'); Sound.sfx('charge'); this.popup(e.theta, e.h + 170, K.high ? 'DUCK!' : 'JUMP!', '#ffd23f'); }
-        else if (m === 'toss') { K.st = 'toss'; K.t = 0; K.n = p2 ? 3 : 2; e.spr.setTexture('kingboss_b'); }
-        else { K.st = 'slamup'; K.t = 0; e.spr.setTexture('kingboss_b'); Sound.sfx('charge'); }
+        else if (m === 'toss') { K.st = 'toss'; K.t = 0; K.n = p2 ? 3 : 2; e.spr.setTexture('kingboss_b'); if (this.bossWarn) this.bossWarn(e, 0.45); }
+        else { K.st = 'slamup'; K.t = 0; e.spr.setTexture('kingboss_b'); Sound.sfx('charge'); if (this.bossWarn) this.bossWarn(e, 0.75 / sp); }   // (v3.86) the tell
       }
     } else if (K.st === 'sweep') {                        // wind-up (0.7 s), then the knot sweeps across in front of him
       const wind = 0.7 / sp;
@@ -599,7 +599,7 @@ Object.assign(SaucerMixin, {
       }
       if (K.n <= 0 && K.t > 0.6) { K.st = 'walk'; K.cd = rnd(1.0, 1.5) / sp; }
     } else if (K.st === 'slamup') {                       // a crouch, then a huge leap at where Chris is
-      if (K.t > 0.5 / sp) { K.st = 'land'; K.slam = true; e.vh = 640; e.vt = Math.max(-260, Math.min(260, toP * R / 1.3)); e.spr.setTexture('kingboss_c'); Sound.sfx('jump'); }
+      if (K.t > 0.75 / sp) { K.st = 'land'; K.slam = true; e.vh = 640; e.vt = Math.max(-260, Math.min(260, toP * R / 1.3)); e.spr.setTexture('kingboss_c'); Sound.sfx('jump'); }
     }
   },
   // the slam: a shockwave runs both ways along the deck, and the ship pitches toward it

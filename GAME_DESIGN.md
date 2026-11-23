@@ -2317,3 +2317,8 @@ The v3.81 pool round Chris read as a blur (a big soft pool stacked on the old ha
 - Enemy shots against Chris: their hit radius is now never bigger than what you can see of them (eShotR: 90% of the solid pixels). Most were 1.2-1.5x their visible size, so shots hit you before they touched you.
 - ?hitbox draws every hitbox (yellow = shot circle, cyan = fitted ellipse, red = contact, orange = enemy shots, green = Chris).
 - Walk cycle: the boots swung 7.5 units at a fixed 8 rad/s at full speed, so the planted foot moved at about a quarter of his speed and skated. Now each boot swings STRIDE = 10 and the cadence follows the speed (speed / stride), so the planted boot keeps up with the floor: a quicker, scurrying cartoon run.
+
+## v3.86: playability quick wins
+- After a hit: 1.44 -> 1.7 s of flashing invulnerability. You can stomp while flashing: the no-stomp flinch (hurtHop) now ends 0.4 s after the hit even in the air, not only on landing.
+- Pickups: grab radius 30 -> 36; without the magnet, cheddar tugs in from 70 all round (was a narrow strip along the ground).
+- Boss tells: bossWarn(e, dur) puts a big blinking '!' over the boss (with a zing) for the length of a wind-up. On: the Croque's slam, the Baron's claw punch, the Grand Paladin's sword waves and charge (which had no tell), the Colossus's stomp, the Rat King's toss and slam (his slam crouch is longer too, 0.5 -> 0.75 s).
