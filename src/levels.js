@@ -49,13 +49,13 @@ const LEVELS = {
     id: 1, hpMul: 1.2, name: 'The Gruyère Globe', short: 'GRUYERE GLOBE', blurb: 'A cheesy cratered moon.\nGouda-Golems and space-mice.',
     music: 'level1', bossName: 'CRUSTY CROQUE MONSIEUR', tip: '',
     radius: 420, sky: [0x111a6a, 0x4a2296], skyCols: [0x0a0c40, 0x11186a, 0x1d1f86, 0x2d2192, 0x45249a, 0x5e2a9c], bg: '#0a0c40', starTint: 0xffffff, dustAlpha: 1.3, bgDecor: 'cosmic', lava: 9,
-    surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242 },
+    surface: { pal: [0x6a3a0c, 0xb8761a, 0xdca536, 0xf0cb52, 0xffe27a, 0xfff4c4], seed: 4242, clean: true }, skyClean: true,   // (v3.75: hand-shaded the 16-bit way)
     // depth (depth.js) - a bright, cheerful cheese moon under a cosmic sky: warm sunlight from the top left, shadows that
     // pick up the blue-purple of space, a pale golden halo; far-off holey Gruyère hills gone lavender in the haze, nearer
     // golden ones, and holey cheese boulders right up against the camera
-    depth: { light: [-0.55, -0.75, 0.45], dark: [46, 24, 110], shadeA: [0, 55, 100, 140], rim: [255, 240, 180], atmo: [255, 226, 150], atmoW: 0.06, atmoA: 60,
-      ridges: [{ style: 'rolling', holes: true, n: 22, off: 84, amp: 46, col: [96, 72, 168], top: [150, 128, 214], k: 0.4, depth: 0.33, seed: 5 },
-               { style: 'rolling', holes: true, n: 16, off: 40, amp: 38, col: [118, 72, 92], top: [214, 160, 104], k: 0.68, depth: 0.37, seed: 9 }],
+    depth: { clean: true, light: [-0.55, -0.75, 0.45], dark: [46, 24, 110], shadeA: [0, 55, 100, 140], rim: [255, 240, 180], atmo: [255, 226, 150], atmoW: 0.06, atmoA: 60,
+      ridges: [{ style: 'rolling', holes: true, shade: true, n: 22, off: 84, amp: 46, col: [96, 72, 168], top: [150, 128, 214], k: 0.4, depth: 0.33, seed: 5 },
+               { style: 'rolling', holes: true, shade: true, n: 16, off: 40, amp: 38, col: [118, 72, 92], top: [214, 160, 104], k: 0.68, depth: 0.37, seed: 9 }],
       fg: { style: 'cheese', col: [44, 22, 84], glow: [255, 214, 120] } },
     geysers: { n: 7, idle: [3.5, 7], warn: 1.1, erupt: 1.3, height: 175 },
     planet: { fill: 0xf0cb52, inner: 0xe6bd45, rim: 0xffe58a, glow: 0xfff1b5 },
@@ -1494,7 +1494,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
     const j = y * S + x; dist[j] = d;
     const th = BAYER4[(y & 3) * 4 + (x & 3)];
     // base cheese: noise picks a tone, the Bayer threshold dithers between neighbouring tones
-    let v = 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
+    let v = opts.clean ? 2.7 + (noise(x, y) - 0.5) * 3.2 + (noise(x * 2.2, y * 2.2) - 0.5) * 0.7 : 2.7 + (noise(x, y) - 0.5) * 3.0 + (noise(x * 3.1, y * 3.1) - 0.5) * 1.2;
     // rind crust towards the edge
     if (RIM >= 0 && d > (opts.rimD || 0.952) + (noise(x * 4, y * 4) - 0.5) * 0.03) {   // a ragged mossy crust in its own tones
       const m = 1.2 + (noise(x * 5, y * 5) - 0.5) * 2 + (d - 0.95) * 25;
@@ -1502,7 +1502,10 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
     }
     if (d > 0.935) v = 1.5 + (noise(x * 2, y * 2) - 0.5) * 1.6 - (d - 0.935) * 8;
     else if (d > 0.9) v -= (d - 0.9) / 0.035 * 1.2;
-    T[j] = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
+    if (opts.clean) {   // (v3.75) hand-shaded the 16-bit way: broad flat areas of one tone, a checker dither only along the seam between two
+      const lo = Math.floor(v), f = v - lo;
+      T[j] = lo + (f > 0.64 ? 1 : f > 0.4 ? ((x + y) & 1) : 0);
+    } else T[j] = Math.floor(v) + ((v - Math.floor(v)) > th ? 1 : 0);
   }
   // craters: dark bowl, lit lower-right lip, shadowed upper-left
   const took = new Uint8Array(S * S);
@@ -1530,7 +1533,7 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring
   // crumbs & debris: scattered 1-2px specks
   const speck = (x, y, t) => { if (x < 0 || y < 0 || x >= S || y >= S) return; const dd = Math.hypot(x - c, y - c) / r; if (dd > 0.96) return; put((y * S + x) * 4, t); };
-  for (let i = 0; i < S * 3; i++) {
+  for (let i = 0; i < S * (opts.clean ? 0.9 : 3); i++) {
     const a = rand() * Math.PI * 2, d = Math.sqrt(rand()) * r * 0.95, x = Math.round(c + Math.cos(a) * d), y = Math.round(c + Math.sin(a) * d);
     const kind = rand();
     if (kind < 0.55) speck(x, y, P.length - 1);                       // light crumb
@@ -1743,14 +1746,16 @@ function makeBeam(scene) {
 }
 
 // dithered banded sky gradient, regenerated to fit the screen (key reused)
-function makeSkyDither(scene, key, w, h, cols) {
+function makeSkyDither(scene, key, w, h, cols, clean) {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   pixTex(scene, key, w, h, (put) => {
     const n = cols.length - 1;
     for (let y = 0; y < h; y++) {
       const v = (y / (h - 1)) * n;
       const lo = Math.floor(v), f = v - lo;
-      for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (f > bay(x, y) ? 1 : 0))]);
+      // clean (v3.75): flat bands, with the dither only in a strip where each band meets the next (the SNES way)
+      const g = clean ? Math.max(0, (f - 0.7) / 0.3) : f;
+      for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (g > bay(x, y) ? 1 : 0))]);
     }
   });
 }

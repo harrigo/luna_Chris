@@ -30,7 +30,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       const dx = (x + 0.5 - c) / c, dy = (y + 0.5 - c) / c, d2 = dx * dx + dy * dy;
       if (d2 > 1) continue;
       const nz = Math.sqrt(1 - d2), lam = Math.max(0, dx * lx + dy * ly + nz * lz);
-      const q = (1 - lam) * 3.2, th = DEPTH_BAYER[(y & 3) * 4 + (x & 3)], band = Math.min(3, Math.floor(q + th - 0.5));
+      const q = (1 - lam) * 3.2, th = cfg.clean ? (((x + y) & 1) ? 0.62 : 0.38) : DEPTH_BAYER[(y & 3) * 4 + (x & 3)], band = Math.min(3, Math.floor(q + th - 0.5));   // (clean, v3.75: flat bands, a checker only on the seams)
       if (band <= 0) continue;
       const i = (y * S + x) * 4; D[i] = DK[0]; D[i + 1] = DK[1]; D[i + 2] = DK[2]; D[i + 3] = (cfg.shadeA || [0, 70, 120, 165])[band];
     }
@@ -43,7 +43,7 @@ function makeDepthTextures(scene, id, Rw, cfg) {
       const face = (dx * lx + dy * ly) / (d || 1);                            // how much this edge faces the light
       const i = (y * S2 + x) * 4;
       if (d <= 1 && d > 0.982 && face > 0.05) { const a = Math.min(1, (face - 0.05) * 1.6); if (a > th * 0.9) { D[i] = RIM[0]; D[i + 1] = RIM[1]; D[i + 2] = RIM[2]; D[i + 3] = 200; } }
-      else if (d > 1 && d < 1 + AW) { const k = (1 - (d - 1) / AW) * (0.4 + 0.6 * Math.max(0, face)); if (k > th) { D[i] = AT[0]; D[i + 1] = AT[1]; D[i + 2] = AT[2]; D[i + 3] = cfg.atmoA || 70; } }
+      else if (d > 1 && d < 1 + AW) { const k = (1 - (d - 1) / AW) * (0.4 + 0.6 * Math.max(0, face)); if (cfg.clean ? (k > 0.55 || (k > 0.35 && ((x + y) & 1))) : k > th) { /* (clean: a solid inner ring, one checker ring outside it) */ D[i] = AT[0]; D[i + 1] = AT[1]; D[i + 2] = AT[2]; D[i + 3] = cfg.atmoA || 70; } }
     }
   });
   // parallax hill rings
@@ -233,6 +233,8 @@ function makeDepthTextures(scene, id, Rw, cfg) {
     };
     const holes = rg.holes ? feats.map(f => ({ a: f.a, r: 9 + f.s * 16, d: 0.2 + f.h * 0.5 })) : null;   // gruyère holes in the hills
     const C = rg.col, TOP = rg.top || C.map(x => Math.min(255, x + 40));
+    // (v3.75) shaded hills: a darker, cooler tone in the lower part of each hill, a crisp lit cap, shadowed hole lips
+    const SH = rg.shade ? [Math.round(C[0] * 0.72), Math.round(C[1] * 0.68), Math.round(Math.min(255, C[2] * 0.82 + 10))] : null;
     depthCanvas(scene, 'dridge' + id + '_' + n, Sr, Sr, D => {
       for (let y = 0; y < Sr; y++) for (let x = 0; x < Sr; x++) {
         const dx = x + 0.5 - cr, dy = y + 0.5 - cr, dd = Math.hypot(dx, dy) / cr * outer;   // distance in world units
@@ -242,12 +244,16 @@ function makeDepthTextures(scene, id, Rw, cfg) {
         let col = null;
         if (dd <= top) {
           col = top - dd < 3 && th < 0.6 ? TOP : C;
+          if (SH) {
+            const base = Rw + rg.off, k = (dd - base) / Math.max(1, top - base);
+            col = top - dd < 2.5 ? TOP : (top - dd < 4 ? (th < 0.5 ? TOP : C) : (k < 0.42 ? SH : (k < 0.5 ? (th < 0.5 ? SH : C) : C)));
+          }
           if (st === 'gorge' && top - dd >= 3) {                                    // banded strata, a lit cap, shadow under every ledge
             const band = Math.floor((dd - Rw - rg.off + 400 + 2.5 * Math.sin(a * 40)) / 7) % 3;
             col = band === 0 ? (rg.strata || C) : (band === 1 && th < 0.35 ? TOP : C);
             if (top - dd < 7 && th < 0.5) col = rg.strata || C;
           }
-          if (holes) for (const H of holes) { const hu = dA(a, H.a) * Rw, hv = dd - (Rw + rg.off + rg.amp * H.d * 0.6), q = Math.hypot(hu, hv); if (q < H.r) { col = q > H.r - 1.6 ? TOP : null; break; } }
+          if (holes) for (const H of holes) { const hu = dA(a, H.a) * Rw, hv = dd - (Rw + rg.off + rg.amp * H.d * 0.6), q = Math.hypot(hu, hv); if (q < H.r) { col = q > H.r - 1.6 ? (SH && hv > 0 ? SH : TOP) : null; break; } }
         } else if (st === 'wrecks') { const w = wreck(a, dd); if (w) col = w === 2 ? TOP : C; }
         else if (st === 'factory') { const w = factory(a, dd); if (w) col = w === 2 ? (rg.glow || TOP) : (dd - (Rw + rg.off) < 3 ? TOP : C); }
         else if (st === 'cogs') { const w = cogs(a, dd); if (w) col = w === 2 ? TOP : C; }

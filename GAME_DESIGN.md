@@ -2262,3 +2262,11 @@ New depth.js styles: ridge `factory` (a city of blocks with rows of randomly lit
 - Drawn-in-code sprites are snapped as they are made (pixSprite and pixArt in textures.js; other generated textures when Atlas.pack copies them to the sheet). The 380 PNG sprites in assets/sprites were snapped by the same code and saved back to the files, so the game does no work for them at load. Left alone: anything with soft see-through edges (glows, halos, shading layers), planet surfaces, nebulae, sky, very big pictures, and keys matching PAL_SKIP.
 - Texture for basic sprites: a sprite that is mostly large flat single-colour areas (Pal.texture) gets a lit rim on each area's top-left edge, a shadow on its bottom-right, and sparse flecks inside, all from its own ramp. Opt-outs in PAL_NOTEX (soft clouds, Chris's parts, the HUD).
 - To check or redo it: ?nopal turns the palette off; ?palfiles re-snaps the PNGs live from their originals (git history). The before/after contact sheets were made by exporting every texture from a test browser with each setting.
+
+## v3.75: level 1 hand-shaded the 16-bit way (the big textures)
+- Opt-in flags so each level can be converted one at a time:
+  - `surface.clean` (makePlanetTexture): broad flat areas of one tone, with a checker dither only along the seam between two tones instead of noise dither everywhere; a third of the scattered crumb specks.
+  - `skyClean` (makeSkyDither): flat sky bands, with the dither only in the strip where one band meets the next.
+  - `depth.clean` (depth.js): the sphere shading in flat bands with checker seams; the atmosphere as one solid ring plus one checker ring instead of a Bayer fade.
+  - `ridge.shade` (depth.js): hills get a crisp lit cap, a darker, cooler lower part, and shadowed hole lips.
+- Level 1 has all four turned on.
