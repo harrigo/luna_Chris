@@ -1,4 +1,4 @@
-# Luna Chris: style guide (the pixel look)
+# Luna Chris: style guide
 
 One page of rules for art, so new sprites, levels and effects all look like they belong in the same game.
 The aim: a 90s grotesque cartoon in pixels. Consistent art, detailed characters, quiet backgrounds, light for mood.
