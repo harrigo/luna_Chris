@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.90';
+const BUILD = 'v3.91';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -355,7 +355,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.perf = null; this.perfNoHalo = false;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.perf = null; this.perfNoHalo = false;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -3982,6 +3982,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.ocean) this.armadaSetup(e, kind);
     if (type === 'boss' && this.def.boss.ai === 'saucerking') this.kingSetup(e);
     if (type === 'boss' && this.def.boss.ai === 'colossus') this.colossusSetup(e);
+    if (type === 'boss' && this.def.boss.ai === 'paladin') { this.gpSetup(e); (this.gpList || (this.gpList = [])).push(e); }   // (v3.91) the Grand Paladin's rig (bossart.js)
     if (type === 'lturret') this.turretSetup(e);
     return e;
   }
@@ -4414,7 +4415,7 @@ class Level1 extends Phaser.Scene {
           if (e.fanCd <= 0) {                                         // CHARGE: a quick dash across at Chris's height
             e.fanWarn = false; e.fanCd = phase2 ? 3.5 : 5; e.charge = 0.9; e.chargeDir = dirP; e.spr.setTint(0xff8080); Sound.sfx('whoosh');
           }
-          if (e.charge > 0) { e.charge -= dt; e.theta = wrap(e.theta + e.chargeDir * 420 / R * dt); e.h += (Math.max(40, P.h + 30) - e.h) * Math.min(1, dt * 6); if (e.charge <= 0) e.spr.clearTint(); }
+          if (e.charge > 0) { e.charge -= dt; e.theta = wrap(e.theta + e.chargeDir * 420 / R * dt); e.h += (Math.max(62, P.h + 30) - e.h) * Math.min(1, dt * 6); if (e.charge <= 0) e.spr.clearTint(); }
           if (phase2 && e.sumCd <= 0 && this.enemies.length < 4) { e.sumCd = 8; this.spawnEnemy('paladin'); }
         } else if (e.ai === 'king') {                    // L9: the Rat-King's mech throws everything at you
           if (e.rainCd <= 0) {
@@ -5832,6 +5833,8 @@ class Level1 extends Phaser.Scene {
     if (this.acidPools.length || this.eBullets.some(b => b.shadow) || this.acidG) this.drawAcid();
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
     for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(p.fade ? Math.max(0, Math.min(1, p.life / p.fade)) * (p.a0 || 1) : Math.min(1, p.life * 3)); }
+    for (const e of this.enemies) if (e.gp) this.gpDraw(e);                              // (v3.91) rigged bosses (bossart.js)
+    if (this.gpList) for (let i = this.gpList.length - 1; i >= 0; i--) if (!this.enemies.includes(this.gpList[i])) { this.gpClear(this.gpList[i]); this.gpList.splice(i, 1); }
     this.updatePopups(this.lastDt || 0.016);
 
     // controls
@@ -5966,6 +5969,7 @@ Object.assign(Level1.prototype, ParmMixin);          // L9's Parmesan Prime (src
 Object.assign(Level1.prototype, FondueMixin);        // L5.5's Fondue Fountain and Le Grand Fromage (src/fondue.js)
 Object.assign(Level1.prototype, DepthMixin);
 Object.assign(Level1.prototype, ToonMixin);          // the cartoon pass: squash-and-stretch, walk cycles, eye pops (src/toons.js)
+Object.assign(Level1.prototype, GrandPaladinMixin);  // (v3.91) the Grand Paladin, redrawn and rigged (src/bossart.js)
 Object.assign(Level1.prototype, PixelLookMixin);    // (v3.81) the pixel look: one grid, light and dark, pixel particles (src/pixellook.js)
 Object.assign(Level1.prototype, FxMixin);            // neo-retro lighting: bloom, vignette, ground shadows, rim light (src/fx.js)         // planet depth effects (src/depth.js)          // L4's Pizza Inferno and the Magma-Golem (src/mozz.js)      // L3's Phantom Milkmaid (src/milkmaid.js)     // L3's Mega-Mandoline (src/mandoline.js)
 
