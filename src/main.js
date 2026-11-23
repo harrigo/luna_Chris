@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.81';
+const BUILD = 'v3.82';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3573,7 +3573,7 @@ class Level1 extends Phaser.Scene {
   }
   // soft additive light halos (the "next-gen" layer over the pixel art): brightens whatever is near a light source
   drawLights() {
-    if (!Settings.lights) { for (const im of this.lightPool) im.setVisible(false); return; }
+    if (!Settings.lights || (this.px && this.px.on)) { for (const im of this.lightPool) im.setVisible(false); return; }   // (v3.82) the pixel look's light map replaces the soft halos
     makeHalo(this);
     const P = this.pl, L = [];
     for (const l of this.lights) L.push([l.theta, l.h, l.r, l.col, l.a * (l.life / l.max)]);

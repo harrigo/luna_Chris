@@ -30,7 +30,7 @@ function pxPipeClass() {
   return PxPipe;
 }
 
-// light-map stamp: white, falling off in five hard bands (the banded pools you get in Noita)
+// light-map stamp: a solid core then three hard steps out to dark
 function makePxTextures(scene) {
   const T = scene.textures;
   if (!T.exists('pxdot')) { const t = T.createCanvas('pxdot', 1, 1); const c = t.getContext(); c.fillStyle = '#fff'; c.fillRect(0, 0, 1, 1); t.refresh(); }
@@ -38,7 +38,7 @@ function makePxTextures(scene) {
     const N = 64, t = T.createCanvas('pxlight', N, N), c = t.getContext(), img = c.createImageData(N, N), D = img.data;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
       const d = Math.hypot(x + 0.5 - N / 2, y + 0.5 - N / 2) / (N / 2), i = (y * N + x) * 4;
-      const s = d >= 1 ? 0 : Math.ceil((1 - d * d) * 5) / 5;
+      const s = d >= 1 ? 0 : d < 0.42 ? 1 : d < 0.68 ? 0.62 : d < 0.88 ? 0.32 : 0.14;   // (v3.82) a hard core and three steps: a pixel shape, not a haze
       D[i] = D[i + 1] = D[i + 2] = Math.round(s * 255); D[i + 3] = 255;
     }
     c.putImageData(img, 0, 0); t.refresh(); t.setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -85,6 +85,10 @@ const PixelLookMixin = {
       if (on && !there) main.setPostPipeline('LCPix');
       if (!on && there) main.removePostPipeline('LCPix');
     } catch (e) { /* no post pipelines: the light map and particles still work */ }
+    try {                                                 // (v3.82) no bloom under the pixel look: the light map is the only light
+      const bp = main.getPostPipeline('LCBloom'), b = Array.isArray(bp) ? bp[0] : bp;
+      if (b) { if (b.lcStrClassic === undefined) b.lcStrClassic = b.lcStr; b.lcStr = on ? 0 : b.lcStrClassic; }
+    } catch (e) { /* ignore */ }
     X.hud.setVisible(on);
     X.rt.setVisible(on);
     if (this.fxBang) {                                    // the hit-spark emitter: single pixels, no shrink
@@ -116,6 +120,7 @@ const PixelLookMixin = {
       spr.bsx = spr.bsy = PX_BLOCK / z;
       this.parts.push({ theta, h, vt: rnd(-200, 200) * spd, vh: rnd(40, 360) * spd, life: rnd(0.35, 0.9), spr });
     }
+    if (glow) this.addLight(theta, h, 30 + m * 3, 0xffc060, 0.9, 0.18);          // sparks light the area for a moment
   },
 
   // ---- the light map, redrawn every frame
@@ -124,11 +129,11 @@ const PixelLookMixin = {
     const rt = X.rt, cam = this.cameras.main, P = this.pl, z = this.zoom, L = [];
     const add = (theta, h, r, col, a) => { if (a > 0.02) L.push([theta, h, r, col, a]); };
     // Chris carries a warm pool of light, a little bigger when powered up
-    if (P && this.state !== 'dead') add(P.theta, P.h + 34, P.power > 0 ? 230 : 190, 0xfff0d0, 1);
-    for (const l of this.lights) add(l.theta, l.h, l.r * 1.4, l.col, l.a * (l.life / l.max));
-    if (this.muzzle && (P.firing > 0 || P.beamOn)) add(this.muzzle.theta, this.muzzle.h, 90, 0xffd27a, 0.9);
-    for (const b of this.pBullets) add(b.theta, b.h, 46, 0xffe08a, 0.7);
-    for (const b of this.eBullets) add(b.theta, b.h, 40, 0xff8a5a, 0.6);
+    if (P && this.state !== 'dead') add(P.theta, P.h + 34, P.power > 0 ? 120 : 95, 0xfff0d0, 0.85);
+    for (const l of this.lights) add(l.theta, l.h, l.r * 1.6, l.col, Math.min(1, l.a * 1.3) * (l.life / l.max));
+    if (this.muzzle && (P.firing > 0 || P.beamOn)) add(this.muzzle.theta, this.muzzle.h, 110 + Math.random() * 30, 0xffd27a, 1);   // muzzle flash flickers
+    for (const b of this.pBullets) add(b.theta, b.h, 64, 0xffe08a, 0.9);
+    for (const b of this.eBullets) add(b.theta, b.h, 52, 0xff8a5a, 0.75);
     for (const pk of this.pickups) add(pk.theta, pk.h + 8, pk.kind === 'power' ? 90 : 50, pk.kind === 'power' ? 0xfff3a0 : 0xffd86a, 0.7);
     for (const lv of (this.lavas || [])) add(lv.theta, lv.h + 6, 110, 0xff7a1a, 0.7);
     for (const G of (this.geysers || [])) if (G.st !== 'idle') add(G.theta, G.st === 'erupt' ? 60 : 10, G.st === 'erupt' ? 190 : 90, 0xff9a2a, G.st === 'erupt' ? 1 : 0.5);

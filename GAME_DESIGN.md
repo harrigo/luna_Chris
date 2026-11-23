@@ -2298,3 +2298,6 @@ A step towards the Noita look, behind a switch (menu: LOOK: PIXEL (LV 1) / CLASS
 - Light and dark: a light map (MULTIPLY render texture at depth 9.65) dims the world to def.pxAmbient (default 0x6e6a8c); Chris, the gun, shots, enemy shots, pickups, lava, geysers, the boss and every addLight punch banded pools (5 hard steps) back in.
 - Single-pixel particles: burst() of spark/crumb/mm_splat/shard/flame/fdrop becomes twice as many grid pixels coloured from the source sprite; the hit-spark emitter uses pixels too.
 - STYLE_GUIDE.md: the rules for new art.
+
+## v3.82: pixel look, crisper light
+The v3.81 pool round Chris read as a blur (a big soft pool stacked on the old halos and the bloom). Now: the light stamp is a solid core plus three hard steps; Chris's pool is half the size (95, 120 powered); the soft halos and bloom are off while the pixel look is on, so the light map is the only lighting layer; shots, the muzzle flash (flickering), enemy shots and spark bursts carry more of the light.
