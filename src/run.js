@@ -84,6 +84,7 @@ const Run = {
   on: false, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: 0, saved: null, picked: [],
   best() { try { return JSON.parse(localStorage.getItem('lc_run_best') || 'null'); } catch (e) { return null; } },
   start(reg) {
+    if (typeof Ach !== 'undefined') Ach.unlock('run');   // (v3.92) trophy
     const keep = {}; for (const k of Object.keys(reg.getAll())) if (k.startsWith('oneup_')) keep[k] = reg.get(k);
     this.saved = { shop: reg.get('shop'), lives: reg.get('lives'), gunLv: reg.get('gunLv'), bonusHeart: reg.get('bonusHeart'), oneups: keep };
     for (const k of Object.keys(keep)) reg.remove(k);
@@ -108,6 +109,7 @@ const Run = {
   // the run's summary, and the best run on this device ({ planets, score })
   finish(reg, how) {
     try { localStorage.setItem('lc_cave_ready', '1'); } catch (e) { /* ignore */ }   // (v3.41) the rats restock the secret cavern after every run
+    if (how === 'won' && typeof Ach !== 'undefined') Ach.unlock('runwin');
     const sum = { how, at: this.atLv || 0, planets: this.done.length, done: this.done.slice(), score: this.score, earned: this.earned, kills: this.kills, time: (Date.now() - this.t0) / 1000, perks: this.picked.slice() };
     const b = this.best();
     sum.newBest = !b || sum.planets > b.planets || (sum.planets === b.planets && sum.score > b.score);

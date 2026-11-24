@@ -198,7 +198,7 @@ const LEVELS = {
 
   5: {
     id: 5, hpMul: 1.58, name: 'The Great Grater', short: 'THE GREAT GRATER', blurb: 'An industrial asteroid.\nThe floor is a giant grater!',
-    music: 'level3', bossName: 'THE MEGA-MANDOLINE', tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
+    music: 'levelmetal', bossName: 'THE MEGA-MANDOLINE',   // (v3.92: metal! was 'level3') tip: 'WATCH THE SKY: RED RINGS = INCOMING! JUMP THE LASER!',
     radius: 300, sky: [0x04050a, 0x1a1c2c], bg: '#04050a', starTint: 0x9aa8c8, dustAlpha: 0.7, bgDecor: 'factory',
     surface: { pal: [0x10141e, 0x2a3242, 0x4a5568, 0x76839a, 0xaab6c8, 0xeef4fc], seed: 3131, grater: true, rimLight: [230, 240, 255], dark: [4, 6, 14] },
     // depth (depth.js) - a grim industrial asteroid: hard cold floodlight from above, deep blue-black shadow, a steel-white

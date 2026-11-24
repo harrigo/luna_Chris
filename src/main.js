@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.91';
+const BUILD = 'v3.92';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -355,7 +355,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.perf = null; this.perfNoHalo = false;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.mk = null; this.mkText = null; this.perf = null; this.perfNoHalo = false;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -1329,9 +1329,10 @@ class Level1 extends Phaser.Scene {
   finishWin() {
     if (Run.on) { this.runWin(); return; }             // (v3.05) a run: no ranks, unlocks or boards
     Progress.beat(this.levelId); Sound.say('woohoo', { force: true });
+    if (this.hurtCount === 0) Ach.unlock('flawless'); if (this.levelId === CFG.finalLevel) Ach.unlock('theend');   // (v3.92) trophies
     this.state = 'won';
     const RK = this.levelRank(), prev = Progress.rank(this.levelId);
-    Progress.setRank(this.levelId, RK.r);
+    Progress.setRank(this.levelId, RK.r); if (RK.r === 'S') Ach.unlock('ranks');
     const mm = Math.floor(RK.time / 60), ss = String(Math.floor(RK.time % 60)).padStart(2, '0');
     const stats = 'TIME ' + mm + ':' + ss + '   HITS ' + this.hurtCount + (this.deaths ? '   DEATHS ' + this.deaths : '') + '   BEST COMBO ' + this.maxCombo +
       '\nCHEESE WHEELS ' + Progress.wheelCount(this.levelId) + '/3' + (prev && 'SABCD'.indexOf(RK.r) < 'SABCD'.indexOf(prev) ? '   NEW BEST!' : '');
@@ -1361,7 +1362,7 @@ class Level1 extends Phaser.Scene {
     Sound.jet(false); Sound.music('lose');
     this.endT = this.t;
     this.burst(this.pl.theta, this.pl.h + 20, 'spark', 14, 1.2);
-    this.deaths++; Tel.end(this, 'died');
+    this.deaths++; Tel.end(this, 'died'); Ach.stat('deaths');
     this.registry.set('lives', this.lives - 1); this.registry.set('gunLv', {});          // the guns go back to level 1
     if (this.lives <= 0) { this.hideOverlay(); this.gameOver(); return; }
     const quips = ['The rats got away with Bessie.', 'Chris has been grated.', 'That was cheesy.', 'Bessie is NOT impressed.', 'Squeak squeak. (The rats are laughing.)', 'Brie-lliant effort. Not really.', 'You got Camem-BURNT.'];
@@ -3456,7 +3457,7 @@ class Level1 extends Phaser.Scene {
   comboKill() {
     this.combo = this.comboT > 0 ? this.combo + 1 : 1;
     this.comboT = 1.6;
-    this.maxCombo = Math.max(this.maxCombo, this.combo);
+    this.maxCombo = Math.max(this.maxCombo, this.combo); if (!this.training) Ach.best('combo', this.combo);
     if (this.combo >= 3) {
       if (!this.comboText) this.comboText = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '10px', color: '#ff9d3a', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5, 0).setDepth(20);
       this.comboText.setText(this.combo + ' COMBO' + (this.comboMult() > 1 ? '  x' + this.comboMult() : '')).setAlpha(1).setScale(1.5);
@@ -4567,7 +4568,8 @@ class Level1 extends Phaser.Scene {
       }
       if (e.type === 'dipped') this.fdPuddle(e.theta);   // bursts into a sticky puddle
       if (e.type === 'ppmite' && this.ppMiteBurst) this.ppMiteBurst(e);   // (v2.91) bursts into crystal shards
-      if (e.type !== 'boss') this.comboKill();
+      if (e.type !== 'boss') { this.comboKill(); this.multiKill(); if (!this.training) Ach.stat('kills'); }   // (v3.92) multi-kills and the trophies
+      else if (!this.training) Ach.bossBeaten(this.levelId);
       Tel.kill(e); if (Run.on) this.runKill(e); this.styleAdd('kill', 8); if (this.trainEvent) this.trainEvent('kill', e);
       this.rig.grin();                                   // (v2.59) a smug grin
       const pts = ({ ppguard: 400, ppgren: 300, pptax: 500, ppcav: 450, ppminer: 350, ppdyna: 350, ppcart: 400, ppmite: 150, ppslug: 300, ppgolem: 700, rindtick: 250, gnawer: 300, grub: 250, mouse: 100, flyer: 150, golem: 400, germ: 150, minigerm: 50, frog: 200, drone: 250, slicer: 200, stinkfly: 150, gogglerat: 200, mgolem: 600, anchovy: 60, ovendrone: 500, forkrat: 200, dipped: 300, kamikaze: 150, skimmer: 150, rocketrat: 200, lturret: 300, ironclad: 600, torprat: 120, nibbler: 50, sharkrat: 350, steward: 150, admiral: 400, toff: 200, chiprat: 150, pepwasp: 150, ghostpirate: 200, polterwedge: 250, boss: 5000 }[e.type] || 100) * (e.type === 'boss' ? 1 : this.comboMult());
@@ -4633,6 +4635,25 @@ class Level1 extends Phaser.Scene {
     const Q = e.shape; if (!Q) return false;
     const px = pad * 0.6, dx = angDiff(b.theta, e.theta) * (R + b.h) - (e.spr.flipX ? -Q.cx : Q.cx), dy = b.h - (e.h + (e.lift || 0) + Q.cy);
     return (dx * dx) / ((Q.rx + px) * (Q.rx + px)) + (dy * dy) / ((Q.ry + px) * (Q.ry + px)) < 1;
+  }
+  // (v3.92) MULTI-KILLS: kills that come within 0.6 s of each other add up; from the second one on, the count is called
+  // out big in the middle of the screen with a fanfare that climbs (the music ducks under it), and it earns trophies
+  multiKill() {
+    const now = this.t, M = this.mk || (this.mk = { n: 0, t: -9, shown: 0 });
+    M.n = now - M.t <= 0.6 ? M.n + 1 : 1; M.t = now;
+    if (M.n < 2) { M.shown = 0; return; }
+    if (!this.training) Ach.best('multi', M.n);
+    if (M.n === M.shown) return; M.shown = M.n;
+    const words = ['', '', 'DOUBLE KILL!', 'TRIPLE KILL!', 'QUAD KILL!', 'MEGA KILL!', 'CHEESEPOCALYPSE!'], cols = ['', '', '#7dc8ff', '#7dff8a', '#ffd23f', '#ff9d3a', '#ff5a8a'];
+    const k = Math.min(6, M.n);
+    Sound.sfx('multi', k); Sound.duck(0.45 + k * 0.08);
+    this.addScore(100 * (M.n - 1) * M.n); this.styleAdd('multi', 15 * M.n);
+    if (this.mkText) this.mkText.destroy();
+    const W = this.scale.width, H = this.scale.height;
+    const t = this.mkText = this.add.text(W / 2, H * 0.3, words[k], { fontFamily: PIXEL, fontSize: (16 + k * 3) + 'px', color: cols[k], stroke: '#1a1020', strokeThickness: 7 }).setOrigin(0.5).setScrollFactor(0).setDepth(32).setScale(2.2).setAngle(-6);
+    this.tweens.add({ targets: t, scale: 1, angle: 0, duration: 260, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, y: H * 0.3 - 26, delay: 900, duration: 380, onComplete: () => { t.destroy(); if (this.mkText === t) this.mkText = null; } });
+    if (k >= 4) { this.cameras.main.flash(90, 255, 230, 160); this.camPunch(0.03); }
   }
   // (v3.88) AUTO QUALITY: if the game is really running slowly (under ~45 fps over 3 seconds of play), step the costliest
   // effects down for the rest of this level, one at a time: the moody light map, then the bloom, then the light halos
@@ -4967,7 +4988,7 @@ class Level1 extends Phaser.Scene {
         } else
         if (p.kind === 'buff' && p.bk === 'slowmo' && this.ctPocketAdd(p)) { /* (v3.24) saved for later: CHEESE TIME */ }
         else if (p.kind === 'buff') this.startBuff(p.bk);
-        else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Sound.sfx('pickup'); P.coinPop = 0.25; this.coinAcc = (this.coinAcc || 0) + p.val; this.coinAccT = 0.22; }
+        else if (p.kind === 'cheddar') { Shop.earn(this.registry, p.val); Ach.stat('cheddar', p.val); Sound.sfx('pickup'); P.coinPop = 0.25; this.coinAcc = (this.coinAcc || 0) + p.val; this.coinAccT = 0.22; }
         else if (p.kind === 'power') {
           // PARMESAN POWER (v2.46): +1 gun level for 15 seconds, not for good (the shop's START CHIPS are the lasting kind)
           const up = this.gunLvBase(this.weapon.id) < 4; P.power = up ? CFG.powerT : 0; P.overheat = false; P.ammo = 1; this.addScore(up ? 500 : 1500); P.lvFlash = 1.2;
@@ -6076,7 +6097,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, TrophyScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

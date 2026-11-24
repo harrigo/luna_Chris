@@ -232,6 +232,24 @@ const Sound = (() => {
     // cutscene
     flap:    () => tone({ type: 'triangle', f: 300, f2: 480, dur: 0.06, vol: 0.07 }),
     swish:   () => noise({ ft: 'highpass', f1: 1800, f2: 5200, dur: 0.12, vol: 0.18, q: 0.7 }),
+    // (v3.92) MULTI-KILLS: a fanfare that climbs with the count (_ch: 2 double, 3 triple, 4 quad, 5 mega, 6+ cheesepocalypse)
+    multi: () => {
+      const n = Math.max(2, Math.min(6, SFX._ch || 2)), t = ctx.currentTime, base = 523.25 * Math.pow(2, (n - 2) * 2 / 12);
+      const steps = [0, 4, 7, 12, 16, 19].slice(0, n);
+      steps.forEach((st, i) => { const f = base * Math.pow(2, st / 12); tone({ type: 'pulse', duty: 0.25, f, dur: 0.11, vol: 0.13, t: t + i * 0.06 }); tone({ type: 'triangle', f: f / 2, dur: 0.1, vol: 0.12, t: t + i * 0.06 }); });
+      const end = t + n * 0.06;
+      tone({ type: 'pulse', duty: 0.125, f: base * 2, dur: 0.32, vol: 0.1, t: end, sustain: true }); tone({ type: 'pulse', duty: 0.5, f: base * 1.5, dur: 0.32, vol: 0.07, t: end, sustain: true });
+      if (n >= 4) noise({ ft: 'highpass', f1: 5000, dur: 0.5, vol: 0.12, t: end });                  // a cymbal on the big ones
+      if (n >= 5) tone({ type: 'square', f: 110, f2: 55, dur: 0.35, vol: 0.2, t: end });
+    },
+    // (v3.92) BOWLING: every rat a smashed rat bowls into rings out a step higher (a run up the scale), and what it's made of
+    bowlPin: () => { const n = Math.max(0, (SFX._ch || 1) - 1), sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21], f = 392 * Math.pow(2, sc[Math.min(9, n)] / 12); tone({ type: 'triangle', f, dur: 0.16, vol: 0.2 }); tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: 0.09, vol: 0.07 }); },
+    bowlMetal: () => { const t = ctx.currentTime; for (const [f, v] of [[1180, 0.09], [1730, 0.06], [2460, 0.05], [3410, 0.03]]) tone({ type: 'sine', f, dur: 0.45, vol: v, t }); noise({ ft: 'bandpass', f1: 3000, dur: 0.05, vol: 0.12, q: 3 }); },   // CLANG
+    bowlSqueak: () => { tone({ type: 'sine', f: 1300, f2: 2400, dur: 0.07, vol: 0.12 }); tone({ type: 'sine', f: 2400, f2: 1700, dur: 0.06, vol: 0.08, t: ctx.currentTime + 0.07 }); },   // EEP!
+    bowlBoing: () => wobble({ type: 'triangle', f: 220, f2: 520, dur: 0.28, vol: 0.18, rate: 18, depth: 60, lp: 4000 }),   // BOING
+    bowlGhost: () => wobble({ type: 'sine', f: 700, f2: 300, dur: 0.4, vol: 0.12, rate: 7, depth: 40, lp: 3000 }),        // wooo...
+    // (v3.92) an achievement: a bright little fanfare
+    achieve: () => { const t = ctx.currentTime; arp([784, 988, 1175, 1568], 0.07, { type: 'pulse', duty: 0.25, vol: 0.13 }); tone({ type: 'pulse', duty: 0.125, f: 2093, dur: 0.4, vol: 0.07, t: t + 0.3, sustain: true }); tone({ type: 'triangle', f: 392, dur: 0.45, vol: 0.16, t: t + 0.28 }); },
     bonk:    () => { tone({ type: 'square', f: 240, f2: 70, dur: 0.14, vol: 0.32 }); noise({ f1: 900, f2: 120, dur: 0.12, vol: 0.4 }); },
     charge:  () => tone({ type: 'pulse', duty: 0.25, f: 300 + (SFX._ch || 0) * 700, f2: 340 + (SFX._ch || 0) * 760, dur: 0.07, vol: 0.07 }),   // pitch rises with the charge
     charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
@@ -303,6 +321,27 @@ const Sound = (() => {
       jetNode.src.stop(t + 0.1);
       jetNode = null;
     }
+  }
+
+  // (v3.92) a DISTORTED GUITAR for the metal tracks: detuned saws (a power chord: root, fifth, octave) through a drive
+  // and a tanh clipper, then a cab-ish low-pass. Short notes are palm-muted (darker and choked).
+  let distCurve = null;
+  function guitar(o) {
+    const t = o.t != null ? o.t : ctx.currentTime;
+    if (!distCurve) { const n = 1024; distCurve = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; distCurve[i] = Math.tanh(x * 3.4); } }
+    const pre = ctx.createGain(), hp = ctx.createBiquadFilter(), sh = ctx.createWaveShaper(), lp = ctx.createBiquadFilter(), out = ctx.createGain();
+    sh.curve = distCurve; pre.gain.value = o.drive || 5;
+    hp.type = 'highpass'; hp.frequency.value = 80;
+    lp.type = 'lowpass'; lp.frequency.value = o.pm ? 1000 : 3000; lp.Q.value = 1.1;
+    const v = o.vol, len = o.pm ? Math.min(o.dur, 0.085) : o.dur;
+    out.gain.setValueAtTime(0.0001, t); out.gain.linearRampToValueAtTime(v, t + 0.004);
+    out.gain.setValueAtTime(v, t + Math.max(0.006, len * 0.7)); out.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.05);
+    for (const iv of (o.chord || [0])) for (const det of [-8, 8]) {
+      const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(o.f * Math.pow(2, iv / 12), t); osc.detune.value = det;
+      if (o.bend) osc.frequency.exponentialRampToValueAtTime(o.f * Math.pow(2, (iv + o.bend) / 12), t + Math.min(0.12, len));
+      osc.connect(pre); osc.start(t); osc.stop(t + len + 0.08);
+    }
+    pre.connect(hp); hp.connect(sh); sh.connect(lp); lp.connect(out); out.connect(o.bus || sfxBus);
   }
 
   // ------------------------------------------------------------ music (tiny tracker)
@@ -390,6 +429,19 @@ const Sound = (() => {
       { p: J(arpBar([52, 55, 59]), arpBar([52, 55, 59]), arpBar([48, 52, 55]), arpBar([50, 54, 57])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
       { p: J(bassBar(40), bassBar(40), bassBar(36), bassBar(38)), w: 'triangle', vol: 0.34, gate: 0.75 },
       { drums: true, p: 'k.h.s.h.k.h.s.hh', vol: 1 }
+    ] }),
+
+    // (v3.92) The Great Grater, METAL: E-minor palm-muted chugs and power chords on a distorted rhythm guitar, a wailing
+    // lead, double-kick drums. Layers like the other level tracks (the tremolo picking comes in on wave 2).
+    levelmetal: build({ bpm: 172, ch: [
+      { p: J('E2:1 E2:1 E2:1 -:1 E2:1 E2:1 G2:2 E2:1 E2:1 E2:1 -:1 A2:2 G2:2', 'E2:1 E2:1 E2:1 -:1 E2:1 E2:1 A#2:2 A2:2 G2:2 F#2:2 G2:2',
+              'C3:2 C3:1 C3:1 -:1 C3:1 C3:2 D3:2 D3:1 D3:1 -:1 D3:1 D3:2', 'E2:1 E2:1 E2:1 E2:1 G2:2 E2:2 A2:2 G2:2 B2:4'),
+        w: 'dist', chord: [0, 7, 12], pm: true, vol: 0.075, drive: 6, gate: 0.95 },
+      { p: J('E4:2 G4:2 B4:2 E5:4 D5:2 B4:2 G4:2', 'A4:2 B4:2 C5:2 B4:2 A4:2 G4:2 F#4:4', 'G4:2 A4:2 B4:2 C5:4 B4:2 A4:2 G4:2', 'F#4:2 G4:2 A4:2 B4:6 -:4'),
+        w: 'dist', chord: [0, 12], vol: 0.045, drive: 9, gate: 0.92 },
+      { p: J(...['E5', 'E5', 'C5', 'D5'].map(n => (n + ':1 ').repeat(16).trim())), w: 'pulse', duty: 0.125, vol: 0.035, pluck: true, gate: 0.6 },
+      { p: J(bassBar(28), bassBar(28), bassBar(36), bassBar(28)), w: 'triangle', vol: 0.36, gate: 0.7 },
+      { drums: true, p: 'c.kks.kkk.kks.kk' + 'k.kks.kkk.kks.ks' + 'k.kks.kkk.kks.kk' + 'kkkks.kkkkkks.ss', vol: 1 }
     ] }),
 
     // Title screen: heroic fanfare in C major
@@ -558,6 +610,7 @@ const Sound = (() => {
       if (inFill && ch.w !== 'triangle') continue;                        // only the bass rides through the fill
       for (const e of evs) {
         const f = 440 * Math.pow(2, (e.note - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
+        if (ch.w === 'dist') { guitar({ f, dur, vol: ch.vol, t, bus: c.bus, chord: ch.chord, pm: ch.pm && e.len <= 1, drive: ch.drive }); continue; }   // (v3.92)
         tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
         if (!c.level || ch.pluck || ch.w === 'triangle' || ch !== c.lead) continue;
         if (lvl >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
@@ -650,8 +703,16 @@ const Sound = (() => {
     btn.addEventListener('click', e => { e.stopPropagation(); init(); setMuted(!muted); });
   }
 
+  // (v3.92) duck the music for a moment (under an announcement)
+  function duck(sec) {
+    if (!ctx || !musicBus || muted) return;
+    const t = ctx.currentTime, full = (paused ? 0.12 : 0.5) * vol.music;
+    musicBus.gain.cancelScheduledValues(t); musicBus.gain.setValueAtTime(musicBus.gain.value, t);
+    musicBus.gain.linearRampToValueAtTime(full * 0.3, t + 0.03); musicBus.gain.setValueAtTime(full * 0.3, t + (sec || 0.5)); musicBus.gain.linearRampToValueAtTime(full, t + (sec || 0.5) + 0.25);
+  }
+
   return {
-    init, sfx, say, jet, music, fill, intensity: setIntensity,
+    init, sfx, say, jet, music, fill, duck, intensity: setIntensity,
     pause(on) { paused = on; if (musicBus) musicBus.gain.setTargetAtTime((on ? 0.12 : 0.5) * vol.music, ctx.currentTime, 0.05); if (on) jet(false); },
     setVolume, getVolume: (kind) => vol[kind],
     jingle: music,

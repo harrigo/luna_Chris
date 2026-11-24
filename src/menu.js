@@ -212,6 +212,7 @@ class MenuScene extends Phaser.Scene {
       { label: () => 'RESET RUN MODE', act: () => sub(confirmRun(), 'RESET RUN MODE?') },
       { label: () => 'BACK', act: toMain }];
     this.pillDefs = [{ label: 'NEW GAME', act: () => sub(which(), 'START AGAIN') }].concat([
+      { label: 'TROPHIES', act: () => { if (this.going) return; this.going = true; this.cameras.main.fadeOut(180, 0, 0, 0); this.time.delayedCall(200, () => this.scene.start('trophies')); } },   // (v3.92) achievements (achieve.js)
       { label: 'CONTROLS', act: () => sub(controls(), 'CONTROLS') },
       { label: 'OPTIONS', act: () => sub(opts(), 'OPTIONS') }
     ]).concat(Progress.best >= CFG.finalLevel ? [{ label: 'THE END', act: () => { if (!this.going) { this.going = true; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('ending')); } } }] : []);

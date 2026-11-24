@@ -159,7 +159,7 @@ const CavernMixin = {
     if (K.hp <= 0) {
       K.open = true; K.rock.spr.setVisible(false); K.st.a.spr.setVisible(true);
       Sound.sfx('crash'); this.cameras.main.shake(300, 0.012); for (let k = 0; k < 4; k++) this.burst(K.st.theta, 20 + k * 10, 'crumb', 10, 1.2);
-      const first = !this.cvFound; this.cvFound = true; try { localStorage.setItem('lc_cave_found', '1'); } catch (e) { /* ignore */ }
+      const first = !this.cvFound; this.cvFound = true; if (typeof Ach !== 'undefined') Ach.unlock('cavern'); try { localStorage.setItem('lc_cave_found', '1'); } catch (e) { /* ignore */ }
       this.time.delayedCall(500, () => { this.campSay(first ? 'A SECRET CAVERN! JUMP DOWN THE HOLE... IF YOU DARE.' : 'THE CAVERN\'S BEEN RESTOCKED! IN YOU GO.', 4); Sound.sfx('reveal'); });
     }
   },

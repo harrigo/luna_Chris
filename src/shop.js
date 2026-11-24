@@ -636,7 +636,7 @@ class ShopScene extends Phaser.Scene {
     if (it.locked) { Sound.sfx('clunk'); this.say('FIND THE GUN FIRST. THEN WE TALK.'); return; }
     if (it.max) { Sound.sfx('clunk'); this.say('NOTHING MORE TO SELL YOU THERE.'); return; }
     if (s.coins < it.cost) { Sound.sfx('zing'); this.cameras.main.shake(90, 0.004); this.say('NOT ENOUGH CHEDDAR. THAT IS ' + it.cost + '.'); return; }
-    s.coins -= it.cost; it.act(s); Shop.set(reg, s);
+    s.coins -= it.cost; it.act(s); Shop.set(reg, s); Ach.unlock('shop');
     Sound.sfx('power'); this.cameras.main.flash(120, 255, 230, 160);
     this.flashRow = i; this.flashT = 0.4;
     this.say(['PLEASURE DOING BUSINESS.', 'A FINE CHOICE.', 'NO REFUNDS.', 'MIND THE RATS.'][Math.floor(Math.random() * 4)]);

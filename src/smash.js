@@ -5,6 +5,17 @@
 // goes high enough, flies off the top of the screen with a star-twinkle KO. Bosses can be hit with flying rats too.
 // Big ones (golems, admirals, frogs...), turrets, ships and bosses are too heavy to launch - they get the old shove.
 const SMASH_NO = ['lturret', 'ironclad', 'ovendrone', 'polter', 'sharkrat'];
+// (v3.92) what a rat you bowl into sounds like: armour and machines CLANG, flyers BOING, ghosts wooo, the rest squeak
+const SMASH_METAL = /golem|ironclad|ovendrone|turret|paladin|admiral|drone|wheel|rocket|guard|cart|toff|slicer|knight|cube|wedge/;
+const SMASH_FLY = /flyer|wasp|stinkfly|skimmer|bat|germ/;
+const SMASH_GHOST = /ghost|phantom|polter/;
+function smashMat(o) {
+  const k = (o.type || '') + ' ' + ((ENEMY[o.type] || {}).ai || '') + ' ' + (o.ai || '');
+  if (o.type === 'boss' || SMASH_METAL.test(k)) return 'bowlMetal';
+  if (SMASH_GHOST.test(k)) return 'bowlGhost';
+  if (SMASH_FLY.test(k)) return 'bowlBoing';
+  return 'bowlSqueak';
+}
 const SmashMixin = {
   canLaunch(e) {
     const st = ENEMY[e.type] || {};
@@ -37,7 +48,8 @@ const SmashMixin = {
       this.smashChain = (this.smashChain || 0) + 1; this.smashChainT = 1.2;
       this.popup(o.theta, o.h + o.ch + 30, this.smashChain > 1 ? 'SMASH x' + this.smashChain + '!' : 'SMASH!', '#ff9d3a', true);
       this.addScore(60 * this.smashChain); this.styleAdd('smash', 30); if (this.trainEvent) this.trainEvent('smash');
-      Sound.sfx('bonk'); buzz([20, 15, 40]); this.hitStop = Math.max(this.hitStop || 0, 0.05); this.camKick(d * 5, 2);
+      Sound.sfx('bowlPin', this.smashChain); Sound.sfx(smashMat(o)); buzz([20, 15, 40]);   // (v3.92) a note up the scale per rat bowled, and what it's made of
+      if (!this.training) Ach.best('strike', this.smashChain); this.hitStop = Math.max(this.hitStop || 0, 0.05); this.camKick(d * 5, 2);
       this.bang(o.theta, o.h + o.ch, 14); this.addLight(o.theta, o.h + o.ch, 60, 0xffc080, 0.8, 0.2);
       if (!boss && this.canLaunch(o)) this.launchEnemy(o, d, Math.max(0.65, L.power * 0.85), o.hp <= 0);
       else if (!boss) this.knock(o, e.theta, 260);
@@ -63,7 +75,7 @@ const SmashMixin = {
     this.tweens.add({ targets: star, scale: 5, angle: 180, alpha: 0, duration: 650, ease: 'Cubic.easeOut', onComplete: () => star.destroy() });
     const ring = this.add.circle(x, y, 6, 0xffffff, 0).setStrokeStyle(3, 0xffd23f).setDepth(30);
     this.tweens.add({ targets: ring, scale: 6, alpha: 0, duration: 500, onComplete: () => ring.destroy() });
-    Sound.sfx('chime'); this.addScore(150); this.styleAdd('ko', 50);
+    Sound.sfx('chime'); this.addScore(150); this.styleAdd('ko', 50); if (!this.training) Ach.stat('kos');
     const t = this.add.text(x, y + 22, 'K.O.!', { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(30);
     this.tweens.add({ targets: t, y: y + 4, alpha: 0, duration: 900, delay: 250, onComplete: () => t.destroy() });
     e.launch = null; e.hp = 0;

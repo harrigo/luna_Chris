@@ -57,7 +57,7 @@ const StyleMixin = {
   styleCheckRank() {
     let r = 0; for (let i = 0; i < STYLE_RANKS.length; i++) if (this.styleP >= STYLE_RANKS[i].at) r = i;
     if (r !== this.styleRank) {
-      const up = r > this.styleRank; this.styleRank = r;
+      const up = r > this.styleRank; this.styleRank = r; if (up && !this.training) Ach.best('style', r);
       if (up) {
         this.styleT.setScale(1.8); this.tweens.add({ targets: this.styleT, scale: 1, duration: 260, ease: 'Back.easeOut' });
         Sound.sfx(r === 4 ? 'shine' : 'blip');
@@ -192,7 +192,7 @@ const StyleMixin = {
       this.slowT = Math.max(this.slowT || 0, 0.5); this.hitStop = Math.max(this.hitStop || 0, 0.08);
       P.ammo = 1; P.overheat = false; P.jam = null;
       Sound.sfx('shine'); Sound.sfx('zing'); buzz([20, 10, 60]); this.cameras.main.flash(90, 255, 200, 240); this.camPunch(0.04);
-      this.popup(P.theta, P.h + 80, got > 1 ? 'PARRY x' + got + '!' : 'PARRY!', '#ff8ad8', true);
+      this.popup(P.theta, P.h + 80, got > 1 ? 'PARRY x' + got + '!' : 'PARRY!', '#ff8ad8', true); if (!this.training) Ach.stat('parries', got);
       this.addLight(wrap(P.theta + dir * 30 / R), cy, 90, 0xff9ae0, 0.9, 0.3);
       this.addScore(100 * got); this.styleAdd('parry', 70 + 20 * (got - 1));
       if (this.trainEvent) this.trainEvent('parry');
