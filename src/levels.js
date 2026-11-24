@@ -1235,11 +1235,20 @@ class SelectScene extends Phaser.Scene {
       } else {                                                     // a real little planet: the level's own surface, shaded into a sphere
         g.fillStyle(L.planet.glow, open ? 0.22 : 0.06).fillCircle(p.x, p.y, r + 7);
         this.ui.add(g);
-        const ocean = LEVELS[n.id] && LEVELS[n.id].ocean && this.textures.exists('oceanglobe'), img = this.add.image(p.x, p.y, ocean ? 'oceanglobe' : 'surf' + n.id).setDisplaySize(r * 2, r * 2);   // (v2.83) the ocean world looks like one
-        if (!open) img.setTint(0x2a3050);
-        this.ui.add(img);
-        this.ui.add(this.add.image(p.x, p.y, 'map_shade').setDisplaySize(r * 2 + 1, r * 2 + 1));
-        const rim = this.add.graphics(); rim.lineStyle(2, open ? L.planet.rim : 0x3a4270, open ? 0.9 : 1).strokeCircle(p.x, p.y, r); this.ui.add(rim);
+        const ship = levelIcon(this, n.id) === 'ratship';
+        if (ship) {                                                // (v3.99f) the Royal Saucer: no planet, so the saucer itself, side on, Bessie in its beam
+          const beam = this.add.image(p.x, p.y - r * 0.15, 'beam0').setOrigin(0.5, 0).setScale(0.34, 0.2).setAlpha(open ? 0.7 : 0.25);
+          const cow = this.add.image(p.x, p.y + r * 0.55, 'bessie').setScale(0.24);
+          const ufo = fitIcon(this.add.image(p.x, p.y - r * 0.3, 'ratship'), r * 2.5, r * 1.6);
+          if (!open) { ufo.setTint(0x6a7098); cow.setTint(0x6a7098); }
+          this.ui.add([beam, cow, ufo]); this.flair.push({ kind: 'ufo', self: true, x: p.x, y: p.y, r, beam, cow, ufo });
+        } else {
+          const img = this.add.image(p.x, p.y, levelIcon(this, n.id)).setDisplaySize(r * 2, r * 2);   // (v2.83) the ocean world looks like one
+          if (!open) img.setTint(0x2a3050);
+          this.ui.add(img);
+          this.ui.add(this.add.image(p.x, p.y, 'map_shade').setDisplaySize(r * 2 + 1, r * 2 + 1));
+          const rim = this.add.graphics(); rim.lineStyle(2, open ? L.planet.rim : 0x3a4270, open ? 0.9 : 1).strokeCircle(p.x, p.y, r); this.ui.add(rim);
+        }
         if (!open) {                                               // padlock
           const k = this.add.graphics();
           k.lineStyle(3, 0x9aa4c8, 1).strokeCircle(p.x, p.y - r * 0.2, r * 0.22);
@@ -1251,12 +1260,7 @@ class SelectScene extends Phaser.Scene {
         if (n.id === 3) this.flair.push({ kind: 'ring', x: p.x, y: p.y, r, open });
         if (n.id === 2 && open) this.flair.push({ kind: 'drips', x: p.x, y: p.y, r });
         if (n.id === 7 && open) { const s = this.add.image(p.x, p.y, 'ratship').setScale(0.16); this.ui.add(s); this.flair.push({ kind: 'orbit', x: p.x, y: p.y, r, s }); }
-        if (n.id === 10) {                                         // Bessie's UFO (the Royal Saucer), hovering over the last world: the goal (v2.79: was 9)
-          const beam = this.add.image(p.x, p.y - r - 30, 'beam0').setOrigin(0.5, 0).setScale(0.32, 0.22).setAlpha(0.7);
-          const cow = this.add.image(p.x, p.y - r - 14, 'bessie').setScale(0.26);
-          const ufo = this.add.image(p.x, p.y - r - 34, 'ratship').setScale(0.5);
-          this.ui.add([beam, cow, ufo]); this.flair.push({ kind: 'ufo', x: p.x, y: p.y, r, beam, cow, ufo });
-        }
+
       }
       // labels: "LV. 3" over the world's name (??? until it's open). Secret stops label to the side.
       const side = !!n.kind, lx = side ? p.x + r + 8 : p.x, ly = side ? p.y - 8 : p.y + r + 6, org = side ? 0 : 0.5;
@@ -1354,7 +1358,7 @@ class SelectScene extends Phaser.Scene {
     // left: a framed thumbnail of the world, its name, blurb, rank and wheels
     const ts = Math.min(ph - 16, 54), tx = 16, ty = y0 + (ph - ts) / 2;
     const fr = this.add.graphics(); fr.fillStyle(0x070a1c, 1).fillRect(tx, ty, ts, ts); fr.lineStyle(2, 0xb9c4e8, 1).strokeRect(tx, ty, ts, ts); this.infoBox.add(fr);
-    if (!n.kind) { this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, (LEVELS[n.id] && LEVELS[n.id].ocean && this.textures.exists('oceanglobe')) ? 'oceanglobe' : 'surf' + n.id).setDisplaySize(ts - 12, ts - 12)); this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'map_shade').setDisplaySize(ts - 11, ts - 11)); }
+    if (!n.kind) { { const ik = levelIcon(this, n.id), im = this.add.image(tx + ts / 2, ty + ts / 2, ik); if (ik === 'ratship') fitIcon(im, ts - 8, ts - 8); else im.setDisplaySize(ts - 12, ts - 12); this.infoBox.add(im); if (ik !== 'ratship') this.infoBox.add(this.add.image(tx + ts / 2, ty + ts / 2, 'map_shade').setDisplaySize(ts - 11, ts - 11)); } }
     else this.infoBox.add(this.add.text(tx + ts / 2, ty + ts / 2, n.kind === 'bonus' ? 'BONUS' : 'WARP', f(8, '#ffd23f')).setOrigin(0.5));
     const name = n.name || ('LV ' + n.id + ': ' + L.short), blurb = n.blurb || L.blurb, x1 = tx + ts + 12;
     this.infoBox.add(this.add.text(x1, y0 + 10, name, f(10, '#ffd23f', { stroke: '#1a1020', strokeThickness: 4 })));
@@ -1433,7 +1437,8 @@ class SelectScene extends Phaser.Scene {
       if (F.kind === 'ring') { fx.lineStyle(2, F.open ? 0xe8e0c8 : 0x3a4270, 0.8).strokeEllipse(F.x, F.y, F.r * 3.1, F.r * 0.8); }
       if (F.kind === 'drips') for (let k = 0; k < 3; k++) { const u = ((time / 1400 + k / 3) % 1), x = F.x + (k - 1) * F.r * 0.5; fx.fillStyle(0x7dff8a, 0.8 * (1 - u)).fillCircle(x, F.y + F.r * 0.85 + u * 14, 2); }
       if (F.kind === 'orbit') { const a = time / 900; F.s.setPosition(F.x + Math.cos(a) * F.r * 1.5, F.y + Math.sin(a) * F.r * 0.5).setDepth(Math.sin(a) > 0 ? 2 : 0); }
-      if (F.kind === 'ufo') { const b = Math.sin(time / 500) * 3; F.ufo.setY(F.y - F.r - 34 + b).setRotation(Math.sin(time / 700) * 0.08); F.cow.setY(F.y - F.r - 14 + b * 0.5).setRotation(Math.sin(time / 300) * 0.2); F.beam.setY(F.y - F.r - 30 + b).setAlpha(0.5 + 0.25 * Math.sin(time / 120)); }
+      if (F.kind === 'ufo' && F.self) { const b = Math.sin(time / 500) * 3; F.ufo.setY(F.y - F.r * 0.3 + b).setRotation(Math.sin(time / 700) * 0.06); F.cow.setY(F.y + F.r * 0.55 + b * 0.5).setRotation(Math.sin(time / 300) * 0.2); F.beam.setY(F.y - F.r * 0.15 + b); }
+      else if (F.kind === 'ufo') { const b = Math.sin(time / 500) * 3; F.ufo.setY(F.y - F.r - 34 + b).setRotation(Math.sin(time / 700) * 0.08); F.cow.setY(F.y - F.r - 14 + b * 0.5).setRotation(Math.sin(time / 300) * 0.2); F.beam.setY(F.y - F.r - 30 + b).setAlpha(0.5 + 0.25 * Math.sin(time / 120)); }
       if (F.kind === 'portal') for (let k = 0; k < 4; k++) { fx.lineStyle(3, [0xff7a2a, 0xffd23f, 0xff4a7a, 0xffffff][(k + Math.floor(time / 140)) % 4], 1).strokeCircle(F.x, F.y, F.r * (1 - k * 0.22) + Math.sin(time / 200 + k) * 1.5); }
     }
     if (this.wheelIcon) this.wheelIcon.setScale(0.5 * Math.max(0.15, Math.abs(Math.cos(time / 500))), 0.5);
@@ -1667,34 +1672,15 @@ function makePlanetShade(scene, key, Rw, rimCol, darkCol) {
 // ---------------------------------------------------------------- pixel-art sky (16-bit parallax layers)
 // Every sky piece is drawn into a small canvas pixel by pixel (dithered, limited palette) and shown scaled up
 // with nearest-neighbour filtering, so it reads as chunky 16-bit art rather than smooth vector shapes.
-// (v3.99e) the map icon for level 10, which has no planet: the Royal Saucer seen from above - a round steel deck with
-// panel seams, a ring of lights round the rim and the glass dome in the middle with the Rat King's crown glinting inside
-function makeSaucerGlobe(scene, key) {
-  pixTex(scene, key, 64, 64, put => {
-    const c = 31.5, ST = [0x2a2a40, 0x46485e, 0x6a7088, 0x9aa4b8, 0xcfd8e6], GL = [0x124a58, 0x1a7484, 0x2aa8b0, 0x5ad8d8, 0xb0f8f0];
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-      const dx = x - c, dy = y - c, d = Math.hypot(dx, dy) / 32, a = Math.atan2(dy, dx), b = BAYER4[(y & 3) * 4 + (x & 3)];
-      if (d > 1) continue;
-      if (d > 0.94) { put(x, y, 0x0c0810); continue; }
-      let col;
-      if (d < 0.36) {                                                  // the dome
-        const v = 2.6 + (-dx - dy) / 32 * 5 - d * 3; col = GL[Math.max(0, Math.min(4, Math.floor(v) + ((v % 1) > b ? 1 : 0)))];
-        if (d > 0.32) col = 0x0c0810;
-        if (Math.hypot(dx + 4, dy + 5) < 2.2) col = 0xffffff;          // glint
-        if (Math.abs(dx) < 4 && dy > -1 && dy < 3 && (dy < 1 || (x & 1))) col = 0xffd23f;   // the crown
-      } else {
-        let v = 2.4 + (-dx - dy) / 32 * 1.8;
-        const ring = d * 9 % 1; if (ring < 0.12) v = 1;                  // concentric seams
-        if (((a / (Math.PI * 2) * 16 + 16) % 1) < 0.06 && d > 0.4) v = 1.2;   // radial seams
-        col = ST[Math.max(0, Math.min(4, Math.floor(v) + ((v % 1) > b ? 1 : 0)))];
-        if (d > 0.36 && d < 0.4) col = ST[0];
-      }
-      put(x, y, col);
-    }
-    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = Math.round(c + Math.cos(a) * 26), y = Math.round(c + Math.sin(a) * 26), lc = k % 2 ? 0xff5a4a : 0xffd23f;   // rim lights
-      put(x, y, lc); put(x + 1, y, lc); put(x, y + 1, lc); put(x + 1, y + 1, 0xffffff); }
-  });
+// (v3.99f) the picture for a level on the maps and in the info boxes: its own little planet, the ocean globe, or for the
+// Royal Saucer (no planet) the Rat King's saucer seen side on. sq: true when it must fill a square (an info box).
+function levelIcon(scene, id) {
+  const L = LEVELS[id] || {};
+  if (L.saucer && scene.textures.exists('ratship')) return 'ratship';
+  if (L.ocean && scene.textures.exists('oceanglobe')) return 'oceanglobe';
+  return 'surf' + id;
 }
+function fitIcon(im, w, h) { const fr = im.frame, s = Math.min(w / fr.width, h / fr.height); return im.setScale(s); }
 
 function pixTex(scene, key, w, h, draw) {
   if (scene.textures.exists(key)) return;

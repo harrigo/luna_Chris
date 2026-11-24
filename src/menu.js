@@ -165,7 +165,7 @@ class MenuScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
-    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.09, 0); this.backdrop.chrisK = 0.72;   // (v2.54: the pixel title scene, not the painted cover art)
+    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.09, 0); this.backdrop.noChris = true;   // (v3.99f) just the moon and the sky behind the menu: Chris was in the way of the cards   // (v2.54: the pixel title scene, not the painted cover art)
     this.events.on('update', () => { if (this.backdrop) this.backdrop.update(); });
     this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(6);   // (v3.99e: depth 6, it had slipped behind the painted backdrop)
     this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(6);
@@ -250,8 +250,7 @@ class MenuScene extends Phaser.Scene {
   tilesBuild() {
     if (this.tileC) this.tileC.destroy();
     const W = this.scale.width, H = this.scale.height, n = this.tileDefs.length, gap = Math.max(10, W * 0.02);
-    // (v3.99e) the cards sit to the right of Chris (a lane down the left for him), not over him
-    const lane = this.menuLane(), avail = W - lane - 16;
+    const lane = 16, avail = W - 32;                                  // (v3.99f) centred again (Chris is gone from behind the menu)
     const tw = Math.min(180, (avail - gap * (n - 1)) / n), th = Math.min(160, H * 0.4, tw * 1.05), y0 = Math.round(H * 0.32), x0 = lane + (avail - (n * tw + (n - 1) * gap)) / 2;
     const c = this.tileC = this.add.container(0, 0).setDepth(5).setVisible(this.tilesOn !== false);
     const f = (sz, col) => ({ fontFamily: PIXEL, fontSize: sz + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 });
@@ -305,12 +304,11 @@ class MenuScene extends Phaser.Scene {
     });
   }
 
-  menuLane() { const W = this.scale.width; return Math.round(Math.min(W * 0.27, 230)); }
   fit() {
     const W = this.scale.width, H = this.scale.height;
     if (this.bg) this.bg.setPosition(W / 2, H / 2).setScale(Math.max(W / 1024, H / 572));
     const fs = Math.max(26, Math.min(48, W / 16));
-    const mx = (this.menuLane() + W - 16) / 2;
+    const mx = W / 2;
     this.logo.setFontSize(fs).setPosition(mx, H * 0.11);
     this.sub.setPosition(mx, H * 0.11 + fs * 0.8);
   }

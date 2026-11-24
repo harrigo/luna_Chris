@@ -99,7 +99,6 @@ function buildAllTextures(scene) {
   makeCosmicTextures(scene); makeWarpTextures(scene); makePlatformTextures(scene); makeRoadmapTextures(scene); makeFactoryTextures(scene); makeOvenTextures(scene); makeBrieTextures(scene); makeGorgeTextures(scene); makePowerupTextures(scene); makeIntroPix(scene); makeEndingPix(scene); makeHalo(scene);
   for (const id of Object.keys(LEVELS)) {                                            // the pixel planets
     const d = LEVELS[id];
-    if (!d.surface && d.saucer && typeof makeSaucerGlobe === 'function') makeSaucerGlobe(scene, 'surf' + id);   // (v3.99e) level 10's map icon
     if (d.surface) { makePlanetTexture(scene, 'surf' + id, d.radius || 420, d.surface.pal, d.surface.seed, d.surface); makePlanetShade(scene, 'shade' + id, d.radius || 420, d.surface.rimLight, d.surface.dark); }
     if (d.nebula) for (let i = 0; i < d.nebula.n; i++) if (!scene.textures.exists('neb' + id + '_' + i)) makeNebula(scene, 'neb' + id + '_' + i, 900 + i * 41, d.nebula.pal);
   }

@@ -2413,3 +2413,6 @@ rounded form lit from the top left, with dithered seams between tones and a litt
   The main menu's cards and pills now sit to the right of a lane for Chris (`menuLane`), Chris is shown a bit smaller there
   (`TitleBackdrop.chrisK`), and the logo is back on top (it had slipped behind the painted backdrop). The loading screen's
   moon is pixel art (an 18x18 SVG at 3x, crisp edges) bobbing in whole steps, instead of a smooth CSS gradient.
+- **v3.99f.** The main menu is centred again with no Chris behind it (`TitleBackdrop.noChris`: just the moon, sky and the
+  odd dog-and-ball gag). Level 10's map node is the Rat King's saucer side on (`ratship`) with Bessie in its beam, bobbing,
+  instead of a top-down disc; `levelIcon()` picks the picture for every map, info box and run-route icon.

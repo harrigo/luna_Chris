@@ -276,6 +276,7 @@ const RUN_UI = {
     const ocean = LEVELS[id] && LEVELS[id].ocean && scene.textures.exists('oceanglobe');
     const L = LEVELS[id], out = [];
     const g = scene.add.graphics(); g.fillStyle(L.planet ? L.planet.glow : 0xffffff, 0.2).fillCircle(x, y, r + 7); out.push(g);
+    if (levelIcon(scene, id) === 'ratship') { out.push(fitIcon(scene.add.image(x, y, 'ratship'), r * 2.5, r * 1.8)); return out; }   // (v3.99f) the Royal Saucer, side on
     out.push(scene.add.image(x, y, ocean ? 'oceanglobe' : 'surf' + id).setDisplaySize(r * 2, r * 2));
     if (scene.textures.exists('map_shade')) out.push(scene.add.image(x, y, 'map_shade').setDisplaySize(r * 2 + 1, r * 2 + 1));
     const rim = scene.add.graphics(); rim.lineStyle(2, L.planet ? L.planet.rim : 0xffffff, 0.9).strokeCircle(x, y, r); out.push(rim);
@@ -356,7 +357,7 @@ class RunScene extends Phaser.Scene {
     for (let i = 0; i < stg; i++) {
       const x = W / 2 + (i - (stg - 1) / 2) * gap, y = rowY + 8;
       if (i < stg - 1) { rg.fillStyle(i < Run.idx ? 0xffd23f : 0x3a4270, 1).fillRect(x + 9, y - 1, gap - 18, 3); }
-      if (i < Run.done.length) { this.ui.add(this.add.image(x, y, LEVELS[Run.done[i]].ocean && this.textures.exists('oceanglobe') ? 'oceanglobe' : 'surf' + Run.done[i]).setDisplaySize(16, 16)); rg.lineStyle(2, 0x7dff8a, 1).strokeCircle(x, y, 9); }
+      if (i < Run.done.length) { { const ik = levelIcon(this, Run.done[i]), im = this.add.image(x, y, ik); if (ik === 'ratship') fitIcon(im, 22, 16); else im.setDisplaySize(16, 16); this.ui.add(im); } rg.lineStyle(2, 0x7dff8a, 1).strokeCircle(x, y, 9); }
       else { rg.fillStyle(i === Run.idx ? 0xffd23f : 0x2a3058, 1).fillCircle(x, y, i === Run.idx ? 7 : 5); if (RUN_ROUTE[i].length > 1) { rg.fillStyle(0x9aa4c8, 1).fillRect(x - 1, y + 10, 3, 3); rg.fillRect(x - 5, y + 13, 3, 3); rg.fillRect(x + 3, y + 13, 3, 3); } }
     }
     // bottom bar: cheddar, hearts, lives, perks

@@ -1218,7 +1218,7 @@ class TitleBackdrop {
     if (!this.gag) {
       this.gagT -= dt; if (this.gagT > 0) return;
       this.gagN++;
-      if (this.gagN % 2) {                                                    // a rat runs in from the right...
+      if (this.gagN % 2 && !this.noChris) {                                  // a rat runs in from the right... (only with Chris there to shoot it)
         const s = img('mouse'); if (!s) { this.gagT = 3; return; }
         s.setOrigin(0.5, 1).setFlipX(true).setScale(z / (TEX_DENS['mouse'] || 1));
         this.gag = { k: 'rat', s, x: W + 30, st: 'run', t: 0, shots: [] };
@@ -1343,6 +1343,7 @@ class TitleBackdrop {
     if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
     this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = this.gag && this.gag.k === 'rat' && this.gag.fired ? 0.05 : 0.45 + 0.1 * Math.sin(t * 0.8);
     const x = Math.round(W * this.cx / z) * z, y = Math.round((top + z + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))))) / z) * z;
+    if (this.noChris) { this.rig.root.setVisible(false); this.burst = 0; }   // (v3.99f) the menu: no Chris, no shooting
     const cz = z * (this.chrisK || 1);                                  // (v3.99e) the menu shows him a bit smaller, to leave room for the cards
     this.rig.update(P, dt, x, y, cz, 1, Math.floor(t * 10) % 4);
     if (this.fun !== false) this.gagUpdate(dt, t, W, H, mx, my, R, top, x, y, cz);
