@@ -2355,3 +2355,6 @@ Measured the GPU work per frame (headless, counting WebGL calls). The new light 
 
 ## v3.93: the moonwalk
 When the lucky wheel lands on a good one, Chris now celebrates one of two ways at random (S.joyKind): the old bounce with the gun in the air, or THE MOONWALK (shop.js moonwalk): he glides backwards away from the wheel while facing it (the rig's backing walk), twirls, goes up on his toes with the gun up and a "HEE-HEE!" (a new voice phrase), glides back the other way facing away, twirls again, and round. Sparkles skate off his boots.
+
+## v3.94: funny walks
+Chris's run is no longer one loop (chris.js, the GAITS block in update): he walks one of four ways, picked at random each time he sets off and swapped every 3.5-7.5 s of running, blended in smoothly: STRUT (the old run), LIMP (the front leg short, stiff and dragged toe-down; the cycle hurries off it and lingers on the good one; he lurches and dips each time his weight goes on it), SKIP (a hop on every other step) and SWAGGER (leaning back, hips rolling, boots wide). Every 8-18 s of running he trips over nothing, pitches forward and catches himself ("oi!"). Levels only (rig.gaitOn): the shop's wheel dances are untouched. Visual only: speed and hitboxes are the same.

@@ -499,6 +499,7 @@ class ChrisRig {
 
   constructor(scene) {
     makeChrisTextures(scene);
+    this.gaitOn = scene.sys.settings.key === 'level1';   // (v3.94) the funny walks are for the levels (not the shop's wheel dances)
     const img = (key, x, y, ox, oy) => scene.add.image(x, y, key).setOrigin(ox, oy);
     // a bendy limb (v3.60): a Rope under WebGL; on the canvas fallback, a plain image that's stretched straight between its ends
     const webgl = scene.game.renderer.type === Phaser.WEBGL;
@@ -793,7 +794,25 @@ class ChrisRig {
     this.wasGround = grounded;
     this.squash += (0 - this.squash) * Math.min(1, dt * 9);
     const sq = this.squash;
-    const sw = Math.sin(this.wp);
+    // ---- (v3.94) GAITS: so the run isn't the same loop over and over, he walks one of several ways, picked at random
+    // each time he sets off and swapped every few seconds: a STRUT, a LIMP (one stiff leg dragged along, a lurch and a
+    // dip each time his weight goes on it, the good leg hurrying), a SKIP (a hop on every other step) and a SWAGGER
+    // (leaning back, hips rolling, boots wide). Now and then he TRIPS over nothing and catches himself.
+    const G = this.gait || (this.gait = { k: 'strut', w: { strut: 1, limp: 0, skip: 0, swag: 0 }, t: 0, next: 4, trip: 0, tripCd: 9 });
+    const moving = this.gaitOn && grounded && spd > 40 && !P.duck;
+    if (moving) {
+      G.t += dt; G.tripCd -= dt;
+      if (G.t > G.next) { G.t = 0; G.next = 3.5 + Math.random() * 4; const o = ['strut', 'limp', 'skip', 'swag'].filter(k => k !== G.k); G.k = o[Math.floor(Math.random() * o.length)]; }
+      if (G.tripCd <= 0 && spd > 100) { G.trip = 0.5; G.tripCd = 8 + Math.random() * 10; if (typeof Sound !== 'undefined') Sound.say('oi', { f0: 150 }); }
+    } else if (!grounded || spd < 15) { if (G.t > 0.8 && Math.random() < 0.5) { const o = ['strut', 'limp', 'skip', 'swag']; G.k = o[Math.floor(Math.random() * 4)]; } G.t = 0; }
+    for (const k in G.w) G.w[k] += ((k === G.k ? 1 : 0) - G.w[k]) * Math.min(1, dt * 5);
+    G.trip = Math.max(0, G.trip - dt);
+    const gk = this.gaitOn ? Math.min(1, run * 1.4) : 0, LIMP = G.w.limp * gk, SKIP = G.w.skip * gk, SWAG = G.w.swag * gk;
+    const wpw = this.wp - 0.45 * Math.sin(this.wp) * LIMP;           // the limp: hurried off the bad leg, lingering on the good one
+    const badW = Math.max(0, -Math.cos(wpw)) * LIMP;                   // his weight on the bad (front) leg
+    const hop = Math.pow(Math.max(0, Math.sin(this.wp * 0.5 + 0.3)), 3) * SKIP * Math.max(0, Math.sin(this.wp));   // a hop on every other step
+    const tripK = G.trip > 0 ? Math.sin(Math.PI * (1 - G.trip / 0.5)) : 0;
+    const sw = Math.sin(wpw);
     const air = grounded ? 0 : 1;
     const fly = P.thrusting ? 1 : 0;
 
@@ -808,18 +827,21 @@ class ChrisRig {
     // little knee bounce. The hips sink into the knees on a landing and push up on take-off.
     const idle = (1 - run) * (1 - air), up1 = 1 - Math.min(1, dk);
     const lsq = (2.6 * Math.max(0, sq) - 1.4 * Math.max(0, -sq)) * up1;
-    this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk,
-      -16 - RAISE * up1 - (1 + Math.cos(this.wp * 2)) * (1.0 * run + 0.9 * wad) + Math.sin(t * 5.2) * 0.8 * idle * up1 + lsq + DROP);
-    this.torso.setRotation(sw * (0.1 * run + 0.11 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk - this.recoil * 0.035);  // leans in when crouched; rocks as he waddles; braces back against the gun
+    this.torso.setPosition(sw * (1.9 * run + 1.6 * wad) + 1.5 * dk + sw * 2.2 * SWAG + tripK * 2.5,
+      -16 - RAISE * up1 - (1 + Math.cos(wpw * 2)) * (1.0 * run + 0.9 * wad) * (1 - 0.5 * LIMP) + Math.sin(t * 5.2) * 0.8 * idle * up1 + lsq + DROP
+      + badW * 4.6 - hop * 8 + tripK * 2.5);
+    this.torso.setRotation(sw * (0.1 * run + 0.11 * wad) + 0.06 * run - P.vh * 0.00022 * air + (P.bashLean || 0) + 0.13 * dk - this.recoil * 0.035
+      + badW * 0.22 - 0.05 * LIMP + sw * 0.1 * SWAG - 0.14 * SWAG - hop * 0.08 + tripK * 0.42);   // lurches onto the bad leg; leans back to swagger; pitches forward on a trip  // leans in when crouched; rocks as he waddles; braces back against the gun
 
     // ---- LEGS (v3.60): each boot has a spot to be, the knee is solved from the hip, and the leg bends through it.
     // Standing: planted wide and bow-legged (front knee forward, back knee out behind). Running: each foot rides a loop,
     // back along the floor then lifted and swung through, heel first. In the air: knees tucked going up, legs
     // dangling and pedalling coming down, trailing in the jetpack's wash.
     const AH = LIMB.ankH, upv = Math.max(-1, Math.min(1, (P.vh || 0) / 320)), ju = Math.max(0, upv), jf = Math.max(0, -upv), sk = Math.min(1, dk * 1.4);
-    for (const [leg, boot, hx, ph, side, squatX] of [[this.legF, this.bootF, 5, this.wp, 1, 11 + sw * 2 * wad], [this.legB, this.bootB, -5, this.wp + Math.PI, -1, -9 - sw * 2 * wad]]) {
+    for (const [leg, boot, hx, ph, side, squatX] of [[this.legF, this.bootF, 5, wpw, 1, 11 + sw * 2 * wad], [this.legB, this.bootB, -5, wpw + Math.PI, -1, -9 - sw * 2 * wad]]) {
       const s1 = Math.sin(ph), c1 = Math.cos(ph), hip = [this.torso.x + hx, this.torso.y + 1];
-      let bx = this.torso.x * 0.4 + hx + side * (1 + 3 * (1 - run)) + s1 * STRIDE * run, by = -Math.max(0, c1) * 5 * run * (1 + wad * 0.6), br = -s1 * Math.max(0, c1 + 0.3) * 0.5 * run;
+      const bad = side > 0 ? LIMP : 0, strideK = 1 - 0.45 * bad + 0.15 * SWAG, liftK = (1 - 0.8 * bad) * (1 + 0.8 * SKIP);   // the bad leg: short and dragged
+      let bx = this.torso.x * 0.4 + hx + side * (1 + 3 * (1 - run) + 2.5 * SWAG) + s1 * STRIDE * run * strideK, by = -Math.max(0, c1) * 5 * run * (1 + wad * 0.6) * liftK - hop * 5, br = -s1 * Math.max(0, c1 + 0.3) * 0.5 * run * (1 - 0.7 * bad) + 0.25 * bad * Math.max(0, c1);   // (the bad boot drags toe-down)
       if (air) {
         const q = t * 12 + side * 1.6;
         let ax = side * 1.5 + (side > 0 ? 4.5 : -2.5) * ju + Math.sin(q) * 2.5 * jf, ay = 13 - (side > 0 ? 6 : 2.5) * ju + 1.5 * jf + Math.cos(q) * 1.2 * jf;
