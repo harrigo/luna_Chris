@@ -125,12 +125,12 @@ const LEVELS = {
     music: 'level5', bossName: 'THE PHANTOM MILKMAID', tip: 'WEDGES ARE ONLY SOLID SOMETIMES - TIME YOUR SHOTS!',
     bloom: 0.28, radius: 500, sky: [0x0c0618, 0x3a2058], bg: '#0c0618', starTint: 0xd8c8ff, dustAlpha: 0.9, bgDecor: 'haze',
     // a wheel of brie: powdery white rind with grey fuzz, a creamy paste inside, bones of lost cows sunk into it
-    surface: { pal: [0xc8b88a, 0xe0d4b0, 0xf0e8d4, 0xf8f4ea, 0xfdfbf6, 0xffffff], seed: 5151, rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
+    surface: { pal: [0x9a8c78, 0xccc0a8, 0xe6dcc8, 0xf4eee2, 0xfcf8f0, 0xffffff], seed: 5151, brie: true, extra: [0x9a6a1c, 0xd49a30, 0xf2c85a, 0xfff0b0, 0x8a80a8, 0xbab2cc], rim: [0xd8d4e0, 0xf0eef6, 0xffffff], spot: [0xd8cca8, 0xece4cc], rimD: 0.93, rimLight: [230, 200, 255], dark: [30, 10, 50] },
     rimGlow: 0xb07aff, squish: true,
     // depth (depth.js) - pale and ghostly: cold moonlight from the top RIGHT, soft lavender shadows (kept light, it's a
     // pale world), a wide violet mist round the planet; the lost ships of the Triangle half-sunk on the far dunes with
     // the odd will-o'-wisp, nearer brie dunes, and great ribs and a broken grave post close to the camera
-    depth: { light: [0.5, -0.8, 0.45], dark: [44, 24, 80], shadeA: [0, 40, 75, 110], rim: [236, 226, 255], atmo: [196, 170, 255], atmoW: 0.13, atmoA: 55,
+    depth: { light: [0.5, -0.8, 0.45], dark: [44, 24, 80], shadeA: [0, 55, 100, 145], rim: [236, 226, 255], atmo: [196, 170, 255], atmoW: 0.13, atmoA: 55,
       ridges: [{ style: 'wrecks', n: 20, size: 1.5, off: 54, amp: 30, col: [74, 56, 116], top: [140, 124, 190], k: 0.4, depth: 0.33, seed: 13, glow: [210, 250, 255], glowP: 0.015 },
                { style: 'rolling', off: 26, amp: 20, col: [112, 98, 150], top: [206, 196, 236], k: 0.68, depth: 0.37, seed: 17 }],
       fg: { style: 'bones', col: [34, 24, 56], glow: [220, 210, 255] } },
@@ -1486,7 +1486,8 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
   let sd = seed || 1;
   const rand = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
   const hex = v => [(v >> 16) & 255, (v >> 8) & 255, v & 255];
-  const P = pal.concat(opts.rim || [], opts.spot || []).map(hex);   // tones, dark -> light (+ optional moss crust and spot tones)
+  const P = pal.concat(opts.rim || [], opts.spot || [], opts.extra || []).map(hex);   // tones, dark -> light (+ optional moss crust, spot tones and extra tones)
+  const EX = pal.length + (opts.rim || []).length + (opts.spot || []).length;
   const nP = pal.length, RIM = opts.rim ? nP : -1, SPOT = opts.spot ? nP + (opts.rim ? opts.rim.length : 0) : -1;
   // smooth value noise
   const G = 24, grid = []; for (let i = 0; i < (G + 1) * (G + 1); i++) grid.push(rand());
@@ -1546,6 +1547,42 @@ function makePlanetTexture(scene, key, Rw, pal, seed, opts) {
       const j = y * S + x; if (took[j] || dist[j] > 1) continue;
       const hx = x - h.x, hy = y - h.y, dd = Math.sqrt(hx * hx + hy * hy) / h.r;
       if (dd < 1) { took[j] = 1; T[j] = SPOT >= 0 ? (dd > 0.6 && hy < 0 ? SPOT + 1 : SPOT) : (dd > 0.7 && hy > 0 ? 3 : 0); }
+    }
+  }
+  // (v3.99) BRIE: the plain white wheel was dull, so the rind gets a bloom of grey-lavender mould in soft blotches, and
+  // splits in it run round the wheel showing the gooey yellow paste inside (dark edge on the shadow side, a glossy core),
+  // with a few bigger oozing cuts. extra tones: paste [deep, mid, light, gloss], then bloom [dark, light].
+  if (opts.brie) {
+    const PD = EX, PM = EX + 1, PL = EX + 2, PG = EX + 3, BD = EX + 4, BL = EX + 5;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {                 // the bloom
+      const j = y * S + x, d = dist[j]; if (d > 0.93 || d < 0.3) continue;
+      const m = noise(x * 2.6 + 40, y * 2.6) * 0.7 + noise(x * 7, y * 7 + 90) * 0.3;
+      if (m > 0.62) T[j] = m > 0.7 ? BD : ((x + y) & 1 ? BL : T[j]);
+      else if (m > 0.58 && ((x ^ y) & 3) === 0) T[j] = BL;
+    }
+    const cell = (x, y, t) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= S || y >= S) return; const j = y * S + x; if (dist[j] > 0.955) return; T[j] = t; };
+    for (let n = 0; n < 34; n++) {                                           // splits in the rind: jagged, solid, fat in the middle
+      let a = rand() * Math.PI * 2, rr = r * (0.7 + rand() * 0.24), dr = 0;
+      const steps = Math.round((16 + rand() * 34) * RS * 3), w0 = (1.6 + rand() * 2.4) * RS;
+      for (let k = 0; k < steps; k++) {
+        const t = k / steps, w = w0 * Math.pow(Math.sin(Math.PI * t), 0.6) + 0.5;
+        if (k % Math.round(6 * RS) === 0) dr = (rand() - 0.5) * 0.9;           // a kink every few pixels
+        const x = c + Math.cos(a) * rr, y = c + Math.sin(a) * rr, nx = Math.cos(a), ny = Math.sin(a);
+        for (let q = -w - 1.2; q <= w + 1.2; q += 0.34) {
+          const e = Math.abs(q) / (w + 0.01);
+          cell(x + nx * q, y + ny * q, q < -w ? 0 : q > w ? BL : e > 0.7 ? (q < 0 ? PD : PM) : (e < 0.25 && (k >> 2) % 4 === 1 ? PG : PL));
+        }
+        a += 0.33 / rr; rr += dr * 0.33;
+      }
+    }
+    for (let n = 0; n < 14; n++) {                                           // bigger cuts, oozing
+      const a = rand() * Math.PI * 2, rr = r * (0.72 + rand() * 0.2), hx = c + Math.cos(a) * rr, hy = c + Math.sin(a) * rr, R0 = (4 + rand() * 7) * RS;
+      for (let y = Math.floor(hy - R0 - 2); y <= hy + R0 + 2; y++) for (let x = Math.floor(hx - R0 * 1.6 - 2); x <= hx + R0 * 1.6 + 2; x++) {
+        const dx = x - hx, dy = y - hy, ta = (-Math.sin(a) * dx + Math.cos(a) * dy) / (R0 * 1.6), ra = (Math.cos(a) * dx + Math.sin(a) * dy) / R0;
+        const e = ta * ta + ra * ra + (noise(x * 9, y * 9) - 0.5) * 0.5;
+        if (e > 1.18) continue;
+        cell(x, y, e > 1 ? (ra < 0 ? 0 : BL) : e > 0.72 ? (ra < 0 ? PD : PM) : (ta < -0.2 && ra < -0.1 && e < 0.35 ? PG : PL));
+      }
     }
   }
   for (let j = 0; j < S * S; j++) { if (dist[j] > 1) continue; put(j * 4, dist[j] > 0.985 ? 0 : T[j]); }      // dark outline pixel ring

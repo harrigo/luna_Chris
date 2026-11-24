@@ -2404,3 +2404,7 @@ rounded form lit from the top left, with dithered seams between tones and a litt
   It is a tuning tool: once a default is chosen it gets cut back to a few player options.
 - **Menu tune.** `title` is a song now (fanfare, middle, fanfare, quiet bit, fanfare, middle): about 70 seconds before it
   repeats instead of 10, with alternate melodies on later passes.
+- **v3.99d: the Brie-muda Triangle's planet.** It read as a plain beige disc. `makePlanetTexture` takes `brie: true` and
+  `extra` tones: the rind gets soft grey-lavender mould blotches, jagged splits running round the wheel show the gooey
+  yellow paste inside (dark lip on the shadow side, glossy core), and a few bigger oozing cuts. The base rind tones are a
+  touch darker and the depth shading stronger, so the wheel has some shape.
