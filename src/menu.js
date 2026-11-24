@@ -165,10 +165,10 @@ class MenuScene extends Phaser.Scene {
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
     Sound.init(); Sound.music('title');
-    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.08, 0);   // (v2.54: the pixel title scene, not the painted cover art)
+    this.bg = null; this.backdrop = new TitleBackdrop(this, 0.09, 0); this.backdrop.chrisK = 0.72;   // (v2.54: the pixel title scene, not the painted cover art)
     this.events.on('update', () => { if (this.backdrop) this.backdrop.update(); });
-    this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5);
-    this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
+    this.logo = this.add.text(0, 0, 'LUNA CHRIS', { fontFamily: PIXEL, fontSize: '40px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 8 }).setOrigin(0.5).setDepth(6);   // (v3.99e: depth 6, it had slipped behind the painted backdrop)
+    this.sub = this.add.text(0, 0, 'RETIRED CHEF, EX-ASTRONAUT, HERO', { fontFamily: PIXEL, fontSize: '10px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(6);
     this.fit();
     this.logo.setShadow(4, 5, '#000000', 0, true, true);
     this.tweens.add({ targets: this.logo, angle: { from: -2, to: 2 }, yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.easeInOut' });   // (v3.37) a happy wobble
@@ -250,7 +250,9 @@ class MenuScene extends Phaser.Scene {
   tilesBuild() {
     if (this.tileC) this.tileC.destroy();
     const W = this.scale.width, H = this.scale.height, n = this.tileDefs.length, gap = Math.max(10, W * 0.02);
-    const tw = Math.min(190, (W - 60 - gap * (n - 1)) / n), th = Math.min(170, H * 0.4, tw * 1.05), y0 = Math.round(H * 0.34), x0 = (W - (n * tw + (n - 1) * gap)) / 2;
+    // (v3.99e) the cards sit to the right of Chris (a lane down the left for him), not over him
+    const lane = this.menuLane(), avail = W - lane - 16;
+    const tw = Math.min(180, (avail - gap * (n - 1)) / n), th = Math.min(160, H * 0.4, tw * 1.05), y0 = Math.round(H * 0.32), x0 = lane + (avail - (n * tw + (n - 1) * gap)) / 2;
     const c = this.tileC = this.add.container(0, 0).setDepth(5).setVisible(this.tilesOn !== false);
     const f = (sz, col) => ({ fontFamily: PIXEL, fontSize: sz + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 });
     this.tiles = this.tileDefs.map((d, i) => {
@@ -272,7 +274,7 @@ class MenuScene extends Phaser.Scene {
     // the little row underneath
     const py = Math.min(H - 22, y0 + th + Math.max(26, H * 0.08));
     let px = 0; const pw = this.pillDefs.map(d => d.label.length * 8 + 26), pg2 = 10, total = pw.reduce((a, b) => a + b, 0) + pg2 * (pw.length - 1);
-    px = (W - total) / 2;
+    px = lane + (avail - total) / 2;
     this.pills = this.pillDefs.map((d, i) => {
       const w = pw[i], h = 24, t = this.add.container(px + w / 2, py), g = this.add.graphics();
       g.fillStyle(0x1a1020, 0.85).fillRoundedRect(-w / 2, -h / 2, w, h, 12); t.add(g);
@@ -303,12 +305,14 @@ class MenuScene extends Phaser.Scene {
     });
   }
 
+  menuLane() { const W = this.scale.width; return Math.round(Math.min(W * 0.27, 230)); }
   fit() {
     const W = this.scale.width, H = this.scale.height;
     if (this.bg) this.bg.setPosition(W / 2, H / 2).setScale(Math.max(W / 1024, H / 572));
     const fs = Math.max(26, Math.min(48, W / 16));
-    this.logo.setFontSize(fs).setPosition(W / 2, H * 0.13);
-    this.sub.setPosition(W / 2, H * 0.13 + fs * 0.8);
+    const mx = (this.menuLane() + W - 16) / 2;
+    this.logo.setFontSize(fs).setPosition(mx, H * 0.11);
+    this.sub.setPosition(mx, H * 0.11 + fs * 0.8);
   }
   newGame() {                                       // wipe the save (settings, volume and cheat mode stay) and the run in hand, then off to the map
     if (this.going) return;

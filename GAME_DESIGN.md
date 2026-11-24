@@ -2408,3 +2408,8 @@ rounded form lit from the top left, with dithered seams between tones and a litt
   `extra` tones: the rind gets soft grey-lavender mould blotches, jagged splits running round the wheel show the gooey
   yellow paste inside (dark lip on the shadow side, glossy core), and a few bigger oozing cuts. The base rind tones are a
   touch darker and the depth shading stronger, so the wheel has some shape.
+- **v3.99e: map, menu, loading screen.** Level 10 (the Royal Saucer) has no planet, so its map node showed a missing-texture
+  square: `makeSaucerGlobe` draws a top-down saucer (steel deck, seams, rim lights, glass dome with the crown) as `surf10`.
+  The main menu's cards and pills now sit to the right of a lane for Chris (`menuLane`), Chris is shown a bit smaller there
+  (`TitleBackdrop.chrisK`), and the logo is back on top (it had slipped behind the painted backdrop). The loading screen's
+  moon is pixel art (an 18x18 SVG at 3x, crisp edges) bobbing in whole steps, instead of a smooth CSS gradient.

@@ -1667,6 +1667,35 @@ function makePlanetShade(scene, key, Rw, rimCol, darkCol) {
 // ---------------------------------------------------------------- pixel-art sky (16-bit parallax layers)
 // Every sky piece is drawn into a small canvas pixel by pixel (dithered, limited palette) and shown scaled up
 // with nearest-neighbour filtering, so it reads as chunky 16-bit art rather than smooth vector shapes.
+// (v3.99e) the map icon for level 10, which has no planet: the Royal Saucer seen from above - a round steel deck with
+// panel seams, a ring of lights round the rim and the glass dome in the middle with the Rat King's crown glinting inside
+function makeSaucerGlobe(scene, key) {
+  pixTex(scene, key, 64, 64, put => {
+    const c = 31.5, ST = [0x2a2a40, 0x46485e, 0x6a7088, 0x9aa4b8, 0xcfd8e6], GL = [0x124a58, 0x1a7484, 0x2aa8b0, 0x5ad8d8, 0xb0f8f0];
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+      const dx = x - c, dy = y - c, d = Math.hypot(dx, dy) / 32, a = Math.atan2(dy, dx), b = BAYER4[(y & 3) * 4 + (x & 3)];
+      if (d > 1) continue;
+      if (d > 0.94) { put(x, y, 0x0c0810); continue; }
+      let col;
+      if (d < 0.36) {                                                  // the dome
+        const v = 2.6 + (-dx - dy) / 32 * 5 - d * 3; col = GL[Math.max(0, Math.min(4, Math.floor(v) + ((v % 1) > b ? 1 : 0)))];
+        if (d > 0.32) col = 0x0c0810;
+        if (Math.hypot(dx + 4, dy + 5) < 2.2) col = 0xffffff;          // glint
+        if (Math.abs(dx) < 4 && dy > -1 && dy < 3 && (dy < 1 || (x & 1))) col = 0xffd23f;   // the crown
+      } else {
+        let v = 2.4 + (-dx - dy) / 32 * 1.8;
+        const ring = d * 9 % 1; if (ring < 0.12) v = 1;                  // concentric seams
+        if (((a / (Math.PI * 2) * 16 + 16) % 1) < 0.06 && d > 0.4) v = 1.2;   // radial seams
+        col = ST[Math.max(0, Math.min(4, Math.floor(v) + ((v % 1) > b ? 1 : 0)))];
+        if (d > 0.36 && d < 0.4) col = ST[0];
+      }
+      put(x, y, col);
+    }
+    for (let k = 0; k < 16; k++) { const a = k / 16 * Math.PI * 2, x = Math.round(c + Math.cos(a) * 26), y = Math.round(c + Math.sin(a) * 26), lc = k % 2 ? 0xff5a4a : 0xffd23f;   // rim lights
+      put(x, y, lc); put(x + 1, y, lc); put(x, y + 1, lc); put(x + 1, y + 1, 0xffffff); }
+  });
+}
+
 function pixTex(scene, key, w, h, draw) {
   if (scene.textures.exists(key)) return;
   const tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;

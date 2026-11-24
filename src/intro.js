@@ -1343,16 +1343,17 @@ class TitleBackdrop {
     if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
     this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = this.gag && this.gag.k === 'rat' && this.gag.fired ? 0.05 : 0.45 + 0.1 * Math.sin(t * 0.8);
     const x = Math.round(W * this.cx / z) * z, y = Math.round((top + z + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))))) / z) * z;
-    this.rig.update(P, dt, x, y, z, 1, Math.floor(t * 10) % 4);
-    if (this.fun !== false) this.gagUpdate(dt, t, W, H, mx, my, R, top, x, y, z);
+    const cz = z * (this.chrisK || 1);                                  // (v3.99e) the menu shows him a bit smaller, to leave room for the cards
+    this.rig.update(P, dt, x, y, cz, 1, Math.floor(t * 10) % 4);
+    if (this.fun !== false) this.gagUpdate(dt, t, W, H, mx, my, R, top, x, y, cz);
     // the shots: the game's own macaroni, at the game's own size, flying straight out of the barrel
     this.shotT = (this.shotT || 0) - dt;
     if (this.burst > 0 && this.shotT <= 0 && sc.textures.exists('mac0')) {
       this.shotT = 0.1;
       const ga = this.rig.gunArm, root = this.rig.root, r = ga.rotation, cs = Math.cos(r), sn = Math.sin(r), lx = 58;
       const sx = root.x + (ga.x + lx * ga.scaleX * cs) * root.scaleX, sy = root.y + (ga.y + lx * ga.scaleX * sn) * root.scaleY, dir = Math.sign(ga.scaleX * root.scaleX) || 1;
-      const im = sc.add.image(sx, sy, 'mac' + (this.shots.length % 3)).setDepth(this.g.depth + 0.08).setScale(z);
-      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 330 * z, vy: sn * 330 * z, r: Math.random() * 6 });
+      const im = sc.add.image(sx, sy, 'mac' + (this.shots.length % 3)).setDepth(this.g.depth + 0.08).setScale(cz);
+      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 330 * cz, vy: sn * 330 * cz, r: Math.random() * 6 });
       if (typeof Sound !== 'undefined' && sc.scene.key === 'intro' && sc.phase !== 'gate') Sound.sfx('shoot');
     }
     const rat = this.gag && this.gag.k === 'rat' && this.gag.st === 'run' ? this.gag : null;
