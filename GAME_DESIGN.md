@@ -2394,7 +2394,7 @@ rounded form lit from the top left, with dithered seams between tones and a litt
   under sprites still using it; the painter now runs once.
 - **Title screen (TitleBackdrop, intro.js).** The backdrop is painted once into a canvas at Chris's own pixel size (a whole
   number: 2 on phones), so nothing is crisper than anything else: dithered night sky whose gradient bends round the moon,
-  nebula, stars with twinkling crosses, a shaded ringed planet, and the Gruyere Globe as pixel art (cheese ramp, bright rim,
+  nebula, stars with twinkling crosses, a plain round planet (v3.99b: no ring, which cut through the planet and looked nothing like our planets), and the Gruyere Globe as pixel art (cheese ramp, bright rim,
   pores, holes with a shadowed lip). Chris fires the game's real macaroni at the game's size, straight out of the barrel;
   the rat gag is hit by those same shots. The intro and ending test bursts use the same macaroni.
 - **Skies.** `makeSkyDither` takes an arc: the colour bands are rings about the planet's centre rather than straight lines.

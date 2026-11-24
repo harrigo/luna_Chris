@@ -1304,14 +1304,16 @@ class TitleBackdrop {
       if (k < 0.1) { put(x, y, 0xffffff); for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(x + ax, y + ay, c === 0xffffff ? 0xb4d8ff : c); this.tw.push({ x, y, p: rnd() * 6 }); }
       else put(x, y, k < 0.5 ? c : [0x6a7088, 0x7c48c0, 0x3e78e0][i % 3]);
     }
-    { const PR = [0x1e1438, 0x34205e, 0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff], px = Math.round(w * 0.9), py = Math.round(h * 0.5), pr = Math.max(8, Math.round(h * 0.075));   // the ringed planet
-      const ring = (x, y) => { const q = Math.sqrt(Math.pow((x - px) / (pr * 2.0), 2) + Math.pow((y - py - (x - px) * 0.18) / (pr * 0.42), 2)); return q > 0.8 && q < 1.02 ? (q > 0.93 ? PR[3] : PR[4]) : 0; };
-      for (let y = py - pr * 2; y <= py + pr * 2; y++) for (let x = px - pr * 3; x <= px + pr * 3; x++) {
-        const nx = (x - px) / pr, ny = (y - py) / pr, q = nx * nx + ny * ny, rg = ring(x, y), front = (y - py - (x - px) * 0.18) > 0;
-        if (rg && (front || q > 1.15)) { put(x, y, rg); continue; }
-        if (q > 1.15) continue;
-        if (q > 0.86) { put(x, y, 0x0c0810); continue; }
-        put(x, y, pick(PR, 2.5 + (-nx * 0.6 - ny * 0.75) * 2.4 + Math.sin(ny * 5 + nx * 1.5) * 0.5, x, y));
+    { const PR = [0x1e1438, 0x34205e, 0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff], px = Math.round(w * 0.9), py = Math.round(h * 0.5), pr = Math.max(8, Math.round(h * 0.07));   // (v3.99b) a far-off planet, plain and round like the level planets: ink outline, lit top left, a couple of craters
+      const cr = [[-0.35, -0.2, 0.22], [0.3, 0.3, 0.16], [0.05, -0.5, 0.11]];
+      for (let y = py - pr - 1; y <= py + pr + 1; y++) for (let x = px - pr - 1; x <= px + pr + 1; x++) {
+        const nx = (x - px) / pr, ny = (y - py) / pr, q = nx * nx + ny * ny;
+        if (q > 1.0) continue;
+        if (q > 0.84) { put(x, y, 0x0c0810); continue; }
+        let f = 2.4 + (-nx * 0.6 - ny * 0.75) * 2.2 + (noise(x, y, 4) - 0.5) * 0.8;
+        if (q > 0.62 && nx + ny > 0.3) f -= 1;                                        // shadow on the far side
+        for (const [cx, cy, r] of cr) { const d = Math.hypot(nx - cx, ny - cy); if (d < r) f = d < r * 0.7 ? (ny < cy ? 1.2 : 2.2) : 3.6; }
+        put(x, y, pick(PR, f, x, y));
       } }
     ctx.putImageData(img, 0, 0); tex.refresh();
     if (!this.bg) this.bg = sc.add.image(0, 0, key).setOrigin(0).setDepth(this.g.depth - 0.005); else this.bg.setTexture(key);
