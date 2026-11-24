@@ -1304,7 +1304,12 @@ class TitleBackdrop {
       if (k < 0.1) { put(x, y, 0xffffff); for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(x + ax, y + ay, c === 0xffffff ? 0xb4d8ff : c); this.tw.push({ x, y, p: rnd() * 6 }); }
       else put(x, y, k < 0.5 ? c : [0x6a7088, 0x7c48c0, 0x3e78e0][i % 3]);
     }
-    { const PR = [0x1e1438, 0x34205e, 0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff], px = Math.round(w * 0.9), py = Math.round(h * 0.5), pr = Math.max(8, Math.round(h * 0.07));   // (v3.99b) a far-off planet, plain and round like the level planets: ink outline, lit top left, a couple of craters
+    { const PR = [0x1e1438, 0x34205e, 0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff], px = Math.round(w * 0.9), py = Math.round(h * 0.5), pr = Math.max(8, Math.round(h * 0.07));   // a far-off planet like the level planets: ink outline, lit top left, a few craters
+      // (v3.99c) and a ring, flat and level: its far half passes behind the planet, its near half in front
+      const RX = pr * 1.95, RY = pr * 0.42, RC = [0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff];
+      const ringAt = (x, y) => { const q = Math.hypot((x - px) / RX, (y - py) / RY); if (q < 0.66 || q > 1.08) return -1; if (q < 0.72 || q > 1.0) return 0x0c0810; return pick(RC, 1.2 + (q - 0.72) * 4 - (x - px) / RX * 1.2, x, y); };
+      const ring = front => { for (let y = Math.floor(py - RY - 2); y <= py + RY + 2; y++) for (let x = Math.floor(px - RX - 2); x <= px + RX + 2; x++) { if ((y >= py) !== front) continue; const c = ringAt(x, y); if (c >= 0) put(x, y, c); } };
+      ring(false);
       const cr = [[-0.35, -0.2, 0.22], [0.3, 0.3, 0.16], [0.05, -0.5, 0.11]];
       for (let y = py - pr - 1; y <= py + pr + 1; y++) for (let x = px - pr - 1; x <= px + pr + 1; x++) {
         const nx = (x - px) / pr, ny = (y - py) / pr, q = nx * nx + ny * ny;
@@ -1312,9 +1317,11 @@ class TitleBackdrop {
         if (q > 0.84) { put(x, y, 0x0c0810); continue; }
         let f = 2.4 + (-nx * 0.6 - ny * 0.75) * 2.2 + (noise(x, y, 4) - 0.5) * 0.8;
         if (q > 0.62 && nx + ny > 0.3) f -= 1;                                        // shadow on the far side
+        if (Math.abs(ny) < RY / pr * 0.95 && ny < 0.25 && ny > 0) f -= 0.8;           // the ring's shadow across the planet
         for (const [cx, cy, r] of cr) { const d = Math.hypot(nx - cx, ny - cy); if (d < r) f = d < r * 0.7 ? (ny < cy ? 1.2 : 2.2) : 3.6; }
         put(x, y, pick(PR, f, x, y));
-      } }
+      }
+      ring(true); }
     ctx.putImageData(img, 0, 0); tex.refresh();
     if (!this.bg) this.bg = sc.add.image(0, 0, key).setOrigin(0).setDepth(this.g.depth - 0.005); else this.bg.setTexture(key);
     this.bg.setScale(z); this.pw = w; this.ph = h; this.pz = z;
