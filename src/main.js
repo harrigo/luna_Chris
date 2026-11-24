@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.95';
+const BUILD = 'v3.96';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -356,7 +356,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.bannerAt = undefined; this.mk = null; this.mkText = null; this.perf = null; this.perfNoHalo = false;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.bossGear = false; this.bannerAt = undefined; this.mk = null; this.mkText = null; this.perf = null; this.perfNoHalo = false;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -1686,6 +1686,14 @@ class Level1 extends Phaser.Scene {
     }
     if (this.comboText) this.comboText.setPosition(this.W / 2, 40);
     const low = this.state === 'play' && this.pl.hp <= 1 && !this.bonusHeart;
+    // (v3.96) THE MUSIC FOLLOWS THE PLAY: heat from your style rank and combo (audio.js adds the wave's tier), a muffled
+    // heartbeat version on the last heart, and up a gear when the boss is down to half
+    if (this.state === 'play' && !this.camp && !this.training) {
+      const c = this.combo || 0;
+      Sound.heat((this.styleRank || 0) * 0.55 + (c >= 5 ? 0.5 : 0) + (c >= 10 ? 0.5 : 0) + (this.pl.power > 0 ? 0.4 : 0));
+      Sound.danger(low && this.maxHp > 1);
+      if (!this.bossGear) { const b = this.enemies.find(e => e.type === 'boss'); if (b && b.maxHp && b.hp > 0 && b.hp < b.maxHp * 0.5) { this.bossGear = true; Sound.gear(); } }
+    } else Sound.danger(false);
     if (low && !this.vign) {
       const key = 'vign_red';
       if (!this.textures.exists(key)) {
@@ -2182,7 +2190,7 @@ class Level1 extends Phaser.Scene {
   startBuff(k) {
     const P = this.pl, B = BUFFS[k];
     if (P.buff) this.endBuff(true);
-    Sound.sfx('power'); buzz([20, 30, 20, 30, 60]); this.bang(P.theta, P.h + 24, 26);
+    Sound.sfx('power'); Sound.boost(); buzz([20, 30, 20, 30, 60]); this.bang(P.theta, P.h + 24, 26);   // (v3.96) the band kicks up for four bars
     this.banner(B.name + (B.t ? '\n' + B.t + ' SECONDS!' : '')); this.addScore(300);
     this.addLight(P.theta, P.h + 30, 140, B.col, 1, 0.5);
     if (k === 'moo') { this.mooBomb(); return; }

@@ -373,9 +373,17 @@ const Sound = (() => {
       const p = c.drums ? parseDrums(c.p) : parseNotes(c.p);
       const by = {};
       p.events.forEach(e => { (by[e.step] = by[e.step] || []).push(e); });
-      return Object.assign({}, c, { steps: p.steps, by });
+      let byAlt = null;
+      if (c.alt) { byAlt = {}; parseNotes(c.alt).events.forEach(e => { (byAlt[e.step] = byAlt[e.step] || []).push(e); }); }   // (v3.96) an alternate take on the melody
+      return Object.assign({}, c, { steps: p.steps, by, byAlt });
     });
-    return { bpm: def.bpm, loop: def.loop !== false, chans, total: Math.max(...chans.map(c => c.steps)) };
+    return { bpm: def.bpm, loop: def.loop !== false, hook: !!def.hook, chans, total: Math.max(...chans.map(c => c.steps)) };
+  }
+  // (v3.96) a SONG: named sections played in an order ('ABACB'), each one a little track of its own
+  function song(def) {
+    const secs = {};
+    for (const k of new Set(def.order.split(''))) secs[k] = build(Object.assign({ bpm: def.bpm }, def[k]));
+    return { song: true, bpm: def.bpm, loop: true, order: def.order.split(''), secs };
   }
 
   const J = (...a) => a.join(' ');
@@ -385,14 +393,35 @@ const Sound = (() => {
 
   const TRACKS = {
     // Level 1: driving A-minor chase
-    level1: build({ bpm: 142, ch: [
-      { p: J('A4:2 C5:2 E5:2 A5:2 G5:4 E5:4', 'D5:2 E5:2 G5:2 E5:2 C5:4 -:4', 'C5:2 F5:2 A5:2 F5:2 E5:4 C5:4', 'B4:2 D5:2 G5:2 D5:2 B4:4 -:2 D5:2',
-              'E5:2 E5:2 A5:2 B5:2 C6:4 A5:4', 'G5:2 A5:2 G5:2 E5:2 D5:4 C5:4', 'A5:2 G5:2 F5:2 E5:2 F5:4 A5:4', 'G#5:2 B5:2 E5:2 G#5:2 B5:4 -:4'),
-        w: 'pulse', duty: 0.5, vol: 0.15, gate: 0.85 },
-      { p: J(arpBar(Am), arpBar(Am), arpBar(F), arpBar(G), arpBar(Am), arpBar(Am), arpBar(F), arpBar(E)), w: 'pulse', duty: 0.25, vol: 0.07, pluck: true, gate: 1 },
-      { p: J(bassBar(45), bassBar(45), bassBar(41), bassBar(43), bassBar(45), bassBar(45), bassBar(41), bassBar(40)), w: 'triangle', vol: 0.32, gate: 0.8 },
-      { drums: true, p: 'k.h.s.h.kkh.s.h.', vol: 1 }
-    ] }),
+    // (v3.96: a SONG now - verse, chorus, verse, breakdown, chorus: about a minute before it comes round, and never
+    // quite the same twice)
+    level1: song({ bpm: 142, order: 'ABACB',
+      A: { ch: [                                                          // the verse: the A-minor chase
+        { p: J('A4:2 C5:2 E5:2 A5:2 G5:4 E5:4', 'D5:2 E5:2 G5:2 E5:2 C5:4 -:4', 'C5:2 F5:2 A5:2 F5:2 E5:4 C5:4', 'B4:2 D5:2 G5:2 D5:2 B4:4 -:2 D5:2',
+                'E5:2 E5:2 A5:2 B5:2 C6:4 A5:4', 'G5:2 A5:2 G5:2 E5:2 D5:4 C5:4', 'A5:2 G5:2 F5:2 E5:2 F5:4 A5:4', 'G#5:2 B5:2 E5:2 G#5:2 B5:4 -:4'),
+          alt: J('A4:4 E5:4 A5:2 G5:2 E5:4', 'D5:4 G5:4 E5:2 D5:2 C5:4', 'C5:4 A5:4 F5:2 E5:2 C5:4', 'B4:2 D5:2 G5:4 B5:4 -:2 G5:2',
+                 'E5:1 E5:1 E5:2 A5:2 B5:2 C6:2 B5:2 A5:4', 'G5:4 E5:2 G5:2 D5:2 E5:2 C5:4', 'F5:2 A5:2 C6:4 A5:2 F5:2 A5:4', 'E5:2 G#5:2 B5:2 E6:2 B5:4 -:4'),
+          w: 'pulse', duty: 0.5, vol: 0.15, gate: 0.85 },
+        { p: J(arpBar(Am), arpBar(Am), arpBar(F), arpBar(G), arpBar(Am), arpBar(Am), arpBar(F), arpBar(E)), w: 'pulse', duty: 0.25, vol: 0.07, pluck: true, gate: 1 },
+        { p: J(bassBar(45), bassBar(45), bassBar(41), bassBar(43), bassBar(45), bassBar(45), bassBar(41), bassBar(40)), w: 'triangle', vol: 0.32, gate: 0.8 },
+        { drums: true, p: 'k.h.s.h.kkh.s.h.', vol: 1 }
+      ] },
+      B: { hook: true, ch: [                                              // the chorus: up high, long notes, F G Am
+        { p: J('A5:4 C6:4 A5:4 F5:4', 'B5:4 D6:4 B5:4 G5:4', 'C6:6 B5:2 A5:4 E5:4', 'A5:8 -:4 E5:2 G5:2',
+                'A5:4 C6:4 F5:4 A5:4', 'G5:4 B5:4 D6:4 B5:4', 'E6:6 D6:2 B5:4 G#5:4', 'E5:2 G#5:2 B5:2 E6:2 D6:2 B5:2 G#5:2 E5:2'),
+          alt: J('A5:2 A5:2 C6:4 A5:2 G5:2 F5:4', 'B5:2 B5:2 D6:4 B5:2 A5:2 G5:4', 'C6:4 E6:4 C6:2 B5:2 A5:4', 'A5:6 G5:2 E5:4 -:4',
+                 'F5:2 A5:2 C6:4 A5:2 C6:2 F6:4', 'G5:2 B5:2 D6:4 B5:2 D6:2 G6:4', 'E6:4 B5:4 G#5:4 B5:4', 'E6:8 B5:2 G#5:2 E5:4'),
+          w: 'pulse', duty: 0.25, vol: 0.16, gate: 0.92 },
+        { p: J(arpBar(F), arpBar(G), arpBar(Am), arpBar(Am), arpBar(F), arpBar(G), arpBar(E), arpBar(E)), w: 'pulse', duty: 0.25, vol: 0.07, pluck: true, gate: 1 },
+        { p: J(bassBar(41), bassBar(43), bassBar(45), bassBar(45), bassBar(41), bassBar(43), bassBar(40), bassBar(40)), w: 'triangle', vol: 0.32, gate: 0.8 },
+        { drums: true, p: 'k.h.s.h.k.k.s.hs', vol: 1 }
+      ] },
+      C: { ch: [                                                          // the breakdown: it all drops away, then builds back
+        { p: J('A4:8 -:8', '-:16', 'C5:8 -:8', 'E5:4 D5:4 C5:4 B4:4'), w: 'pulse', duty: 0.5, vol: 0.12, gate: 0.9 },
+        { p: J(arpBar(Am), arpBar(F), arpBar(G), arpBar(E)), w: 'pulse', duty: 0.25, vol: 0.07, pluck: true, gate: 1 },
+        { p: J('45:8 45:8', '41:8 41:8', '43:8 43:8', '40:4 40:4 40:2 40:2 40:2 40:2'), w: 'triangle', vol: 0.34, gate: 0.9 },
+        { drums: true, p: 'k.......k.......' + 'k.......k.....s.' + 'k...h...k...h...' + 'k...k...k.k.kkss', vol: 0.9 }
+      ] } }),
 
     // Boss: faster, nastier E minor
     boss: build({ bpm: 164, ch: [
@@ -434,16 +463,36 @@ const Sound = (() => {
 
     // (v3.92) The Great Grater, METAL: E-minor palm-muted chugs and power chords on a distorted rhythm guitar, a wailing
     // lead, double-kick drums. Layers like the other level tracks (the tremolo picking comes in on wave 2).
-    levelmetal: build({ bpm: 172, ch: [
-      { p: J('E2:1 E2:1 E2:1 -:1 E2:1 E2:1 G2:2 E2:1 E2:1 E2:1 -:1 A2:2 G2:2', 'E2:1 E2:1 E2:1 -:1 E2:1 E2:1 A#2:2 A2:2 G2:2 F#2:2 G2:2',
-              'C3:2 C3:1 C3:1 -:1 C3:1 C3:2 D3:2 D3:1 D3:1 -:1 D3:1 D3:2', 'E2:1 E2:1 E2:1 E2:1 G2:2 E2:2 A2:2 G2:2 B2:4'),
-        w: 'dist', chord: [0, 7, 12], pm: true, vol: 0.075, drive: 6, gate: 0.95 },
-      { p: J('E4:2 G4:2 B4:2 E5:4 D5:2 B4:2 G4:2', 'A4:2 B4:2 C5:2 B4:2 A4:2 G4:2 F#4:4', 'G4:2 A4:2 B4:2 C5:4 B4:2 A4:2 G4:2', 'F#4:2 G4:2 A4:2 B4:6 -:4'),
-        w: 'dist', chord: [0, 12], vol: 0.045, drive: 9, gate: 0.92 },
-      { p: J(...['E5', 'E5', 'C5', 'D5'].map(n => (n + ':1 ').repeat(16).trim())), w: 'pulse', duty: 0.125, vol: 0.035, pluck: true, gate: 0.6 },
-      { p: J(bassBar(28), bassBar(28), bassBar(36), bassBar(28)), w: 'triangle', vol: 0.36, gate: 0.7 },
-      { drums: true, p: 'c.kks.kkk.kks.kk' + 'k.kks.kkk.kks.ks' + 'k.kks.kkk.kks.kk' + 'kkkks.kkkkkks.ss', vol: 1 }
-    ] }),
+    levelmetal: song({ bpm: 172, order: 'AABACB',
+      A: { ch: [                                                          // the riff
+        { p: J('E2:1 E2:1 E2:1 -:1 E2:1 E2:1 G2:2 E2:1 E2:1 E2:1 -:1 A2:2 G2:2', 'E2:1 E2:1 E2:1 -:1 E2:1 E2:1 A#2:2 A2:2 G2:2 F#2:2 G2:2',
+                'C3:2 C3:1 C3:1 -:1 C3:1 C3:2 D3:2 D3:1 D3:1 -:1 D3:1 D3:2', 'E2:1 E2:1 E2:1 E2:1 G2:2 E2:2 A2:2 G2:2 B2:4'),
+          w: 'dist', rhythm: true, chord: [0, 7, 12], pm: true, vol: 0.075, drive: 6, gate: 0.95 },
+        { p: J('E4:2 G4:2 B4:2 E5:4 D5:2 B4:2 G4:2', 'A4:2 B4:2 C5:2 B4:2 A4:2 G4:2 F#4:4', 'G4:2 A4:2 B4:2 C5:4 B4:2 A4:2 G4:2', 'F#4:2 G4:2 A4:2 B4:6 -:4'),
+          alt: J('E5:4 D5:2 B4:2 G4:4 B4:4', 'A4:4 C5:4 B4:2 A4:2 F#4:4', 'G4:4 C5:4 E5:4 D5:4', 'B4:2 D5:2 F#5:2 B5:6 -:4'),
+          w: 'dist', chord: [0, 12], vol: 0.045, drive: 9, gate: 0.92 },
+        { p: J(...['E5', 'E5', 'C5', 'D5'].map(n => (n + ':1 ').repeat(16).trim())), w: 'pulse', duty: 0.125, vol: 0.035, pluck: true, gate: 0.6 },
+        { p: J(bassBar(28), bassBar(28), bassBar(36), bassBar(28)), w: 'triangle', vol: 0.36, gate: 0.7 },
+        { drums: true, p: 'c.kks.kkk.kks.kk' + 'k.kks.kkk.kks.ks' + 'k.kks.kkk.kks.kk' + 'kkkks.kkkkkks.ss', vol: 1 }
+      ] },
+      B: { hook: true, ch: [                                              // the chorus: big ringing chords, half-time, the lead soaring
+        { p: J('C3:4 C3:2 C3:2 G2:4 G2:2 G2:2', 'D3:4 D3:2 D3:2 A2:4 A2:2 B2:2', 'C3:4 C3:2 C3:2 G2:4 G2:2 G2:2', 'B2:2 B2:2 B2:2 B2:2 B2:1 B2:1 B2:1 B2:1 B2:1 B2:1 B2:1 B2:1'),
+          w: 'dist', rhythm: true, chord: [0, 7, 12], pm: true, vol: 0.075, drive: 6, gate: 0.95 },
+        { p: J('E5:6 G5:2 E5:4 D5:4', 'F#5:6 A5:2 F#5:4 E5:4', 'G5:6 E5:2 G5:4 B5:4', 'B5:8 A5:2 G5:2 F#5:2 D#5:2'),
+          alt: J('G5:4 E5:4 C5:4 D5:4', 'A5:4 F#5:4 D5:4 E5:4', 'G5:2 E5:2 G5:2 B5:2 C6:4 B5:4', 'B5:4 F#5:4 D#5:2 F#5:2 B5:4'),
+          w: 'dist', chord: [0, 12], vol: 0.05, drive: 9, gate: 0.95 },
+        { p: J(bassBar(36), bassBar(38), bassBar(36), bassBar(35)), w: 'triangle', vol: 0.36, gate: 0.7 },
+        { drums: true, p: 'c.h.s.h.k.h.s.h.' + 'k.h.s.h.k.h.s.h.' + 'k.h.s.h.k.h.s.h.' + 'k.k.s.k.kkkkssss', vol: 1 }
+      ] },
+      C: { ch: [                                                          // the solo: a gallop underneath, the lead shredding
+        { p: J(('E2:2 E2:1 E2:1 ').repeat(4).trim(), ('E2:2 E2:1 E2:1 ').repeat(4).trim(), ('G2:2 G2:1 G2:1 ').repeat(4).trim(), ('A2:2 A2:1 A2:1 ').repeat(4).trim()),
+          w: 'dist', rhythm: true, chord: [0, 7, 12], pm: true, vol: 0.07, drive: 6, gate: 0.9 },
+        { p: J('E5:1 G5:1 A5:1 B5:1 D6:1 B5:1 A5:1 G5:1 E5:1 G5:1 A5:1 B5:1 D6:1 E6:1 D6:1 B5:1', 'E6:2 D6:1 B5:1 A5:2 G5:1 E5:1 G5:2 A5:2 B5:4',
+                'G5:1 B5:1 D6:1 G6:1 D6:1 B5:1 G5:1 B5:1 D6:1 G6:1 D6:1 B5:1 G5:1 D5:1 G5:1 B5:1', 'A5:2 C6:2 E6:4 D6:2 B5:2 E6:4'),
+          w: 'dist', chord: [0], vol: 0.06, drive: 10, gate: 0.9 },
+        { p: J(bassBar(28), bassBar(28), bassBar(31), bassBar(33)), w: 'triangle', vol: 0.36, gate: 0.7 },
+        { drums: true, p: 'kkkkskkkkkkkskkk'.repeat(3) + 'kkkkskkkkkssssss', vol: 1 }
+      ] } }),
 
     // Title screen: heroic fanfare in C major
     title: build({ bpm: 126, ch: [
@@ -580,41 +629,90 @@ const Sound = (() => {
   // from the top at the next intensity, and the game launches the next wave on that beat.
   let intensity = 0;
   const isLevelTrack = n => /^level|^final$/.test(n || '');
-    const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
+  const FILL_BAR = 'k.k.s.k.s.sks.ss';                                    // the run-in, if the fill gets a whole bar
   function fillDrum(left, at) {                                           // `left` steps before the downbeat
     if (left <= 4) return ['l', 'l', 'm', 't'][left - 1];               // toms tumbling down into the crash
     if (left <= 8) return 's';                                             // snare roll
     return FILL_BAR[at % 16] === '.' ? null : FILL_BAR[at % 16];
   }
+
+  // ---- (v3.96) THE MUSIC LISTENS, AND DOESN'T REPEAT ITSELF
+  // ENERGY (0..3) = the wave's tier (0, 0.6, 1.2) + HEAT, which the game sends every frame from how you're playing (your
+  // style rank and combo). It's read at each bar line, so the band follows you within a bar or two:
+  //   under 1   lead, bass, kick and snare
+  //   1+        + the arpeggio and running 16th hi-hats
+  //   2+        + four-on-the-floor kicks and a sparkly octave on the lead
+  //   2.5+      + a harmony line under the lead
+  //   3         + the arpeggio doubled an octave up, open hats on the off-beats, a crash every four bars
+  // Take a hit or drop the combo and your rank falls, so it thins back out.
+  // SONGS: a track can be several SECTIONS played in an order (verse, chorus, breakdown) instead of one short loop.
+  // VARIATION, re-rolled every time a section comes round: an alternate melody (a channel's `alt`), the lead sitting
+  // one out now and then, a different drum fill at the end of every fourth bar, and every third pass through the song
+  // lifted a tone.
+  // MOMENTS: boost() (a power-up: a crash and four bars one notch up), danger(on) (last heart: muffled, stripped back,
+  // a heartbeat on the kick), gear() (a boss at half health: faster, and up a tone).
+  let heat = 0, dangerOn = false;
+  const AUTO_FILLS = ['s.ss', 'ksks', 'tmml', '.sss', 'k.ss', 'ttmm', 'sskk', 's.s.'];
+  const energyNow = () => Math.max(0, Math.min(3, intensity * 0.6 + heat));
+  function rollSection(c) {                                              // a section is starting: this time round...
+    const later = c.pass > 0 || c.secN > 0;
+    c.useAlt = later && Math.random() < 0.5;
+    c.noLead = c.level && later && !c.tr.hook && c.E < 2.5 && Math.random() < 0.18;
+    c.lead = c.tr.chans.find(ch => !ch.drums && !ch.pluck && ch.w !== 'triangle' && !ch.rhythm);
+  }
+  function setSection(c, i) {
+    if (c.song) { const n = c.song.order.length; if (i >= n) { i = 0; c.pass++; } c.secI = i; c.tr = c.song.secs[c.song.order[i]]; }
+    else if (i > 0) c.pass++;
+    c.secN++; c.step = 0;
+    c.lift = c.level && c.pass % 3 === 2 ? 2 : 0;                         // every third time through the song: up a tone
+    rollSection(c);
+  }
   function playStep(c) {
-    const t = c.next, lvl = c.level ? intensity : 2, F = c.fill;
+    const t = c.next, F = c.fill, st16 = c.step % 16;
     const inFill = F && c.step >= F.from && c.step < F.to, left = inFill ? F.to - c.step : 0;
+    if (st16 === 0) {                                                    // the bar line: how hot is it now?
+      c.E = c.level ? energyNow() + (c.boost > 0 ? 1 : 0) : 3;
+      if (c.boost > 0) c.boost--;
+      if (c.level) c.bus.gain.setTargetAtTime(0.8 + 0.1 * Math.min(3, c.E), t, 0.25);   // and it gets a little louder as it builds
+      c.autoFill = c.level && !inFill && c.E >= 1 && !dangerOn && c.bars % 4 === 3 ? AUTO_FILLS[Math.floor(Math.random() * AUTO_FILLS.length)] : null;
+      if (c.level && c.E >= 3 && c.bars % 4 === 0 && !inFill) c.crash = true;
+      c.bars++;
+    }
+    const E = c.E, tense = dangerOn && c.level;
     if (inFill) {
       const d = fillDrum(left, c.step);
       if (d) drum(d, t, c.bus, 0.7 + 0.5 * (1 - left / (F.to - F.from)));   // the roll swells into the downbeat
       if (left <= 4) noise({ ft: 'bandpass', f1: 600 + (5 - left) * 900, dur: c.dur * 1.1, vol: 0.05 + (5 - left) * 0.02, t, bus: c.bus });   // a rising whoosh
     }
     if (c.crash) { drum('c', t, c.bus, 1); c.crash = false; }
-    const hats = c.level && lvl >= 1 && !inFill, floor = c.level && lvl >= 2 && !inFill;
+    const hats = c.level && E >= 1 && !inFill && !tense, floor = c.level && E >= 2 && !inFill && !tense, top = c.level && E >= 3 && !tense;
+    const tp = Math.pow(2, ((c.lift || 0) + (c.gearTp || 0)) / 12);
     for (const ch of c.tr.chans) {
-      const st = c.step % ch.steps, evs = ch.by[st];
+      const st = c.step % ch.steps;
+      const evs = (ch === c.lead && c.useAlt && ch.byAlt ? ch.byAlt : ch.by)[st];
       if (ch.drums) {
         if (inFill) continue;
+        if (tense) { if (st16 === 0 || st16 === 3) drum('k', t, c.bus, st16 ? 0.7 : 1); if (st16 === 8) drum('s', t, c.bus, 0.5); continue; }   // a heartbeat
+        if (c.autoFill && st16 >= 12) { const d = c.autoFill[st16 - 12]; if (d !== '.') drum(d, t, c.bus, 0.9); continue; }   // this bar ends in a little fill
         const has = d => evs && evs.some(e => e.d === d);
-        if (evs) for (const e of evs) drum(e.d, t, c.bus, ch.vol || 1);
+        if (evs) for (const e of evs) { if (c.level && E < 1 && e.d === 'h') continue; drum(e.d, t, c.bus, ch.vol || 1); }
         if (floor && st % 4 === 0 && !has('k')) drum('k', t, c.bus, 0.85);           // four on the floor
-        if (hats && !has('h') && !has('s')) drum('h', t, c.bus, st % 2 ? 0.6 : 0.85); // running 16ths
+        if (hats && !has('h') && !has('s')) drum('h', t, c.bus, top && st16 % 4 === 2 ? 1.5 : st % 2 ? 0.6 : 0.85); // running 16ths (open on the off-beat at full tilt)
         continue;
       }
       if (!evs) continue;
-      if (c.level && ch.pluck && lvl < 1) continue;                       // the arpeggio comes in on wave 2
+      if (c.level && ch.pluck && (E < 1 || tense)) continue;              // the arpeggio comes in as things warm up
       if (inFill && ch.w !== 'triangle') continue;                        // only the bass rides through the fill
+      if (ch === c.lead && c.noLead) continue;                            // the lead sits this section out
       for (const e of evs) {
-        const f = 440 * Math.pow(2, (e.note - 69) / 12), dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
-        if (ch.w === 'dist') { guitar({ f, dur, vol: ch.vol, t, bus: c.bus, chord: ch.chord, pm: ch.pm && e.len <= 1, drive: ch.drive }); continue; }   // (v3.92)
+        const f = 440 * Math.pow(2, (e.note - 69) / 12) * tp, dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
+        if (ch.w === 'dist') { guitar({ f, dur, vol: ch.vol * (tense && ch === c.lead ? 0.5 : 1), t, bus: c.bus, chord: ch.chord, pm: ch.pm && e.len <= 1, drive: ch.drive }); continue; }   // (v3.92)
         tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
-        if (!c.level || ch.pluck || ch.w === 'triangle' || ch !== c.lead) continue;
-        if (lvl >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
+        if (!c.level) continue;
+        if (ch.pluck) { if (top) tone({ type: 'pulse', duty: 0.25, f: f * 2, dur: Math.min(dur, c.dur), vol: ch.vol * 0.55, t, bus: c.bus }); continue; }   // the arpeggio, doubled up top
+        if (ch.w === 'triangle' || ch !== c.lead || tense) continue;
+        if (E >= 2) tone({ type: 'pulse', duty: 0.125, f: f * 2, dur: Math.min(dur, c.dur * 1.5), vol: ch.vol * 0.3, t, bus: c.bus });   // sparkle on top
+        if (E >= 2.5) tone({ type: 'pulse', duty: 0.5, f: f * Math.pow(2, -5 / 12), dur, vol: ch.vol * 0.4, t, bus: c.bus, sustain: true });   // a harmony a fourth under
       }
     }
   }
@@ -634,6 +732,14 @@ const Sound = (() => {
     n = Math.max(0, Math.min(2, n | 0));
     if (n === intensity) return;
     intensity = n;
+  }
+  function setHeat(v) { heat = Math.max(0, Math.min(3, +v || 0)); }
+  function boost() { if (cur && cur.level) { cur.boost = 4; cur.crash = true; } }
+  function applyDanger(c, quick) { if (c && c.filt) c.filt.frequency.setTargetAtTime(dangerOn && c.level ? 1000 : 20000, ctx.currentTime, quick ? 0.01 : 0.25); }
+  function danger(on) { on = !!on; if (on === dangerOn) return; dangerOn = on; if (ctx && cur) applyDanger(cur); }
+  function gear() {                                                      // up a gear: faster, a tone higher, a crash
+    if (!cur || cur.geared) return;
+    cur.geared = true; cur.dur /= 1.1; cur.gearTp = 2; cur.crash = true;
   }
 
   function tick() {
@@ -656,14 +762,17 @@ const Sound = (() => {
           setTimeout(() => { try { old.bus.disconnect(); } catch (e) { /* gone */ } }, wait + 1600);
           break;
         }
-        setIntensity(F.next); cur.step = 0; cur.crash = true;
+        setIntensity(F.next); cur.secI = 0; if (cur.song) cur.tr = cur.song.secs[cur.song.order[0]]; cur.step = 0; cur.bars = 0; cur.secN++; rollSection(cur); cur.crash = true;
+        continue;
       }
       if (!cur.tr.loop && cur.step >= cur.tr.total) {
         const old = cur;
         cur = null;
         setTimeout(() => { try { old.bus.disconnect(); } catch (e) { /* gone */ } }, 4000);
         if (old.then) music(old.then);
+        continue;
       }
+      if (!cur.fill && cur.step >= cur.tr.total) setSection(cur, (cur.secI || 0) + 1);   // on to the next section (or round again)
     }
   }
 
@@ -683,13 +792,14 @@ const Sound = (() => {
     if (cur && cur.name === name) return;
     stopCur(0.15);
     if (!name || !TRACKS[name]) return;
-    const tr = TRACKS[name];
-    const bus = ctx.createGain();
-    bus.gain.value = 1;
-    bus.connect(musicBus);
+    const T = TRACKS[name], sng = T.song ? T : null, tr = sng ? sng.secs[sng.order[0]] : T;
+    const bus = ctx.createGain(), filt = ctx.createBiquadFilter();
+    bus.gain.value = 1; filt.type = 'lowpass'; filt.frequency.value = 20000; filt.Q.value = 0.7;
+    bus.connect(filt); filt.connect(musicBus);
     const level = isLevelTrack(name);
     if (level) intensity = 0;
-    cur = { name, tr, bus, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / tr.bpm / 4, level, lead: tr.chans.find(c => !c.drums && !c.pluck && c.w !== 'triangle') };
+    cur = { name, tr, song: sng, secI: 0, secN: 0, pass: 0, bars: 0, E: 0, boost: 0, bus, filt, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / T.bpm / 4, level };
+    rollSection(cur); applyDanger(cur, true);
   }
 
   // ------------------------------------------------------------ browser plumbing
@@ -713,7 +823,7 @@ const Sound = (() => {
   }
 
   return {
-    init, sfx, say, jet, music, fill, duck, intensity: setIntensity,
+    init, sfx, say, jet, music, fill, duck, intensity: setIntensity, heat: setHeat, boost, danger, gear,
     pause(on) { paused = on; if (musicBus) musicBus.gain.setTargetAtTime((on ? 0.12 : 0.5) * vol.music, ctx.currentTime, 0.05); if (on) jet(false); },
     setVolume, getVolume: (kind) => vol[kind],
     jingle: music,
@@ -730,6 +840,6 @@ const Sound = (() => {
     },
     _state: () => (ctx ? ctx.state : 'none'),
     _track: () => (cur ? cur.name : null),
-    _music: () => (cur ? { step: cur.step, lvl: intensity, fill: cur.fill ? { from: cur.fill.from, to: cur.fill.to } : null, dur: cur.dur } : null)
+    _music: () => (cur ? { step: cur.step, lvl: intensity, E: cur.E, sec: cur.song ? cur.song.order[cur.secI] : '', pass: cur.pass, alt: cur.useAlt, noLead: cur.noLead, lift: cur.lift, fill: cur.fill ? { from: cur.fill.from, to: cur.fill.to } : null, dur: cur.dur } : null)
   };
 })();
