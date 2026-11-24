@@ -58,14 +58,16 @@ const BA = (() => {
       for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const x2 = X + dx, y2 = Y + dy, o = (x2 < 0 || y2 < 0 || x2 >= W || y2 >= H) ? -1 : id[y2 * W + x2];
         if (o < 0) { edge = 2; break; }
-        if (o < me && !shapes[me].soft) edge = Math.max(edge, 1);
+        if (o < me && !shapes[me].soft && (shapes[me].g === undefined || shapes[me].g !== shapes[o].g)) edge = Math.max(edge, 1);   // (g: shapes in one group run together with no line between them)
       }
       if (edge === 2) out[i] = opts.ink === undefined ? INK : opts.ink;
       else if (edge === 1) { const r = shapes[me].r; out[i] = r[r.length - 1]; }
     }
     // strokes and pixels on top
-    const put = (x, y, c) => { const X = Math.round((x + ox) * S - 0.5), Y = Math.round((y + oy) * S - 0.5); if (X >= 0 && Y >= 0 && X < W && Y < H) out[Y * W + X] = c; };
+    let mask = false;                                                       // (m: a stroke or dots only where there's already paint, and not over the ink line)
+    const put = (x, y, c) => { const X = Math.round((x + ox) * S - 0.5), Y = Math.round((y + oy) * S - 0.5); if (X >= 0 && Y >= 0 && X < W && Y < H && (!mask || (out[Y * W + X] >= 0 && out[Y * W + X] !== INK))) out[Y * W + X] = c; };
     for (const sh of shapes) {
+      mask = !!sh.m;
       if (sh.d) for (const [x, y] of sh.d) put(x, y, sh.c);
       if (sh.l) {
         const P = sh.l, wd = sh.w || 1;
