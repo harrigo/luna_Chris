@@ -1121,7 +1121,7 @@ class IntroScene extends Phaser.Scene {
         for (let i = 0; i < 4; i++) this.at(i * 110, () => {                         // a quick test burst
           this.P.firing = 0.12; Sound.sfx('shoot');
           const m = this.handPoint(58, 0);
-          const b = this.img(m.x, m.y, 'macaroni', 0.5, 0.5).setRotation(Math.random() * 6);
+          const b = this.img(m.x, m.y, 'mac' + (i % 3), 0.5, 0.5).setRotation(Math.random() * 6);
           this.tweens.add({ targets: b, x: m.x + 260, rotation: '+=8', duration: 500, onComplete: () => b.destroy() });
         });
       });
@@ -1200,9 +1200,8 @@ class IntroScene extends Phaser.Scene {
 class TitleBackdrop {
   constructor(scene, cx, depth) {
     this.s = scene; this.cx = cx === undefined ? 0.5 : cx;
-    this.g = scene.add.graphics().setDepth(depth || 0);
-    this.stars = []; for (let i = 0; i < 120; i++) this.stars.push({ x: Math.random(), y: Math.random() * 0.75, s: Math.random() < 0.15 ? 2 : 1, tw: Math.random() * 6, c: [0xffffff, 0xffe8b0, 0xb8d0ff][i % 3] });
-    this.craters = []; for (let i = 0; i < 22; i++) this.craters.push({ a: -0.8 + Math.random() * 1.6, dep: 8 + Math.random() * 70, r: 5 + Math.random() * 16 });
+    this.g = scene.add.graphics().setDepth((depth || 0) + 0.01);
+    this.key = 'tb_back_' + scene.scene.key; this.shots = []; this.tw = []; this.bg = null;
     this.shoot = null; this.shootT = 2; this.fireT = 3; this.t0 = scene.time.now;
     this.rig = new ChrisRig(scene); this.rig.root.setDepth((depth || 0) + 0.05); this.rig.setWeapon(WEAPONS[0]);
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0.5, power: 0, duck: false, facing: 1 };
@@ -1221,12 +1220,12 @@ class TitleBackdrop {
       this.gagN++;
       if (this.gagN % 2) {                                                    // a rat runs in from the right...
         const s = img('mouse'); if (!s) { this.gagT = 3; return; }
-        s.setOrigin(0.5, 1).setFlipX(true).setScale(z * 0.9);
+        s.setOrigin(0.5, 1).setFlipX(true).setScale(z / (TEX_DENS['mouse'] || 1));
         this.gag = { k: 'rat', s, x: W + 30, st: 'run', t: 0, shots: [] };
       } else {                                                                // ...or Biscuit chases a ball across
         const d = img('cf_dog'), b = img('cr_ball');
         if (!d || !b) { this.gagN++; this.gagT = 0.5; return; }
-        d.setOrigin(0.5, 1).setScale(z * 0.8); b.setOrigin(0.5, 0.5).setScale(z * 1.0);
+        d.setOrigin(0.5, 1).setScale(z / (TEX_DENS['cf_dog'] || 1)); b.setOrigin(0.5, 0.5).setScale(z / (TEX_DENS['cr_ball'] || 1));
         this.gag = { k: 'dog', d, b, x: -40, bx: 30, bh: 40, bvh: 0, t: 0 };
       }
       return;
@@ -1237,12 +1236,9 @@ class TitleBackdrop {
       if (G.st === 'run') {
         G.x -= 120 * dt; s.setPosition(G.x, gy(G.x) + 2).setRotation(Math.sin(G.t * 20) * 0.08);
         if (G.x < cx + W * 0.42 && !G.fired) { G.fired = true; this.burst = 0.6; P.aimA = 0.05; }   // Chris takes aim...
-        if (this.burst > 0 && Math.random() < dt * 12) { const m = img('mac0', 0.08); if (m) { m.setScale(z * 0.7); G.shots.push({ m, x: cx + 40 * z, y: cy - 38 * z }); } }
-        for (const q of G.shots) { q.x += 700 * dt; q.m.setPosition(q.x, q.y).setRotation(q.x * 0.1); if (q.x > G.x - 10) { G.st = 'fly'; G.vx = 260; G.vy = -520; G.r = 0; Sound.sfx('bonk'); } }
       } else if (G.st === 'fly') {                                            // ...BOSH: off it goes, spinning, into orbit
         G.vy += 300 * dt; G.x += G.vx * dt; G.y = (G.y === undefined ? gy(G.x) - 10 : G.y) + G.vy * dt; G.r += dt * 14;
         s.setPosition(G.x, G.y).setRotation(G.r);
-        for (const q of G.shots) q.m.setVisible(false);
         if (G.y < -20 || G.x > W + 40) {
           const k = sc.add.text(Math.min(W - 40, Math.max(40, G.x)), 30, 'K.O.!', { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(this.g.depth + 0.1);
           sc.tweens.add({ targets: k, y: 50, alpha: 0, duration: 900, onComplete: () => k.destroy() }); Sound.sfx('chime');
@@ -1260,42 +1256,104 @@ class TitleBackdrop {
     }
   }
   gagDone() { for (const s of this.gagSpr) s.destroy(); this.gagSpr = []; this.gag = null; this.gagT = 4 + Math.random() * 3; this.P.aimA = 0.5; }
+  // (v3.99) the whole backdrop painted once, pixel by pixel, at the same pixel size as Chris (so nothing is crisper than
+  // anything else): a dithered night sky with a soft nebula and stars, a ringed planet, and the Gruyere Globe as proper
+  // pixel art (shaded on the cheese ramp, a bright rim, speckles, and holes with a shadowed lip).
+  paint(w, h, z) {
+    const sc = this.s, key = this.key;
+    if (sc.textures.exists(key)) sc.textures.remove(key);
+    const tex = sc.textures.createCanvas(key, w, h), ctx = tex.getContext(), img = ctx.createImageData(w, h), D = img.data;
+    const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+    const hash = (x, y) => { let n = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263)) | 0; n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; };
+    const noise = (x, y, s) => { const fx = x / s, fy = y / s, ix = Math.floor(fx), iy = Math.floor(fy), u = fx - ix, v = fy - iy, a = u * u * (3 - 2 * u), b = v * v * (3 - 2 * v);
+      return (hash(ix, iy) * (1 - a) + hash(ix + 1, iy) * a) * (1 - b) + (hash(ix, iy + 1) * (1 - a) + hash(ix + 1, iy + 1) * a) * b; };
+    const pick = (ramp, f, x, y) => { f = Math.max(0, Math.min(ramp.length - 1, f)); const i = Math.floor(f); return ramp[Math.min(ramp.length - 1, i + (f - i > (B4[(y & 3) * 4 + (x & 3)] + 0.5) / 16 ? 1 : 0))]; };
+    const put = (x, y, c) => { if (x < 0 || y < 0 || x >= w || y >= h) return; const i = (y * w + x) * 4; D[i] = c >> 16 & 255; D[i + 1] = c >> 8 & 255; D[i + 2] = c & 255; D[i + 3] = 255; };
+    const SKY = [0x060818, 0x0a0e2a, 0x101a44, 0x1e1438, 0x34205e, 0x542e8e];
+    const CH = [0x5a3410, 0x8a5a12, 0xc08a18, 0xf0c030, 0xffe070, 0xfff6c0];
+    const R = Math.max(w, h) * 1.1, mx = w * 0.5, top = Math.round(h * 0.8), my = top + R;
+    let seed = 77; const rnd = () => { seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    const holes = []; for (let i = 0; i < 26; i++) { const r = 2.5 + rnd() * 7, dep = 5 + r * 0.5 + rnd() * h * 0.22, a = -0.42 + rnd() * 0.84; holes.push({ x: mx + Math.sin(a) * (R - dep), y: my - Math.cos(a) * (R - dep), rx: r, ry: Math.max(1.5, r * 0.5) }); }
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = x - mx, dy = y - my, d = Math.sqrt(dx * dx + dy * dy), s = R - d; let c;
+      if (s < -1) {                                                   // sky: deep blue to purple, a drifting nebula, a warm glow off the moon
+        let f = 0.3 + (1 - Math.min(1, -s / (top * 1.05))) * 3.4 + (noise(x, y, 46) - 0.5) * 1.5   /* the gradient bends round the moon */ + (noise(x + 90, y, 17) - 0.5) * 0.5;
+        if (s > -16) f += (1 + s / 16) * 1.5;
+        c = pick(SKY, f, x, y);
+      } else if (s < 1.2) c = CH[5];                                  // the lit rim
+      else if (s < 2.6) c = CH[4];
+      else {
+        let f = 3.55 - s / (h * 0.11) - dx / R * 3.5 + (noise(x, y, 22) - 0.5) * 1.5 + (noise(x, y + 40, 7) - 0.5) * 0.6;
+        f = Math.max(1.5, f);
+        const sp = hash(x >> 1, y >> 1); if (sp < 0.02) f -= 1; else if (sp > 0.985) f += 1;      // pores and glints
+        c = pick(CH, f, x, y);
+        for (const H of holes) {                                       // Gruyere holes: dark inside, darkest under the top lip, a bright lower lip
+          const u = (x - H.x) / H.rx, v = (y - H.y) / H.ry, q = u * u + v * v;
+          if (q < 1) { c = v < -0.1 - u * 0.3 ? CH[0] : (q > 0.6 && v > 0.2 ? CH[2] : CH[1]); break; }
+          if (q < 1.7 && v > 0.35) { c = CH[5]; break; }
+          if (q < 1.5 && v < -0.3) { c = CH[1]; break; }
+        }
+      }
+      put(x, y, c);
+    }
+    const isSky = (x, y) => { const dx = x - mx, dy = y - my; return dx * dx + dy * dy > (R + 4) * (R + 4); };
+    this.tw = [];
+    for (let i = 0; i < 130; i++) {                                    // stars: mostly single pixels, a few little crosses that twinkle
+      const x = Math.floor(rnd() * w), y = Math.floor(rnd() * h * 0.8), k = rnd(); if (!isSky(x, y)) continue;
+      const c = [0xffffff, 0xfff6c0, 0xb4d8ff, 0x6ea8ff, 0xa878e4][Math.floor(rnd() * 5)];
+      if (k < 0.1) { put(x, y, 0xffffff); for (const [ax, ay] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) put(x + ax, y + ay, c === 0xffffff ? 0xb4d8ff : c); this.tw.push({ x, y, p: rnd() * 6 }); }
+      else put(x, y, k < 0.5 ? c : [0x6a7088, 0x7c48c0, 0x3e78e0][i % 3]);
+    }
+    { const PR = [0x1e1438, 0x34205e, 0x542e8e, 0x7c48c0, 0xa878e4, 0xd4b4ff], px = Math.round(w * 0.9), py = Math.round(h * 0.5), pr = Math.max(8, Math.round(h * 0.075));   // the ringed planet
+      const ring = (x, y) => { const q = Math.sqrt(Math.pow((x - px) / (pr * 2.0), 2) + Math.pow((y - py - (x - px) * 0.18) / (pr * 0.42), 2)); return q > 0.8 && q < 1.02 ? (q > 0.93 ? PR[3] : PR[4]) : 0; };
+      for (let y = py - pr * 2; y <= py + pr * 2; y++) for (let x = px - pr * 3; x <= px + pr * 3; x++) {
+        const nx = (x - px) / pr, ny = (y - py) / pr, q = nx * nx + ny * ny, rg = ring(x, y), front = (y - py - (x - px) * 0.18) > 0;
+        if (rg && (front || q > 1.15)) { put(x, y, rg); continue; }
+        if (q > 1.15) continue;
+        if (q > 0.86) { put(x, y, 0x0c0810); continue; }
+        put(x, y, pick(PR, 2.5 + (-nx * 0.6 - ny * 0.75) * 2.4 + Math.sin(ny * 5 + nx * 1.5) * 0.5, x, y));
+      } }
+    ctx.putImageData(img, 0, 0); tex.refresh();
+    if (!this.bg) this.bg = sc.add.image(0, 0, key).setOrigin(0).setDepth(this.g.depth - 0.005); else this.bg.setTexture(key);
+    this.bg.setScale(z); this.pw = w; this.ph = h; this.pz = z;
+    this.geo = { R: R * z, mx: mx * z, top: top * z, my: my * z };
+  }
   update() {
     const sc = this.s, g = this.g, W = sc.scale.width, H = sc.scale.height, now = sc.time.now, t = (now - this.t0) / 1000, dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now; g.clear();
-    // the sky: bands of deep blue into purple, stepped like the levels' skies
-    const bands = [0x070a26, 0x0b1036, 0x111546, 0x1a1a56, 0x261c62, 0x34206a];
-    bands.forEach((c, i) => g.fillStyle(c, 1).fillRect(0, Math.floor(H * i / bands.length), W, Math.ceil(H / bands.length) + 1));
-    for (const st of this.stars) g.fillStyle(st.c, 0.35 + 0.55 * Math.abs(Math.sin(t * 1.3 + st.tw))).fillRect(Math.round(st.x * W), Math.round(st.y * H), st.s, st.s);
-    // a ringed planet, far off
-    { const px = W * 0.9, py = H * 0.52, pr = Math.max(14, H * 0.06);
-      g.lineStyle(3, 0x8a6ab8, 0.5).strokeEllipse(px, py, pr * 3.4, pr * 0.9);
-      g.fillStyle(0x6a4a9a, 1).fillCircle(px, py, pr); g.fillStyle(0x8a6ab8, 1).fillCircle(px - pr * 0.25, py - pr * 0.25, pr * 0.7); g.fillStyle(0x4a3478, 1).fillCircle(px + pr * 0.35, py + pr * 0.35, pr * 0.45);
-      g.lineStyle(3, 0xb89ae0, 0.8).beginPath(); g.arc(px, py, pr * 1.7, 0.1, Math.PI - 0.1, false); g.strokePath(); }
-    // shooting stars
+    const z = H < 300 ? 1 : H < 620 ? 2 : 3, w = Math.ceil(W / z), h = Math.ceil(H / z);     // one pixel size for everything on the title
+    if (w !== this.pw || h !== this.ph || z !== this.pz) this.paint(w, h, z);
+    const { R, mx, top, my } = this.geo;
+    for (const st of this.tw) { const a = Math.sin(t * 2.2 + st.p); if (a > 0.55) { g.fillStyle(0xffffff, 1).fillRect((st.x - 2) * z, st.y * z, 5 * z, z).fillRect(st.x * z, (st.y - 2) * z, z, 5 * z); } else if (a < -0.6) g.fillStyle(0x101a44, 1).fillRect((st.x - 1) * z, (st.y - 1) * z, 3 * z, 3 * z).fillStyle(0xb4d8ff, 1).fillRect(st.x * z, st.y * z, z, z); }
+    // shooting stars: a stepped streak of pixels
     this.shootT -= dt;
     if (this.shootT <= 0) { this.shootT = 2.5 + Math.random() * 4; this.shoot = { x: Math.random() * W * 0.8 + W * 0.2, y: Math.random() * H * 0.3, l: 0.6 }; }
-    if (this.shoot) { const q = this.shoot; q.l -= dt; q.x -= 520 * dt; q.y += 200 * dt; if (q.l <= 0) this.shoot = null; else { g.lineStyle(2, 0xffffff, q.l / 0.6).lineBetween(q.x, q.y, q.x + 40, q.y - 15); g.fillStyle(0xffffff, 1).fillRect(q.x - 1, q.y - 1, 3, 3); } }
-    // the Gruyere Globe: a huge cheese moon whose top curves across the bottom of the screen
-    const R = Math.max(W, H) * 1.1, mx = W * 0.5, top = H * 0.8, my = top + R;
-    g.fillStyle(0xffd23f, 0.08).fillCircle(mx, my, R + 26); g.fillStyle(0xffd23f, 0.12).fillCircle(mx, my, R + 12);   // a warm halo
-    g.fillStyle(0x7a4a10, 1).fillCircle(mx, my, R + 3);
-    g.fillStyle(0xe0a628, 1).fillCircle(mx, my, R); g.fillStyle(0xf2c040, 1).fillCircle(mx, my - 6, R - 4); g.fillStyle(0xffd860, 1).fillCircle(mx - 4, my - 10, R - 14);
-    for (const c of this.craters) {                         // Gruyere holes near the surface, drifting round as it turns
-      const a = ((c.a + t * 0.012 + 0.8) % 1.6 + 1.6) % 1.6 - 0.8, rr = R - c.dep - c.r * 0.5, x = mx + Math.sin(a) * rr, y = my - Math.cos(a) * rr;
-      if (y - c.r > H || x < -c.r || x > W + c.r) continue;
-      const k = 0.35 + 0.65 * (1 - Math.abs(a) / 0.8);
-      g.fillStyle(0xa86a10, 1).fillEllipse(x, y, c.r * 2 * k + 2, c.r * 0.8); g.fillStyle(0x7a4a08, 1).fillEllipse(x, y - c.r * 0.12, c.r * 1.6 * k + 1, c.r * 0.5); g.fillStyle(0xffe890, 0.8).fillEllipse(x, y + c.r * 0.32, c.r * 1.4 * k, c.r * 0.16);
-    }
+    if (this.shoot) { const q = this.shoot; q.l -= dt; q.x -= 520 * dt; q.y += 200 * dt; if (q.l <= 0) this.shoot = null; else for (let i = 0; i < 7; i++) { const sx = Math.round((q.x + i * 6 * z) / z) * z, sy = Math.round((q.y - i * 2.3 * z) / z) * z; g.fillStyle(i ? 0xb4d8ff : 0xffffff, (q.l / 0.6) * (1 - i / 8)).fillRect(sx, sy, i < 2 ? 2 * z : z, z); } }
     // Chris on top, cape in the wind; now and then a blast of the gun into the sky
     const P = this.P; this.fireT -= dt;
     if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
     this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = this.gag && this.gag.k === 'rat' && this.gag.fired ? 0.05 : 0.45 + 0.1 * Math.sin(t * 0.8);
-    const x = W * this.cx, y = top + 3 + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))));
-    const z = Math.max(1.3, Math.min(2.2, H / 230));
-    this.rig.update(P, dt, Math.round(x), Math.round(y), z, 1, Math.floor(t * 10) % 4);
+    const x = Math.round(W * this.cx / z) * z, y = Math.round((top + z + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))))) / z) * z;
+    this.rig.update(P, dt, x, y, z, 1, Math.floor(t * 10) % 4);
     if (this.fun !== false) this.gagUpdate(dt, t, W, H, mx, my, R, top, x, y, z);
-    if (this.burst > 0 && Math.floor(t * 20) % 2) { const gx = x + 60 * z * 0.5, gy = y - 46 * z; g.fillStyle(0xffe27a, 0.35).fillCircle(gx + 10 * z, gy - 8 * z, 10 * z); }
+    // the shots: the game's own macaroni, at the game's own size, flying straight out of the barrel
+    this.shotT = (this.shotT || 0) - dt;
+    if (this.burst > 0 && this.shotT <= 0 && sc.textures.exists('mac0')) {
+      this.shotT = 0.1;
+      const ga = this.rig.gunArm, root = this.rig.root, r = ga.rotation, cs = Math.cos(r), sn = Math.sin(r), lx = 58;
+      const sx = root.x + (ga.x + lx * ga.scaleX * cs) * root.scaleX, sy = root.y + (ga.y + lx * ga.scaleX * sn) * root.scaleY, dir = Math.sign(ga.scaleX * root.scaleX) || 1;
+      const im = sc.add.image(sx, sy, 'mac' + (this.shots.length % 3)).setDepth(this.g.depth + 0.08).setScale(z);
+      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 330 * z, vy: sn * 330 * z, r: Math.random() * 6 });
+      if (typeof Sound !== 'undefined' && sc.scene.key === 'intro' && sc.phase !== 'gate') Sound.sfx('shoot');
+    }
+    const rat = this.gag && this.gag.k === 'rat' && this.gag.st === 'run' ? this.gag : null;
+    for (const q of this.shots) {
+      q.x += q.vx * dt; q.y += q.vy * dt; q.r += dt * 9; q.im.setPosition(Math.round(q.x), Math.round(q.y)).setRotation(q.r);
+      if (rat && q.x > rat.x - 12 * z && Math.abs(q.y - (rat.s.y - 12 * z)) < 22 * z) { rat.st = 'fly'; rat.vx = 260; rat.vy = -520; rat.r = 0; Sound.sfx('bonk'); q.dead = true; }
+      if (q.x > W + 30 || q.y < -30 || q.x < -30) q.dead = true;
+      if (q.dead) q.im.destroy();
+    }
+    this.shots = this.shots.filter(q => !q.dead);
   }
-  destroy() { this.gagDone(); this.g.destroy(); this.gagG.destroy(); this.rig.root.destroy(); }
+  destroy() { this.gagDone(); for (const q of this.shots) q.im.destroy(); this.shots = []; this.g.destroy(); this.gagG.destroy(); this.rig.root.destroy(); if (this.bg) this.bg.destroy(); if (this.s.textures.exists(this.key)) this.s.textures.remove(this.key); }
 }

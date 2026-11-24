@@ -43,6 +43,7 @@ function optionItems(onGfx) {
     { label: () => 'DIFFICULTY: ' + Settings.diff.toUpperCase(), act: d => Settings.cycleDiff(d) },
     { label: () => 'GRAPHICS: ' + Settings.gfx.toUpperCase(), act: d => { Settings.cycleGfx(d); if (onGfx) onGfx(); } },
     { label: () => 'LIGHTING: ' + (Settings.moody ? 'MOODY' : 'CLASSIC'), act: () => { Settings.set('moody', !Settings.moody); if (onGfx) onGfx(); } },
+    { label: () => 'GRAPHICS TWEAKS (SLIDERS)', act: () => { if (typeof Tweak !== 'undefined') Tweak.show(!Tweak.isOpen()); } },
     { label: () => 'SOUND: ' + (Settings.soundOn() ? 'ON' : 'OFF'), act: () => Settings.toggleSound() },
     volItem('MUSIC', 'music'),
     volItem('SFX', 'sfx'),

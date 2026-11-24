@@ -162,7 +162,7 @@ const PixelLookMixin = {
     for (const G of (this.geysers || [])) if (G.st !== 'idle') add(G.theta, G.st === 'erupt' ? 60 : 10, G.st === 'erupt' ? 190 : 90, 0xff9a2a, G.st === 'erupt' ? 1 : 0.5);
     for (const e of this.enemies) if (e.type === 'boss' && e.hp > 0) add(e.theta, e.h + (e.ch || 30), 150, 0xc8b0ff, 0.35);
     const A = this.abduct; if (A && A.theta !== undefined && A.a > 0.05) add(A.theta, A.h - 70, 160, 0xffd23f, 0.8 * A.a);
-    rt.clear().fill(X.amb, 1);
+    rt.clear().fill(typeof Tweak !== 'undefined' ? Tweak.amb(X.amb) : X.amb, 1);
     const ox = cam.scrollX - 32, oy = cam.scrollY - 32;          // the map sits 32px outside the screen on each side
     if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.SCREEN);   // (v3.89: SCREEN, not ADD - ADD's dest-alpha factor dimmed a square round each light)
     const st = X.stamp;
@@ -176,9 +176,10 @@ const PixelLookMixin = {
       X.sky.setPosition(0, 0).setDisplaySize(rt.width, rt.height).setAlpha(lift);
       rt.batchDraw(X.sky);
     }
+    const tw = typeof Tweak !== 'undefined' ? Tweak.v : null, tl = tw ? tw.light / 100 : 1, tg = tw ? tw.glow / 100 : 1;   // (v3.99) the tweak sliders
     for (const l of L) {
       const sp = this.screenPos(l[0], l[1]); if (!sp.vis) continue;
-      st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * 2 * z) / 256).setTint(l[3]).setAlpha(Math.min(1, l[4]));
+      st.setPosition(sp.x - ox, sp.y - oy).setScale((l[2] * tl * 2 * z) / 256).setTint(l[3]).setAlpha(Math.min(1, l[4] * tg));
       rt.batchDraw(st);
     }
     rt.endDraw();

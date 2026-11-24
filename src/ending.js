@@ -135,7 +135,7 @@ class EndingScene extends IntroScene {
     this.at(4800, () => {                                          // pew pew: smash the glass
       for (let i = 0; i < 5; i++) this.at(i * 110, () => {
         this.P.firing = 0.12; Sound.sfx('shoot');
-        const m = this.handPoint(58, 0), b = this.img(m.x, m.y, 'macaroni', 0.5, 0.5);
+        const m = this.handPoint(58, 0), b = this.img(m.x, m.y, 'mac0', 0.5, 0.5);
         this.tweens.add({ targets: b, x: -12, y: GY - 30 + i * 6, duration: 180, onComplete: () => { b.destroy(); this.dust(-14, GY - 30 + i * 6, 2, 'ix_dust', 4, 8); } });
       });
     });

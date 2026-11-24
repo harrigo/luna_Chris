@@ -494,15 +494,38 @@ const Sound = (() => {
         { drums: true, p: 'kkkkskkkkkkkskkk'.repeat(3) + 'kkkkskkkkkssssss', vol: 1 }
       ] } }),
 
-    // Title screen: heroic fanfare in C major
-    title: build({ bpm: 126, ch: [
-      { p: J('C5:2 -:1 C5:1 G4:2 C5:2 E5:4 -:2 D5:2', 'E5:2 -:1 E5:1 D5:2 C5:2 G5:6 -:2',
-              'A4:2 -:1 A4:1 C5:2 F5:2 A5:4 G5:2 F5:2', 'E5:2 D5:2 C5:2 D5:2 G4:6 G4:2 C5:8 -:8'),
-        w: 'pulse', duty: 0.25, vol: 0.18, gate: 0.9 },
-      { p: J(arpBar([48, 52, 55]), arpBar([48, 52, 55]), arpBar([53, 57, 60]), arpBar([55, 59, 62])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
-      { p: J(bassBar(36), bassBar(36), bassBar(41), bassBar(43)), w: 'triangle', vol: 0.32, gate: 0.8 },
-      { drums: true, p: 'k...s...k.k.s...', vol: 0.9 }
-    ] }),
+    // Title screen and menus: heroic fanfare in C major
+    // (v3.99: a SONG now, like level 1 - fanfare, a singing middle section, the fanfare again, a quiet bit, then both
+    // once more: over a minute before it comes round instead of ten seconds, and the tune varies each pass)
+    title: song({ bpm: 126, order: 'ABACAB',
+      A: { hook: true, ch: [
+        { p: J('C5:2 -:1 C5:1 G4:2 C5:2 E5:4 -:2 D5:2', 'E5:2 -:1 E5:1 D5:2 C5:2 G5:6 -:2',
+                'A4:2 -:1 A4:1 C5:2 F5:2 A5:4 G5:2 F5:2', 'E5:2 D5:2 C5:2 D5:2 G4:6 G4:2', 'C5:8 -:8', '-:8 G4:2 A4:2 B4:2 D5:2',
+                'C5:2 -:1 C5:1 E5:2 G5:2 C6:4 -:2 B5:2', 'A5:2 -:1 A5:1 G5:2 E5:2 G5:6 -:2'),
+          alt: J('C5:4 G4:2 C5:2 E5:2 G5:2 E5:2 D5:2', 'E5:4 D5:2 C5:2 G5:4 E5:2 -:2',
+                 'A4:4 C5:2 F5:2 A5:2 C6:2 A5:2 F5:2', 'E5:2 G5:2 E5:2 D5:2 G4:4 B4:2 D5:2', 'C5:8 -:4 E5:2 G5:2', 'C6:8 -:2 A4:2 B4:2 D5:2',
+                 'C5:1 C5:1 C5:2 E5:2 G5:2 C6:4 B5:2 G5:2', 'A5:4 G5:2 E5:2 D5:4 G5:4'),
+          w: 'pulse', duty: 0.25, vol: 0.18, gate: 0.9 },
+        { p: J(arpBar([48, 52, 55]), arpBar([48, 52, 55]), arpBar([53, 57, 60]), arpBar([55, 59, 62]), arpBar([48, 52, 55]), arpBar([55, 59, 62]), arpBar([48, 52, 55]), arpBar([53, 57, 60])), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+        { p: J(bassBar(36), bassBar(36), bassBar(41), bassBar(43), bassBar(36), bassBar(43), bassBar(36), bassBar(41)), w: 'triangle', vol: 0.32, gate: 0.8 },
+        { drums: true, p: 'k...s...k.k.s...', vol: 0.9 }
+      ] },
+      B: { ch: [                                                          // the middle: long singing notes over F G Em Am
+        { p: J('A5:4 G5:2 F5:2 C5:4 F5:4', 'B5:4 A5:2 G5:2 D5:4 G5:4', 'G5:6 E5:2 B4:4 E5:4', 'A5:8 -:2 E5:2 A5:2 B5:2',
+                'C6:4 A5:2 F5:2 A5:4 C6:4', 'D6:4 B5:2 G5:2 B5:4 D6:4', 'E6:6 D6:2 C6:4 G5:4', 'C6:8 -:8'),
+          alt: J('F5:2 A5:2 C6:4 A5:2 G5:2 F5:4', 'G5:2 B5:2 D6:4 B5:2 A5:2 G5:4', 'E5:4 G5:4 B5:4 G5:4', 'A5:6 G5:2 E5:4 -:4',
+                 'A5:2 C6:2 F6:4 C6:2 A5:2 F5:4', 'B5:2 D6:2 G6:4 D6:2 B5:2 G5:4', 'C6:4 E6:4 G6:4 E6:4', 'C6:8 G5:4 C6:4'),
+          w: 'pulse', duty: 0.5, vol: 0.15, gate: 0.95 },
+        { p: J(arpBar(F), arpBar(G), arpBar(Em), arpBar(Am), arpBar(F), arpBar(G), arpBar(C), arpBar(C)), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+        { p: J(bassBar(41), bassBar(43), bassBar(40), bassBar(45), bassBar(41), bassBar(43), bassBar(36), bassBar(36)), w: 'triangle', vol: 0.32, gate: 0.8 },
+        { drums: true, p: 'k.h.s.h.k.khs.h.', vol: 0.85 }
+      ] },
+      C: { ch: [                                                          // the quiet bit: nearly nothing, then it climbs back
+        { p: J('E5:8 -:8', 'C5:8 -:8', 'D5:8 -:4 F5:4', 'G4:4 B4:4 D5:4 G5:4'), w: 'pulse', duty: 0.5, vol: 0.12, gate: 0.95 },
+        { p: J(arpBar(Am), arpBar(F), arpBar([50, 53, 57]), arpBar(G)), w: 'pulse', duty: 0.125, vol: 0.06, pluck: true, gate: 1 },
+        { p: J('45:8 45:8', '41:8 41:8', '38:8 38:8', '43:4 43:4 43:2 43:2 43:2 43:2'), w: 'triangle', vol: 0.32, gate: 0.9 },
+        { drums: true, p: 'k.......k.......' + 'k.......k.....s.' + 'k...h...k...h...' + 'k...k...k.k.kkss', vol: 0.85 }
+      ] } }),
 
     // Cutscene: jaunty space-ranch hoedown
     ranch: build({ bpm: 108, ch: [

@@ -2386,3 +2386,21 @@ rounded form lit from the top left, with dithered seams between tones and a litt
 - 16 of them were code-drawn; they are now PNG overrides in assets/sprites (listed in index.json), so the old painters skip them.
 - Left alone on purpose: sprites with faces (sofa, 1-up) where the pass muddied the eyes, and tiny ones (Parmesan golem frames)
   where there is no room for texture.
+
+## v3.99: title screen redrawn, intro crash, curved skies, graphics sliders, a longer menu tune
+
+- **Fixes.** The shop painter was skipped once its robot became a PNG (green boxes): it now checks a sprite that is still
+  code-drawn. The intro crashed when the armoury opened: every new Chris rig re-ran the Chris painter and rebuilt `c_boot`
+  under sprites still using it; the painter now runs once.
+- **Title screen (TitleBackdrop, intro.js).** The backdrop is painted once into a canvas at Chris's own pixel size (a whole
+  number: 2 on phones), so nothing is crisper than anything else: dithered night sky whose gradient bends round the moon,
+  nebula, stars with twinkling crosses, a shaded ringed planet, and the Gruyere Globe as pixel art (cheese ramp, bright rim,
+  pores, holes with a shadowed lip). Chris fires the game's real macaroni at the game's size, straight out of the barrel;
+  the rat gag is hit by those same shots. The intro and ending test bursts use the same macaroni.
+- **Skies.** `makeSkyDither` takes an arc: the colour bands are rings about the planet's centre rather than straight lines.
+- **Graphics tweaks (src/tweak.js).** OPTIONS > GRAPHICS TWEAKS (also in the pause menu, or `?tweak`) opens a slider panel:
+  brightness, contrast, colour, hue, warmth, vignette, scanlines, mood darkness, light size, light glow, four starting
+  presets and reset. Saved on the device. The CODE line is the whole setup as one string, to send back as the new default.
+  It is a tuning tool: once a default is chosen it gets cut back to a few player options.
+- **Menu tune.** `title` is a song now (fanfare, middle, fanfare, quiet bit, fanfare, middle): about 70 seconds before it
+  repeats instead of 10, with alternate melodies on later passes.

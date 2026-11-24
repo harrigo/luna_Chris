@@ -1764,16 +1764,23 @@ function makeBeam(scene) {
 }
 
 // dithered banded sky gradient, regenerated to fit the screen (key reused)
-function makeSkyDither(scene, key, w, h, cols, clean) {
+function makeSkyDither(scene, key, w, h, cols, clean, arc) {
   if (scene.textures.exists(key)) scene.textures.remove(key);
   pixTex(scene, key, w, h, (put) => {
     const n = cols.length - 1;
     for (let y = 0; y < h; y++) {
-      const v = (y / (h - 1)) * n;
-      const lo = Math.floor(v), f = v - lo;
-      // clean (v3.75): flat bands, with the dither only in a strip where each band meets the next (the SNES way)
-      const g = clean !== false ? Math.max(0, (f - 0.7) / 0.3) : f;
-      for (let x = 0; x < w; x++) put(x, y, cols[Math.min(n, lo + (g > bay(x, y) ? 1 : 0))]);
+      for (let x = 0; x < w; x++) {
+        // (v3.99) arc: the bands bend round the planet (rings about its centre) instead of running dead straight across
+        // the screen. The colours land where they did before down the middle of the screen: top colour at the top,
+        // and the same colour as before at the horizon.
+        let v;
+        if (arc) { const d = Math.hypot(x - arc.cx, y - arc.cy); v = Math.max(0, Math.min(n, (arc.g / (h - 1)) * n * (1 - (d - arc.R) / arc.g))); }
+        else v = (y / (h - 1)) * n;
+        const lo = Math.floor(v), f = v - lo;
+        // clean (v3.75): flat bands, with the dither only in a strip where each band meets the next (the SNES way)
+        const g = clean !== false ? Math.max(0, (f - 0.7) / 0.3) : f;
+        put(x, y, cols[Math.min(n, lo + (g > bay(x, y) ? 1 : 0))]);
+      }
     }
   });
 }
