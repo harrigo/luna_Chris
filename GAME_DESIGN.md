@@ -2352,3 +2352,6 @@ Measured the GPU work per frame (headless, counting WebGL calls). The new light 
 - MULTI-KILLS (multiKill): kills within 0.6 s of each other add up: DOUBLE KILL, TRIPLE KILL, QUAD KILL, MEGA KILL, CHEESEPOCALYPSE, big in the middle of the screen, with a fanfare that climbs with the count while the music ducks under it (Sound.duck), and bonus score and style.
 - BOWLING SOUNDS: every rat a smashed rat bowls into rings a note further up a scale (bowlPin), plus what it's made of: armour and machines CLANG (bowlMetal), flyers BOING, ghosts wooo, the rest squeak.
 - METAL: the Great Grater (level 5) plays 'levelmetal': 172 bpm E minor, palm-muted power-chord chugs on a distorted rhythm guitar (guitar(): detuned saws, drive, tanh clipper, cab low-pass; short notes palm-muted), a wailing lead, tremolo picking on wave 2+, double-kick drums. Same loudness as the other tracks.
+
+## v3.93: the moonwalk
+When the lucky wheel lands on a good one, Chris now celebrates one of two ways at random (S.joyKind): the old bounce with the gun in the air, or THE MOONWALK (shop.js moonwalk): he glides backwards away from the wheel while facing it (the rig's backing walk), twirls, goes up on his toes with the gun up and a "HEE-HEE!" (a new voice phrase), glides back the other way facing away, twirls again, and round. Sparkles skate off his boots.

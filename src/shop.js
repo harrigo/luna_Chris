@@ -473,6 +473,7 @@ class ShopScene extends Phaser.Scene {
       for (let k = 0; k < 4; k++) S.sparks.push({ x: cx, y: cy - R0 - 2, vx: (Math.random() - 0.3) * 190, vy: -Math.random() * 170 - 20, l: 0.25 + Math.random() * 0.2 }); }
     if (!S.idle && u >= 1 && !S.done) {
       S.done = true; S.doneT = 0; S.msg = this.prize(S.idx); this.say(S.msg); S.mood = this.moodOf(S.idx); S.moodT = 0;
+      S.joyKind = Math.random() < 0.5 ? 'bounce' : 'moon'; S.mwPh = -1;   // (v3.93) how he celebrates a win: the bounce, or the MOONWALK
       if (S.mood === 'joy') for (let k = 0; k < 60; k++) S.conf.push({ x: cx + (Math.random() - 0.5) * R0 * 0.6, y: cy - R0 * 0.3, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380 - 80, l: 0.7 + Math.random() * 0.9 });   // a shower of welding sparks
       if (S.mood === 'sad') Sound.sfx('clunk');
     }
@@ -593,6 +594,8 @@ class ShopScene extends Phaser.Scene {
     const x = Math.max(60, cx - RG - 86), y = Math.min(H - 20, cy + RG + 4);
     const mood = (S.done || S.msg === 'NO SPINS LEFT') ? S.mood : 'hope';
     S.cx = x; S.gy = y;
+    if (mood !== 'joy' || S.joyKind !== 'moon') { S.mwX = 0; S.mwFace = 1; P.vx = 0; }
+    if (mood === 'joy' && S.joyKind === 'moon') { this.moonwalk(S, P, x, y, dt, t, mg); return; }
     if (mood === 'joy') {                                 // bouncing, gun in the air
       if (P.h <= 0 && P.vh <= 0) { P.vh = 420; Sound.sfx('jump'); }
       P.vh -= 1500 * dt; P.h = Math.max(0, P.h + P.vh * dt); P.aimA = 1.2; P.duck = false; P.firing = Math.floor(t * 8) % 2 ? 0.1 : 0;
@@ -611,6 +614,41 @@ class ShopScene extends Phaser.Scene {
       if (!S.idle && !S.done) for (let k = 0; k < 2; k++) { const a = t * 6 + k * Math.PI; mg.lineStyle(2, 0xffffff, 0.6).lineBetween(x - 22 + k * 44, y - 80, x - 26 + k * 52 + Math.sin(a) * 3, y - 86); }   // shake lines
     }
     this.rig.setFace(mood === 'joy' ? 'c_head_joy' : (mood === 'sad' || mood === 'meh') ? 'c_head_sad' : 'c_head_hope');
+  }
+  // (v3.93) THE MOONWALK, one of the ways Chris celebrates a win (picked at random): he glides backwards away from the
+  // wheel, facing it, legs walking forwards; a twirl; up on his toes, gun aloft, "HEE-HEE!"; glides back the other way
+  // (facing away now); another twirl; round again. Sparkles squeak off his boots as they skate.
+  moonwalk(S, P, x, y, dt, t, mg) {
+    const T = S.moodT % 4.8, D = Math.max(0, Math.min(70, x - 34));
+    let ph, off, face, vx = 0;
+    if (T < 1.6) { ph = 0; off = -D * (T / 1.6); face = 1; vx = -150; }
+    else if (T < 2.2) { ph = 1; off = -D; face = Math.floor(T * 16) % 2 ? 1 : -1; }
+    else if (T < 2.8) { ph = 2; off = -D; face = -1; }
+    else if (T < 4.3) { ph = 3; off = -D * (1 - (T - 2.8) / 1.5); face = -1; vx = 150; }
+    else { ph = 4; off = 0; face = Math.floor(T * 16) % 2 ? 1 : -1; }
+    if (ph !== S.mwPh) {                                    // the beats
+      S.mwPh = ph;
+      if (ph === 1 || ph === 4) Sound.sfx('shine');
+      if (ph === 2) {
+        Sound.say('heehee', { force: true });
+        const tx = this.add.text(x + off + 26, y - 178, 'HEE-HEE!', { fontFamily: PIXEL, fontSize: '14px', color: '#fff0c0', stroke: '#0a0b10', strokeThickness: 5 }).setOrigin(0.5).setDepth(12).setScale(0.4).setAngle(-8);
+        this.tweens.add({ targets: tx, scale: 1.1, duration: 180, ease: 'Back.easeOut' });
+        this.tweens.add({ targets: tx, y: y - 204, alpha: 0, delay: 650, duration: 400, onComplete: () => tx.destroy() });
+      }
+    }
+    S.mwX = off; S.mwFace = face;
+    P.vx = vx; P.vh = 0; P.duck = false; P.firing = 0;
+    P.h = ph === 2 ? 5 : 0;                                  // up on his toes
+    P.aimA = ph === 2 ? 0.85 : ph === 1 || ph === 4 ? 0.5 : -0.25;   // (gun up and out for the pose - not across his face)
+    const fx = x + off;
+    if (vx) for (let k = 0; k < 3; k++) {                    // the boots skating: little streaks and sparkles behind them
+      const sx = fx - Math.sign(vx) * (8 + k * 9) + Math.sin(t * 30 + k) * 2, a = 0.6 - k * 0.18;
+      mg.lineStyle(2, 0xffffff, a).lineBetween(sx - 5, y - 1, sx + 5, y - 1);
+      if (Math.sin(t * 23 + k * 2) > 0.7) mg.fillStyle(0xfff0a0, a + 0.3).fillRect(sx - 1, y - 6 - k * 3, 2, 2);
+    }
+    if (ph === 1 || ph === 4) for (let k = 0; k < 5; k++) { const a = t * 9 + k * 1.26, r = 30; mg.fillStyle(0xffd23f, 0.9).fillRect(fx + Math.cos(a) * r - 1.5, y - 60 + Math.sin(a) * r * 0.4 - 1.5, 3, 3); }   // the twirl
+    if (ph === 2) for (let k = 0; k < 4; k++) { const a = t * 3 + k * 1.57; mg.fillStyle(0xfff0c0, 0.8).fillRect(fx + Math.cos(a) * 40 - 1, y - 120 + Math.sin(a) * 14 - 1, 2, 2); }
+    this.rig.setFace(ph === 0 || ph === 3 ? (this.textures.exists('c_head_det') ? 'c_head_det' : 'c_head_joy') : 'c_head_joy');   // cool as you like while gliding
   }
   // (v3.47) the shelves are a grid: left/right along a shelf, up/down between shelves (it used to be one long list)
   move(dx, dy) {
@@ -741,8 +779,8 @@ class ShopScene extends Phaser.Scene {
     const S = this.stage; if (!S) return;
     if (this.spin && this.spin.cx !== undefined) {           // Chris comes to the wheel (over the dark), and sweats it out
       const sp = this.spin, shake = !sp.done && !sp.idle ? Math.sin(t * 60) * 1.2 : 0;
-      this.rig.root.setDepth(11); this.rigP.facing = 1;
-      this.rig.update(this.rigP, dt, Math.round(sp.cx + shake), Math.round(sp.gy - this.rigP.h * 1.6), 2, 1, Math.floor(t * 8) % 4);
+      this.rig.root.setDepth(11); this.rigP.facing = sp.mwFace || 1;
+      this.rig.update(this.rigP, dt, Math.round(sp.cx + shake + (sp.mwX || 0)), Math.round(sp.gy - this.rigP.h * 1.6), 2, 1, Math.floor(t * 8) % 4);
     } else this.rig.update(this.rigP, dt, Math.round(S.x), Math.round(S.y), this.charSc || 1.5, 1, Math.floor(t * 8) % 4);
     if (this.tileIcons) this.tileIcons.forEach((q, i) => { const on = i === this.sel && !this.spin; q.im.setY(q.y + (on ? Math.sin(t * 5) * 2.5 : 0)).setScale(q.sc * (on ? 1.08 : 1)); });
     this.bot.setPosition(S.bx, S.y - 76 * 0.5 * (this.charSc || 1.5) + Math.sin(t * 3) * 1.5).setScale(this.charSc || 1.5).setRotation(Math.sin(t * 1.7) * 0.03);

@@ -164,7 +164,8 @@ const Sound = (() => {
     blimey: [['m', 0.03, 1.1, 0.6], ['i', 0.12, 1.35], ['m', 0.06, 1.2], ['a', 0.09, 1.25], ['i', 0.26, 0.85]],   // "BLIMEY!"
     woohoo:[['w', 0.07, 1], ['u', 0.12, 1.25], ['h', 0.04], ['u', 0.06, 1.5], ['o', 0.28, 1.75]],
     yum:   [['i', 0.04, 1.1, 0.8], ['u', 0.11, 1.2], ['m', 0.16, 1.0]],
-    hup:   [['h', 0.03], ['u', 0.08, 1.3]]
+    hup:   [['h', 0.03], ['u', 0.08, 1.3]],
+    heehee: [['h', 0.03], ['i', 0.09, 1.9], ['h', 0.04], ['i', 0.2, 2.15, 0.9]]   // (v3.93) the moonwalk's "HEE-HEE!"
   };
   function say(k, o) { if (!ctx || muted || ctx.state !== 'running' || !PHRASES[k]) return; const now = ctx.currentTime; if (last.__voice && now - last.__voice < 0.35 && !(o && o.force)) return; last.__voice = now; voice(PHRASES[k], o); }
 
