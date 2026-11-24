@@ -129,7 +129,7 @@ function chrisGunParts(scene) {
 }
 
 function makeChrisTextures(scene) {
-  if (madeTex(scene, 'c_head')) return;
+  if (scene.textures.exists('c_boot')) return;   // (v3.99) c_head is a PNG now, so the old check never stopped this re-running: every new rig rebuilt c_boot and killed sprites still using it (the intro's armoury crash)
   const OUT = 0x1a1020;
   const mk = (key, w, h, draw) => {
     if (SPRITE_FILES.has(key)) return;

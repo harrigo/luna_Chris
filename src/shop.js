@@ -155,7 +155,7 @@ ChrisRig.prototype.setArmour = function (on, mk) {
 };
 
 function makeShopTextures(scene) {
-  if (scene.textures.exists('shopbot')) return;
+  if (scene.textures.exists('shopship')) return;   // (v3.99) not 'shopbot': that one is a PNG now, so it always exists and this whole painter was being skipped (green boxes in the shop)
   // FRIDGE-O-TRON, the shopkeeper: a battered vending fridge with a face, a bow tie and a till drawer
   pixSprite(scene, 'shopbot', 56, 76, a => {
     const ST = [0xdfe6f0, 0x9aa4b4, 0x5a6272], DK = [0x4a5262, 0x30364a, 0x1c2030];
