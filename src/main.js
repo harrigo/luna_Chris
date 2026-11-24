@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.94';
+const BUILD = 'v3.95';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -285,6 +285,7 @@ const dist2 = (t1, h1, t2, h2) => {
 // (v3.85) HITBOXES FITTED TO THE ART. A texture's solid shape, measured once from its pixels (texture px, y down): the box
 // holding the middle 90% of its solid pixels on each axis, and the radius holding 90% of them round the texture's centre.
 const TEX_SHAPE = {};
+const BANNER_DROP = /WORN OFF|POWER-UP LOST|GUN BACK TO LEVEL|^SHIELD|^SQUASHED|^STUNNED|^FLATTENED|^OUCH|^KNOCKED OUT|^BROKE FREE|^CLANG|^BONK|^ONE MORE|COMBO!$|^OUT OF PASTA|^A+R+G+H|^ARMOUR CRACKED|^BLACK RIND SHATTERED|^GORED|^GRABBED|^STICKY|^STUCK IN THE GOOP|^STRING CHEESE|^YOU CAN'T STOMP|^SPARE /;   // (v3.95) status chatter, not shown
 const PERF_OFF = /[?&]noauto/.test(location.search) || !!navigator.webdriver;   // (automated test browsers run slowly on purpose)
 const HITBOX_DEBUG = /[?&]hitbox/.test(location.search);   // ?hitbox: draw every hitbox (see drawHitboxes)
 function texShape(scene, key) {
@@ -355,7 +356,7 @@ class Level1 extends Phaser.Scene {
     this.paused = false; this.time.paused = false; if (typeof Sound !== 'undefined' && Sound.pause) Sound.pause(false);
     this.skyImg = null; this.abduct = null; this.beamG = null;
     { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => Settings.shake ? sh(...a) : cam; }   // SCREEN SHAKE setting
-    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.mk = null; this.mkText = null; this.perf = null; this.perfNoHalo = false;
+    this.hitStop = 0; this.slowT = 0; this.kick = { x: 0, y: 0, vx: 0, vy: 0 }; this.punch = 0; this.lights = []; this.lightPool = []; this.hazeT = 0; this.warns = []; this.gpList = []; this.bannerAt = undefined; this.mk = null; this.mkText = null; this.perf = null; this.perfNoHalo = false;
     this.score = 0; this.scoreShown = 0; this.waveTotal = 1;
     this.bonusHeart = false; this.burgerIcon = null;      // the scene object is reused, so reset everything that survives restarts
     this.strands = []; this.strandT = 2; this.chaser = null; this.sweeps = []; this.sweepT = 3; this.rocks = []; this.rockT = 2; this.lumps = []; this.erupt = null; this.eruptT = 9; this.bossLaser = null; this.hazG = null;
@@ -854,7 +855,7 @@ class Level1 extends Phaser.Scene {
     this.heartsText = this.add.text(12, 8, '', f(22, '#ff4d6d', { fontFamily: 'monospace', fontStyle: 'bold' })).setDepth(20).setVisible(false);
     this.waveText = this.add.text(0, 0, '', f(16, '#ffd23f', { stroke: '#1a1020', strokeThickness: 5 })).setOrigin(0.5, 0).setDepth(20);
     this.scoreText = this.add.text(0, 0, 'SCORE: 0000000', f(8, '#ffffff', ink)).setOrigin(0.5, 0).setDepth(20);
-    this.fpsText = this.add.text(0, 0, '', f(6, '#6b7390')).setDepth(20);
+    this.fpsText = this.add.text(0, 0, '', f(6, '#6b7390')).setDepth(20).setVisible(/[?&]fps/.test(location.search));   // (v3.95: the fps counter only with ?fps)
     this.nameText = this.add.text(0, 0, 'CHRIS', f(8, '#ffd23f', ink)).setDepth(20);
     this.jetText = this.add.text(0, 0, 'JET', f(8, '#9fd8ff', ink)).setDepth(20);
     this.macText = this.add.text(0, 0, 'MAC', f(8, '#ffc36a', ink)).setDepth(20);
@@ -909,6 +910,14 @@ class Level1 extends Phaser.Scene {
   hideOverlay() { this.ovBg.setVisible(false); this.ovTitle.setVisible(false); this.ovBody.setVisible(false); }
 
   banner(text) {
+    // (v3.95) LESS TEXT: status chatter (power-up worn off, gun back to level 1, squashed, stunned...) isn't shown at all,
+    // and a message is its headline only - the explanation lines under it are gone. One main message on screen at once:
+    // a new one replaces the last, and clears a multi-kill callout.
+    text = String(text);
+    if (BANNER_DROP.test(text)) return;
+    text = text.split('\n')[0];
+    this.bannerAt = this.t;
+    if (this.mkText) { this.mkText.destroy(); this.mkText = null; }
     this.tweens.killTweensOf(this.bannerText);
     this.bannerText.setText(text).setAlpha(1).setY(this.H * ((this.enemies && this.enemies.some(e => e.type === 'boss')) || (this.cave && this.cave.ring > 0) ? 0.34 : 0.22));   // below the boss bar in a boss fight
     this.tweens.add({ targets: this.bannerText, alpha: 0, delay: 1400, duration: 500 });
@@ -3434,6 +3443,12 @@ class Level1 extends Phaser.Scene {
 
   // little floating score numbers (pooled text objects)
   popup(theta, h, str, col, big) {
+    // (v3.95) LESS TEXT: no cheddar tallies and no plain little score/damage numbers (big ones - the boss, a combo - stay);
+    // and only one word callout (SMASH!, PARRY!...) at a time: a new one replaces the one before
+    str = String(str);
+    if (/CHEDDAR/.test(str)) return;
+    if (!big && /^[+-]\d+$/.test(str)) return;
+    if (/[A-Z]/.test(str)) for (let i = this.popups.length - 1; i >= 0; i--) { const q = this.popups[i]; if (/[A-Z]/.test(q.t.text)) { q.t.setVisible(false); this.popPool.push(q.t); this.popups.splice(i, 1); } }
     let t = this.popPool.pop();
     if (!t) t = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: '8px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(19);
     t.setText(str).setColor(col || '#ffffff').setVisible(true).setAlpha(1);
@@ -4649,6 +4664,7 @@ class Level1 extends Phaser.Scene {
     Sound.sfx('multi', k); Sound.duck(0.45 + k * 0.08);
     this.addScore(100 * (M.n - 1) * M.n); this.styleAdd('multi', 15 * M.n);
     if (this.mkText) this.mkText.destroy();
+    if (this.bannerAt !== undefined && this.t - this.bannerAt < 1.2 && this.bannerText.alpha > 0.2) return;   // (v3.95) a main message is up: just the fanfare
     const W = this.scale.width, H = this.scale.height;
     const t = this.mkText = this.add.text(W / 2, H * 0.3, words[k], { fontFamily: PIXEL, fontSize: (16 + k * 3) + 'px', color: cols[k], stroke: '#1a1020', strokeThickness: 7 }).setOrigin(0.5).setScrollFactor(0).setDepth(32).setScale(2.2).setAngle(-6);
     this.tweens.add({ targets: t, scale: 1, angle: 0, duration: 260, ease: 'Back.easeOut' });

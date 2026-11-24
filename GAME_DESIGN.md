@@ -2358,3 +2358,8 @@ When the lucky wheel lands on a good one, Chris now celebrates one of two ways a
 
 ## v3.94: funny walks
 Chris's run is no longer one loop (chris.js, the GAITS block in update): he walks one of four ways, picked at random each time he sets off and swapped every 3.5-7.5 s of running, blended in smoothly: STRUT (the old run), LIMP (the front leg short, stiff and dragged toe-down; the cycle hurries off it and lingers on the good one; he lurches and dips each time his weight goes on it), SKIP (a hop on every other step) and SWAGGER (leaning back, hips rolling, boots wide). Every 8-18 s of running he trips over nothing, pitches forward and catches himself ("oi!"). Levels only (rig.gaitOn): the shop's wheel dances are untouched. Visual only: speed and hitboxes are the same.
+
+## v3.95: less text on screen
+- banner(): status chatter is never shown (BANNER_DROP: power-up worn off / lost, gun back to level 1, shield counts, squashed, stunned, flattened, knocked out, broke free, grabbed, stuck, gored, armour cracked, combo banners...), and every banner is its headline only (the explanation lines under it are gone). One main message at a time: a new banner replaces the last and clears a multi-kill callout; a multi-kill callout isn't shown over a fresh banner (the fanfare still plays).
+- popup(): no cheddar tallies, no plain little score or damage numbers (the big ones stay), and only one word callout (SMASH!, PARRY!...) at a time.
+- The fps counter only shows with ?fps.
