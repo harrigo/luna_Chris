@@ -2373,3 +2373,16 @@ Chris's run is no longer one loop (chris.js, the GAITS block in update): he walk
 
 ## v3.97: the weakest sprites redrawn (src/reart.js)
 Measured all 1,070 textures (flat single-colour area, biggest single-colour blob, ruler-straight silhouette edges, colour count), looked at the worst 75, and redrew 24 with the boss painter (BA.paint: round top-left shading, dithered tone seams, ink silhouette), plus grit, cracks, moss and drips: the beast ribcages (both colours: ribs of different lengths and leans, some missing, two snapped, knobbly vertebrae, fallen bits), the labyrinth ribs, the skull (lopsided sockets, a cracked dome, a missing tooth), the bone pile, the cheese rock (it was a flat triangle), the dark boulders (moss caps) and the labyrinth boulder, the lava boulder, the factory's barrel, crates, pipe and mandoline blade, the mushroom, the chilli cactus, the ham, the cheese wave, the palace dome, the rolled-up shell bug, and Mount Mozzarella's three melted hills. Same canvas sizes and footprints. BA.paint gained groups (g: no line between shapes of one group) and masked strokes/dots (m: only over paint). REART.make runs once in buildAllTextures and marks the keys as files so no later painter overwrites them; their old PNG overrides are removed.
+
+## v3.98: the next 54 weakest sprites re-shaded
+
+The next batch from the weak-sprite ranking (flat fills, little texture) got an automatic re-shade rather than hand redraws:
+outlines, shapes and small details are kept exactly, and each big flat colour area is re-lit on its own palette ramp as a
+rounded form lit from the top left, with dithered seams between tones and a little grit.
+
+- 54 sprites: craters, ledges, the gear, hatch, cheese block, hay, barn, cabin, fireplace, window, stove, TV, churn, the
+  Parmesan Palace column / arch / temple / banner / crystals, wreck, cart, dead moon, turret and gun, warning sign, burger,
+  clam, mandoline, goop, bones, reeds, spires and more.
+- 16 of them were code-drawn; they are now PNG overrides in assets/sprites (listed in index.json), so the old painters skip them.
+- Left alone on purpose: sprites with faces (sofa, 1-up) where the pass muddied the eyes, and tiny ones (Parmesan golem frames)
+  where there is no room for texture.

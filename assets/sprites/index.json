@@ -393,6 +393,22 @@
   "wedge",
   "wheel",
   "bg_swamptree",
-  "bg_swamptree2"
+  "bg_swamptree2",
+  "ppcol",
+  "ppbanner",
+  "ppb_arch",
+  "ppb_temple",
+  "pp_column",
+  "shopbot",
+  "wreck",
+  "labcart",
+  "ppcrys3",
+  "labmoon",
+  "lturret",
+  "colrubble",
+  "warnsign",
+  "sdome_broken",
+  "lturret_gun",
+  "clam"
  ]
 }
