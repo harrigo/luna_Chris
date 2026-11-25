@@ -177,8 +177,11 @@ function makeMozzTextures(scene) {
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
       if (!inside(x + 0.5, y + 0.5)) continue;
       const cx = 110 + (y - 22) * 0.12, half = 20 + (y - 22) * 0.62, u = (x - cx) / Math.max(1, half);   // -1 left edge .. 1 right edge
-      let lum = 0.62 - 0.42 * u - 0.25 * u * u;                       // a rounded cone, lit from the left
-      lum *= 1 - Math.max(0, (y - 95) / 85) * 0.75;                   // its foot sinks into the haze
+      // (v3.101b) the shadow side no longer bottoms out at near-black (under the moody light it read as a hole, as if the
+      // volcano hadn't drawn): it holds a deep warm brown, with a thin rim of lava light on the right-hand edge
+      let lum = 0.66 - 0.3 * u - 0.18 * u * u;                        // a rounded cone, lit from the left
+      if (u > 0.82) lum += (u - 0.82) * 1.6;                          // the rim
+      lum *= 1 - Math.max(0, (y - 110) / 70) * 0.6;                   // its foot sinks into the haze
       lum += (n1(x / w, y / h) - 0.5) * 0.3 + (n2(x / w, y / h) - 0.5) * 0.18;   // rough rock
       const rd = riverD(x, y), heat = Math.max(0, 1 - Math.hypot(x - 110, y - 26) / 34) * 0.5 + Math.max(0, 1 - rd / 7) * 0.35;   // the crater's glow and the rivers' warmth
       lum += heat * 0.5;
@@ -207,8 +210,8 @@ function makeMozzTextures(scene) {
 const MozzMixin = {
   mzInit() {
     const z = this.mz = { boulderCd: rnd(6, 9), erupt: null, shards: [], puddles: [], rings: [], waves: [], warn: null, eruptN: 0, t: 0 };
-    z.volc = this.add.image(0, 0, 'volcano').setDepth(0.35).setOrigin(110 / 260, 120 / 180);
-    z.vg = this.add.graphics().setDepth(0.36).setBlendMode(Phaser.BlendModes.ADD);   // crater glow + lava spitting (screen space)
+    z.volc = this.add.image(-9999, -9999, 'volcano').setDepth(0.375)   /* (v3.101b) in front of the far ridge bands (0.33 / 0.37), which hid its lower half */.setOrigin(110 / 260, 120 / 180);
+    z.vg = this.add.graphics().setDepth(0.38).setBlendMode(Phaser.BlendModes.ADD);   // crater glow + lava spitting (screen space)
     z.g = this.add.graphics().setDepth(2.9);                                          // burning puddles on the crust
     z.gl = this.add.graphics().setDepth(7.62).setBlendMode(Phaser.BlendModes.ADD);    // target rings, core glow
     return z;
@@ -332,7 +335,7 @@ const MozzMixin = {
     const z = this.mz; if (!z) return;
     const W = this.scale.width, H = this.scale.height, zm = this.zoom, Rz = R * zm;
     // the volcano sits back on the left of the horizon
-    const vs = zm * 2, vx = this.cx - Rz * 0.55, vy = this.cy - Rz * 0.835 + 22 * vs;   // its foot tucked just behind the curve
+    const vs = zm * 2, vx = this.cx - Rz * 0.55, vy = this.cy - Rz * 0.835 + 4 * vs;   // its foot just behind the curve (v3.101b: was tucked 22 px lower, half hidden)
     z.volc.setPosition(vx, vy).setScale(vs);
     const vg = z.vg; vg.clear();
     const cx = vx, cy = vy - 98 * vs, E = z.erupt, pulse = 0.18 + 0.08 * Math.sin(this.t * 3);

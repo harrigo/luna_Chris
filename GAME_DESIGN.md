@@ -2453,3 +2453,8 @@ After: 7-9. A software-GPU test renders about twice as many frames in the same t
   a glow FX costing two extra full passes a frame. The whip now draws two soft wide strands under itself instead.
 - **Background stars**: ~390 star sprites a level; the ~2/3 off screen at any moment are now hidden (not drawn) rather
   than moved and drawn off screen.
+- **v3.101b: Mount Mozzarella's volcano.** It always drew, but read as missing: its shadow side bottomed out at
+  near-black (a hole under the moody light), its foot was tucked 22 px below the horizon, and the far ridge band (depth
+  0.37) sat in front of its lower half. Now: shadow side holds a deep warm brown with a thin lava-lit rim, the foot sits
+  just behind the curve, and it is drawn in front of the far ridges (0.375; its glow 0.38). Checked every other level's
+  backdrop landmarks: none hidden the same way.
