@@ -2419,3 +2419,20 @@ rounded form lit from the top left, with dithered seams between tones and a litt
 - **v3.99g.** The title screen's macaroni shots were drawn at twice the game's size and spun as a whole on top of their own
   tumble frames, so they looked huge and broken. Now game-sized (one art pixel per screen pixel), tumbling by the game's
   three `mac` frames at 20 a second, flying straight out of the drill tip.
+
+## v3.100: the bash sweet spot, music through level loads, a trophy jingle in time
+
+- **Sweet spot (Smash's tipper).** Every bash is graded by where the target is (`bashZone`):
+  - SWEET: an ellipse where the gun butt lands at the end of the swing, 0.7 of the reach out at chest height, about one
+    rat wide (roughly 36-54 px out, about 12 px up or down). 1.75x damage (7, or 7 on a boss), 1.5x launch, a big hit-stop,
+    camera kick and shake, a double star and a gold CRACK!, its own sharp crack sound, 45 style. Bosses reel further.
+  - NORMAL: the rest of the swing, as before (4 damage, BONK!).
+  - SOUR: right up against Chris, the very tip, or well above or below: half damage, 0.6x launch, a tiny pause, a grey
+    "tap" and a dull thud. The reach is unchanged, so nothing that used to connect now misses: placement only adds reward.
+  - Tuning in `CFG.bashSweet` / `CFG.bashSour`. `?hitbox` draws the reach (white) and the sweet spot (gold).
+  - Trophies: SWEET SPOT (land one) and CHEESE WHISPERER (100).
+- **No music cut-outs on level loads.** The music is scheduled 0.45 s ahead (was 0.3); building a level calls
+  `Sound.ahead(2)` first, and a new tune starts with 1.2 s written, so it plays on through the hold-up.
+- **Trophy jingle.** It waits for the next eighth note of the tune, takes its key from the bass note playing (root,
+  fifth, octave, octave + fifth, so it fits major or minor), and its notes are the tune's own 16ths. With no music it
+  plays as before.

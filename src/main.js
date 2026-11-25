@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.99g';
+const BUILD = 'v3.100';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -123,6 +123,11 @@ const CFG = {
   bashCd: 0.45,        // melee: time between bashes
   bashRange: 64,      // melee: reach in front of Chris
   bashDmg: 4,         // melee: one-shots small fry, two hits for the bigger ones
+  // (v3.100) SWEET SPOT (Smash's tipper): where the butt lands at the end of the swing, about 0.7 of the reach out and at
+  // chest height, is a small zone that hits far harder; the edges of the swing (right up against Chris, the very tip,
+  // well above or below) only clip. Ratios against a normal hit: damage, launch power, knockback, hit-stop.
+  bashSweet: { at: 0.7, w: 0.1, h: 8, dmg: 1.75, fling: 1.5, kb: 1.75, stop: 0.15 },
+  bashSour: { dmg: 0.5, fling: 0.6, kb: 0.5, stop: 0.035 },
   ammoRestart: 0.25,  // after running dry the gun stays jammed until the gauge climbs back to this (v2.16: was 0.3)
   // Parmesan Power-Up (triple shot + unlimited pasta) lasts until Chris is hit: it soaks up that hit instead of a heart
   aimAssist: false, // true = shots home in on the nearest enemy; false = shots fly straight the way Chris faces
@@ -328,6 +333,7 @@ class Level1 extends Phaser.Scene {
 
   // ------------------------------------------------------------------ setup
   create() {
+    if (typeof Sound !== 'undefined' && Sound.ahead) Sound.ahead(2);     // (v3.100) building a level holds the page up: keep the tune going through it
     makeTextures(this);
     makeLevelTextures(this); makeShopTextures(this);
     this.cameras.main.setBackgroundColor(this.def.bg);
@@ -2173,12 +2179,15 @@ class Level1 extends Phaser.Scene {
   }
 
   // comic impact on a bash: a spinning pixel star flash and a "BONK!" that pops up and drifts off
-  bashPop(theta, h) {
-    const s = this.screenPos(theta, h), z = this.zoom;
-    const star = this.add.image(s.x, s.y, 'px_star').setDepth(9.5).setScale(0.5 * z).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD);
-    this.tweens.add({ targets: star, scale: 4.2 * z, angle: 90, alpha: 0, duration: 260, ease: 'Quad.easeOut', onComplete: () => star.destroy() });
-    const words = ['BONK!', 'THWACK!', 'BOP!', 'WHAM!'];
-    const t = this.add.text(s.x, s.y - 18 * z, words[(this.bashN = (this.bashN || 0) + 1) % words.length], { fontFamily: PIXEL, fontSize: Math.round(11 * z) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: Math.max(3, Math.round(4 * z)) })
+  // tier (v3.100): 2 = sweet spot (a big gold CRACK! and a double star), 0 = sour (a small grey tap), else the normal BONK
+  bashPop(theta, h, tier) {
+    const s = this.screenPos(theta, h), z = this.zoom, sw = tier === 2, so = tier === 0;
+    const star = this.add.image(s.x, s.y, 'px_star').setDepth(9.5).setScale(0.5 * z).setTint(sw ? 0xfff0a0 : 0xffffff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(so ? 0.5 : 1);
+    this.tweens.add({ targets: star, scale: (sw ? 7 : so ? 2 : 4.2) * z, angle: 90, alpha: 0, duration: sw ? 360 : 260, ease: 'Quad.easeOut', onComplete: () => star.destroy() });
+    if (sw) { const s2 = this.add.image(s.x, s.y, 'px_star').setDepth(9.5).setScale(0.4 * z).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD).setAngle(45);
+      this.tweens.add({ targets: s2, scale: 4.5 * z, angle: -45, alpha: 0, duration: 300, ease: 'Quad.easeOut', onComplete: () => s2.destroy() }); }
+    const words = sw ? ['CRACK!', 'SMASH!', 'KA-POW!'] : so ? ['tap', 'tik', 'plip'] : ['BONK!', 'THWACK!', 'BOP!', 'WHAM!'];
+    const t = this.add.text(s.x, s.y - 18 * z, words[(this.bashN = (this.bashN || 0) + 1) % words.length], { fontFamily: PIXEL, fontSize: Math.round((sw ? 16 : so ? 8 : 11) * z) + 'px', color: sw ? '#fff0a0' : so ? '#b8b0c8' : '#ffd23f', stroke: '#1a1020', strokeThickness: Math.max(3, Math.round(4 * z)) })
       .setOrigin(0.5).setDepth(9.6).setScale(0.4).setAngle(-8 + Math.random() * 16);
     this.tweens.add({ targets: t, scale: 1.15, duration: 120, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, y: t.y - 26 * z, alpha: 0, delay: 260, duration: 380, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
@@ -3503,6 +3512,17 @@ class Level1 extends Phaser.Scene {
     return !!(this.relics && this.relics.some(r => Math.abs(angDiff(r.theta, P.theta)) * R < CFG.bashRange + 10 && Math.abs(r.h - cy) < 50));
   }
 
+  // (v3.100) how cleanly a bash lands on e: 2 = SWEET SPOT, 1 = normal, 0 = SOUR (clipped with the edge of the swing).
+  // a: how far in front (radians), cy: the swing's height. The sweet zone is an ellipse round the butt's end point, sized a
+  // little by the target (a big one has more to hit); sour is the inside of the swing and its outer and upper/lower rims.
+  bashZone(e, a, cy) {
+    const S = CFG.bashSweet, d = a * R, dy = e.h + e.ch - cy, er = Math.min(e.r, 22);
+    const q = Math.hypot((d - CFG.bashRange * S.at) / (CFG.bashRange * S.w + er * 0.25), dy / (S.h + er * 0.3));
+    if (q <= 1) return 2;
+    if (d - er < CFG.bashRange * 0.12 || d - er * 0.5 > CFG.bashRange * 0.98 || Math.abs(dy) > er + 16) return 0;
+    return 1;
+  }
+
   bashHit() {
     const P = this.pl, dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34);
     if (this.ball) this.ballBash(dir, cy);
@@ -3511,33 +3531,51 @@ class Level1 extends Phaser.Scene {
     if (P.upper) { P.upper = false; this.uppercutHit(); this.reapEnemies(); return; }   // (v3.17) UPPERCUT: down + bash on the ground (style.js)
     if (P.spikeArm) { P.spikeArm = false; if (this.spikeHit()) { this.reapEnemies(); return; } }   // ...and a SPIKE in the air
     const reachT = CFG.bashRange / R;
-    let hit = 0;
+    let hit = 0, best = -1, worst = 3, sweetAt = null;
     for (const e of this.enemies) {
       if (e.hp <= 0) continue;
       const a = angDiff(e.theta, P.theta) * dir;                           // how far in front (radians)
       if (a < -14 / R || a > reachT + e.r / R) continue;
       if (Math.abs(e.h + e.ch - cy) > e.r + 34) continue;
       if (this.sfIs(e) && this.sfBashBlock(e, dir)) { hit++; continue; }   // (v3.35) a shield / wax rind just clangs
-      e.hp -= e.type === 'boss' ? 4 : CFG.bashDmg; hit++;
-      if (e.type === 'boss') this.bossRecoil(e, dir, 'bash', 4);       // (v3.52) bosses REEL from a bash
+      const zn = this.bashZone(e, a, cy), K = zn === 2 ? CFG.bashSweet : zn === 0 ? CFG.bashSour : null;   // (v3.100) sweet spot / sour edge
+      best = Math.max(best, zn); worst = Math.min(worst, zn);
+      e.hp -= (e.type === 'boss' ? 4 : CFG.bashDmg) * (K ? K.dmg : 1); hit++;
+      if (e.type === 'boss') this.bossRecoil(e, dir, 'bash', zn === 2 ? 7 : zn === 0 ? 2 : 4);       // (v3.52) bosses REEL from a bash
       if (e.hp <= 0 && e.type !== 'boss' && ((ENEMY[e.type] && ENEMY[e.type].hp) || 0) >= 3 && !this.wheels.some(w => w.i === 2)) {   // bash-finish a tough one: wheel #3
         this.addWheel(2, e.theta, e.h + e.ch + 10); const w = this.wheels.find(w => w.i === 2); if (w) { w.vh = 300; w.rest = 24; }
       }
       e.flash = 0.08; e.flashCd = 0.15; e.spr.setTintFill(0xffffff); e.spr.hsq = 1;
       if (e.kind === 'frog' && e.hp > 0) this.frogStun(e, 1.1);        // bash cracks the slime: stunned and open
-      if (e.type !== 'boss' && this.canLaunch(e)) { this.launchEnemy(e, dir, 1, e.hp <= 0); this.smashChain = 0; }   // (v3.15) small fry go FLYING (smash.js)
-      else if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * 12 / R); this.knock(e, P.theta, 300); if (e.h > 0 || e.baseH) e.h += 18; }   // knocked back
-      this.burst(e.theta, e.h + e.ch, 'spark', 8, 0.9);
-      this.bang(e.theta, e.h + e.ch, 16);
+      if (e.type !== 'boss' && this.canLaunch(e)) { this.launchEnemy(e, dir, K ? K.fling : 1, e.hp <= 0); this.smashChain = 0; if (zn === 2) e.launch.sweet = true; }   // (v3.15) small fry go FLYING (smash.js)
+      else if (e.type !== 'boss') { e.theta = wrap(e.theta + dir * (K ? K.kb : 1) * 12 / R); this.knock(e, P.theta, 300 * (K ? K.kb : 1)); if (e.h > 0 || e.baseH) e.h += 18 * (K ? K.kb : 1); }   // knocked back
+      this.burst(e.theta, e.h + e.ch, 'spark', zn === 2 ? 18 : zn === 0 ? 3 : 8, zn === 2 ? 1.4 : 0.9);
+      this.bang(e.theta, e.h + e.ch, zn === 2 ? 30 : zn === 0 ? 8 : 16);
+      if (zn === 2) { this.burst(e.theta, e.h + e.ch, 'cheddar', 6, 1.1); sweetAt = e; }
     }
     if (this.relics && this.relics.length) hit += this.relicHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (this.lumps && this.lumps.length) hit += this.lumpHit(wrap(P.theta + dir * reachT * 0.6), cy, CFG.bashRange * 0.5, CFG.bashDmg) ? 1 : 0;
     if (hit) {
-      this.styleAdd('bash', 20);
-      this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy);
-      Sound.sfx('bonk'); buzz([30, 20, 50]);
-      this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camKick(dir * 6, 2); this.camPunch(0.02);
-      this.addLight(wrap(P.theta + dir * reachT * 0.5), cy, 70, 0xffe0a0, 0.8, 0.25);
+      const sweet = best === 2, sour = best === 0;                           // (v3.100) the cleanest contact sets the feel
+      if (sweet) {
+        this.styleAdd('sweet', 45); if (typeof Ach !== 'undefined') Ach.stat('sweets');
+        const st = sweetAt ? sweetAt.theta : wrap(P.theta + dir * reachT * CFG.bashSweet.at), sh = sweetAt ? sweetAt.h + sweetAt.ch : cy;
+        this.bashPop(st, sh, 2);
+        Sound.sfx('sweet'); buzz([60, 30, 90]);
+        this.hitStop = Math.max(this.hitStop || 0, CFG.bashSweet.stop); this.camKick(dir * 13, 4); this.camPunch(0.05); this.cameras.main.shake(140, 0.006);
+        this.addLight(st, sh, 130, 0xfff0b0, 1.2, 0.35);
+      } else if (sour) {
+        this.styleAdd('bash', 8);
+        this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy, 0);
+        Sound.sfx('sour'); buzz([15]);
+        this.hitStop = Math.max(this.hitStop || 0, CFG.bashSour.stop); this.camKick(dir * 2, 1);
+      } else {
+        this.styleAdd('bash', 20);
+        this.bashPop(wrap(P.theta + dir * reachT * 0.45), cy);
+        Sound.sfx('bonk'); buzz([30, 20, 50]);
+        this.hitStop = Math.max(this.hitStop || 0, 0.07); this.camKick(dir * 6, 2); this.camPunch(0.02);
+        this.addLight(wrap(P.theta + dir * reachT * 0.5), cy, 70, 0xffe0a0, 0.8, 0.25);
+      }
     }
     this.reapEnemies();
   }
@@ -4728,6 +4766,11 @@ class Level1 extends Phaser.Scene {
     }
     for (const b of this.eBullets) ell(b.theta, b.h, this.eShotR(b), this.eShotR(b), 0xff9a2a);
     if (P) ell(P.theta, P.h + (P.duck ? 10 : 22), P.duck ? 8 : 12, P.duck ? 8 : 12, 0x6aff6a);
+    if (P) {                                                     // (v3.100) the bash: its reach (white) and the sweet spot (gold)
+      const dir = P.facing || 1, cy = P.h + (P.duck ? 28 : 34), S = CFG.bashSweet, rg = CFG.bashRange;
+      ell(wrap(P.theta + dir * rg * 0.5 / R), cy, rg * 0.55, 34, 0xffffff);
+      ell(wrap(P.theta + dir * rg * S.at / R), cy, rg * S.w + 4, S.h + 4, 0xffd23f);
+    }
   }
   // (v3.85) an enemy shot's hit radius against Chris: never bigger than what you can see of it
   eShotR(b) {

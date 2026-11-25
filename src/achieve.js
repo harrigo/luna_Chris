@@ -18,6 +18,8 @@ const ACH_LIST = [
   { id: 'strike', name: 'STRIKE!', desc: 'Bowl 3 rats over with one smashed rat', best: 'strike', at: 3 },
   { id: 'ko1', name: 'HOME RUN', desc: 'Smash a rat clean off the screen', stat: 'kos', at: 1 },
   { id: 'ko25', name: 'OUT OF THE PARK', desc: 'Smash 25 rats off the screen', stat: 'kos', at: 25 },
+  { id: 'sweet1', name: 'SWEET SPOT', desc: 'Land a bash right on the sweet spot', stat: 'sweets', at: 1 },
+  { id: 'sweet100', name: 'CHEESE WHISPERER', desc: 'Land 100 sweet-spot bashes', stat: 'sweets', at: 100 },
   { id: 'parry', name: 'NOT TODAY', desc: 'Parry a shot back', stat: 'parries', at: 1 },
   { id: 'parry50', name: 'RETURN TO SENDER', desc: 'Parry 50 shots', stat: 'parries', at: 50 },
   // ---- skill

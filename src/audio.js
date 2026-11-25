@@ -250,7 +250,21 @@ const Sound = (() => {
     bowlBoing: () => wobble({ type: 'triangle', f: 220, f2: 520, dur: 0.28, vol: 0.18, rate: 18, depth: 60, lp: 4000 }),   // BOING
     bowlGhost: () => wobble({ type: 'sine', f: 700, f2: 300, dur: 0.4, vol: 0.12, rate: 7, depth: 40, lp: 3000 }),        // wooo...
     // (v3.92) an achievement: a bright little fanfare
-    achieve: () => { const t = ctx.currentTime; arp([784, 988, 1175, 1568], 0.07, { type: 'pulse', duty: 0.25, vol: 0.13 }); tone({ type: 'pulse', duty: 0.125, f: 2093, dur: 0.4, vol: 0.07, t: t + 0.3, sustain: true }); tone({ type: 'triangle', f: 392, dur: 0.45, vol: 0.16, t: t + 0.28 }); },
+    // (v3.100) the trophy jingle plays IN the music: it waits for the next eighth note, takes its key from the bass note
+    // playing now (root, fifth, octave, octave+fifth: fits a major or a minor tune), and its notes are the tune's own 16ths
+    achieve: () => {
+      const c = cur && cur.rootF && ctx.state === 'running' ? cur : null, now = ctx.currentTime;
+      const d = c ? c.dur : 0.06;
+      let t0 = now + 0.02;
+      if (c) { const kNow = c.step - Math.floor((c.next - now) / d); let k = kNow + 1; while (k % 2) k++; t0 = c.next + (k - c.step) * d; if (t0 < now + 0.01) t0 += 2 * d; }
+      let r = c ? c.rootF : 523.25; while (r < 440) r *= 2; while (r >= 880) r /= 2;
+      const N = [1, 1.5, 2, 3], vol = c ? 0.09 : 0.13;
+      N.forEach((m, i) => tone({ type: 'pulse', duty: 0.25, f: r * m, dur: d * 0.9, vol, t: t0 + i * d }));
+      tone({ type: 'pulse', duty: 0.125, f: r * 4, dur: d * 6, vol: vol * 0.55, t: t0 + 4 * d, sustain: true });
+      tone({ type: 'triangle', f: r / 2, dur: d * 6, vol: 0.14, t: t0 + 4 * d });
+    },
+    sweet:   () => { tone({ type: 'square', f: 1400, f2: 300, dur: 0.06, vol: 0.3 }); tone({ type: 'square', f: 300, f2: 55, dur: 0.22, vol: 0.4 }); noise({ f1: 5000, f2: 300, dur: 0.18, vol: 0.55 }); setTimeout(() => tone({ type: 'triangle', f: 1760, f2: 1760, dur: 0.12, vol: 0.12 }), 40); },   // (v3.100) the sweet spot: a sharp CRACK with a ring
+    sour:    () => { tone({ type: 'sine', f: 180, f2: 120, dur: 0.07, vol: 0.18 }); noise({ f1: 600, f2: 200, dur: 0.05, vol: 0.15 }); },   // (v3.100) a weak tap
     bonk:    () => { tone({ type: 'square', f: 240, f2: 70, dur: 0.14, vol: 0.32 }); noise({ f1: 900, f2: 120, dur: 0.12, vol: 0.4 }); },
     charge:  () => tone({ type: 'pulse', duty: 0.25, f: 300 + (SFX._ch || 0) * 700, f2: 340 + (SFX._ch || 0) * 760, dur: 0.07, vol: 0.07 }),   // pitch rises with the charge
     charged: () => arp([880, 1320, 1760], 0.04, { type: 'pulse', duty: 0.125, vol: 0.09 }),
@@ -730,6 +744,7 @@ const Sound = (() => {
       for (const e of evs) {
         const f = 440 * Math.pow(2, (e.note - 69) / 12) * tp, dur = Math.max(0.05, e.len * c.dur * (ch.gate || 0.9));
         if (ch.w === 'dist') { guitar({ f, dur, vol: ch.vol * (tense && ch === c.lead ? 0.5 : 1), t, bus: c.bus, chord: ch.chord, pm: ch.pm && e.len <= 1, drive: ch.drive }); continue; }   // (v3.92)
+        if (ch.w === 'triangle') c.rootF = f;                             // (v3.100) the bass note now: jingles take their key from it
         tone({ type: ch.w, duty: ch.duty, f, dur, vol: ch.vol, t, bus: c.bus, sustain: !ch.pluck });
         if (!c.level) continue;
         if (ch.pluck) { if (top) tone({ type: 'pulse', duty: 0.25, f: f * 2, dur: Math.min(dur, c.dur), vol: ch.vol * 0.55, t, bus: c.bus }); continue; }   // the arpeggio, doubled up top
@@ -765,10 +780,14 @@ const Sound = (() => {
     cur.geared = true; cur.dur /= 1.1; cur.gearTp = 2; cur.crash = true;
   }
 
+  // (v3.100) the music is written ahead of the clock. 0.45 s normally; ahead(sec) writes further, just before something
+  // that will hold up the page (a level being built), so the tune carries on through the hold-up instead of cutting out.
+  let aheadTo = 0;
+  function ahead(sec) { if (!ctx || !cur || ctx.state !== 'running') return; aheadTo = ctx.currentTime + (sec || 1.5); tick(); }
   function tick() {
     if (!ctx || !cur || ctx.state !== 'running') return;
     if (cur.next < ctx.currentTime - 0.1) cur.next = ctx.currentTime + 0.05;   // woke up late: don't burst
-    const horizon = ctx.currentTime + 0.3;
+    const horizon = Math.max(ctx.currentTime + 0.45, aheadTo);
     while (cur && cur.next < horizon) {
       playStep(cur);
       cur.step++;
@@ -823,6 +842,7 @@ const Sound = (() => {
     if (level) intensity = 0;
     cur = { name, tr, song: sng, secI: 0, secN: 0, pass: 0, bars: 0, E: 0, boost: 0, bus, filt, then, step: 0, next: ctx.currentTime + 0.08, dur: 60 / T.bpm / 4, level };
     rollSection(cur); applyDanger(cur, true);
+    aheadTo = ctx.currentTime + 1.2; tick();                              // (v3.100) a head start, in case the page is busy right now
   }
 
   // ------------------------------------------------------------ browser plumbing
@@ -846,6 +866,7 @@ const Sound = (() => {
   }
 
   return {
+    ahead,
     init, sfx, say, jet, music, fill, duck, intensity: setIntensity, heat: setHeat, boost, danger, gear,
     pause(on) { paused = on; if (musicBus) musicBus.gain.setTargetAtTime((on ? 0.12 : 0.5) * vol.music, ctx.currentTime, 0.05); if (on) jet(false); },
     setVolume, getVolume: (kind) => vol[kind],
