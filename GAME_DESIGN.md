@@ -2506,3 +2506,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   BET / WIN meters; and a deck of four arcade buttons: BET - (LB), BET + (RB), TAKE / MEGA (X: takes your trail step, or
   starts a mega spin's 10 free spins), SPIN (A; skips the count-up). B / the EXIT plate leaves. The hi-lo gamble is gone
   from the buttons (simpler). Rat Trap on a controller: left / right choose a cheese, A picks.
+- **v3.105: a smaller, cosier tent.** Redrawn as a little pup tent at chunkier pixels (z = H/96): a low ridge, the canvas
+  sloping in from both screen edges, a zipped-back door in the back wall with the night and the campfire through it.
+  A proper camp bed (legs, mattress, plump pillow, a patchwork quilt) with Chris asleep in his chef's hat as a nightcap
+  (`tent_chris`), Biscuit curled on the quilt, a rag rug. The lantern sits on a crate by the bed (the warm pool is low
+  now), with the cocoa and the radio. A COW MOBILE hangs from the ridge: four little Bessies on a turning cross-bar,
+  swaying; tap it (or X / SPACE) to set it spinning, it winds down slowly.
