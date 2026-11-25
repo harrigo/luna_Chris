@@ -2517,3 +2517,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   (`makeLouiseTextures`: 'lou_idle' presenting the machine, 'lou_cheer' both arms up, 'lou_wink' thumbs-up and a wink).
   She winks now and then as you spin, cheers and bounces on big wins and the jackpot, and talks on the LED ticker
   ("THAT'S RIDIC!"). She's drawn as large as the gap beside the cabinet allows (hidden on very narrow screens).
+- **v3.107: tight and enclosed.** Bigger pixels again (z = H/74), the back wall small and far, and a foreground layer
+  (`tent_fg`) of the near canvas sloping in from both screen edges with the ridge overhead, so you're right inside it.
+  The bed is one drawn piece now (`tent_bed`): Chris in a blue mummy bag shaped round him - a hood with a red lining
+  round his face (nightcap and bobble poking out, eyes shut, moustache), bumps for shoulders, hips, knees and toes,
+  rising slightly to his feet, the patchwork quilt draped over his middle with a scalloped hem. It breathes. Biscuit
+  sleeps on his feet; the lantern, cocoa and radio sit by the wall.

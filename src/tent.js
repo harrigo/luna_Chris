@@ -23,6 +23,43 @@ function makeTentTextures(scene) {
     for (const x of [2, 5, 8]) rect(put, x, 5, x, 10, 0x5a4838);
     rect(put, 1, 12, 9, 14, 0x1a1020); rect(put, 2, 12, 8, 13, 0x8a6a48);
   });
+  // (v3.107) Chris tucked up in a mummy sleeping bag: one piece, shaped round him - the hood round his face (nightcap
+  // poking out), bumps for shoulders, hips, knees and toes, rising a little towards his feet, the patchwork quilt draped
+  // over the middle and spilling down the side. 96 x 36, lit from the upper left.
+  pixTex(scene, 'tent_bed', 96, 36, put => {
+    const INK = 0x1a1020, BAG = [0x1a2a5a, 0x2a4a8a, 0x3a6aa8, 0x6a9ad0], LIN = [0x8a2a2a, 0xc84a3a], SK = [0xc07858, 0xe8a07a, 0xffc8a0], MO = [0x3a2010, 0x6a3a1a, 0x8a5a2a];
+    const Q = [[0xffd23f, 0xc8902a], [0xd83a2a, 0x8a1a1a], [0xf4ecd8, 0xc8bfa8], [0x2aa04a, 0x1a6a2a], [0xff9ac0, 0xc86a8a]];
+    const bump = (x, c, w) => Math.exp(-((x - c) * (x - c)) / (w * w));
+    const base = x => 31 - x * 0.05, hgt = x => 9 + 5 * bump(x, 30, 9) + 3 * bump(x, 50, 8) + 5 * bump(x, 68, 5) + 3 * bump(x, 84, 4);
+    const g = []; for (let y = 0; y < 36; y++) g.push(Array(96).fill(null));
+    const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < 96 && y < 36) g[y][x] = c; };
+    const sh = (R, v, x, y) => { const f = Math.max(0, Math.min(R.length - 1, v * (R.length - 1))), i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };
+    for (let x = 0; x < 96; x++) for (let y = 0; y < 36; y++) {
+      const X = x + 0.5, Y = y + 0.5;
+      if (Math.hypot((X - 50) / 47, (Y - 33) / 3) <= 1) set(x, y, 0x0e0a14);                       // its shadow on the groundsheet
+      const end = X > 90 ? Math.sqrt(Math.max(0, 1 - ((X - 90) / 5) ** 2)) : 1, top = base(X) - hgt(X) * end;
+      if (X > 12 && X < 95 && Y > top && Y < base(X) && end > 0) {                                  // the bag
+        const v = 0.8 - (Y - top) / Math.max(1, hgt(X)) * 0.55 - (X / 96) * 0.1;
+        set(x, y, (Math.floor(X - Y * 0.3) % 9 === 0) ? BAG[1] : sh(BAG, v, x, y));
+        if (X > 28 && X < 80 && Y < top + hgt(X) * 0.62 + Math.sin(X * 0.7) * 0.8) {                // the quilt over the top, scalloped hem
+          const qx = Math.floor((X - 28) / 6), qy = Math.floor((Y - top) / 5), C = Q[(qx + qy * 2) % 5];
+          set(x, y, ((X - 28) % 6 < 0.8 || (Y - top) % 5 < 0.8) ? 0xf4ecd8 : (x + y) % 2 ? C[0] : C[1]);
+        }
+      }
+      if (Math.hypot((X - 13) / 12, (Y - 22) / 10) <= 1 && X < 20) set(x, y, sh(BAG, 0.75 - (Y - 12) * 0.02, x, y));   // the hood
+      if (Math.hypot((X - 14) / 8.5, (Y - 22) / 7.5) <= 1) set(x, y, Math.hypot((X - 14) / 8.5, (Y - 22) / 7.5) > 0.82 ? LIN[0] : LIN[1]);   // its red lining
+      if (Math.hypot((X - 15) / 6.5, (Y - 22) / 6) <= 1) set(x, y, Y < 19 ? SK[2] : X > 18 ? SK[0] : SK[1]);   // his face
+      if (Math.hypot((X - 7) / 7, (Y - 15) / 5) <= 1 && Y < 19) set(x, y, (x + y) % 5 ? 0xf4f0f8 : 0xc8c4d4);   // the nightcap
+      if (Math.hypot(X - 1.5, Y - 19) < 2.2) set(x, y, 0xffd23f);                                   // its bobble
+    }
+    for (const [x, y] of [[12, 21], [13, 21], [17, 21], [18, 21]]) set(x, y, INK);                   // eyes shut
+    for (let x = 10; x < 21; x++) { const h = 1.6 - Math.abs(x - 15.5) / 4; for (let y = Math.round(24 - h / 2); y <= Math.round(24 + h); y++) set(x, y, x < 11 || x > 19 ? MO[0] : MO[(x % 3 === 0) ? 2 : 1]); }   // the moustache
+    set(15, 23, SK[0]); set(19, 23, 0xff8a8a);
+    for (let y = 0; y < 36; y++) for (let x = 0; x < 96; x++) {
+      if (g[y][x] != null) { put(x, y, g[y][x]); continue; }
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => g[y + dy] && g[y + dy][x + dx] != null && g[y + dy][x + dx] !== 0x0e0a14)) put(x, y, INK);
+    }
+  });
   pixTex(scene, 'tent_chris', 30, 20, put => {                   // Chris asleep on his pillow, chef's hat worn as a nightcap
     const INK = 0x1a1020, SK = [0xc07858, 0xe8a07a, 0xffc8a0], HAT = [0xc8c4d4, 0xf4f0f8, 0xffffff], MO = [0x3a2010, 0x6a3a1a, 0x8a5a2a];
     for (let y = 0; y < 20; y++) for (let x = 0; x < 30; x++) {
@@ -58,59 +95,56 @@ class TentScene extends Phaser.Scene {
     this.time.delayedCall(900, () => this.say('Ahh. Safe and snug.'));
   }
   // ---- a little pup tent: big chunky pixels, the canvas sloping in from both edges, a low ridge
+  // ---- a tight little pup tent: big pixels, the canvas almost on top of you, the ridge just overhead
   build() {
-    const W = this.scale.width, H = this.scale.height, z = Math.max(3, Math.floor(H / 96)), aw = Math.ceil(W / z), ah = Math.ceil(H / z);
+    const W = this.scale.width, H = this.scale.height, z = Math.max(4, Math.floor(H / 74)), aw = Math.ceil(W / z), ah = Math.ceil(H / z);
     this.z = z; this.aw = aw; this.ah = ah;
     this.children.removeAll(true); this.parts = [];
-    const cx = Math.round(aw / 2), fl = ah - 22, apex = 3, back = Math.round(Math.min(aw * 0.2, 46));   // the back wall's half-width at the floor
+    const cx = Math.round(aw / 2), fl = ah - 12, apex = -2, back = Math.round(Math.min(aw * 0.13, 22));
     this.geo = { cx, fl, apex, back };
     const key = 'tent_bg'; if (this.textures.exists(key)) this.textures.remove(key);
     pixTex(this, key, aw, ah, put => {
       const FAB = [0x24100a, 0x3a1a0c, 0x5a2a12, 0x7a3a16, 0x9a4c1a, 0xc0622a];
       const pick = (R, f, x, y) => { f = Math.max(0, Math.min(R.length - 1, f)); const i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };
-      const rnd = rng(77), n1 = vnoise(rnd, 6);
-      const dW = 9, dTop = 18;                                       // the zipped-back door in the back wall
+      const rnd = rng(77), n1 = vnoise(rnd, 6), dW = 6, dTop = 14;
       for (let y = 0; y < ah; y++) for (let x = 0; x < aw; x++) {
-        const dx = x - cx, bh = (y - apex) / (fl - apex) * back, sw = (y - apex) / (fl - apex) * (aw * 0.62);
+        const dx = x - cx, u = Math.max(0, (y - apex) / (fl - apex)), bh = u * back, sw = bh + u * aw * 0.95;
         let c;
-        if (y >= fl) c = pick([0x10141e, 0x181e2c, 0x222a3a], 1.1 + (y - fl) / 14 + (n1(x / aw * 2, y / ah) - 0.5) * 0.8, x, y);   // groundsheet
-        else if (y >= apex && Math.abs(dx) <= bh) {                 // the back wall
-          c = pick(FAB, 2.1 - Math.abs(dx) / back * 0.6 + (n1(x / aw * 3, y / ah * 2) - 0.5) * 0.6, x, y);
-          const dh = (y - dTop) / (fl - dTop) * dW;                  // the door: a triangle of night, the fire low down
-          if (y > dTop && Math.abs(dx) < dh) c = y > fl - 5 ? pick([0x7a2a08, 0xc05a12, 0xffa030], 2.4 - (fl - y) * 0.5 + Math.sin(x) * 0.3, x, y) : pick([0x080a1c, 0x101844, 0x2a1a3a, 0x5a2a1a], (y - dTop) / (fl - dTop) * 3.4, x, y);
-          else if (y > dTop - 1 && Math.abs(Math.abs(dx) - dh) < 1.4) c = 0x1a0a06;   // the zip
-        } else if (y >= apex && Math.abs(dx) <= sw) {               // the two side walls, close, sloping in
+        if (y >= fl) c = pick([0x10141e, 0x181e2c, 0x222a3a], 1.2 + (y - fl) / 10 + (n1(x / aw * 2, y / ah) - 0.5) * 0.8, x, y);
+        else if (Math.abs(dx) <= bh) {                               // the back wall, small and far
+          c = pick(FAB, 1.9 - Math.abs(dx) / Math.max(1, back) * 0.5 + (n1(x / aw * 3, y / ah * 2) - 0.5) * 0.5, x, y);
+          const dh = (y - dTop) / (fl - dTop) * dW;
+          if (y > dTop && Math.abs(dx) < dh) c = y > fl - 4 ? pick([0x7a2a08, 0xc05a12, 0xffa030], 2.4 - (fl - y) * 0.6, x, y) : pick([0x080a1c, 0x101844, 0x2a1a3a], (y - dTop) / (fl - dTop) * 2.6, x, y);
+          else if (y > dTop - 1 && Math.abs(Math.abs(dx) - dh) < 1.2) c = 0x1a0a06;
+        } else if (Math.abs(dx) <= sw) {                              // the side walls, right up close, sagging between the poles
           const k = (Math.abs(dx) - bh) / Math.max(1, sw - bh);
-          c = pick(FAB, 2.4 - k * 1.7 + (n1(x / aw * 4, y / ah * 1.5) - 0.5) * 0.7, x, y);
-          if (Math.abs(((Math.abs(dx) - bh) / 9 + y / 30) % 1 - 0.5) < 0.04) c = FAB[1];   // seams
-        } else c = pick(FAB, 0.4 + (n1(x / aw, y / ah) - 0.5), x, y);   // right up close: the canvas in shadow
+          c = pick(FAB, 2.5 - k * 1.9 + Math.sin(k * 9 + y * 0.12) * 0.25 + (n1(x / aw * 4, y / ah * 1.5) - 0.5) * 0.6, x, y);
+          if (Math.abs(((Math.abs(dx) - bh) / 11 + y / 26) % 1 - 0.5) < 0.035) c = FAB[1];
+        } else c = pick(FAB, 0.3 + (n1(x / aw, y / ah) - 0.5) * 0.6, x, y);
         put(x, y, c);
       }
-      for (let x = cx - 2; x <= cx + 2; x++) put(x, apex, 0x6a4a2a);  // the ridge pole's end
-      // Bessie's photo pinned to the back wall (the picture's a sprite)
-      const px = cx - back + 10, py = 26; for (let y = py; y < py + 14; y++) for (let x = px; x < px + 12; x++) put(x, y, (x === px || y === py || x === px + 11 || y === py + 13) ? 0x1a1020 : (y > py + 10 ? 0xf4ecd8 : 0x8ac8f0)); put(px + 6, py - 1, 0xd83a2a);
-      // the camp bed: legs, a mattress, a patchwork quilt, a plump pillow
-      const bx = Math.round(aw * 0.14), bw = Math.round(aw * 0.52), by = fl - 13;
-      for (let y = by + 10; y < fl + 4; y++) for (const lx of [bx + 2, bx + bw - 4]) { put(lx, y, 0x3a2418); put(lx + 1, y, 0x6a4a2a); }
-      for (let y = by + 8; y < by + 11; y++) for (let x = bx; x < bx + bw; x++) put(x, y, y === by + 10 ? 0x1a1020 : 0xe8e0cc);          // mattress edge
-      for (let y = by - 4; y < by + 6; y++) for (let x = bx - 2; x < bx + 18; x++) if (Math.hypot((x - bx - 8) / 10, (y - by - 1) / 5.5) <= 1) put(x, y, Math.hypot((x - bx - 8) / 10, (y - by - 1) / 5.5) > 0.86 ? 0xb8b0c4 : (x + y) % 6 ? 0xfaf6ee : 0xe4dcd0);   // pillow
-      const Q = [[0xffd23f, 0xc8902a], [0x3a6aa8, 0x2a4a80], [0xd83a2a, 0x8a1a1a], [0xf4ecd8, 0xc8bfa8], [0x2aa04a, 0x1a6a2a]];
-      for (let y = by - 1; y < by + 9; y++) for (let x = bx + 14; x < bx + bw; x++) {               // the quilt, tucked over him
-        const top = y < by + 1 + Math.sin((x - bx) * 0.25) * 0.6, cell = Q[(Math.floor((x - bx) / 7) + Math.floor((y - by + 1) / 5) * 2) % 5];
-        if (top) { put(x, y, x === bx + bw - 1 ? 0x1a1020 : cell[0] === 0xf4ecd8 ? 0xffffff : cell[0]); continue; }
-        put(x, y, x === bx + bw - 1 || y === by + 8 ? 0x1a1020 : ((x - bx) % 7 === 0 || (y - by + 1) % 5 === 0) ? 0xf4ecd8 : (x + y) % 2 ? cell[0] : cell[1]);
-      }
-      for (let x = bx + 14; x < bx + 30; x++) put(x, by - 1, 0x1a1020);
-      // the crate by the bed (the lantern sits on it), the radio, the mug, the comic
-      const kx = bx + bw + 8, ky = fl - 12; for (let y = ky; y < fl + 2; y++) for (let x = kx; x < kx + 16; x++) put(x, y, (x === kx || x === kx + 15 || y === ky || y === fl + 1) ? 0x1a1020 : (y - ky) % 4 === 0 ? 0x3a2418 : 0x8a6a48);
-      const rx = kx + 20, ry = fl - 6; for (let y = ry; y < fl + 2; y++) for (let x = rx; x < rx + 13; x++) put(x, y, (x === rx || x === rx + 12 || y === ry || y === fl + 1) ? 0x1a1020 : (x > rx + 6 && (x + y) % 2) ? 0x3a3448 : 0x8a2a2a);
-      for (let k = 0; k < 6; k++) put(rx + 3 + k, ry - 1 - k, 0x9aa4b8); for (let x = rx + 2; x < rx + 6; x++) put(x, ry + 3, 0xffd23f);
-      const mx = kx + 11, my = ky - 5; for (let y = my; y < ky; y++) for (let x = mx; x < mx + 4; x++) put(x, y, (x === mx || x === mx + 3) ? 0x1a1020 : y === my ? 0x5a2a12 : 0xf4f0e0); put(mx + 4, my + 2, 0x1a1020);
-      for (let y = fl + 3; y < ah; y++) for (let x = bx + 4; x < bx + bw + 30; x++) { const d = Math.hypot((x - bx - bw / 2 - 12) / (bw / 2 + 14), (y - fl - 10) / 8); if (d <= 1) put(x, y, [0x5a1a2a, 0x8a3a2a, 0xc8902a, 0x8a3a2a, 0x3a6aa8, 0x5a1a2a][Math.min(5, Math.floor(d * 6))]); }   // a rag rug
-      const ox = bx + 16, oy = fl + 7; for (let y = oy; y < oy + 5; y++) for (let x = ox; x < ox + 14; x++) put(x, y, x === ox + 7 ? 0x8a8478 : (x + y * 3) % 7 < 2 ? 0x3a6aa8 : 0xf4ecd8);
-      this.geo.bed = { bx, bw, by }; this.geo.crate = { kx, ky }; this.geo.radio = { rx, ry }; this.geo.mug = { mx, my }; this.geo.photo = { px, py };
+      const px = cx - back + 3, py = 26; for (let y = py; y < py + 9; y++) for (let x = px; x < px + 8; x++) put(x, y, (x === px || y === py || x === px + 7 || y === py + 8) ? 0x1a1020 : (y > py + 6 ? 0xf4ecd8 : 0x8ac8f0)); put(px + 4, py - 1, 0xd83a2a);
+      const kx = aw - Math.round(aw * 0.2), ky = fl - 8; for (let y = ky; y < fl + 2; y++) for (let x = kx; x < kx + 12; x++) put(x, y, (x === kx || x === kx + 11 || y === ky || y === fl + 1) ? 0x1a1020 : (y - ky) % 3 === 0 ? 0x3a2418 : 0x8a6a48);   // the crate
+      const mx = kx + 8, my = ky - 4; for (let y = my; y < ky; y++) for (let x = mx; x < mx + 3; x++) put(x, y, (x === mx || x === mx + 2) ? 0x1a1020 : y === my ? 0x5a2a12 : 0xf4f0e0);
+      const rx = kx - 12, ry = fl - 4; for (let y = ry; y < fl + 2; y++) for (let x = rx; x < rx + 9; x++) put(x, y, (x === rx || x === rx + 8 || y === ry || y === fl + 1) ? 0x1a1020 : (x > rx + 4 && (x + y) % 2) ? 0x3a3448 : 0x8a2a2a);
+      for (let k = 0; k < 4; k++) put(rx + 2 + k, ry - 1 - k, 0x9aa4b8);
+      for (let y = fl + 2; y < ah; y++) for (let x = 0; x < aw; x++) { const d = Math.hypot((x - aw * 0.42) / (aw * 0.36), (y - fl - 7) / 5); if (d <= 1) put(x, y, [0x5a1a2a, 0x8a3a2a, 0xc8902a, 0x8a3a2a, 0x3a6aa8, 0x5a1a2a][Math.min(5, Math.floor(d * 6))]); }   // the rag rug
+      this.geo.crate = { kx, ky }; this.geo.radio = { rx, ry }; this.geo.mug = { mx, my }; this.geo.photo = { px, py };
     });
     this.add.image(0, 0, key).setOrigin(0).setScale(z).setDepth(0);
+    // the canvas right by your shoulders: dark sloping walls closing in from both edges and the ridge overhead
+    if (this.textures.exists('tent_fg')) this.textures.remove('tent_fg');
+    pixTex(this, 'tent_fg', aw, ah, put => {
+      const FAB = [0x12080a, 0x24100a, 0x3a1a0c, 0x5a2a12];
+      for (let y = 0; y < ah; y++) for (let x = 0; x < aw; x++) {
+        const v = y / ah, e = aw * (0.2 - 0.17 * v) + Math.sin(y * 0.45) * 0.8, dEdge = Math.min(x, aw - 1 - x), top = 3 - Math.abs(x - aw / 2) / aw * 4;
+        if (dEdge < e || y < top) {
+          const k = dEdge < e ? (e - dEdge) / e : 1;
+          put(x, y, (dEdge < e && e - dEdge < 1.3) ? FAB[3] : FAB[Math.min(2, Math.floor((1 - k) * 3 + ((x + y) % 2) * 0.4))]);
+        }
+      }
+    });
+    this.add.image(0, 0, 'tent_fg').setOrigin(0).setScale(z).setDepth(5.5);
     if (!this.textures.exists('tent_pool')) {
       const T = this.textures.createCanvas('tent_pool', 256, 256), c = T.getContext(), gr = c.createRadialGradient(128, 128, 0, 128, 128, 128);
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.7, 'rgba(255,255,255,0.15)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
@@ -119,31 +153,30 @@ class TentScene extends Phaser.Scene {
       g2.addColorStop(0, 'rgba(255,255,255,1)'); g2.addColorStop(0.45, 'rgba(200,170,150,1)'); g2.addColorStop(1, 'rgba(40,24,40,1)');
       d.fillStyle = g2; d.fillRect(0, 0, 256, 256); D.refresh();
     }
-    const G = this.geo, P = (ax, ay) => [ax * z, ay * z];
+    const G = this.geo, P = (ax, ay) => [ax * z, ay * z], bedX = Math.round(aw * 0.42), bedY = fl + 5;
+    G.bed = { x: bedX, y: bedY };
     this.shade = this.add.image(0, 0, 'tent_dark').setDepth(1.4).setBlendMode(Phaser.BlendModes.MULTIPLY);
     this.glow = this.add.image(0, 0, 'tent_pool').setDepth(1.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0x8a5020);
     this.glow2 = this.add.image(0, 0, 'tent_pool').setDepth(1.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0x7a2a08);
     this.dark = this.add.graphics().setDepth(1.45);
-    this.lampIm = this.add.image(...P(G.crate.kx + 5, G.crate.ky), 'tent_lantern').setOrigin(0.5, 1).setScale(z).setDepth(3);
-    this.head = this.add.image(...P(G.bed.bx + 11, G.bed.by + 3), 'tent_chris').setOrigin(0.5, 1).setScale(Math.max(2, z - 1)).setDepth(3);
-    this.dog = this.textures.exists('cf_dog0') ? this.add.image(...P(G.bed.bx + G.bed.bw - 10, G.bed.by + 2), 'cf_dog0').setOrigin(0.5, 1).setScale(z * 0.4).setFlipX(true).setDepth(3) : null;
-    if (this.textures.exists('bessie')) this.add.image(...P(G.photo.px + 6, G.photo.py + 6), 'bessie').setScale(z * 0.13).setDepth(1.2);
+    this.lampIm = this.add.image(...P(G.crate.kx + 4, G.crate.ky), 'tent_lantern').setOrigin(0.5, 1).setScale(z).setDepth(3);
+    this.bed = this.add.image(...P(bedX, bedY), 'tent_bed').setOrigin(0.5, 1).setScale(z).setDepth(2.8);
+    this.dog = this.textures.exists('cf_dog0') ? this.add.image(...P(bedX + 34, bedY - 9), 'cf_dog0').setOrigin(0.5, 1).setScale(z * 0.3).setFlipX(true).setDepth(3) : null;
+    if (this.textures.exists('bessie')) this.add.image(...P(G.photo.px + 4, G.photo.py + 4), 'bessie').setScale(z * 0.08).setDepth(1.2);
     this.mobG = this.add.graphics().setDepth(3.6); this.cows = [0, 1, 2, 3].map(() => this.add.image(0, 0, 'fm_bessie').setDepth(3.7));
     this.fxG = this.add.graphics().setDepth(4);
-    const f = { fontFamily: PIXEL, fontSize: Math.max(8, Math.round(z * 2.4)) + 'px', color: '#fff0c8', stroke: '#1a1020', strokeThickness: 4, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } };
-    this.capT = this.add.text(W / 2, H - 10, '', f).setOrigin(0.5, 1).setDepth(6).setAlpha(0);
-    this.zT = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: Math.round(z * 2.4) + 'px', color: '#c8d4ff', stroke: '#1a1020', strokeThickness: 3 }).setDepth(5);
+    const f = { fontFamily: PIXEL, fontSize: Math.max(9, Math.round(z * 2)) + 'px', color: '#fff0c8', stroke: '#1a1020', strokeThickness: 4, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } };
+    this.capT = this.add.text(W / 2, H - 8, '', f).setOrigin(0.5, 1).setDepth(6).setAlpha(0);
+    this.zT = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: Math.round(z * 2) + 'px', color: '#c8d4ff', stroke: '#1a1020', strokeThickness: 3 }).setDepth(5);
     const ob = this.add.text(W - 10, 10, 'CRAWL OUT (B)', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3, backgroundColor: '#3a1a0c', padding: { x: 8, y: 6 } }).setOrigin(1, 0).setDepth(7);
     const B = (id, ax, ay, w2, h2) => ({ id, x: ax * z, y: ay * z, w: w2 * z, h: h2 * z });
     this.hits = [
       { id: 'out', x: ob.x - ob.width, y: ob.y, w: ob.width, h: ob.height },
-      B('mobile', G.cx - 22, G.apex, 44, 34), B('lantern', G.crate.kx, G.crate.ky - 16, 12, 16), B('mug', G.mug.mx - 2, G.mug.my - 2, 8, 8), B('radio', G.radio.rx - 2, G.radio.ry - 8, 16, 16),
-      B('photo', G.photo.px - 2, G.photo.py - 2, 16, 18), B('book', G.bed.bx + 14, G.fl + 5, 18, 9), B('dog', G.bed.bx + G.bed.bw - 22, G.bed.by - 12, 24, 16),
-      B('chris', G.bed.bx - 4, G.bed.by - 18, G.bed.bw - 20, 30), B('flap', G.cx - 10, 18, 20, G.fl - 18)
+      B('mobile', G.cx - 20, 0, 40, 26), B('lantern', G.crate.kx, G.crate.ky - 15, 10, 15), B('mug', G.mug.mx - 2, G.mug.my - 2, 7, 7), B('radio', G.radio.rx - 2, G.radio.ry - 6, 12, 10),
+      B('photo', G.photo.px - 2, G.photo.py - 2, 12, 13), B('dog', bedX + 24, bedY - 22, 22, 16), B('chris', bedX - 48, bedY - 30, 66, 30), B('flap', G.cx - 6, 14, 12, G.fl - 18)
     ];
-    // fairy lights along the back wall's two roof edges
-    this.bulbs = []; for (let k = 1; k < 11; k++) { const u = k / 11; for (const sd of [-1, 1]) this.bulbs.push({ x: G.cx + sd * u * G.back * 0.95, y: G.apex + 2 + u * (G.fl - G.apex) * 0.95, c: [0xff6a6a, 0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff6ad0][(k + (sd > 0 ? 2 : 0)) % 5], ph: Math.random() * 6 }); }
-    this.stars = []; for (let k = 0; k < 6; k++) this.stars.push({ x: G.cx + (Math.random() - 0.5) * 8, y: 26 + Math.random() * (G.fl - 40), ph: Math.random() * 6 });
+    this.bulbs = []; for (let k = 1; k < 9; k++) { const u = k / 9; for (const sd of [-1, 1]) this.bulbs.push({ x: G.cx + sd * (u * G.back + u * 4), y: 2 + u * (G.fl - 2) * 0.8, c: [0xff6a6a, 0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff6ad0][(k + (sd > 0 ? 2 : 0)) % 5], ph: Math.random() * 6 }); }
+    this.stars = []; for (let k = 0; k < 4; k++) this.stars.push({ x: G.cx + (Math.random() - 0.5) * 6, y: 18 + Math.random() * (G.fl - 30), ph: Math.random() * 6 });
   }
   say(text) { this.capT.setText(text).setAlpha(0); this.cap = { t: 0, life: 3.6 + text.length * 0.03 }; }
   line(id) { const L = TENT_SAYS[id], i = (this.saysI[id] = ((this.saysI[id] === undefined ? -1 : this.saysI[id]) + 1) % L.length); return L[i]; }
@@ -154,10 +187,10 @@ class TentScene extends Phaser.Scene {
     if (id === 'lantern') { this.lampTo = this.lampTo > 0.5 ? 0.15 : 1; Sound.sfx('blip'); this.say(this.lampTo > 0.5 ? 'Light on.' : 'Lights low. Just the fairy lights now. Cosy.'); return; }
     if (id === 'radio') { this.radio = !this.radio; Sound.music(this.radio ? 'tent' : null); Sound.sfx('blip'); this.say(this.radio ? TENT_SAYS.radio[0] : 'Click. Just the fire crackling now.'); return; }
     if (id === 'mobile') { this.mob.v = Math.min(14, this.mob.v + 5); Sound.sfx('chime'); this.time.delayedCall(150, () => Sound.sfx('blip')); }
-    if (id === 'dog') { Sound.sfx('pickup'); this.dogWag = 1.2; for (let k = 0; k < 5; k++) this.parts.push({ kind: 'heart', x: this.dog ? this.dog.x : 0, y: this.dog ? this.dog.y - 10 * z : 0, vx: (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 30, life: 1.6 }); }
+    if (id === 'dog') { Sound.sfx('pickup'); this.dogWag = 1.2; for (let k = 0; k < 5; k++) this.parts.push({ kind: 'heart', x: this.dog ? this.dog.x : 0, y: this.dog ? this.dog.y - 8 * z : 0, vx: (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 30, life: 1.6 }); }
     if (id === 'mug') { Sound.sfx('squish'); for (let k = 0; k < 8; k++) this.parts.push({ kind: 'steam', x: (G.mug.mx + 2) * z, y: G.mug.my * z, vx: (Math.random() - 0.5) * 12, vy: -20 - Math.random() * 20, life: 1.4 }); }
     if (id === 'chris') { this.headNod = 1; Sound.sfx('jump'); }
-    if (id === 'flap') { this.shoot = { x: (G.cx + 6) * z, y: 24 * z, life: 0.7 }; Sound.sfx('chime'); }
+    if (id === 'flap') { this.shoot = { x: (G.cx + 4) * z, y: 18 * z, life: 0.6 }; Sound.sfx('chime'); }
     this.say(this.line(id));
   }
   out() {
@@ -172,22 +205,22 @@ class TentScene extends Phaser.Scene {
     this.lampIm.setAlpha(0.6 + this.lamp * 0.4);
     this.shade.setPosition(lx - 20 * z, ly).setScale(Math.max(W, H) * 1.4 / 256 * (0.75 + this.lamp * 0.35) * flick);
     this.glow.setPosition(lx, ly).setScale(W * 0.5 / 256 * flick * (0.4 + this.lamp * 0.6)).setAlpha(0.6 * this.lamp + 0.05);
-    this.glow2.setPosition(G.cx * z, (G.fl - 2) * z).setScale(W * 0.14 / 256 * (1 + Math.sin(t * 9) * 0.06 + Math.sin(t * 4.1) * 0.05)).setAlpha(0.6);
+    this.glow2.setPosition(G.cx * z, (G.fl - 2) * z).setScale(W * 0.1 / 256 * (1 + Math.sin(t * 9) * 0.06 + Math.sin(t * 4.1) * 0.05)).setAlpha(0.6);
     this.dark.clear().fillStyle(0x05020a, 0.5 * (1 - this.lamp)).fillRect(0, 0, W, H);
     // breathing: Chris rises and falls, Biscuit too; Zzz
     this.headNod = Math.max(0, (this.headNod || 0) - dt * 2);
-    this.head.setY((G.bed.by + 3) * z - Math.round(Math.sin(t * 1.6) * 0.6 + 0.5) * z).setRotation(Math.sin(this.headNod * 12) * 0.08 * this.headNod);
-    if (this.dog) { this.dogWag = Math.max(0, (this.dogWag || 0) - dt); this.dog.setScale(z * 0.4, z * 0.4 * (1 + Math.sin(t * 2.2) * 0.04)).setRotation(this.dogWag ? Math.sin(t * 30) * 0.05 : 0); }
-    const zc = (t * 0.5) % 1; this.zT.setText(zc < 0.33 ? 'z' : zc < 0.66 ? 'zZ' : 'zZz').setPosition((G.bed.bx + 24) * z + zc * 8 * z, (G.bed.by - 10) * z - zc * 12 * z).setAlpha(Math.sin(zc * Math.PI) * 0.9);
+    this.bed.setScale(z, z * (1 + (Math.sin(t * 1.6) * 0.5 + 0.5) * 0.035)).setRotation(Math.sin(this.headNod * 12) * 0.015 * this.headNod);
+    if (this.dog) { this.dogWag = Math.max(0, (this.dogWag || 0) - dt); this.dog.setScale(z * 0.3, z * 0.3 * (1 + Math.sin(t * 2.2) * 0.04)).setRotation(this.dogWag ? Math.sin(t * 30) * 0.05 : 0); }
+    const zc = (t * 0.5) % 1; this.zT.setText(zc < 0.33 ? 'z' : zc < 0.66 ? 'zZ' : 'zZz').setPosition((G.bed.x - 30) * z + zc * 6 * z, (G.bed.y - 24) * z - zc * 8 * z).setAlpha(Math.sin(zc * Math.PI) * 0.9);
     // the cow mobile: a hub on a string from the ridge, four arms, a little Bessie on each, turning (and swaying)
     const M = this.mob; M.v += (0.5 - M.v) * Math.min(1, dt * 0.35); M.a += M.v * dt;
     const g = this.mobG; g.clear();
-    const hx = G.cx * z + Math.sin(t * 0.9) * z, hy = (G.apex + 10) * z, rad = 15 * z;
-    g.lineStyle(Math.max(1, z / 2), 0xd8c8a0, 1).lineBetween(G.cx * z, (G.apex + 1) * z, hx, hy);
-    const cs = [0, 1, 2, 3].map(k => { const a = M.a + k * Math.PI / 2; return { k, x: hx + Math.cos(a) * rad, d: Math.sin(a), len: (7 + (k % 2) * 4) * z }; }).sort((a, b) => a.d - b.d);
+    const hx = G.cx * z + Math.sin(t * 0.9) * z, hy = 6 * z, rad = 11 * z;
+    g.lineStyle(Math.max(1, z / 2), 0xd8c8a0, 1).lineBetween(G.cx * z, 0, hx, hy);
+    const cs = [0, 1, 2, 3].map(k => { const a = M.a + k * Math.PI / 2; return { k, x: hx + Math.cos(a) * rad, d: Math.sin(a), len: (6 + (k % 2) * 3) * z }; }).sort((a, b) => a.d - b.d);
     g.lineStyle(z, 0x8a6a48, 1).lineBetween(hx - rad, hy, hx + rad, hy); g.fillStyle(0xffd23f, 1).fillRect(hx - z, hy - z, 2 * z, 2 * z);
     cs.forEach((c, i) => {
-      const sc = z * 0.36 * (0.8 + 0.2 * (c.d + 1) / 2), y = hy + c.len + Math.sin(t * 2 + c.k) * z * 0.5;
+      const sc = z * 0.3 * (0.8 + 0.2 * (c.d + 1) / 2), y = hy + c.len + Math.sin(t * 2 + c.k) * z * 0.5;
       g.lineStyle(Math.max(1, z / 2), 0xd8c8a0, 0.9).lineBetween(c.x, hy, c.x, y - 8 * sc);
       this.cows[c.k].setPosition(Math.round(c.x), Math.round(y)).setScale(sc).setDepth(3.7 + i * 0.01).setAlpha(0.75 + 0.25 * (c.d + 1) / 2).setFlipX(Math.cos(M.a + c.k * Math.PI / 2) < 0);
     });
