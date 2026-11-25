@@ -387,6 +387,10 @@ class ShopScene extends Phaser.Scene {
   startSpin(mega) {
     if (typeof Run !== 'undefined' && Run.on) { Sound.sfx('clunk'); this.say('NO GAMBLING ON A RUN, CHEF.'); return; }                                          // open the wheel and pull the lever straight away
     if (this.going) return;
+    if (mega && !this.spin) {                         // (v3.102) mega spins are played on the MEGA FRUITY now (fruity.js)
+      if (Shop.megaLeft() <= 0) { Sound.sfx('clunk'); this.say('NO MEGA SPINS. FIND ALL 3 GOLDEN WHEELS ON A LEVEL FOR ONE.'); return; }
+      this.going = true; Sound.sfx('reveal'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(240, () => this.scene.start('fruity', { from: 'shop' })); return;
+    }
     if (!this.spin) {
       this.mega = !!mega; SPIN = this.mega ? SPIN_MEGA : SPIN_NORMAL;
       if (this.mega && Shop.megaLeft() <= 0) { Sound.sfx('clunk'); this.say('NO MEGA SPINS. FIND ALL 3 GOLDEN WHEELS ON A LEVEL FOR ONE.'); SPIN = SPIN_NORMAL; this.mega = false; return; }
@@ -717,7 +721,7 @@ class ShopScene extends Phaser.Scene {
         this.ui.add(mg);
         this.ui.add(this.add.image(bx + 17, my + bh2 / 2, 'goldwheel').setScale(0.95).setTint(ml > 0 ? 0xfff0a0 : 0x666666).setAlpha(ml > 0 ? 1 : 0.4));
         const dev = typeof inputDevice === 'function' ? inputDevice() : 'kb';
-        this.ui.add(this.add.text(bx + 34, my + 7, 'MEGA WHEEL' + (ml > 0 ? (dev === 'pad' ? ' (RB)' : dev === 'touch' ? '' : ' [M]') : ''), f(8, ml > 0 ? '#ffd23f' : '#6b7390', ink)));
+        this.ui.add(this.add.text(bx + 34, my + 7, 'MEGA FRUITY' + (ml > 0 ? (dev === 'pad' ? ' (RB)' : dev === 'touch' ? '' : ' [M]') : ''), f(8, ml > 0 ? '#ffd23f' : '#6b7390', ink)));
         this.ui.add(this.add.text(bx + 34, my + 20, ml > 0 ? ml + ' MEGA SPIN' + (ml > 1 ? 'S' : '') : 'FINISH A GOLDEN SET', f(7, ml > 0 ? '#ffffff' : '#4a5070')));
         this.megaBox = { x: bx, y: my, w: bw2, h: bh2 };
       } else this.megaBox = null; }

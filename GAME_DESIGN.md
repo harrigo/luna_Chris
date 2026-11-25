@@ -2458,3 +2458,31 @@ After: 7-9. A software-GPU test renders about twice as many frames in the same t
   0.37) sat in front of its lower half. Now: shadow side holds a deep warm brown with a thin lava-lit rim, the foot sits
   just behind the curve, and it is drawn in front of the far ridges (0.375; its glow 0.38). Checked every other level's
   backdrop landmarks: none hidden the same way.
+
+## v3.102: the cheese slot (Moon Bar / Mega Fruity)
+
+A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `src/slotmath.js` (the maths, no Phaser),
+`src/fruity.js` (the scene, key `fruity`, plus its art and the camp bar), `tools/slotsim.js` (simulator + tuner).
+
+- **Ways in.** Story: the shop's MEGA FRUITY button (was the Mega Wheel); stakes CHEDDAR (bets 5-100). Camp: the new MOON
+  BAR station (theta 2.45, `cr_bar`); stakes GOLDEN CRUMBS (bets 1-10). The plain Lucky Wheel is unchanged.
+  MEGA SPINS (one per golden set) are now 10 free spins at your bet. Fractions of a win are carried, never rounded away.
+- **The game.** 10 paylines; BESSIE is wild (reels 2-4); a STAR on the centre line climbs the trail one step, a spin
+  without one may slip you back a step. Every step can be TAKEN (cash, or a bonus); the top pays the JACKPOT by itself.
+  Bet and strength are locked while you're on the trail (its values are in multiples of the bet).
+- **Bonuses.** FREE SPINS / SUPER SPINS (sticky Bessies, a fixed multiplier), RAT TRAP (pick cheeses until a rat), CHEDDAR
+  RESPINS (hold-and-spin: coins lock, 3 respins reset by any new coin, fill the grid for the GRAND). Each bonus is
+  pre-rolled by the maths and then played out on screen.
+- **Gamble.** Any win can go on hi-lo (1-12) at TRUE odds (11/n; a tie is a push), so it can't move the RTP. 5 rounds
+  or 500x bet at most.
+- **The maths.** Three CHEESE STRENGTHS = volatility, all ~95% RTP:
+  Mild (lines 70% / trail 25%, trail top ~1 in 140 spins, x35), Mature (60/35, ~1 in 400, x139), Extra Mature (50/45,
+  ~1 in 8,500, x3,834). Tuning: line wins are scaled to their share; the trail is solved as a Markov chain and each step
+  is worth h(step) - h(start) (its relative value), with each bonus scaled to its step's value - so TAKING is never a
+  mistake and the RTP is the same whether you never take, take anything, or anything between (sim: 94-96% for every
+  strategy; the spread is sampling noise from the rare jackpots). Re-tune after any change: `node tools/slotsim.js
+  400000 --write`.
+- **Show.** Chasing bulbs (frantic on wins), anticipation (a slow, flashing last reel or two when stars stack up), stars
+  flying to the trail, win lines cycling with wobbling symbols, a rolling win counter, BIG / MEGA / CHEESE-TASTROPHIC
+  banners at 10x / 25x / 50x with coin storms and shake, a JACKPOT finale.
+- Trophies: ONE-ARMED BANDIT (take a prize off the trail), JACKPOT! (reach the top).
