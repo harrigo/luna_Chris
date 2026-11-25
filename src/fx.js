@@ -52,10 +52,11 @@ void main() {
   vec3 c = base.rgb;
   if (uStr > 0.001) {
     vec3 g = vec3(0.0);
+    // (v3.101) 16 taps, not 24: two rings (the outermost, faint ring is folded into the middle one)
     for (int i = 0; i < 8; i++) {
       float a = float(i) * 0.7853982;
       vec2 d = vec2(cos(a), sin(a)) * uTexel;
-      g += hot(outTexCoord + d * 2.5) + hot(outTexCoord + d * 6.0) * 0.6 + hot(outTexCoord + d * 11.0) * 0.3;
+      g += hot(outTexCoord + d * 2.5) + hot(outTexCoord + d * 7.0) * 0.9;
     }
     c += g * (uStr / 15.2);
   }
@@ -63,9 +64,9 @@ void main() {
   c = mix(c, c * c * (3.0 - 2.0 * c), 0.32);                                   // contrast
   float l = dot(c, vec3(0.299, 0.587, 0.114));
   c = clamp(mix(vec3(l), c, 1.1), 0.0, 1.0);                                   // a touch more colour
-  float best = 1000.0; vec3 pick = c;
-  for (int i = 0; i < 48; i++) { vec3 d = (c - uPal[i]) * vec3(0.547, 0.766, 0.338); float dd = dot(d, d); if (dd < best) { best = dd; pick = uPal[i]; } }
-  gl_FragColor = vec4(mix(c, pick, 0.3), base.a);                                // (v3.66) a gentle PULL towards the master colours, not a hard snap
+  // (v3.101) the 30% pull towards the 48 master colours is gone: it was a 48-step search for every pixel on the screen,
+  // every frame, the most expensive thing the GPU did, for a change you could barely see (the art is in the palette already)
+  gl_FragColor = vec4(c, base.a);
 }`;
 let FxBloomPipe = null, FX_BLOOM_STR = 0.45;         // (a level with a very bright planet turns it down: def.bloom)
 function fxBloomClass() {

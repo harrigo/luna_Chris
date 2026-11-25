@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.100';
+const BUILD = 'v3.101';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -442,7 +442,7 @@ class Level1 extends Phaser.Scene {
         ship: this.add.image(0, 0, 'ratship').setDepth(0.64).setAlpha(0),
         f: 0, ft: 0, a: 0
       };
-      glowFx(this.abduct.beam, 0xffd23f, 3, 10);            // (no halo on the saucer: it blurred the hand-drawn art)
+      // (v3.101) no live glow shader on the beam (it cost two extra full GPU passes a frame): the beam is bright enough
     }
     if (this.def.nebula) {                              // big swirling pixel nebulae + four-point sparkle stars (level 2: turquoise)
       const NB = this.def.nebula;
@@ -1125,7 +1125,6 @@ class Level1 extends Phaser.Scene {
     const r = this.rescue;
     const ship = { spr: this.add.image(0, 0, 'ratship').setDepth(7), theta: r.cow.theta, h: 720, rot: 0 };
     const beam = this.add.image(0, 0, 'beam0').setOrigin(0.5, 0).setDepth(5.9).setAlpha(0);
-    glowFx(beam, 0xffd23f, 3, 10);
     this.actors.push(ship);
     r.snatch = { ship, beam, t: 0, f: 0, ft: 0, grabbed: false };
     const lines = ['WAIT... WHAT\'S THAT NOISE?', 'OH NO. NOT AGAIN...', 'IS THAT... ANOTHER SHIP?!', 'SQUEAK SQUEAK SQUEAK!'];
@@ -3899,7 +3898,7 @@ class Level1 extends Phaser.Scene {
     this.reapEnemies();
   }
   drawBeam() {
-    if (!this.beamG) { this.beamG = this.add.graphics().setDepth(8); try { if (Settings.glow && this.beamG.postFX) this.beamG.postFX.addGlow(0xffd23f, 2, 0, false, 0.1, 8); } catch (e) { /* ignore */ } }
+    if (!this.beamG) this.beamG = this.add.graphics().setDepth(8);   // (v3.101) no glow shader: a soft wide strand under the pasta does it, drawn below
     const g = this.beamG;
     g.clear();
     const P = this.pl;
@@ -3916,8 +3915,8 @@ class Level1 extends Phaser.Scene {
       pts.push(this.screenPos(wrap(a.theta + angDiff(b.theta, a.theta) * u), a.h + (b.h - a.h) * u + wv));
     }
     if (this.muzzle) { pts[0] = { x: this.muzzle.x, y: this.muzzle.y }; }
-    const strand = (a, b, w, c) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, 1); g.beginPath(); g.moveTo(pts[a].x, pts[a].y); for (let i = a + 1; i <= b; i++) g.lineTo(pts[i].x, pts[i].y); g.strokePath(); };
-    const seg = (a, b, sc) => { strand(a, b, 9 * sc, 0x1a1020); strand(a, b, 6 * sc, 0xffb52a); strand(a, b, 3 * sc, 0xffe27a); };
+    const strand = (a, b, w, c, al) => { g.lineStyle(Math.max(1, Math.round(w * z * thick)), c, al || 1); g.beginPath(); g.moveTo(pts[a].x, pts[a].y); for (let i = a + 1; i <= b; i++) g.lineTo(pts[i].x, pts[i].y); g.strokePath(); };
+    const seg = (a, b, sc) => { if (Settings.glow) { strand(a, b, 20 * sc, 0xffd23f, 0.12); strand(a, b, 14 * sc, 0xffd23f, 0.18); } strand(a, b, 9 * sc, 0x1a1020); strand(a, b, 6 * sc, 0xffb52a); strand(a, b, 3 * sc, 0xffe27a); };
     // tapering like a whip: fat at the nozzle, thin at the tip
     for (let i = 0; i < solid; i += 4) seg(i, Math.min(solid, i + 4), 1.15 - 0.45 * (i / solid));
     const flick = Math.floor(this.t * 20);
@@ -5631,10 +5630,14 @@ class Level1 extends Phaser.Scene {
     // which snapped the parallax layers (they turn at fractional speeds) to a different arrangement
     this.lagU = (this.lagU === undefined ? this.camLag : this.lagU + angDiff(this.camLag, this.lastLag || 0)); this.lastLag = this.camLag;
     const unwV = this.unw - this.lagU;
-    const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0);
+    const r0 = Rz + 24, span = Math.max(100, this.maxStarR - r0), wv = this.cameras.main.worldView, X0 = wv.x - 60, Y0 = wv.y - 60, X1 = wv.right + 60, Y1 = wv.bottom + 60;
     for (const b of this.bgStars) {
+      if (b.big === undefined) b.big = !b.s.texture || b.s.texture.key !== 'bgstar';
       const a = b.a - (unwV + this.t * 0.03) * b.k, rr = r0 + b.r * span;     // drifts slowly even when standing still
-      b.s.setPosition(cx + rr * Math.sin(a), cy - rr * Math.cos(a));
+      const sx = cx + rr * Math.sin(a), sy = cy - rr * Math.cos(a);
+      if (!b.big && (sx < X0 || sy < Y0 || sx > X1 || sy > Y1)) { if (b.s.visible) { b.s.setVisible(false); b.off = true; } continue; }   // (v3.101) off screen: not drawn at all
+      if (b.off) { b.s.setVisible(true); b.off = false; }
+      b.s.setPosition(sx, sy);
       if (b.tw !== undefined) b.s.setAlpha((b.ta || 1) * (0.55 + 0.45 * Math.sin(this.t * 3 + b.tw)));     // near stars twinkle
       if (b.rv) b.s.rotation += b.rv * (this.lastDt || 0.016);
       if (b.s === (this.bgUfo && this.bgUfo.ufo)) {      // the distant UFO: its beam and Bessie hang underneath, towards the planet

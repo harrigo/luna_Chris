@@ -162,14 +162,23 @@ const PixelLookMixin = {
     for (const G of (this.geysers || [])) if (G.st !== 'idle') add(G.theta, G.st === 'erupt' ? 60 : 10, G.st === 'erupt' ? 190 : 90, 0xff9a2a, G.st === 'erupt' ? 1 : 0.5);
     for (const e of this.enemies) if (e.type === 'boss' && e.hp > 0) add(e.theta, e.h + (e.ch || 30), 150, 0xc8b0ff, 0.35);
     const A = this.abduct; if (A && A.theta !== undefined && A.a > 0.05) add(A.theta, A.h - 70, 160, 0xffd23f, 0.8 * A.a);
-    rt.clear().fill(typeof Tweak !== 'undefined' ? Tweak.amb(X.amb) : X.amb, 1);
     const ox = cam.scrollX - 32, oy = cam.scrollY - 32;          // the map sits 32px outside the screen on each side
     if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.SCREEN);   // (v3.89: SCREEN, not ADD - ADD's dest-alpha factor dimmed a square round each light)
     const st = X.stamp;
     // (v3.88) all the lights in ONE pass over the map: draw() on its own switches the GPU to the map and back for every
     // light (40+ switches a frame on Mount Mozzarella, which is what was slowing phones down); batchDraw inside one
     // begin/end does them all in a single switch
+    // (v3.101) the ambient fill is drawn INSIDE the one pass (stretched over the whole map at full alpha): fill() on its
+    // own switched the GPU to the map and back
+    // (a tint is ignored when drawing into the map, so the colour lives in a tiny texture, repainted only when it changes)
+    const ac = typeof Tweak !== 'undefined' ? Tweak.amb(X.amb) : X.amb;
+    if (!this.textures.exists('pxamb')) this.textures.createCanvas('pxamb', 4, 4);
+    if (X.ambC !== ac) { const T = this.textures.get('pxamb'), cx2 = T.getContext(); cx2.fillStyle = '#' + ac.toString(16).padStart(6, '0'); cx2.fillRect(0, 0, 4, 4); T.refresh(); X.ambC = ac; }
+    if (!X.base || !X.base.scene) X.base = this.make.image({ key: 'pxamb', add: false }).setOrigin(0, 0);
+    X.base.setPosition(0, 0).setDisplaySize(rt.width, rt.height).setAlpha(1);
+    rt.clear();                                                                  // (needed: without it the batch never lands)
     rt.beginDraw();
+    rt.batchDraw(X.base);
     const lift = !X.grid && MOOD[this.levelId] && MOOD[this.levelId][2];
     if (lift) {                                                                  // (v3.89) keep the sky's own colour
       if (!X.sky) X.sky = this.make.image({ key: 'pxsky', add: false }).setOrigin(0, 0);

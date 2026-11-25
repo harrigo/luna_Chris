@@ -2436,3 +2436,20 @@ rounded form lit from the top left, with dithered seams between tones and a litt
 - **Trophy jingle.** It waits for the next eighth note of the tune, takes its key from the bass note playing (root,
   fifth, octave, octave + fifth, so it fits major or minor), and its notes are the tune's own 16ths. With no music it
   plays as before.
+
+## v3.101: GPU optimisation pass
+
+Profiled every level. JavaScript is cheap (a few % of a frame); the cost is GPU work, and on phones the worst of it is
+switching render targets (framebuffers) and full-screen shader passes. Per frame, before: 11-16 framebuffer switches.
+After: 7-9. A software-GPU test renders about twice as many frames in the same time (level 1: 48 -> 111 in 6 s).
+
+- **Light map** (pixellook.js): the ambient colour is drawn inside the single light pass (a 4x4 texture of the colour,
+  stretched; repainted only when the colour changes) instead of `fill()`, which was its own switch to the map and back.
+  `clear()` stays: without it the batch never lands.
+- **Grade/bloom shader** (fx.js `LCBloom`, full screen every frame): the 30% pull towards the 48 master colours is gone (a
+  48-step search per pixel, the single most expensive thing the GPU did, for a barely visible change); bloom is 16 taps
+  instead of 24 (the faint outer ring folded into the middle one). Contrast and saturation unchanged.
+- **Live glow shaders removed**: the cow-abduction beams (level 1 and the rescue snatch) and the pasta-whip weapon each had
+  a glow FX costing two extra full passes a frame. The whip now draws two soft wide strands under itself instead.
+- **Background stars**: ~390 star sprites a level; the ~2/3 off screen at any moment are now hidden (not drawn) rather
+  than moved and drawn off screen.
