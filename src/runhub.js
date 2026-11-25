@@ -18,7 +18,7 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
-  { id: 'bar',    theta: 2.45,  tex: 'cr_bar',    sc: 1.7, name: 'MOON BAR',      verb: 'PLAY THE FRUITY' },   // (v3.102) fruity.js: mega spins for golden crumbs
+  { id: 'bar',    theta: 2.45,  tex: 'cr_bar',    sc: 1.7, name: 'MOON BAR',      verb: 'PLAY RIDIC LOUISE' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]

@@ -179,7 +179,7 @@ class FruityScene extends Phaser.Scene {
   bet() { return SLOT_BETS[this.from][this.betI]; }
   saveTrail() { this.registry.set('slot_' + this.from, { sk: this.sk, betI: this.betI, pos: this.pos }); }
   create() {
-    makeTextures(this); makeFruityTextures(this);
+    makeTextures(this); makeFruityTextures(this); makeLouiseTextures(this);
     this.cameras.main.setBackgroundColor('#0e0810'); this.cameras.main.fadeIn(220, 0, 0, 0);
     Sound.init(); Sound.music(null);
     const sv = this.registry.get('slot_' + this.from) || {};
@@ -191,6 +191,7 @@ class FruityScene extends Phaser.Scene {
     this.stickyIm = []; for (let i = 0; i < 15; i++) this.stickyIm.push(this.add.image(0, 0, 'fm_bessie').setDepth(2.5).setVisible(false));
     this.payIm = []; this.fg = this.add.graphics().setDepth(3); this.ui = this.add.container(0, 0).setDepth(4);
     this.fx = this.add.graphics().setDepth(6);
+    this.lou = this.add.image(0, 0, 'lou_idle').setOrigin(0.5, 1).setDepth(1.5); this.louPose = 'idle'; this.louT = 0;
     const kb = this.input.keyboard;
     if (kb) {
       kb.on('keydown-SPACE', () => this.act('spin')); kb.on('keydown-ENTER', () => this.act('spin'));
@@ -204,7 +205,7 @@ class FruityScene extends Phaser.Scene {
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => { this.scale.off('resize', this.build, this); this.saveTrail(); });
-    this.say(this.from === 'camp' ? 'WELCOME TO THE MOON BAR - CRUMBS IN, CHEESE OUT' : 'THE MEGA FRUITY - PLAY YOUR CHEDDAR');
+    this.say(this.from === 'camp' ? 'LOUISE: WELCOME TO THE MOON BAR, CHRIS!' : 'LOUISE: SPIN ME, CHEF!');
   }
   say(m, col) { this.msg = m; this.msgCol = col || '#ff5a3a'; this.msgT0 = this.t; if (this.msgT) this.msgT.setText(m).setColor(this.msgCol); }
   // ---------------------------------------------------------------- layout: one cabinet, in art pixels (z screen px each)
@@ -234,7 +235,7 @@ class FruityScene extends Phaser.Scene {
     const ex = this.add.text(8, 8, 'EXIT  (B)', f(3.6, '#ffffff', { backgroundColor: '#2a1a2a', padding: { x: 6, y: 4 } })).setDepth(4); this.ui.add(ex);
     this.boxes.push({ x: 8, y: 8, w: ex.width, h: ex.height, on: () => true, fn: () => this.act('back') });
     // texts: the title, the strength, the meters, the LED ticker, the trail lamps, the pay table
-    this.titleT = this.add.text(G.A(150, 7).x, G.A(150, 7).y, this.from === 'camp' ? 'MOON BAR' : 'MEGA FRUITY', f(6, '#ffd23f', { stroke: '#7a1a1a', strokeThickness: Math.round(z * 1.6) })).setOrigin(0.5); this.ui.add(this.titleT);
+    this.titleT = this.add.text(G.A(150, 7).x, G.A(150, 7).y, 'RIDIC LOUISE', f(6, '#ffd23f', { stroke: '#7a1a1a', strokeThickness: Math.round(z * 1.6) })).setOrigin(0.5); this.ui.add(this.titleT);
     this.strT = this.add.text(G.A(34, 52).x, G.A(34, 52).y, '', f(3.2, '#ffffff', { align: 'center' })).setOrigin(0.5, 0); this.ui.add(this.strT);
     this.strH = this.add.text(G.A(34, 110).x, G.A(34, 110).y, 'CHANGE (Y)', f(2.8, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0.5); this.ui.add(this.strH);
     this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(30 + i * 90, 133); const L = this.add.text(p.x, p.y, lab, f(2.8, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(5, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
@@ -281,6 +282,7 @@ class FruityScene extends Phaser.Scene {
       this.say(SLOT.STRENGTHS[this.sk].name + ' - ' + SLOT.STRENGTHS[this.sk].desc.toUpperCase(), '#ffffff'); this.saveTrail(); this.build();
     }
   }
+  louise(pose, secs, line) { this.louPose = pose; this.louT = secs || 1.2; if (line) this.say('LOUISE: ' + line, '#ff6ad0'); }
   // ---------------------------------------------------------------- spinning
   mega() {
     Shop.useMega(); this.free = 10; Sound.sfx('reveal'); this.cameras.main.flash(250, 255, 220, 120);
@@ -293,6 +295,7 @@ class FruityScene extends Phaser.Scene {
     if (freeSpin) this.free--; else this.addBal(-bet);
     this.lastWin = 0; this.winLines = []; this.res = SLOT.play(this.sk, Math.random, this.pos);
     this.startReels(this.res.stops); this.ph = 'spin'; this.say(freeSpin ? 'FREE SPIN - ' + this.free + ' LEFT' : 'GOOD LUCK!', '#ff5a3a'); Sound.sfx('clang'); this.refresh();
+    if (Math.random() < 0.25) this.louise('wink', 0.9);
   }
   startReels(stops) {
     const res = this.res, starsBy = i => res && res.grid ? res.grid.slice(0, i).filter(c => c[1] === SLOT.STAR).length : 0, top = SLOT.STRENGTHS[this.sk].trail.length - 1;
@@ -313,6 +316,7 @@ class FruityScene extends Phaser.Scene {
   settle() {
     const r = this.res, bet = this.bet();
     this.winLines = r.wins; let win = r.x * bet; this.pos = r.pos;
+    if (r.stars > 1) this.louise('cheer', 1, 'TWO STARS!');
     if (r.stars > 0) this.say(r.stars > 1 ? r.stars + ' STARS - UP ' + r.stars + ' LAMPS!' : 'A STAR - UP THE TRAIL!', '#ffd23f');
     else if (r.slipped) { this.say('NO STAR - THE TRAIL SLIPS', '#ffb04a'); Sound.sfx('zing'); }
     if (r.feat) { win += r.feat.x * bet; this.jackpot(); if (typeof Ach !== 'undefined') Ach.unlock('jackpot'); }
@@ -324,8 +328,8 @@ class FruityScene extends Phaser.Scene {
   countWin(amount, x) {
     const tier = SLOT_TIERS.find(q => x >= q[0]);
     this.ph = 'show'; this.count = { v: 0, to: amount, dur: tier ? 1.6 + SLOT_TIERS.length - SLOT_TIERS.indexOf(tier) : Math.min(1.2, 0.3 + x * 0.12), t: 0 };
-    if (tier) { this.bigBanner(tier[1], tier[2], this.count.dur); this.cameras.main.shake(400, 0.008); Sound.sfx('power'); this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(tier[0] >= 50 ? 90 : tier[0] >= 25 ? 60 : 36); }
-    else if (x >= 2) this.fountain(8 + Math.round(x * 2));
+    if (tier) { this.louise('cheer', this.count.dur + 0.6, ['THAT\'S RIDIC!', 'OOH, CHRIS!', 'WHAT A SPIN!'][Math.floor(Math.random() * 3)]); this.bigBanner(tier[1], tier[2], this.count.dur); this.cameras.main.shake(400, 0.008); Sound.sfx('power'); this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(tier[0] >= 50 ? 90 : tier[0] >= 25 ? 60 : 36); }
+    else if (x >= 2) { this.fountain(8 + Math.round(x * 2)); this.louise('wink', 1); }
     this.refresh();
   }
   bigBanner(text, col, dur) {
@@ -335,7 +339,7 @@ class FruityScene extends Phaser.Scene {
   }
   fountain(n) { const G = this.geom(); for (let k = 0; k < n; k++) this.coins.push({ x: G.ox + 150 * G.z + (Math.random() - 0.5) * 60, y: G.oy + 150 * G.z, vx: (Math.random() - 0.5) * 420, vy: -260 - Math.random() * 420, r: Math.random() * 6, d: Math.random() < 0.5 }); }
   burstAt(x, y, col, n) { for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; this.sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.4, col }); } }
-  jackpot() { this.bigBanner('JACKPOT!!!', 0xffd23f, 3.5); this.cameras.main.flash(500, 255, 240, 150); this.cameras.main.shake(900, 0.014); this.fountain(140); Sound.sfx('achieve'); this.time.delayedCall(400, () => Sound.sfx('power')); this.time.delayedCall(900, () => Sound.sfx('achieve')); }
+  jackpot() { this.louise('cheer', 4, 'JACKPOT! THAT IS TOTALLY RIDIC!'); this.bigBanner('JACKPOT!!!', 0xffd23f, 3.5); this.cameras.main.flash(500, 255, 240, 150); this.cameras.main.shake(900, 0.014); this.fountain(140); Sound.sfx('achieve'); this.time.delayedCall(400, () => Sound.sfx('power')); this.time.delayedCall(900, () => Sound.sfx('achieve')); }
   // ---------------------------------------------------------------- TAKE: cash, or a bonus game
   takeStep() {
     const f = SLOT.take(this.sk, this.pos, Math.random), bet = this.bet(); this.pos = -1; this.dispPos = -1; this.saveTrail();
@@ -488,6 +492,11 @@ class FruityScene extends Phaser.Scene {
       if (glow) r(x + 2, 159 + pr, w - 4, 1, 0xffffff, glow * 0.7);
       this.btnT[id][0].setY(G.oy + (168 + pr) * z); this.btnT[id][1].setY(G.oy + (180 + pr) * z);
     }
+    // ---- Louise, beside the cabinet (as big as the gap allows; off if there's no room)
+    { this.louT = Math.max(0, this.louT - dt); if (this.louT <= 0 && this.louPose !== 'idle') this.louPose = 'idle';
+      const room = G.ox - 6, sc = Math.min(z, room / 46);
+      if (sc < 1) this.lou.setVisible(false);
+      else { const bob = this.louPose === 'cheer' ? Math.abs(Math.sin(t * 9)) * 3 * sc : Math.sin(t * 1.8) * 0.6 * sc; this.lou.setVisible(true).setTexture('lou_' + this.louPose).setScale(sc).setPosition(Math.round(G.ox / 2), Math.round(G.oy + 188 * z - bob)); } }
     // ---- the symbols on the reels
     const strips = SLOT.STRIPS[this.sk];
     this.R.forEach((R, i) => {
@@ -535,4 +544,57 @@ class FruityScene extends Phaser.Scene {
     if (this.banner) { const B = this.banner; B.life -= dt; const age = B.max - B.life, s = age < 0.35 ? 0.1 + (age / 0.35) * 1.25 : 1.2 + Math.sin(age * 10) * 0.06; B.t.setScale(s).setRotation(Math.sin(age * 7) * 0.06).setAlpha(Math.min(1, B.life * 2)); if (B.life <= 0) { B.t.destroy(); this.banner = null; } }
   }
   winCell(rr, row) { return this.winLines.some(w => rr < w.n && SLOT.LINES[w.line][rr] === row); }
+}
+
+// ---- LOUISE (v3.106): the machine's hostess, standing beside the cabinet. A 1950s casino girl with a red bob and a
+// sparkly gold dress. Three poses: 'idle' (hand on hip, presenting the machine), 'cheer' (both arms up), 'wink'
+// (a thumbs-up and a wink). 44 x 96 art pixels, lit from the left, with a dark outline.
+function makeLouiseTextures(scene) {
+  if (scene.textures.exists('lou_idle')) return;
+  const Wd = 44, Ht = 96, INK = 0x1a1020;
+  const SK = [0xa8604a, 0xd88a6a, 0xf4b490, 0xffd8bc], HR = [0x5a0e1a, 0x9a1a2a, 0xd83a3a, 0xff7a6a], GD = [0x7a4a0a, 0xb8781a, 0xe8b030, 0xffe070, 0xfffad0], RD = [0x5a0e1a, 0x9a1a2a, 0xd83a2a, 0xff6a5a];
+  const segD = (x, y, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / (dx * dx + dy * dy))); return Math.hypot(x - a[0] - t * dx, y - a[1] - t * dy); };
+  const ARMS = {
+    idle: [[[13, 30], [9, 41], [15, 47]], [[31, 30], [37, 39], [42, 35]]],
+    cheer: [[[13, 30], [7, 18], [10, 5]], [[31, 30], [37, 18], [34, 5]]],
+    wink: [[[13, 30], [9, 41], [15, 47]], [[31, 30], [38, 36], [33, 25]]]
+  };
+  for (const pose of ['idle', 'cheer', 'wink']) pixTex(scene, 'lou_' + pose, Wd, Ht, put => {
+    const g = []; for (let y = 0; y < Ht; y++) g.push(Array(Wd).fill(null));
+    const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < Wd && y < Ht) g[y][x] = c; };
+    const sh = (R, v, x, y) => { const f = Math.max(0, Math.min(R.length - 1, v * (R.length - 1))), i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };
+    const rnd = rng(31);
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wd; x++) {
+      const X = x + 0.5, Y = y + 0.5;
+      // legs and shoes
+      for (const lx of [19, 25]) { if (Math.abs(X - lx) < 1.8 && Y > 70 && Y < 89) set(x, y, sh(SK, 0.7 - (X - lx + 2) * 0.05, x, y)); if (Math.abs(X - lx - 0.5) < 2.6 && Y >= 89 && Y < 93) set(x, y, Y < 90 ? RD[3] : RD[2]); }
+      // the dress: bodice to a nipped waist, then a flared skirt to the knee; gold, sparkling
+      const hw = Y < 28 ? -1 : Y < 42 ? 9.5 - (Y - 28) * 0.18 : Y < 74 ? 7 + (Y - 42) * 0.25 : -1;
+      if (hw > 0 && Math.abs(X - 22) < hw) { let c = sh(GD, 0.72 - (X - 22) / hw * 0.3 - (Y > 42 ? Math.abs(Math.sin((X - 22) * 0.9 + Y * 0.05)) * 0.25 : 0), x, y); if (rnd() < 0.05) c = GD[4]; if (Y > 41 && Y < 44) c = Y < 42.5 ? RD[3] : RD[2]; if (Y > 72) c = GD[1]; set(x, y, c); }
+      // the neck and the face
+      if (Math.abs(X - 23) < 2.5 && Y > 22 && Y < 29) set(x, y, sh(SK, 0.55, x, y));
+      if (Math.hypot((X - 23) / 7, (Y - 16) / 8) <= 1) set(x, y, sh(SK, 0.78 - (X - 18) * 0.03 - (Y - 10) * 0.01, x, y));
+      // the hair: a glossy red bob with a curl over the brow
+      const hair = (Math.hypot((X - 22) / 10.5, (Y - 13) / 10) <= 1 && (Y < 11.5 || X < 16.5 || X > 29.5 || Y < 9 + Math.abs(X - 26) * 0.25)) || (Y > 19 && Y < 25 && (Math.abs(X - 13.5) < 3 || Math.abs(X - 31.5) < 2.5));
+      if (hair) set(x, y, Math.hypot(X - 17, Y - 7) < 2.2 ? HR[3] : sh(HR, 0.75 - (X - 12) * 0.03 - (Y - 3) * 0.015, x, y));
+    }
+    // the arms, in the pose
+    for (const A of ARMS[pose]) for (let y = 0; y < Ht; y++) for (let x = 0; x < Wd; x++) {
+      const d = Math.min(segD(x + 0.5, y + 0.5, A[0], A[1]), segD(x + 0.5, y + 0.5, A[1], A[2]));
+      if (d < 1.7) set(x, y, sh(SK, 0.72 - d * 0.12, x, y));
+      if (Math.hypot(x + 0.5 - A[2][0], y + 0.5 - A[2][1]) < 2.3) set(x, y, SK[2]);
+      if (d < 2.4 && segD(x + 0.5, y + 0.5, A[0], A[1]) < 2.4 && Math.hypot(x + 0.5 - A[0][0], y + 0.5 - A[0][1]) < 4) set(x, y, GD[2]);   // the dress's little sleeve
+    }
+    // the face: eyes (or a wink), lashes, blush, red lips, a gold earring
+    set(19, 15, INK); set(19, 16, INK); set(18, 14, INK);
+    if (pose === 'wink') { set(26, 16, INK); set(27, 16, INK); set(25, 16, INK); } else { set(26, 15, INK); set(26, 16, INK); set(27, 14, INK); }
+    set(18, 19, 0xff8a8a); set(28, 19, 0xff8a8a);
+    for (const [x, y] of [[22, 21], [23, 21], [24, 21]]) set(x, y, RD[2]); if (pose === 'cheer') { set(22, 22, RD[1]); set(23, 22, 0x5a0e1a); set(24, 22, RD[1]); }
+    set(15, 20, GD[3]); set(15, 21, GD[2]);
+    // ink outline round the lot, then put it down
+    for (let y = 0; y < Ht; y++) for (let x = 0; x < Wd; x++) {
+      if (g[y][x] != null) { put(x, y, g[y][x]); continue; }
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => g[y + dy] && g[y + dy][x + dx] != null)) put(x, y, INK);
+    }
+  });
 }

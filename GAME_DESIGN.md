@@ -2512,3 +2512,8 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   (`tent_chris`), Biscuit curled on the quilt, a rag rug. The lantern sits on a crate by the bed (the warm pool is low
   now), with the cocoa and the radio. A COW MOBILE hangs from the ridge: four little Bessies on a turning cross-bar,
   swaying; tap it (or X / SPACE) to set it spinning, it winds down slowly.
+- **v3.106: RIDIC LOUISE.** The slot is named RIDIC LOUISE (marquee, the shop button, the Moon Bar's verb, the trophy
+  texts), and LOUISE herself stands beside the cabinet: a 1950s casino hostess, red bob, sparkly gold dress
+  (`makeLouiseTextures`: 'lou_idle' presenting the machine, 'lou_cheer' both arms up, 'lou_wink' thumbs-up and a wink).
+  She winks now and then as you spin, cheers and bounces on big wins and the jackpot, and talks on the LED ticker
+  ("THAT'S RIDIC!"). She's drawn as large as the gap beside the cabinet allows (hidden on very narrow screens).

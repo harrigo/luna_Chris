@@ -721,7 +721,7 @@ class ShopScene extends Phaser.Scene {
         this.ui.add(mg);
         this.ui.add(this.add.image(bx + 17, my + bh2 / 2, 'goldwheel').setScale(0.95).setTint(ml > 0 ? 0xfff0a0 : 0x666666).setAlpha(ml > 0 ? 1 : 0.4));
         const dev = typeof inputDevice === 'function' ? inputDevice() : 'kb';
-        this.ui.add(this.add.text(bx + 34, my + 7, 'MEGA FRUITY' + (ml > 0 ? (dev === 'pad' ? ' (RB)' : dev === 'touch' ? '' : ' [M]') : ''), f(8, ml > 0 ? '#ffd23f' : '#6b7390', ink)));
+        this.ui.add(this.add.text(bx + 34, my + 7, 'RIDIC LOUISE' + (ml > 0 ? (dev === 'pad' ? ' (RB)' : dev === 'touch' ? '' : ' [M]') : ''), f(8, ml > 0 ? '#ffd23f' : '#6b7390', ink)));
         this.ui.add(this.add.text(bx + 34, my + 20, ml > 0 ? ml + ' MEGA SPIN' + (ml > 1 ? 'S' : '') : 'FINISH A GOLDEN SET', f(7, ml > 0 ? '#ffffff' : '#4a5070')));
         this.megaBox = { x: bx, y: my, w: bw2, h: bh2 };
       } else this.megaBox = null; }
