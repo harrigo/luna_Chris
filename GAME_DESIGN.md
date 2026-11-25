@@ -2499,3 +2499,10 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   rotating lines. CRAWL OUT (or ESC / B) goes back to camp at the tent. Trophy: SNUG AS A BUG.
 - Fix: the title screen's dog-and-ball gag used 'cf_dog', which doesn't exist (the texture is 'cf_dog0'), so it never
   showed; on the main menu (no Chris) that left no gag at all.
+- **v3.104: the slot is one machine.** Rebuilt as a single cabinet in art pixels: a gold marquee with chasing bulbs; the
+  FEATURE TRAIL as a row of lamps on the top glass (lit up to your step, yours flashing, a pointer under it, stars fly
+  from the reels into the next lamp and the lamps chase up one at a time); the reels in a chrome window; a LEFT GLASS
+  with the cheese strength (tap it, or Y) and a RIGHT GLASS with five-in-a-row pays at your bet; an LED ticker; CREDIT /
+  BET / WIN meters; and a deck of four arcade buttons: BET - (LB), BET + (RB), TAKE / MEGA (X: takes your trail step, or
+  starts a mega spin's 10 free spins), SPIN (A; skips the count-up). B / the EXIT plate leaves. The hi-lo gamble is gone
+  from the buttons (simpler). Rat Trap on a controller: left / right choose a cheese, A picks.
