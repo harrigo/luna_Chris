@@ -2523,3 +2523,7 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   round his face (nightcap and bobble poking out, eyes shut, moustache), bumps for shoulders, hips, knees and toes,
   rising slightly to his feet, the patchwork quilt draped over his middle with a scalloped hem. It breathes. Biscuit
   sleeps on his feet; the lantern, cocoa and radio sit by the wall.
+- **v3.108: a close-up.** Chris is right by the camera: the bag sprite drawn at 2x the tent's pixel size with its hood
+  anchored in the bottom-left (the rest running off the edge), Biscuit big on the quilt beside him, both in front of the
+  near canvas. Bessie's photo is bigger, the fairy lights have chunkier bulbs; the tent and its door stay the same, so
+  the space itself reads small and close.

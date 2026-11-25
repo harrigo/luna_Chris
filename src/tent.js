@@ -123,7 +123,7 @@ class TentScene extends Phaser.Scene {
         } else c = pick(FAB, 0.3 + (n1(x / aw, y / ah) - 0.5) * 0.6, x, y);
         put(x, y, c);
       }
-      const px = cx - back + 3, py = 26; for (let y = py; y < py + 9; y++) for (let x = px; x < px + 8; x++) put(x, y, (x === px || y === py || x === px + 7 || y === py + 8) ? 0x1a1020 : (y > py + 6 ? 0xf4ecd8 : 0x8ac8f0)); put(px + 4, py - 1, 0xd83a2a);
+      const px = cx - back - 6, py = 18; for (let y = py; y < py + 17; y++) for (let x = px; x < px + 14; x++) put(x, y, (x === px || y === py || x === px + 13 || y === py + 16) ? 0x1a1020 : (y > py + 13 ? 0xf4ecd8 : 0x8ac8f0)); put(px + 7, py - 1, 0xd83a2a); put(px + 7, py - 2, 0xd83a2a);
       const kx = aw - Math.round(aw * 0.2), ky = fl - 8; for (let y = ky; y < fl + 2; y++) for (let x = kx; x < kx + 12; x++) put(x, y, (x === kx || x === kx + 11 || y === ky || y === fl + 1) ? 0x1a1020 : (y - ky) % 3 === 0 ? 0x3a2418 : 0x8a6a48);   // the crate
       const mx = kx + 8, my = ky - 4; for (let y = my; y < ky; y++) for (let x = mx; x < mx + 3; x++) put(x, y, (x === mx || x === mx + 2) ? 0x1a1020 : y === my ? 0x5a2a12 : 0xf4f0e0);
       const rx = kx - 12, ry = fl - 4; for (let y = ry; y < fl + 2; y++) for (let x = rx; x < rx + 9; x++) put(x, y, (x === rx || x === rx + 8 || y === ry || y === fl + 1) ? 0x1a1020 : (x > rx + 4 && (x + y) % 2) ? 0x3a3448 : 0x8a2a2a);
@@ -160,20 +160,23 @@ class TentScene extends Phaser.Scene {
     this.glow2 = this.add.image(0, 0, 'tent_pool').setDepth(1.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0x7a2a08);
     this.dark = this.add.graphics().setDepth(1.45);
     this.lampIm = this.add.image(...P(G.crate.kx + 4, G.crate.ky), 'tent_lantern').setOrigin(0.5, 1).setScale(z).setDepth(3);
-    this.bed = this.add.image(...P(bedX, bedY), 'tent_bed').setOrigin(0.5, 1).setScale(z).setDepth(2.8);
-    this.dog = this.textures.exists('cf_dog0') ? this.add.image(...P(bedX + 34, bedY - 9), 'cf_dog0').setOrigin(0.5, 1).setScale(z * 0.3).setFlipX(true).setDepth(3) : null;
-    if (this.textures.exists('bessie')) this.add.image(...P(G.photo.px + 4, G.photo.py + 4), 'bessie').setScale(z * 0.08).setDepth(1.2);
+    // (v3.108) a close-up: Chris right by the camera, his hooded head big in the bottom left, the bag running off the edge;
+    // Biscuit close and big on top of him (nearer things in bigger pixels, so the tent behind feels small)
+    this.bedK = 2; G.head = { x: W * 0.17, y: H * 0.72 };
+    this.bed = this.add.image(G.head.x, G.head.y, 'tent_bed').setOrigin(14 / 96, 22 / 36).setScale(z * this.bedK).setDepth(5.6);
+    this.dog = this.textures.exists('cf_dog0') ? this.add.image(W * 0.68, H * 0.84, 'cf_dog0').setOrigin(0.5, 1).setScale(z * 0.75).setFlipX(true).setDepth(5.7) : null;
+    if (this.textures.exists('bessie')) this.add.image(...P(G.photo.px + 7, G.photo.py + 7), 'bessie').setScale(z * 0.15).setDepth(1.2);
     this.mobG = this.add.graphics().setDepth(3.6); this.cows = [0, 1, 2, 3].map(() => this.add.image(0, 0, 'fm_bessie').setDepth(3.7));
     this.fxG = this.add.graphics().setDepth(4);
     const f = { fontFamily: PIXEL, fontSize: Math.max(9, Math.round(z * 2)) + 'px', color: '#fff0c8', stroke: '#1a1020', strokeThickness: 4, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } };
     this.capT = this.add.text(W / 2, H - 8, '', f).setOrigin(0.5, 1).setDepth(6).setAlpha(0);
-    this.zT = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: Math.round(z * 2) + 'px', color: '#c8d4ff', stroke: '#1a1020', strokeThickness: 3 }).setDepth(5);
+    this.zT = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: Math.round(z * 3.2) + 'px', color: '#c8d4ff', stroke: '#1a1020', strokeThickness: 3 }).setDepth(5);
     const ob = this.add.text(W - 10, 10, 'CRAWL OUT (B)', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3, backgroundColor: '#3a1a0c', padding: { x: 8, y: 6 } }).setOrigin(1, 0).setDepth(7);
     const B = (id, ax, ay, w2, h2) => ({ id, x: ax * z, y: ay * z, w: w2 * z, h: h2 * z });
     this.hits = [
       { id: 'out', x: ob.x - ob.width, y: ob.y, w: ob.width, h: ob.height },
       B('mobile', G.cx - 20, 0, 40, 26), B('lantern', G.crate.kx, G.crate.ky - 15, 10, 15), B('mug', G.mug.mx - 2, G.mug.my - 2, 7, 7), B('radio', G.radio.rx - 2, G.radio.ry - 6, 12, 10),
-      B('photo', G.photo.px - 2, G.photo.py - 2, 12, 13), B('dog', bedX + 24, bedY - 22, 22, 16), B('chris', bedX - 48, bedY - 30, 66, 30), B('flap', G.cx - 6, 14, 12, G.fl - 18)
+      B('photo', G.photo.px - 2, G.photo.py - 2, 12, 13), { id: 'dog', x: W * 0.68 - 22 * z, y: H * 0.84 - 30 * z, w: 44 * z, h: 30 * z }, { id: 'chris', x: 0, y: H * 0.55, w: W * 0.45, h: H * 0.45 }, B('flap', G.cx - 6, 14, 12, G.fl - 18)
     ];
     this.bulbs = []; for (let k = 1; k < 9; k++) { const u = k / 9; for (const sd of [-1, 1]) this.bulbs.push({ x: G.cx + sd * (u * G.back + u * 4), y: 2 + u * (G.fl - 2) * 0.8, c: [0xff6a6a, 0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff6ad0][(k + (sd > 0 ? 2 : 0)) % 5], ph: Math.random() * 6 }); }
     this.stars = []; for (let k = 0; k < 4; k++) this.stars.push({ x: G.cx + (Math.random() - 0.5) * 6, y: 18 + Math.random() * (G.fl - 30), ph: Math.random() * 6 });
@@ -209,9 +212,9 @@ class TentScene extends Phaser.Scene {
     this.dark.clear().fillStyle(0x05020a, 0.5 * (1 - this.lamp)).fillRect(0, 0, W, H);
     // breathing: Chris rises and falls, Biscuit too; Zzz
     this.headNod = Math.max(0, (this.headNod || 0) - dt * 2);
-    this.bed.setScale(z, z * (1 + (Math.sin(t * 1.6) * 0.5 + 0.5) * 0.035)).setRotation(Math.sin(this.headNod * 12) * 0.015 * this.headNod);
-    if (this.dog) { this.dogWag = Math.max(0, (this.dogWag || 0) - dt); this.dog.setScale(z * 0.3, z * 0.3 * (1 + Math.sin(t * 2.2) * 0.04)).setRotation(this.dogWag ? Math.sin(t * 30) * 0.05 : 0); }
-    const zc = (t * 0.5) % 1; this.zT.setText(zc < 0.33 ? 'z' : zc < 0.66 ? 'zZ' : 'zZz').setPosition((G.bed.x - 30) * z + zc * 6 * z, (G.bed.y - 24) * z - zc * 8 * z).setAlpha(Math.sin(zc * Math.PI) * 0.9);
+    this.bed.setScale(z * this.bedK, z * this.bedK * (1 + (Math.sin(t * 1.6) * 0.5 + 0.5) * 0.03)).setRotation(Math.sin(this.headNod * 12) * 0.015 * this.headNod);
+    if (this.dog) { this.dogWag = Math.max(0, (this.dogWag || 0) - dt); this.dog.setScale(z * 0.75, z * 0.75 * (1 + Math.sin(t * 2.2) * 0.04)).setRotation(this.dogWag ? Math.sin(t * 30) * 0.05 : 0); }
+    const zc = (t * 0.5) % 1; this.zT.setText(zc < 0.33 ? 'z' : zc < 0.66 ? 'zZ' : 'zZz').setPosition(G.head.x + 26 * z + zc * 10 * z, G.head.y - 30 * z - zc * 12 * z).setAlpha(Math.sin(zc * Math.PI) * 0.9);
     // the cow mobile: a hub on a string from the ridge, four arms, a little Bessie on each, turning (and swaying)
     const M = this.mob; M.v += (0.5 - M.v) * Math.min(1, dt * 0.35); M.a += M.v * dt;
     const g = this.mobG; g.clear();
@@ -226,7 +229,7 @@ class TentScene extends Phaser.Scene {
     });
     // fairy lights, stars in the doorway, steam, music notes, a shooting star
     const fx = this.fxG; fx.clear();
-    for (const b of this.bulbs) { const on = 0.55 + 0.45 * Math.sin(t * 2 + b.ph); fx.fillStyle(b.c, on * (0.12 + (1 - this.lamp) * 0.22)).fillRect(b.x * z - z, b.y * z - z, 3 * z, 3 * z); fx.fillStyle(b.c, 0.55 + on * 0.45).fillRect(b.x * z, b.y * z, z, z); fx.fillStyle(0x1a1020, 1).fillRect(b.x * z, b.y * z - z, z, z); }
+    for (const b of this.bulbs) { const on = 0.55 + 0.45 * Math.sin(t * 2 + b.ph), X = Math.round(b.x) * z, Y = Math.round(b.y) * z; fx.fillStyle(b.c, on * (0.14 + (1 - this.lamp) * 0.24)).fillRect(X - 2 * z, Y - z, 6 * z, 6 * z); fx.fillStyle(b.c, 0.6 + on * 0.4).fillRect(X, Y + z, 2 * z, 2 * z); fx.fillStyle(0xffffff, on * 0.7).fillRect(X, Y + z, z, z); fx.fillStyle(0x1a1020, 1).fillRect(X, Y, 2 * z, z); }
     for (const st of this.stars) { const a = 0.5 + 0.5 * Math.sin(t * 2.5 + st.ph), dh = (st.y - 18) / (G.fl - 18) * 9; if (Math.abs(st.x - G.cx) < dh - 1) fx.fillStyle(0xffffff, a * (0.6 + (1 - this.lamp) * 0.4)).fillRect(Math.round(st.x) * z, Math.round(st.y) * z, z, z); }
     if (this.shoot) { const q = this.shoot; q.life -= dt; q.x -= 40 * z * dt; q.y += 30 * z * dt; fx.fillStyle(0xffffff, Math.max(0, q.life)).fillRect(Math.round(q.x / z) * z, Math.round(q.y / z) * z, 2 * z, z); if (q.life <= 0) this.shoot = null; }
     if (Math.random() < dt * 2.5) this.parts.push({ kind: 'steam', x: (G.mug.mx + 1 + Math.random() * 2) * z, y: G.mug.my * z, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 8, life: 1.4 });
