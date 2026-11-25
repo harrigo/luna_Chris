@@ -17,11 +17,12 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'clay',   theta: -2.55, tex: 'ty_trap',   sc: 1.5, name: 'CLAY CHEESE',   verb: 'PULL!' },        // (v3.42) camptoys.js
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
+  { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
   { id: 'bar',    theta: 2.45,  tex: 'cr_bar',    sc: 1.7, name: 'MOON BAR',      verb: 'PLAY THE FRUITY' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
-  ['cr_tent', -0.42, 1.9, 0, 2.3], ['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
+['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
   ['cr_barrel', -1.15, 1.6, 0, 2.6],
   ['cr_lamp', -1.22, 1.7, 0, 2.25], ['cr_lamp', -0.55, 1.7, 0, 2.25], ['cr_lamp', 0.4, 1.7, 0, 2.25], ['cr_lamp', 1.02, 1.7, 0, 2.25],
   ['cr_pen', 2.78, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], 
@@ -431,7 +432,7 @@ const CampMixin = {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
     if (st.folk) { this.campTalk(st); return; }
     Sound.sfx('pickup');
-    ({ bar: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; Sound.sfx('reveal'); this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('fruity', { from: 'camp' })); }, train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket(), rush: () => this.campRush(), cave: () => this.campCaveGo(), clay: () => this.clayStart() })[st.id]();
+    ({ tent: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(400, 0, 0, 0); this.time.delayedCall(430, () => this.scene.start('tent')); }, bar: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; Sound.sfx('reveal'); this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('fruity', { from: 'camp' })); }, train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket(), rush: () => this.campRush(), cave: () => this.campCaveGo(), clay: () => this.clayStart() })[st.id]();
   },
   campLeave() { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('menu')); },
   campBoard() {

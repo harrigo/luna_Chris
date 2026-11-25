@@ -1223,9 +1223,9 @@ class TitleBackdrop {
         s.setOrigin(0.5, 1).setFlipX(true).setScale(z / (TEX_DENS['mouse'] || 1));
         this.gag = { k: 'rat', s, x: W + 30, st: 'run', t: 0, shots: [] };
       } else {                                                                // ...or Biscuit chases a ball across
-        const d = img('cf_dog'), b = img('cr_ball');
+        const d = img('cf_dog0'), b = img('cr_ball');   // (v3.103: was 'cf_dog', which doesn't exist - the gag never showed)
         if (!d || !b) { this.gagN++; this.gagT = 0.5; return; }
-        d.setOrigin(0.5, 1).setScale(z / (TEX_DENS['cf_dog'] || 1)); b.setOrigin(0.5, 0.5).setScale(z / (TEX_DENS['cr_ball'] || 1));
+        d.setOrigin(0.5, 1).setScale(z / (TEX_DENS['cf_dog0'] || 1)); b.setOrigin(0.5, 0.5).setScale(z / (TEX_DENS['cr_ball'] || 1));
         this.gag = { k: 'dog', d, b, x: -40, bx: 30, bh: 40, bvh: 0, t: 0 };
       }
       return;

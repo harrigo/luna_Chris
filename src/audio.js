@@ -637,6 +637,13 @@ const Sound = (() => {
       { drums: true, p: 'kkhskkhskkhskshs', vol: 1 }
     ] }),
 
+    // (v3.103) the tent: a slow, soft lullaby on the little radio (no drums, just a music box over a hum)
+    tent: build({ bpm: 64, ch: [
+      { p: J('E5:4 G5:4 C6:6 B5:2', 'A5:8 G5:8', 'F5:4 A5:4 G5:6 E5:2', 'D5:12 -:4', 'E5:4 G5:4 C6:6 D6:2', 'E6:8 D6:4 C6:4', 'A5:4 G5:4 E5:4 D5:4', 'C5:12 -:4'), w: 'triangle', vol: 0.11, gate: 0.95 },
+      { p: J(arpBar([60, 64, 67]), arpBar([57, 60, 64]), arpBar([53, 57, 60]), arpBar([55, 59, 62]), arpBar([60, 64, 67]), arpBar([52, 55, 59]), arpBar([53, 57, 60]), arpBar([60, 64, 67])), w: 'pulse', duty: 0.125, vol: 0.035, pluck: true, gate: 1 },
+      { p: J('C3:16', 'A2:16', 'F2:16', 'G2:16', 'C3:16', 'E2:16', 'F2:16', 'C3:16'), w: 'triangle', vol: 0.14, gate: 0.98 }
+    ] }),
+
     win: build({ bpm: 132, loop: false, ch: [
       { p: 'C5:2 E5:2 G5:2 C6:6 -:2 G5:2 C6:2 E6:10', w: 'pulse', duty: 0.5, vol: 0.18, gate: 0.9 },
       { p: 'C3:8 G2:8 C3:12', w: 'triangle', vol: 0.34, gate: 0.9 }

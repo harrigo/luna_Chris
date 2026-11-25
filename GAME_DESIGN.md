@@ -2486,3 +2486,16 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   flying to the trail, win lines cycling with wobbling symbols, a rolling win counter, BIG / MEGA / CHEESE-TASTROPHIC
   banners at 10x / 25x / 50x with coin storms and shake, a JACKPOT finale.
 - Trophies: ONE-ARMED BANDIT (take a prize off the trail), JACKPOT! (reach the top).
+
+## v3.103: the tent (safe and snug)
+
+- The camp tent is a station now (`id: 'tent'`, theta -0.42, CRAWL IN; it was decoration). `src/tent.js`, scene `tent`.
+- Inside, a painted interior at whole art pixels: the canvas lit by a lantern swinging on its string from the apex (a
+  soft warm pool, MULTIPLY-darkened away from it), fairy lights along the back wall, Chris in a tartan sleeping bag
+  breathing with Zzz drifting up, Biscuit at his feet, cocoa steaming, Bessie's photo pinned up, a radio on a crate, a
+  comic on the rug, and through the tied-back flap the night sky, the moon's horizon and the campfire's flicker.
+- Tap things: the lantern (lights low: just the fairy lights and the stars), the radio (the new `tent` lullaby on or
+  off), Biscuit (hearts), the cocoa (steam), Chris, the photo, the comic, the flap (a shooting star). Each has a few
+  rotating lines. CRAWL OUT (or ESC / B) goes back to camp at the tent. Trophy: SNUG AS A BUG.
+- Fix: the title screen's dog-and-ball gag used 'cf_dog', which doesn't exist (the texture is 'cf_dog0'), so it never
+  showed; on the main menu (no Chris) that left no gag at all.
