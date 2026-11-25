@@ -1,4 +1,4 @@
-// ================================================================= THE TENT (v3.103): safe and snug
+// ================================================================= THE TENT (v3.103; v3.109: redrawn as a smooth illustration): safe and snug
 // The tent at Moon Camp is a station now: walk up, press DOWN, CRAWL IN. Inside, nothing to do but be cosy:
 // a lantern swinging on its string, fairy lights along the canvas, Chris in his sleeping bag, Biscuit curled up at his
 // feet, a mug of cocoa steaming, Bessie's photo pinned up, a little radio playing a lullaby, and through the tied-back
@@ -15,185 +15,221 @@ const TENT_SAYS = {
   lantern: []
 };
 
-function makeTentTextures(scene) {
-  const rect = (put, x0, y0, x1, y1, c) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) put(x, y, c); };
-  pixTex(scene, 'tent_lantern', 11, 15, put => {                 // a little camping lantern (it sits on the crate)
-    rect(put, 4, 0, 6, 1, 0x1a1020); rect(put, 2, 2, 8, 3, 0x1a1020); rect(put, 3, 2, 7, 2, 0x8a6a48);
-    rect(put, 1, 4, 9, 11, 0x1a1020); rect(put, 2, 5, 8, 10, 0xffe080); rect(put, 3, 6, 7, 9, 0xfff6c0); rect(put, 4, 7, 6, 9, 0xffb04a); put(5, 6, 0xffffff);
-    for (const x of [2, 5, 8]) rect(put, x, 5, x, 10, 0x5a4838);
-    rect(put, 1, 12, 9, 14, 0x1a1020); rect(put, 2, 12, 8, 13, 0x8a6a48);
+// ---------------------------------------------------------------- the art (v3.109)
+// Not pixel art: a storybook illustration drawn with curves at the screen's own resolution (ink outlines, soft
+// gradients), because a close-up in big pixels looked crude. Everything is in a 480-wide design space, scaled by k.
+const TN = { ink: '#1a1020' };
+function tnCanvas(scene, key, w, h, k, draw) {
+  if (scene.textures.exists(key)) scene.textures.remove(key);
+  const T = scene.textures.createCanvas(key, Math.ceil(w * k), Math.ceil(h * k)), c = T.getContext();
+  c.imageSmoothingEnabled = true; c.scale(k, k); c.lineJoin = 'round'; c.lineCap = 'round';
+  draw(c); T.refresh(); T.setFilter(Phaser.Textures.FilterMode.LINEAR);
+}
+// a closed smooth shape through points
+function tnPath(c, pts) {
+  const n = pts.length, m = i => [(pts[i % n][0] + pts[(i + 1) % n][0]) / 2, (pts[i % n][1] + pts[(i + 1) % n][1]) / 2];
+  c.beginPath(); const s = m(0); c.moveTo(s[0], s[1]);
+  for (let i = 1; i <= n; i++) { const p = pts[i % n], q = m(i); c.quadraticCurveTo(p[0], p[1], q[0], q[1]); }
+  c.closePath();
+}
+// fill a shape, shade inside it (fn draws while clipped), then ink it
+function tnBlob(c, pts, fill, shade, lw) {
+  tnPath(c, pts); c.fillStyle = fill; c.fill();
+  if (shade) { c.save(); tnPath(c, pts); c.clip(); shade(c); c.restore(); }
+  if (lw !== 0) { tnPath(c, pts); c.lineWidth = lw || 2.2; c.strokeStyle = TN.ink; c.stroke(); }
+}
+const tnEll = (c, x, y, rx, ry, fill, a) => { c.save(); if (a !== undefined) c.globalAlpha = a; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 6.2832); c.fillStyle = fill; c.fill(); c.restore(); };
+const tnLine = (c, pts, col, lw) => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); if (pts.length === 3) c.quadraticCurveTo(pts[1][0], pts[1][1], pts[2][0], pts[2][1]); else for (let i = 1; i < pts.length; i++) c.lineTo(pts[i][0], pts[i][1]); c.strokeStyle = col; c.lineWidth = lw; c.stroke(); };
+
+function makeTentArt(scene, k, LH) {
+  const F0 = LH - 78, AX = 240, AY = -16;
+  // ---- the tent itself: a little A-frame, the ridge just overhead, lit warm from the lantern
+  tnCanvas(scene, 'tn_bg', 480, LH, k, c => {
+    c.fillStyle = '#1c0d08'; c.fillRect(0, 0, 480, LH);
+    const wall = (pts, g) => { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fillStyle = g; c.fill(); };
+    let g = c.createLinearGradient(0, 0, 240, 0); g.addColorStop(0, '#3a1a0c'); g.addColorStop(0.55, '#8a4a1c'); g.addColorStop(1, '#b8682a');
+    wall([[AX, AY], [128, F0], [-70, LH + 12], [-70, AY]], g);
+    g = c.createLinearGradient(480, 0, 240, 0); g.addColorStop(0, '#4a220e'); g.addColorStop(0.5, '#a05a22'); g.addColorStop(1, '#c87a30');
+    wall([[AX, AY], [352, F0], [550, LH + 12], [550, AY]], g);
+    g = c.createLinearGradient(0, 0, 0, F0); g.addColorStop(0, '#9a5420'); g.addColorStop(1, '#c47a32');
+    wall([[AX, AY], [128, F0], [352, F0]], g);
+    g = c.createLinearGradient(0, F0, 0, LH); g.addColorStop(0, '#2c3350'); g.addColorStop(1, '#161a2c');
+    wall([[128, F0], [352, F0], [550, LH + 12], [-70, LH + 12]], g);
+    // the canvas: seams fanning from the ridge, a soft sag, stitching along the floor
+    c.globalAlpha = 0.35; for (const [x, y] of [[20, LH], [-40, 120], [70, F0 + 40], [460, LH], [520, 120], [410, F0 + 40], [190, F0], [290, F0]]) tnLine(c, [[AX, AY], [x, y]], '#4a1f0a', 1.4); c.globalAlpha = 1;
+    tnLine(c, [[AX, AY], [128, F0]], '#5a2a10', 2); tnLine(c, [[AX, AY], [352, F0]], '#5a2a10', 2); tnLine(c, [[128, F0], [352, F0]], '#3a1a0c', 2.5);
+    tnLine(c, [[128, F0], [-70, LH + 12]], '#1a1020', 2); tnLine(c, [[352, F0], [550, LH + 12]], '#1a1020', 2);
+    c.setLineDash([3, 4]); tnLine(c, [[134, F0 - 4], [346, F0 - 4]], '#e8c080', 1); c.setLineDash([]);
+    // the door: zipped most of the way, the bottom folded open on the night, the fire's glow low down
+    tnLine(c, [[AX, 30], [AX, F0 - 62]], '#3a1a0c', 2); for (let y = 34; y < F0 - 62; y += 5) tnLine(c, [[AX - 2, y], [AX + 2, y]], '#e8c080', 1);
+    c.save(); c.beginPath(); c.moveTo(AX, F0 - 64); c.quadraticCurveTo(AX - 6, F0 - 24, AX - 17, F0); c.lineTo(AX + 17, F0); c.quadraticCurveTo(AX + 6, F0 - 24, AX, F0 - 64); c.closePath(); c.clip();
+    g = c.createLinearGradient(0, F0 - 64, 0, F0); g.addColorStop(0, '#0a0e2c'); g.addColorStop(0.7, '#2a1c44'); g.addColorStop(1, '#c8581a'); c.fillStyle = g; c.fillRect(AX - 20, F0 - 66, 40, 68);
+    for (const [x, y, r] of [[-4, -44, 0.9], [5, -36, 0.7], [-2, -26, 0.6], [7, -50, 0.6], [-8, -18, 0.8], [3, -14, 0.5]]) tnEll(c, AX + x, F0 + y, r, r, '#ffffff');
+    c.restore();
+    c.beginPath(); c.moveTo(AX, F0 - 64); c.quadraticCurveTo(AX - 6, F0 - 24, AX - 17, F0); c.moveTo(AX, F0 - 64); c.quadraticCurveTo(AX + 6, F0 - 24, AX + 17, F0); c.strokeStyle = TN.ink; c.lineWidth = 2; c.stroke();
+    for (const sx of [-1, 1]) tnBlob(c, [[AX + sx * 16, F0 - 22], [AX + sx * 25, F0 - 16], [AX + sx * 27, F0 - 3], [AX + sx * 17, F0 - 1]], '#d98a3a', null, 1.6);   // the rolled flaps
+    // the fairy lights' wire (the bulbs glow on top)
+    tnLine(c, [[AX, 6], [176, 70], [140, F0 - 16]], '#2a1408', 1.2); tnLine(c, [[AX, 6], [304, 70], [340, F0 - 16]], '#2a1408', 1.2);
+    // Bessie's photo, taped up a bit wonky
+    c.save(); c.translate(199, F0 - 50); c.rotate(-0.08);
+    c.fillStyle = TN.ink; c.fillRect(-17, -21, 34, 42); c.fillStyle = '#faf4e6'; c.fillRect(-15.5, -19.5, 31, 39); c.fillStyle = '#9ad0f0'; c.fillRect(-12.5, -16.5, 25, 25); c.fillStyle = '#7ac070'; c.fillRect(-12.5, 2, 25, 6.5);
+    tnBlob(c, [[-8, -4], [-6, -10], [3, -11], [8, -7], [8, 2], [-7, 3]], '#ffffff', q => { tnEll(q, 2, -6, 3, 2.5, '#2a2438'); tnEll(q, -5, 0, 2, 2, '#2a2438'); }, 1.2);
+    tnBlob(c, [[-12, -9], [-7, -11], [-5, -5], [-9, -2], [-12, -4]], '#ffffff', null, 1.2); tnEll(c, -10.5, -4.5, 2, 1.4, '#f0a0b0'); tnEll(c, -9.5, -8, 0.6, 0.6, TN.ink);
+    c.fillStyle = TN.ink; c.fillRect(-5, 2, 1.5, 4); c.fillRect(4, 2, 1.5, 4);
+    c.fillStyle = '#d83a2a'; c.font = 'bold 5px sans-serif'; c.textAlign = 'center'; c.fillText('BESSIE', 0, 16);
+    c.fillStyle = 'rgba(240,230,200,0.85)'; c.fillRect(-6, -24, 12, 5); c.restore();
+    // by the door: his boots, and the pup's helmet (he doesn't need it in here)
+    for (const bx of [286, 300]) tnBlob(c, [[bx, F0 - 2], [bx, F0 - 20], [bx + 9, F0 - 20], [bx + 10, F0 - 9], [bx + 17, F0 - 6], [bx + 17, F0 - 1]], '#f4f4fa', q => { q.fillStyle = '#d83a2a'; q.fillRect(bx - 1, F0 - 21, 12, 4); q.fillStyle = '#c8c8d8'; q.fillRect(bx - 1, F0 - 4, 20, 4); }, 1.6);
+    c.globalAlpha = 0.9; tnEll(c, 324, F0 - 9, 10, 10, '#bfe6ff'); c.globalAlpha = 1; c.beginPath(); c.arc(324, F0 - 9, 10, 0, 6.2832); c.strokeStyle = TN.ink; c.lineWidth = 1.6; c.stroke(); tnEll(c, 320, F0 - 13, 3, 2, '#ffffff', 0.8); c.fillStyle = '#9aa4b8'; c.fillRect(316, F0 - 1.5, 16, 3);
+    // the rag rug under it all
+    tnBlob(c, [[60, LH - 44], [240, LH - 58], [430, LH - 44], [470, LH - 14], [240, LH + 6], [10, LH - 14]], '#8a2a34', q => { q.lineWidth = 5; for (const [col, d] of [['#c8902a', 10], ['#3a6aa8', 20], ['#e8d8b0', 30]]) { tnPath(q, [[60 + d, LH - 44 + d * 0.4], [240, LH - 58 + d * 0.5], [430 - d, LH - 44 + d * 0.4], [470 - d * 1.6, LH - 14], [240, LH + 6 - d * 0.6], [10 + d * 1.6, LH - 14]]); q.strokeStyle = col; q.stroke(); } }, 2);
+    // cocoa and the little radio, down by his feet
+    const rx = 424, ry = LH - 62;
+    tnBlob(c, [[rx, ry + 30], [rx, ry + 6], [rx + 38, ry + 6], [rx + 38, ry + 30]], '#c83a3a', q => { tnEll(q, rx + 26, ry + 18, 8, 8, '#3a2a34'); for (let i = -6; i <= 6; i += 3) tnLine(q, [[rx + 20, ry + 18 + i], [rx + 32, ry + 18 + i]], '#6a5a64', 0.8); q.fillStyle = '#ffd23f'; q.fillRect(rx + 5, ry + 11, 9, 5); tnEll(q, rx + 9, ry + 23, 2.5, 2.5, '#f4ecd8'); }, 2);
+    tnLine(c, [[rx + 8, ry + 6], [rx + 26, ry - 16]], '#9aa4b8', 1.6); tnEll(c, rx + 26, ry - 16, 1.6, 1.6, '#ffd23f');
+    const mx = 398, my = LH - 40;
+    tnBlob(c, [[mx, my + 16], [mx - 1, my], [mx + 14, my], [mx + 13, my + 16]], '#fbf6ea', q => { q.fillStyle = '#d83a2a'; q.fillRect(mx - 2, my + 6, 18, 3); tnEll(q, mx + 6.5, my + 1, 6.5, 2.2, '#6a3a1a'); }, 1.8);
+    c.beginPath(); c.arc(mx + 15, my + 8, 4.5, -1.2, 1.2); c.strokeStyle = TN.ink; c.lineWidth = 3.6; c.stroke(); c.strokeStyle = '#fbf6ea'; c.lineWidth = 1.6; c.stroke();
+    // dark corners
+    g = c.createRadialGradient(250, LH * 0.55, 90, 250, LH * 0.55, 330); g.addColorStop(0, 'rgba(20,8,10,0)'); g.addColorStop(1, 'rgba(14,6,10,0.78)'); c.fillStyle = g; c.fillRect(0, 0, 480, LH);
   });
-  // (v3.107) Chris tucked up in a mummy sleeping bag: one piece, shaped round him - the hood round his face (nightcap
-  // poking out), bumps for shoulders, hips, knees and toes, rising a little towards his feet, the patchwork quilt draped
-  // over the middle and spilling down the side. 96 x 36, lit from the upper left.
-  pixTex(scene, 'tent_bed', 96, 36, put => {
-    const INK = 0x1a1020, BAG = [0x1a2a5a, 0x2a4a8a, 0x3a6aa8, 0x6a9ad0], LIN = [0x8a2a2a, 0xc84a3a], SK = [0xc07858, 0xe8a07a, 0xffc8a0], MO = [0x3a2010, 0x6a3a1a, 0x8a5a2a];
-    const Q = [[0xffd23f, 0xc8902a], [0xd83a2a, 0x8a1a1a], [0xf4ecd8, 0xc8bfa8], [0x2aa04a, 0x1a6a2a], [0xff9ac0, 0xc86a8a]];
-    const bump = (x, c, w) => Math.exp(-((x - c) * (x - c)) / (w * w));
-    const base = x => 31 - x * 0.05, hgt = x => 9 + 5 * bump(x, 30, 9) + 3 * bump(x, 50, 8) + 5 * bump(x, 68, 5) + 3 * bump(x, 84, 4);
-    const g = []; for (let y = 0; y < 36; y++) g.push(Array(96).fill(null));
-    const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < 96 && y < 36) g[y][x] = c; };
-    const sh = (R, v, x, y) => { const f = Math.max(0, Math.min(R.length - 1, v * (R.length - 1))), i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };
-    for (let x = 0; x < 96; x++) for (let y = 0; y < 36; y++) {
-      const X = x + 0.5, Y = y + 0.5;
-      if (Math.hypot((X - 50) / 47, (Y - 33) / 3) <= 1) set(x, y, 0x0e0a14);                       // its shadow on the groundsheet
-      const end = X > 90 ? Math.sqrt(Math.max(0, 1 - ((X - 90) / 5) ** 2)) : 1, top = base(X) - hgt(X) * end;
-      if (X > 12 && X < 95 && Y > top && Y < base(X) && end > 0) {                                  // the bag
-        const v = 0.8 - (Y - top) / Math.max(1, hgt(X)) * 0.55 - (X / 96) * 0.1;
-        set(x, y, (Math.floor(X - Y * 0.3) % 9 === 0) ? BAG[1] : sh(BAG, v, x, y));
-        if (X > 28 && X < 80 && Y < top + hgt(X) * 0.62 + Math.sin(X * 0.7) * 0.8) {                // the quilt over the top, scalloped hem
-          const qx = Math.floor((X - 28) / 6), qy = Math.floor((Y - top) / 5), C = Q[(qx + qy * 2) % 5];
-          set(x, y, ((X - 28) % 6 < 0.8 || (Y - top) % 5 < 0.8) ? 0xf4ecd8 : (x + y) % 2 ? C[0] : C[1]);
-        }
-      }
-      if (Math.hypot((X - 13) / 12, (Y - 22) / 10) <= 1 && X < 20) set(x, y, sh(BAG, 0.75 - (Y - 12) * 0.02, x, y));   // the hood
-      if (Math.hypot((X - 14) / 8.5, (Y - 22) / 7.5) <= 1) set(x, y, Math.hypot((X - 14) / 8.5, (Y - 22) / 7.5) > 0.82 ? LIN[0] : LIN[1]);   // its red lining
-      if (Math.hypot((X - 15) / 6.5, (Y - 22) / 6) <= 1) set(x, y, Y < 19 ? SK[2] : X > 18 ? SK[0] : SK[1]);   // his face
-      if (Math.hypot((X - 7) / 7, (Y - 15) / 5) <= 1 && Y < 19) set(x, y, (x + y) % 5 ? 0xf4f0f8 : 0xc8c4d4);   // the nightcap
-      if (Math.hypot(X - 1.5, Y - 19) < 2.2) set(x, y, 0xffd23f);                                   // its bobble
-    }
-    for (const [x, y] of [[12, 21], [13, 21], [17, 21], [18, 21]]) set(x, y, INK);                   // eyes shut
-    for (let x = 10; x < 21; x++) { const h = 1.6 - Math.abs(x - 15.5) / 4; for (let y = Math.round(24 - h / 2); y <= Math.round(24 + h); y++) set(x, y, x < 11 || x > 19 ? MO[0] : MO[(x % 3 === 0) ? 2 : 1]); }   // the moustache
-    set(15, 23, SK[0]); set(19, 23, 0xff8a8a);
-    for (let y = 0; y < 36; y++) for (let x = 0; x < 96; x++) {
-      if (g[y][x] != null) { put(x, y, g[y][x]); continue; }
-      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => g[y + dy] && g[y + dy][x + dx] != null && g[y + dy][x + dx] !== 0x0e0a14)) put(x, y, INK);
-    }
+  // ---- Chris: on his side, fast asleep. Pillow, chef's hat still on, the big moustache, a puffy sleeping bag
+  tnCanvas(scene, 'tn_chris', 410, 150, k, c => {
+    tnEll(c, 210, 143, 200, 7, '#0a0810', 0.5);
+    tnBlob(c, [[4, 122], [14, 92], [60, 82], [124, 88], [142, 112], [132, 138], [70, 144], [12, 140]], '#fbf7ee', q => { const g = q.createLinearGradient(0, 100, 0, 146); g.addColorStop(0, 'rgba(190,170,190,0)'); g.addColorStop(1, 'rgba(150,130,170,0.55)'); q.fillStyle = g; q.fillRect(0, 80, 150, 70); tnLine(q, [[20, 100], [40, 108], [30, 124]], 'rgba(150,130,170,0.5)', 1.5); });
+    // the bag: a plump quilted mound, turned-back lining at the neck
+    const bag = [[120, 116], [140, 82], [196, 66], [262, 72], [322, 88], [376, 104], [404, 124], [398, 142], [370, 147], [140, 147], [116, 138]];
+    tnBlob(c, bag, '#2f8a94', q => {
+      let g = q.createLinearGradient(0, 60, 0, 150); g.addColorStop(0, 'rgba(160,240,230,0.45)'); g.addColorStop(0.35, 'rgba(160,240,230,0)'); g.addColorStop(1, 'rgba(10,30,60,0.55)'); q.fillStyle = g; q.fillRect(100, 50, 320, 110);
+      for (let x = 176; x < 400; x += 36) { tnLine(q, [[x, 56], [x - 10, 104], [x - 4, 150]], 'rgba(12,50,70,0.75)', 2); tnLine(q, [[x + 3, 60], [x - 7, 104], [x - 1, 150]], 'rgba(170,240,230,0.28)', 1.5); }
+      for (const [x, y] of [[212, 96], [250, 112], [286, 100], [322, 120], [356, 116], [232, 130]]) { q.fillStyle = '#ffd23f'; q.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - 1.57, r = i % 2 ? 2 : 4.6; q.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } q.fill(); }   // little stars on it
+    }, 2.4);
+    tnBlob(c, [[110, 112], [128, 92], [150, 90], [158, 106], [150, 132], [130, 146], [112, 140]], '#f6e2b4', q => { q.setLineDash([2.5, 3]); tnLine(q, [[118, 112], [140, 100], [150, 116]], '#d83a2a', 1.4); q.setLineDash([]); tnEll(q, 132, 140, 26, 10, '#c8a070', 0.5); }, 2.2);
+    // the chef's hat, squashed on the pillow
+    tnBlob(c, [[54, 86], [34, 70], [34, 44], [52, 24], [78, 20], [100, 24], [118, 38], [126, 58], [118, 76], [98, 86]], '#ffffff', q => { const g = q.createLinearGradient(30, 20, 120, 90); g.addColorStop(0.3, 'rgba(180,180,215,0)'); g.addColorStop(1, 'rgba(160,160,205,0.7)'); q.fillStyle = g; q.fillRect(20, 10, 120, 90); for (const [a, b, d] of [[[58, 78], [50, 52], [58, 30]], [[78, 80], [74, 50], [80, 24]], [[98, 80], [100, 54], [102, 30]]]) tnLine(q, [a, b, d], 'rgba(120,120,170,0.6)', 1.5); }, 2.4);
+    tnBlob(c, [[52, 92], [56, 76], [84, 70], [112, 74], [120, 88], [112, 96], [84, 92], [58, 98]], '#f0eef8', q => tnEll(q, 90, 96, 34, 6, '#b8b8d8', 0.6), 2.2);
+    // the head
+    tnBlob(c, [[56, 110], [60, 92], [78, 82], [100, 80], [120, 88], [130, 106], [126, 124], [110, 136], [88, 140], [68, 132]], '#f6bd96', q => { const g = q.createRadialGradient(84, 100, 10, 96, 112, 46); g.addColorStop(0, 'rgba(255,225,200,0.5)'); g.addColorStop(0.6, 'rgba(255,225,200,0)'); g.addColorStop(1, 'rgba(190,100,70,0.55)'); q.fillStyle = g; q.fillRect(50, 76, 90, 70); tnEll(q, 72, 118, 9, 6, '#ff8a8a', 0.45); tnEll(q, 120, 116, 8, 6, '#ff8a8a', 0.45); }, 2.4);
+    tnBlob(c, [[54, 104], [50, 96], [56, 90], [62, 96], [62, 108]], '#eeb08a', q => tnEll(q, 57, 100, 2.4, 4, '#d08a6a'), 2);   // ear
+    tnBlob(c, [[58, 96], [64, 86], [74, 82], [70, 92], [64, 100]], '#7a4a22', null, 1.6);                                    // a tuft of hair under the hat
+    // sleeping eyes, bushy brows
+    for (const ex of [82, 110]) { c.beginPath(); c.arc(ex, 101, 6, 0.25, Math.PI - 0.25); c.strokeStyle = TN.ink; c.lineWidth = 2.2; c.stroke(); for (const d of [-4, 0, 4]) tnLine(c, [[ex + d, 106.5 - Math.abs(d) * 0.3], [ex + d * 1.3, 109.5 - Math.abs(d) * 0.3]], TN.ink, 1.2); }
+    tnBlob(c, [[72, 93], [80, 88], [91, 90], [90, 94], [80, 93]], '#6a3e1c', null, 1.4); tnBlob(c, [[102, 90], [112, 88], [121, 93], [112, 93], [103, 94]], '#6a3e1c', null, 1.4);
+    // the nose, then (as its own sprite) the moustache
+    tnBlob(c, [[88, 112], [90, 104], [98, 101], [106, 105], [107, 113], [98, 118]], '#f2a482', q => { tnEll(q, 95, 106, 3, 2, '#ffe0d0', 0.9); tnEll(q, 100, 116, 8, 3, '#d8805e', 0.5); }, 2);
+    tnEll(c, 98, 131, 4.5, 3.4, '#5a1a1a'); c.beginPath(); c.ellipse(98, 131, 4.5, 3.4, 0, 0, 6.2832); c.strokeStyle = TN.ink; c.lineWidth = 1.6; c.stroke();
   });
-  pixTex(scene, 'tent_chris', 30, 20, put => {                   // Chris asleep on his pillow, chef's hat worn as a nightcap
-    const INK = 0x1a1020, SK = [0xc07858, 0xe8a07a, 0xffc8a0], HAT = [0xc8c4d4, 0xf4f0f8, 0xffffff], MO = [0x3a2010, 0x6a3a1a, 0x8a5a2a];
-    for (let y = 0; y < 20; y++) for (let x = 0; x < 30; x++) {
-      const face = Math.hypot((x - 17) / 8.5, (y - 12) / 7.5) <= 1, hat = Math.hypot((x - 9) / 9, (y - 7) / 6.5) <= 1 && x < 16, tip = Math.hypot(x - 2.5, y - 14) <= 2.4;
-      if (tip) { put(x, y, Math.hypot(x - 2, y - 13.5) < 1.2 ? 0xfff6c0 : 0xffd23f); continue; }
-      if (hat) { put(x, y, (x + y) % 5 === 0 ? HAT[0] : x + y < 12 ? HAT[2] : HAT[1]); continue; }
-      if (face) { put(x, y, y < 9 ? SK[2] : x > 21 ? SK[0] : SK[1]); continue; }
-    }
-    rect(put, 15, 10, 18, 10, INK); rect(put, 21, 10, 23, 10, INK);           // closed eyes
-    rect(put, 18, 9, 19, 9, SK[0]); put(25, 12, SK[0]); put(26, 13, SK[0]);    // brow, nose
-    rect(put, 22, 15, 24, 15, 0xff8a8a);                                        // rosy cheek
-    for (let x = 14; x < 27; x++) { const h = 2 - Math.abs(x - 20) / 4; rect(put, x, Math.round(15 - h / 2), x, Math.round(15 + h), x < 16 || x > 25 ? MO[0] : MO[(x % 3 === 0) ? 2 : 1]); }   // THE moustache
+  tnCanvas(scene, 'tn_mo', 80, 30, k, c => {
+    for (const s of [-1, 1]) { const X = x => 40 + s * x; tnBlob(c, [[X(0), 6], [X(10), 3], [X(24), 6], [X(34), 14], [X(37), 24], [X(28), 26], [X(18), 21], [X(8), 17], [X(0), 14]], '#8a5426', q => { tnLine(q, [[X(4), 8], [X(16), 8], [X(30), 18]], '#b87a3c', 2); tnLine(q, [[X(4), 13], [X(16), 15], [X(28), 23]], '#5e3614', 1.6); }, 2); }
   });
+  // his arm, out of the bag and round the pup
+  tnCanvas(scene, 'tn_arm', 120, 50, k, c => {
+    tnBlob(c, [[4, 20], [12, 8], [40, 4], [74, 12], [98, 24], [96, 38], [70, 36], [38, 30], [10, 34]], '#ffffff', q => { const g = q.createLinearGradient(0, 4, 0, 40); g.addColorStop(0.4, 'rgba(170,170,210,0)'); g.addColorStop(1, 'rgba(150,150,200,0.7)'); q.fillStyle = g; q.fillRect(0, 0, 120, 50); tnLine(q, [[36, 8], [40, 20], [36, 30]], 'rgba(130,130,180,0.6)', 1.4); q.fillStyle = '#d83a2a'; q.beginPath(); q.moveTo(82, 12); q.lineTo(102, 22); q.lineTo(98, 42); q.lineTo(78, 34); q.fill(); }, 2.2);
+    tnBlob(c, [[94, 24], [104, 22], [114, 28], [116, 38], [108, 44], [96, 40]], '#f6bd96', q => { tnLine(q, [[104, 30], [110, 34]], '#c98a68', 1.2); tnLine(q, [[102, 35], [108, 39]], '#c98a68', 1.2); }, 2);
+  });
+  // ---- Biscuit, curled up asleep in the crook of his arm (helmet off)
+  tnCanvas(scene, 'tn_pup', 150, 96, k, c => {
+    tnBlob(c, [[30, 78], [22, 52], [36, 28], [70, 16], [108, 20], [134, 40], [138, 68], [122, 86], [60, 90]], '#e0a45c', q => { const g = q.createLinearGradient(0, 16, 0, 92); g.addColorStop(0, 'rgba(255,225,170,0.55)'); g.addColorStop(0.4, 'rgba(255,225,170,0)'); g.addColorStop(1, 'rgba(120,60,20,0.6)'); q.fillStyle = g; q.fillRect(0, 0, 150, 96); tnEll(q, 96, 34, 20, 12, '#fff4dc', 0.9); tnEll(q, 74, 88, 36, 12, '#fff4dc', 0.9); tnLine(q, [[112, 44], [124, 60], [116, 80]], 'rgba(120,60,20,0.5)', 1.6); }, 2.4);
+    tnBlob(c, [[62, 84], [66, 76], [80, 74], [90, 80], [86, 90], [70, 91]], '#fff4dc', q => tnLine(q, [[76, 80], [76, 88]], '#c8a880', 1), 1.8);    // a paw
+    // the head, resting; a floppy ear; shut eye; wet nose
+    tnBlob(c, [[4, 66], [8, 46], [24, 34], [46, 34], [60, 46], [62, 64], [50, 78], [26, 82], [8, 78]], '#e8b06a', q => { tnEll(q, 14, 70, 16, 12, '#fff4dc'); tnEll(q, 40, 44, 16, 8, '#ffe0a8', 0.6); tnEll(q, 34, 68, 6, 4, '#ff9a9a', 0.4); }, 2.4);
+    tnBlob(c, [[40, 36], [56, 30], [68, 42], [68, 62], [58, 72], [50, 56], [44, 46]], '#9a6030', q => tnLine(q, [[52, 38], [62, 50], [60, 64]], '#6e3e18', 1.6), 2.2);
+    c.beginPath(); c.arc(30, 54, 5, 0.3, Math.PI - 0.3); c.strokeStyle = TN.ink; c.lineWidth = 2; c.stroke();
+    tnBlob(c, [[2, 62], [6, 58], [12, 60], [11, 67], [5, 68]], '#2a1c20', q => tnEll(q, 6, 61, 1.6, 1, '#ffffff', 0.8), 1.4);
+    tnLine(c, [[10, 72], [16, 76], [24, 74]], TN.ink, 1.4);
+  });
+  tnCanvas(scene, 'tn_tail', 46, 30, k, c => tnBlob(c, [[4, 22], [8, 10], [22, 4], [38, 8], [42, 18], [34, 22], [22, 16], [12, 26]], '#e0a45c', q => tnEll(q, 38, 14, 8, 8, '#fff4dc'), 2.2));
+  // ---- the lantern, a mobile cow, a dream bubble's bone
+  tnCanvas(scene, 'tn_lamp', 40, 62, k, c => {
+    c.beginPath(); c.arc(20, 14, 10, Math.PI, 0); c.strokeStyle = TN.ink; c.lineWidth = 2.4; c.stroke(); c.strokeStyle = '#b89060'; c.lineWidth = 1.2; c.stroke();
+    tnBlob(c, [[10, 18], [14, 12], [26, 12], [30, 18]], '#8a6a48', null, 2);
+    tnBlob(c, [[8, 50], [8, 20], [32, 20], [32, 50]], '#ffe9a0', q => { const g = q.createRadialGradient(20, 36, 2, 20, 36, 18); g.addColorStop(0, '#ffffff'); g.addColorStop(0.5, '#ffe080'); g.addColorStop(1, '#f0a040'); q.fillStyle = g; q.fillRect(4, 16, 32, 38); tnBlob(q, [[20, 44], [15, 38], [20, 26], [25, 38]], '#ff9a2a', null, 0); tnBlob(q, [[20, 43], [17.5, 39], [20, 32], [22.5, 39]], '#fff6c0', null, 0); }, 2.2);
+    for (const x of [14, 26]) tnLine(c, [[x, 20], [x, 50]], '#6a5038', 1.6);
+    tnBlob(c, [[6, 58], [8, 50], [32, 50], [34, 58]], '#8a6a48', null, 2);
+  });
+  tnCanvas(scene, 'tn_cow', 44, 34, k, c => {
+    for (const x of [13, 19, 27, 33]) { c.fillStyle = TN.ink; c.fillRect(x - 2.5, 22, 5, 10); c.fillStyle = '#fbf7f0'; c.fillRect(x - 1.3, 22, 2.6, 8); }
+    tnBlob(c, [[8, 22], [8, 10], [18, 6], [32, 7], [38, 14], [36, 24], [22, 27]], '#fbf7f0', q => { tnEll(q, 24, 11, 6, 4.5, '#2a2438'); tnEll(q, 33, 21, 4, 3.5, '#2a2438'); tnEll(q, 13, 22, 3, 3, '#2a2438'); }, 1.8);
+    tnBlob(c, [[2, 12], [4, 5], [11, 4], [15, 9], [13, 17], [6, 18]], '#fbf7f0', q => tnEll(q, 6, 15, 5, 3.5, '#f4a8b8'), 1.8);
+    tnEll(c, 7, 9, 1, 1.2, TN.ink); tnLine(c, [[38, 14], [42, 20]], TN.ink, 1.4);
+  });
+  tnCanvas(scene, 'tn_bone', 30, 16, k, c => { tnBlob(c, [[6, 6], [3, 3], [5, 1], [8, 3], [22, 3], [25, 1], [27, 3], [24, 6], [24, 10], [27, 13], [25, 15], [22, 13], [8, 13], [5, 15], [3, 13], [6, 10]], '#fbf7f0', null, 1.6); });
+  return { F0, AX, AY };
 }
 
 class TentScene extends Phaser.Scene {
   constructor() { super('tent'); }
   create() {
-    makeTextures(this); makeTentTextures(this); if (typeof makeFruityTextures === 'function') makeFruityTextures(this);
+    makeTextures(this);
     this.cameras.main.setBackgroundColor('#0a0608'); this.cameras.main.fadeIn(500, 0, 0, 0);
     Sound.init(); this.radio = true; Sound.music('tent');
     this.lamp = 1; this.lampTo = 1; this.t = 0; this.saysI = {}; this.parts = []; this.cap = null; this.going = false;
-    this.mob = { a: 0, v: 0.5 };                                   // the cow mobile: angle and spin
+    this.mob = { a: 0, v: 0.5 }; this.snug = 0.35; this.maxed = false; this.snore = 0; this.wag = 0; this.dream = 0;
+    try { this.cowsN = +(localStorage.getItem('lc_cows') || 0); } catch (e) { this.cowsN = 0; }
     if (typeof Ach !== 'undefined') Ach.unlock('snug');
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.build, this));
     const kb = this.input.keyboard;
-    if (kb) { kb.on('keydown-ESC', () => this.out()); kb.on('keydown-SPACE', () => this.tap('mobile')); kb.on('keydown-L', () => this.tap('lantern')); kb.on('keydown-R', () => this.tap('radio')); }
-    const padOff = typeof Pad !== 'undefined' ? Pad.on(b => { if (b === 'b' || b === 'back') this.out(); else if (b === 'a') this.tap('chris'); else if (b === 'x') this.tap('mobile'); else if (b === 'y') this.tap('lantern'); else if (b === 'lb' || b === 'rb') this.tap('radio'); else if (b === 'left' || b === 'right') this.tap('dog'); }) : null;
+    if (kb) { kb.on('keydown-ESC', () => this.out()); kb.on('keydown-SPACE', () => this.tap('chris')); kb.on('keydown-M', () => this.tap('mobile')); kb.on('keydown-L', () => this.tap('lantern')); kb.on('keydown-R', () => this.tap('radio')); kb.on('keydown-C', () => this.tap('flap')); kb.on('keydown-D', () => this.tap('dog')); }
+    const padOff = typeof Pad !== 'undefined' ? Pad.on(b => { const m = { b: 'out', back: 'out', a: 'chris', x: 'dog', y: 'mobile', lb: 'lantern', rb: 'radio', up: 'flap', left: 'photo', right: 'mug' }[b]; if (m) this.tap(m); }) : null;
     if (padOff) this.events.once('shutdown', padOff);
     this.input.on('pointerdown', p => { const h = (this.hits || []).find(q => p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (h) this.tap(h.id); });
     this.time.delayedCall(900, () => this.say('Ahh. Safe and snug.'));
   }
-  // ---- a little pup tent: big chunky pixels, the canvas sloping in from both edges, a low ridge
-  // ---- a tight little pup tent: big pixels, the canvas almost on top of you, the ridge just overhead
   build() {
-    const W = this.scale.width, H = this.scale.height, z = Math.max(4, Math.floor(H / 74)), aw = Math.ceil(W / z), ah = Math.ceil(H / z);
-    this.z = z; this.aw = aw; this.ah = ah;
-    this.children.removeAll(true); this.parts = [];
-    const cx = Math.round(aw / 2), fl = ah - 12, apex = -2, back = Math.round(Math.min(aw * 0.13, 22));
-    this.geo = { cx, fl, apex, back };
-    const key = 'tent_bg'; if (this.textures.exists(key)) this.textures.remove(key);
-    pixTex(this, key, aw, ah, put => {
-      const FAB = [0x24100a, 0x3a1a0c, 0x5a2a12, 0x7a3a16, 0x9a4c1a, 0xc0622a];
-      const pick = (R, f, x, y) => { f = Math.max(0, Math.min(R.length - 1, f)); const i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };
-      const rnd = rng(77), n1 = vnoise(rnd, 6), dW = 6, dTop = 14;
-      for (let y = 0; y < ah; y++) for (let x = 0; x < aw; x++) {
-        const dx = x - cx, u = Math.max(0, (y - apex) / (fl - apex)), bh = u * back, sw = bh + u * aw * 0.95;
-        let c;
-        if (y >= fl) c = pick([0x10141e, 0x181e2c, 0x222a3a], 1.2 + (y - fl) / 10 + (n1(x / aw * 2, y / ah) - 0.5) * 0.8, x, y);
-        else if (Math.abs(dx) <= bh) {                               // the back wall, small and far
-          c = pick(FAB, 1.9 - Math.abs(dx) / Math.max(1, back) * 0.5 + (n1(x / aw * 3, y / ah * 2) - 0.5) * 0.5, x, y);
-          const dh = (y - dTop) / (fl - dTop) * dW;
-          if (y > dTop && Math.abs(dx) < dh) c = y > fl - 4 ? pick([0x7a2a08, 0xc05a12, 0xffa030], 2.4 - (fl - y) * 0.6, x, y) : pick([0x080a1c, 0x101844, 0x2a1a3a], (y - dTop) / (fl - dTop) * 2.6, x, y);
-          else if (y > dTop - 1 && Math.abs(Math.abs(dx) - dh) < 1.2) c = 0x1a0a06;
-        } else if (Math.abs(dx) <= sw) {                              // the side walls, right up close, sagging between the poles
-          const k = (Math.abs(dx) - bh) / Math.max(1, sw - bh);
-          c = pick(FAB, 2.5 - k * 1.9 + Math.sin(k * 9 + y * 0.12) * 0.25 + (n1(x / aw * 4, y / ah * 1.5) - 0.5) * 0.6, x, y);
-          if (Math.abs(((Math.abs(dx) - bh) / 11 + y / 26) % 1 - 0.5) < 0.035) c = FAB[1];
-        } else c = pick(FAB, 0.3 + (n1(x / aw, y / ah) - 0.5) * 0.6, x, y);
-        put(x, y, c);
-      }
-      const px = cx - back - 6, py = 18; for (let y = py; y < py + 17; y++) for (let x = px; x < px + 14; x++) put(x, y, (x === px || y === py || x === px + 13 || y === py + 16) ? 0x1a1020 : (y > py + 13 ? 0xf4ecd8 : 0x8ac8f0)); put(px + 7, py - 1, 0xd83a2a); put(px + 7, py - 2, 0xd83a2a);
-      const kx = aw - Math.round(aw * 0.2), ky = fl - 8; for (let y = ky; y < fl + 2; y++) for (let x = kx; x < kx + 12; x++) put(x, y, (x === kx || x === kx + 11 || y === ky || y === fl + 1) ? 0x1a1020 : (y - ky) % 3 === 0 ? 0x3a2418 : 0x8a6a48);   // the crate
-      const mx = kx + 8, my = ky - 4; for (let y = my; y < ky; y++) for (let x = mx; x < mx + 3; x++) put(x, y, (x === mx || x === mx + 2) ? 0x1a1020 : y === my ? 0x5a2a12 : 0xf4f0e0);
-      const rx = kx - 12, ry = fl - 4; for (let y = ry; y < fl + 2; y++) for (let x = rx; x < rx + 9; x++) put(x, y, (x === rx || x === rx + 8 || y === ry || y === fl + 1) ? 0x1a1020 : (x > rx + 4 && (x + y) % 2) ? 0x3a3448 : 0x8a2a2a);
-      for (let k = 0; k < 4; k++) put(rx + 2 + k, ry - 1 - k, 0x9aa4b8);
-      for (let y = fl + 2; y < ah; y++) for (let x = 0; x < aw; x++) { const d = Math.hypot((x - aw * 0.42) / (aw * 0.36), (y - fl - 7) / 5); if (d <= 1) put(x, y, [0x5a1a2a, 0x8a3a2a, 0xc8902a, 0x8a3a2a, 0x3a6aa8, 0x5a1a2a][Math.min(5, Math.floor(d * 6))]); }   // the rag rug
-      this.geo.crate = { kx, ky }; this.geo.radio = { rx, ry }; this.geo.mug = { mx, my }; this.geo.photo = { px, py };
-    });
-    this.add.image(0, 0, key).setOrigin(0).setScale(z).setDepth(0);
-    // the canvas right by your shoulders: dark sloping walls closing in from both edges and the ridge overhead
-    if (this.textures.exists('tent_fg')) this.textures.remove('tent_fg');
-    pixTex(this, 'tent_fg', aw, ah, put => {
-      const FAB = [0x12080a, 0x24100a, 0x3a1a0c, 0x5a2a12];
-      for (let y = 0; y < ah; y++) for (let x = 0; x < aw; x++) {
-        const v = y / ah, e = aw * (0.2 - 0.17 * v) + Math.sin(y * 0.45) * 0.8, dEdge = Math.min(x, aw - 1 - x), top = 3 - Math.abs(x - aw / 2) / aw * 4;
-        if (dEdge < e || y < top) {
-          const k = dEdge < e ? (e - dEdge) / e : 1;
-          put(x, y, (dEdge < e && e - dEdge < 1.3) ? FAB[3] : FAB[Math.min(2, Math.floor((1 - k) * 3 + ((x + y) % 2) * 0.4))]);
-        }
-      }
-    });
-    this.add.image(0, 0, 'tent_fg').setOrigin(0).setScale(z).setDepth(5.5);
+    const W = this.scale.width, H = this.scale.height, k = W / 480, LH = H / k;
+    this.k = k; this.LH = LH; this.children.removeAll(true); this.parts = [];
+    const G = this.geo = makeTentArt(this, k, LH), S = (x, y) => [x * k, y * k];
+    this.add.image(0, 0, 'tn_bg').setOrigin(0).setDepth(0);
     if (!this.textures.exists('tent_pool')) {
       const T = this.textures.createCanvas('tent_pool', 256, 256), c = T.getContext(), gr = c.createRadialGradient(128, 128, 0, 128, 128, 128);
       gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.35, 'rgba(255,255,255,0.55)'); gr.addColorStop(0.7, 'rgba(255,255,255,0.15)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
       c.fillStyle = gr; c.fillRect(0, 0, 256, 256); T.refresh();
-      const D = this.textures.createCanvas('tent_dark', 256, 256), d = D.getContext(), g2 = d.createRadialGradient(128, 128, 0, 128, 128, 128);
-      g2.addColorStop(0, 'rgba(255,255,255,1)'); g2.addColorStop(0.45, 'rgba(200,170,150,1)'); g2.addColorStop(1, 'rgba(40,24,40,1)');
-      d.fillStyle = g2; d.fillRect(0, 0, 256, 256); D.refresh();
     }
-    const G = this.geo, P = (ax, ay) => [ax * z, ay * z], bedX = Math.round(aw * 0.42), bedY = fl + 5;
-    G.bed = { x: bedX, y: bedY };
-    this.shade = this.add.image(0, 0, 'tent_dark').setDepth(1.4).setBlendMode(Phaser.BlendModes.MULTIPLY);
-    this.glow = this.add.image(0, 0, 'tent_pool').setDepth(1.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0x8a5020);
-    this.glow2 = this.add.image(0, 0, 'tent_pool').setDepth(1.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0x7a2a08);
-    this.dark = this.add.graphics().setDepth(1.45);
-    this.lampIm = this.add.image(...P(G.crate.kx + 4, G.crate.ky), 'tent_lantern').setOrigin(0.5, 1).setScale(z).setDepth(3);
-    // (v3.108) a close-up: Chris right by the camera, his hooded head big in the bottom left, the bag running off the edge;
-    // Biscuit close and big on top of him (nearer things in bigger pixels, so the tent behind feels small)
-    this.bedK = 2; G.head = { x: W * 0.17, y: H * 0.72 };
-    this.bed = this.add.image(G.head.x, G.head.y, 'tent_bed').setOrigin(14 / 96, 22 / 36).setScale(z * this.bedK).setDepth(5.6);
-    this.dog = this.textures.exists('cf_dog0') ? this.add.image(W * 0.68, H * 0.84, 'cf_dog0').setOrigin(0.5, 1).setScale(z * 0.75).setFlipX(true).setDepth(5.7) : null;
-    if (this.textures.exists('bessie')) this.add.image(...P(G.photo.px + 7, G.photo.py + 7), 'bessie').setScale(z * 0.15).setDepth(1.2);
-    this.mobG = this.add.graphics().setDepth(3.6); this.cows = [0, 1, 2, 3].map(() => this.add.image(0, 0, 'fm_bessie').setDepth(3.7));
-    this.fxG = this.add.graphics().setDepth(4);
-    const f = { fontFamily: PIXEL, fontSize: Math.max(9, Math.round(z * 2)) + 'px', color: '#fff0c8', stroke: '#1a1020', strokeThickness: 4, align: 'center', wordWrap: { width: Math.min(W - 60, 520) } };
-    this.capT = this.add.text(W / 2, H - 8, '', f).setOrigin(0.5, 1).setDepth(6).setAlpha(0);
-    this.zT = this.add.text(0, 0, '', { fontFamily: PIXEL, fontSize: Math.round(z * 3.2) + 'px', color: '#c8d4ff', stroke: '#1a1020', strokeThickness: 3 }).setDepth(5);
+    // where things are (design space): Chris along the floor, the pup on the bag in front of his chest
+    const CX = 36, CY = LH - 152; G.c = { x: CX, y: CY };
+    this.chris = this.add.image(...S(CX, CY + 150), 'tn_chris').setOrigin(0, 1).setDepth(3);
+    this.mo = this.add.image(...S(CX + 98, CY + 124), 'tn_mo').setOrigin(0.5, 0.35).setDepth(3.1);
+    this.tail = this.add.image(...S(CX + 318, CY + 122), 'tn_tail').setOrigin(0.1, 0.8).setDepth(3.2);
+    this.pup = this.add.image(...S(CX + 196, CY + 144), 'tn_pup').setOrigin(0, 1).setDepth(3.3);
+    this.arm = this.add.image(...S(CX + 140, CY + 78), 'tn_arm').setOrigin(0.05, 0.4).setDepth(3.4);
+    this.lampIm = this.add.image(0, 0, 'tn_lamp').setOrigin(0.5, 0.08).setDepth(4);
+    this.cows = [0, 1, 2, 3].map(() => this.add.image(0, 0, 'tn_cow').setDepth(4.2));
+    this.bone = this.add.image(0, 0, 'tn_bone').setDepth(5.2).setVisible(false);
+    this.jump = this.add.image(0, 0, 'tn_cow').setDepth(0.5).setVisible(false);
+    this.glow = this.add.image(0, 0, 'tent_pool').setDepth(4.5).setBlendMode(Phaser.BlendModes.ADD).setTint(0xb06a28);
+    this.dark = this.add.graphics().setDepth(4.6);
+    this.mobG = this.add.graphics().setDepth(4.1); this.fxG = this.add.graphics().setDepth(5); this.bulbG = this.add.graphics().setDepth(1);
+    const f = (sz, col, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.max(8, Math.round(sz * k)) + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 }, o || {});
+    this.capT = this.add.text(W / 2, H - 8, '', f(6.5, '#fff0c8', { align: 'center', wordWrap: { width: Math.min(W - 60, 560) } })).setOrigin(0.5, 1).setDepth(6).setAlpha(0);
+    this.zT = [0, 1, 2].map(i => this.add.text(0, 0, 'Z', f(7 + i * 3, '#dfe6ff')).setDepth(5.5).setOrigin(0.5));
+    this.snugT = this.add.text(12, 10, '', f(5, '#ffd9a0')).setDepth(6); this.cowT = this.add.text(12, 10 + 22 * k, '', f(4.4, '#c8d4ff')).setDepth(6);
     const ob = this.add.text(W - 10, 10, 'CRAWL OUT (B)', { fontFamily: PIXEL, fontSize: '9px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 3, backgroundColor: '#3a1a0c', padding: { x: 8, y: 6 } }).setOrigin(1, 0).setDepth(7);
-    const B = (id, ax, ay, w2, h2) => ({ id, x: ax * z, y: ay * z, w: w2 * z, h: h2 * z });
+    const B = (id, x, y, w, h) => ({ id, x: x * k, y: y * k, w: w * k, h: h * k });
     this.hits = [
       { id: 'out', x: ob.x - ob.width, y: ob.y, w: ob.width, h: ob.height },
-      B('mobile', G.cx - 20, 0, 40, 26), B('lantern', G.crate.kx, G.crate.ky - 15, 10, 15), B('mug', G.mug.mx - 2, G.mug.my - 2, 7, 7), B('radio', G.radio.rx - 2, G.radio.ry - 6, 12, 10),
-      B('photo', G.photo.px - 2, G.photo.py - 2, 12, 13), { id: 'dog', x: W * 0.68 - 22 * z, y: H * 0.84 - 30 * z, w: 44 * z, h: 30 * z }, { id: 'chris', x: 0, y: H * 0.55, w: W * 0.45, h: H * 0.45 }, B('flap', G.cx - 6, 14, 12, G.fl - 18)
+      B('dog', CX + 196, CY + 50, 150, 96), B('chris', CX, CY + 16, 190, 134), B('lantern', 306, 0, 50, 80), B('mobile', 170, 0, 100, 62),
+      B('photo', 178, G.F0 - 76, 44, 54), B('radio', 420, LH - 82, 50, 54), B('mug', 392, LH - 46, 26, 28), B('flap', 216, G.F0 - 70, 48, 72), B('chris', CX + 190, CY + 60, 220, 90)
     ];
-    this.bulbs = []; for (let k = 1; k < 9; k++) { const u = k / 9; for (const sd of [-1, 1]) this.bulbs.push({ x: G.cx + sd * (u * G.back + u * 4), y: 2 + u * (G.fl - 2) * 0.8, c: [0xff6a6a, 0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff6ad0][(k + (sd > 0 ? 2 : 0)) % 5], ph: Math.random() * 6 }); }
-    this.stars = []; for (let k = 0; k < 4; k++) this.stars.push({ x: G.cx + (Math.random() - 0.5) * 6, y: 18 + Math.random() * (G.fl - 30), ph: Math.random() * 6 });
+    // the fairy lights: bulbs along the two wires
+    this.bulbs = []; const bez = (p0, p1, p2, u) => [(1 - u) * (1 - u) * p0[0] + 2 * u * (1 - u) * p1[0] + u * u * p2[0], (1 - u) * (1 - u) * p0[1] + 2 * u * (1 - u) * p1[1] + u * u * p2[1]];
+    for (const [p1, p2, o] of [[[176, 70], [140, G.F0 - 16], 0], [[304, 70], [340, G.F0 - 16], 2]]) for (let i = 1; i <= 7; i++) { const q = bez([240, 6], p1, p2, i / 7.4); this.bulbs.push({ x: q[0], y: q[1] + 3, c: [0xff6a6a, 0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff8ad8][(i + o) % 5], ph: Math.random() * 6 }); }
   }
   say(text) { this.capT.setText(text).setAlpha(0); this.cap = { t: 0, life: 3.6 + text.length * 0.03 }; }
   line(id) { const L = TENT_SAYS[id], i = (this.saysI[id] = ((this.saysI[id] === undefined ? -1 : this.saysI[id]) + 1) % L.length); return L[i]; }
   tap(id) {
     if (this.going) return;
-    const z = this.z, G = this.geo;
+    const k = this.k, G = this.geo;
     if (id === 'out') { this.out(); return; }
-    if (id === 'lantern') { this.lampTo = this.lampTo > 0.5 ? 0.15 : 1; Sound.sfx('blip'); this.say(this.lampTo > 0.5 ? 'Light on.' : 'Lights low. Just the fairy lights now. Cosy.'); return; }
+    this.snug = Math.min(1, this.snug + 0.06);
+    if (id === 'lantern') { this.lampTo = this.lampTo > 0.5 ? 0.18 : 1; Sound.sfx('blip'); this.say(this.lampTo > 0.5 ? 'Light on.' : 'Lights low. Just the fairy lights now.'); return; }
     if (id === 'radio') { this.radio = !this.radio; Sound.music(this.radio ? 'tent' : null); Sound.sfx('blip'); this.say(this.radio ? TENT_SAYS.radio[0] : 'Click. Just the fire crackling now.'); return; }
-    if (id === 'mobile') { this.mob.v = Math.min(14, this.mob.v + 5); Sound.sfx('chime'); this.time.delayedCall(150, () => Sound.sfx('blip')); }
-    if (id === 'dog') { Sound.sfx('pickup'); this.dogWag = 1.2; for (let k = 0; k < 5; k++) this.parts.push({ kind: 'heart', x: this.dog ? this.dog.x : 0, y: this.dog ? this.dog.y - 8 * z : 0, vx: (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 30, life: 1.6 }); }
-    if (id === 'mug') { Sound.sfx('squish'); for (let k = 0; k < 8; k++) this.parts.push({ kind: 'steam', x: (G.mug.mx + 2) * z, y: G.mug.my * z, vx: (Math.random() - 0.5) * 12, vy: -20 - Math.random() * 20, life: 1.4 }); }
-    if (id === 'chris') { this.headNod = 1; Sound.sfx('jump'); }
-    if (id === 'flap') { this.shoot = { x: (G.cx + 4) * z, y: 18 * z, life: 0.6 }; Sound.sfx('chime'); }
+    if (id === 'mobile') { this.mob.v = Math.min(16, this.mob.v + 6); Sound.sfx('chime'); }
+    if (id === 'dog') { Sound.sfx('pickup'); this.wag = 1.6; this.dream = 2.6; for (let i = 0; i < 5; i++) this.parts.push({ kind: 'heart', x: (G.c.x + 250 + Math.random() * 40) * k, y: (G.c.y + 60) * k, vx: (Math.random() - 0.5) * 30 * k, vy: (-24 - Math.random() * 20) * k, life: 1.6 }); }
+    if (id === 'mug') { Sound.sfx('squish'); for (let i = 0; i < 10; i++) this.parts.push({ kind: 'steam', x: (404 + Math.random() * 6) * k, y: (this.LH - 42) * k, vx: (Math.random() - 0.5) * 8 * k, vy: (-14 - Math.random() * 12) * k, life: 1.6 }); }
+    if (id === 'chris') { this.snore = 1.4; Sound.sfx('ribbit'); this.say(Math.random() < 0.5 ? 'HONK... shoooo...' : this.line('chris')); return; }
+    if (id === 'flap') { if (this.jumpT > 0) return; this.jumpT = 1.1; this.cowsN++; try { localStorage.setItem('lc_cows', String(this.cowsN)); } catch (e) { /* ignore */ } Sound.sfx('jump'); this.say(this.cowsN % 10 === 0 ? this.cowsN + ' cows. Still awake? No. Definitely asleep.' : 'One more cow over the moon...'); return; }
     this.say(this.line(id));
   }
   out() {
@@ -201,46 +237,55 @@ class TentScene extends Phaser.Scene {
     this.time.delayedCall(430, () => this.scene.start('level1', { camp: true, at: -0.42 }));
   }
   update(time, delta) {
-    const dt = Math.min(0.05, delta / 1000), z = this.z, G = this.geo, t = (this.t += dt), W = this.scale.width, H = this.scale.height;
+    const dt = Math.min(0.05, delta / 1000), k = this.k, G = this.geo, t = (this.t += dt), W = this.scale.width, H = this.scale.height, LH = this.LH, C = G.c;
     this.lamp += (this.lampTo - this.lamp) * Math.min(1, dt * 4);
-    // the light: a warm pool from the lantern on the crate, dark in the corners, the fire glowing in the doorway
-    const lx = this.lampIm.x, ly = this.lampIm.y - 7 * z, flick = 1 + Math.sin(t * 13) * 0.03 + Math.sin(t * 7.3) * 0.03;
-    this.lampIm.setAlpha(0.6 + this.lamp * 0.4);
-    this.shade.setPosition(lx - 20 * z, ly).setScale(Math.max(W, H) * 1.4 / 256 * (0.75 + this.lamp * 0.35) * flick);
-    this.glow.setPosition(lx, ly).setScale(W * 0.5 / 256 * flick * (0.4 + this.lamp * 0.6)).setAlpha(0.6 * this.lamp + 0.05);
-    this.glow2.setPosition(G.cx * z, (G.fl - 2) * z).setScale(W * 0.1 / 256 * (1 + Math.sin(t * 9) * 0.06 + Math.sin(t * 4.1) * 0.05)).setAlpha(0.6);
-    this.dark.clear().fillStyle(0x05020a, 0.5 * (1 - this.lamp)).fillRect(0, 0, W, H);
-    // breathing: Chris rises and falls, Biscuit too; Zzz
-    this.headNod = Math.max(0, (this.headNod || 0) - dt * 2);
-    this.bed.setScale(z * this.bedK, z * this.bedK * (1 + (Math.sin(t * 1.6) * 0.5 + 0.5) * 0.03)).setRotation(Math.sin(this.headNod * 12) * 0.015 * this.headNod);
-    if (this.dog) { this.dogWag = Math.max(0, (this.dogWag || 0) - dt); this.dog.setScale(z * 0.75, z * 0.75 * (1 + Math.sin(t * 2.2) * 0.04)).setRotation(this.dogWag ? Math.sin(t * 30) * 0.05 : 0); }
-    const zc = (t * 0.5) % 1; this.zT.setText(zc < 0.33 ? 'z' : zc < 0.66 ? 'zZ' : 'zZz').setPosition(G.head.x + 26 * z + zc * 10 * z, G.head.y - 30 * z - zc * 12 * z).setAlpha(Math.sin(zc * Math.PI) * 0.9);
-    // the cow mobile: a hub on a string from the ridge, four arms, a little Bessie on each, turning (and swaying)
-    const M = this.mob; M.v += (0.5 - M.v) * Math.min(1, dt * 0.35); M.a += M.v * dt;
-    const g = this.mobG; g.clear();
-    const hx = G.cx * z + Math.sin(t * 0.9) * z, hy = 6 * z, rad = 11 * z;
-    g.lineStyle(Math.max(1, z / 2), 0xd8c8a0, 1).lineBetween(G.cx * z, 0, hx, hy);
-    const cs = [0, 1, 2, 3].map(k => { const a = M.a + k * Math.PI / 2; return { k, x: hx + Math.cos(a) * rad, d: Math.sin(a), len: (6 + (k % 2) * 3) * z }; }).sort((a, b) => a.d - b.d);
-    g.lineStyle(z, 0x8a6a48, 1).lineBetween(hx - rad, hy, hx + rad, hy); g.fillStyle(0xffd23f, 1).fillRect(hx - z, hy - z, 2 * z, 2 * z);
-    cs.forEach((c, i) => {
-      const sc = z * 0.3 * (0.8 + 0.2 * (c.d + 1) / 2), y = hy + c.len + Math.sin(t * 2 + c.k) * z * 0.5;
-      g.lineStyle(Math.max(1, z / 2), 0xd8c8a0, 0.9).lineBetween(c.x, hy, c.x, y - 8 * sc);
-      this.cows[c.k].setPosition(Math.round(c.x), Math.round(y)).setScale(sc).setDepth(3.7 + i * 0.01).setAlpha(0.75 + 0.25 * (c.d + 1) / 2).setFlipX(Math.cos(M.a + c.k * Math.PI / 2) < 0);
-    });
-    // fairy lights, stars in the doorway, steam, music notes, a shooting star
+    // the lantern swings on a hook under the ridge; its pool of light; the dark when it's turned down
+    const sw = Math.sin(t * 1.2) * 0.07 + Math.sin(t * 0.43) * 0.03, lx = 330 * k, ly = 6 * k;
+    this.lampIm.setPosition(lx, ly).setRotation(sw).setAlpha(0.65 + this.lamp * 0.35);
+    const flick = 1 + Math.sin(t * 13) * 0.025 + Math.sin(t * 7.3) * 0.025;
+    this.glow.setPosition(lx - Math.sin(sw) * 36 * k, ly + 36 * k).setScale(W * 0.85 / 256 * flick).setAlpha(0.5 * this.lamp + 0.03);
+    this.dark.clear().fillStyle(0x08040e, 0.55 * (1 - this.lamp)).fillRect(0, 0, W, H);
+    // breathing: Chris slow and deep, the pup quicker; the arm rides on the pup; the moustache flutters when he snores
+    const br = Math.sin(t * 1.5) * 0.5 + 0.5, pb = Math.sin(t * 2.6) * 0.5 + 0.5;
+    this.snore = Math.max(0, this.snore - dt); this.wag = Math.max(0, this.wag - dt); this.dream = Math.max(0, this.dream - dt);
+    this.chris.setScale(1, 1 + br * 0.022);
+    this.mo.setY((C.y + 124 - br * 2) * k).setRotation(Math.sin(t * (this.snore ? 34 : 1.5)) * (this.snore ? 0.09 : 0.02)).setScale(1 + (this.snore ? Math.sin(t * 30) * 0.05 : 0));
+    this.pup.setScale(1, 1 + pb * 0.035); this.arm.setY((C.y + 78 - pb * 2.2 - br * 1.5) * k).setRotation(-pb * 0.012);
+    this.tail.setRotation(this.wag ? Math.sin(t * 26) * 0.5 : Math.sin(t * 1.3) * 0.04);
+    // Zzz drifting up from Chris; a dream bubble over the pup when you pet him
+    this.zT.forEach((z, i) => { const u = ((t * 0.32 + i / 3) % 1), big = this.snore ? 1.5 : 1; z.setPosition((C.x + 128 + u * 44 + Math.sin(u * 9 + i) * 5) * k, (C.y + 84 - u * 70) * k).setAlpha(Math.sin(u * Math.PI) * 0.9).setScale((0.6 + u * 0.7) * big).setRotation(Math.sin(u * 6 + i) * 0.25); });
     const fx = this.fxG; fx.clear();
-    for (const b of this.bulbs) { const on = 0.55 + 0.45 * Math.sin(t * 2 + b.ph), X = Math.round(b.x) * z, Y = Math.round(b.y) * z; fx.fillStyle(b.c, on * (0.14 + (1 - this.lamp) * 0.24)).fillRect(X - 2 * z, Y - z, 6 * z, 6 * z); fx.fillStyle(b.c, 0.6 + on * 0.4).fillRect(X, Y + z, 2 * z, 2 * z); fx.fillStyle(0xffffff, on * 0.7).fillRect(X, Y + z, z, z); fx.fillStyle(0x1a1020, 1).fillRect(X, Y, 2 * z, z); }
-    for (const st of this.stars) { const a = 0.5 + 0.5 * Math.sin(t * 2.5 + st.ph), dh = (st.y - 18) / (G.fl - 18) * 9; if (Math.abs(st.x - G.cx) < dh - 1) fx.fillStyle(0xffffff, a * (0.6 + (1 - this.lamp) * 0.4)).fillRect(Math.round(st.x) * z, Math.round(st.y) * z, z, z); }
-    if (this.shoot) { const q = this.shoot; q.life -= dt; q.x -= 40 * z * dt; q.y += 30 * z * dt; fx.fillStyle(0xffffff, Math.max(0, q.life)).fillRect(Math.round(q.x / z) * z, Math.round(q.y / z) * z, 2 * z, z); if (q.life <= 0) this.shoot = null; }
-    if (Math.random() < dt * 2.5) this.parts.push({ kind: 'steam', x: (G.mug.mx + 1 + Math.random() * 2) * z, y: G.mug.my * z, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 8, life: 1.4 });
-    if (this.radio && Math.random() < dt * 0.8) this.parts.push({ kind: 'note', x: (G.radio.rx + 8) * z, y: (G.radio.ry - 8) * z, vx: 6 + Math.random() * 8, vy: -14, life: 2 });
+    if (this.dream > 0) { const a = Math.min(1, this.dream * 2, (2.6 - this.dream) * 4), bx = (C.x + 262) * k, by = (C.y + 22) * k; fx.fillStyle(0xffffff, 0.92 * a).fillEllipse(bx, by, 50 * k, 30 * k).fillCircle(bx - 16 * k, by + 20 * k, 4 * k).fillCircle(bx - 22 * k, by + 28 * k, 2.4 * k); this.bone.setVisible(true).setPosition(bx, by).setAlpha(a).setRotation(Math.sin(t * 5) * 0.2); } else this.bone.setVisible(false);
+    // the cow mobile, turning under the ridge
+    const M = this.mob; M.v += (0.5 - M.v) * Math.min(1, dt * 0.35); M.a += M.v * dt;
+    const g = this.mobG; g.clear(); const hx = (218 + Math.sin(t * 0.9) * 1.5) * k, hy = 16 * k, rad = 34 * k;
+    g.lineStyle(1.4 * k, 0xe8d8b0, 1).lineBetween(hx, 0, hx, hy); g.lineStyle(2.4 * k, 0x1a1020, 1).lineBetween(hx - rad, hy, hx + rad, hy); g.lineStyle(1.2 * k, 0xc89a5a, 1).lineBetween(hx - rad, hy, hx + rad, hy); g.fillStyle(0xffd23f, 1).fillCircle(hx, hy, 3 * k);
+    [0, 1, 2, 3].map(i => { const a = M.a + i * Math.PI / 2; return { i, x: hx + Math.cos(a) * rad, d: Math.sin(a), len: (16 + (i % 2) * 8) * k, f: Math.cos(a) < 0 }; }).sort((a, b) => a.d - b.d).forEach((c, j) => {
+      const sc = 0.62 + 0.2 * (c.d + 1) / 2, tilt = Math.min(0.5, M.v * 0.03) * (c.f ? 1 : -1), y = hy + c.len;
+      g.lineStyle(1.1 * k, 0xe8d8b0, 0.9).lineBetween(c.x, hy, c.x, y);
+      this.cows[c.i].setPosition(c.x, y + 9 * k * sc).setScale(c.f ? -sc : sc, sc).setRotation(tilt).setDepth(4.2 + j * 0.01).setAlpha(0.8 + 0.2 * (c.d + 1) / 2);
+    });
+    // a cow over the moon, out through the door
+    if (this.jumpT > 0) { this.jumpT -= dt; const u = 1 - this.jumpT / 1.1; this.jump.setVisible(true).setScale(0.3).setPosition((228 + u * 24) * k, (G.F0 - 24 - Math.sin(u * Math.PI) * 26) * k).setRotation(-0.5 + u); } else this.jump.setVisible(false);
+    // fairy lights: soft glowing bulbs
+    const bg2 = this.bulbG; bg2.clear();
+    for (const b of this.bulbs) { const on = 0.6 + 0.4 * Math.sin(t * 2 + b.ph), x = b.x * k, y = b.y * k; bg2.fillStyle(b.c, on * (0.1 + (1 - this.lamp) * 0.12)).fillCircle(x, y, 9 * k); bg2.fillStyle(b.c, on * 0.3).fillCircle(x, y, 5 * k); bg2.fillStyle(0x1a1020, 1).fillCircle(x, y, 3 * k); bg2.fillStyle(b.c, 1).fillCircle(x, y, 2.3 * k); bg2.fillStyle(0xffffff, 0.8 * on).fillCircle(x - 0.7 * k, y - 0.7 * k, 0.8 * k); }
+    // steam off the cocoa, notes off the radio, hearts
+    if (Math.random() < dt * 3) this.parts.push({ kind: 'steam', x: (402 + Math.random() * 8) * k, y: (LH - 42) * k, vx: (Math.random() - 0.5) * 5 * k, vy: (-9 - Math.random() * 6) * k, life: 1.8 });
+    if (this.radio && Math.random() < dt * 0.9) this.parts.push({ kind: 'note', x: 450 * k, y: (LH - 70) * k, vx: (-6 - Math.random() * 8) * k, vy: -12 * k, life: 2.2 });
     for (const p of this.parts) {
       p.life -= dt; p.x += p.vx * dt; p.y += p.vy * dt; const a = Math.min(1, p.life);
-      if (p.kind === 'steam') fx.fillStyle(0xf4f0e0, a * 0.35).fillRect(Math.round(p.x / z) * z, Math.round(p.y / z) * z, z, z * 2);
-      else if (p.kind === 'heart') fx.fillStyle(0xff6a8a, a).fillRect(p.x - z, p.y, z, z).fillRect(p.x + z, p.y, z, z).fillRect(p.x - z * 1.5, p.y + z, z * 4, z).fillRect(p.x - z * 0.5, p.y + 2 * z, z * 2, z);
-      else if (p.kind === 'note') fx.fillStyle(0xffd23f, a * 0.8).fillRect(p.x, p.y, z, z * 3).fillRect(p.x - z, p.y + 2 * z, z * 2, z * 1.5).fillRect(p.x, p.y, z * 2, z);
+      if (p.kind === 'steam') fx.fillStyle(0xfff8ec, a * 0.22).fillCircle(p.x + Math.sin(p.life * 5) * 2 * k, p.y, (3 + (1.8 - p.life) * 2) * k);
+      else if (p.kind === 'heart') { const r = 3.2 * k; fx.fillStyle(0xff6a8a, a).fillCircle(p.x - r * 0.55, p.y, r * 0.7).fillCircle(p.x + r * 0.55, p.y, r * 0.7).fillTriangle(p.x - r * 1.15, p.y + r * 0.25, p.x + r * 1.15, p.y + r * 0.25, p.x, p.y + r * 1.5); }
+      else if (p.kind === 'note') { fx.fillStyle(0xffd23f, a * 0.9).fillCircle(p.x, p.y, 2.2 * k).fillRect(p.x + 1.4 * k, p.y - 8 * k, 1 * k, 8 * k).fillRect(p.x + 1.4 * k, p.y - 8 * k, 4 * k, 1.6 * k); }
     }
     this.parts = this.parts.filter(p => p.life > 0);
-    if (this.cap) { this.cap.t += dt; const C = this.cap; this.capT.setAlpha(Math.min(1, C.t * 3, (C.life - C.t) * 2)); if (C.t > C.life) { this.cap = null; this.capT.setAlpha(0); } }
+    // the SNUG-O-METER: creeps up on its own, every fiddle helps; splendidly pointless
+    this.snug = Math.min(1, this.snug + dt * 0.012);
+    const sx = 12, sy = 10 + 11 * k, swd = 90 * k;
+    fx.fillStyle(0x1a1020, 0.9).fillRoundedRect(sx - 2, sy - 2, swd + 4, 7 * k + 4, 4 * k); fx.fillStyle(0x3a1a0c, 1).fillRoundedRect(sx, sy, swd, 7 * k, 3 * k); fx.fillStyle(this.snug >= 1 ? (Math.floor(t * 6) % 2 ? 0xfff0a0 : 0xffd23f) : 0xff9a4a, 1).fillRoundedRect(sx, sy, Math.max(6 * k, swd * this.snug), 7 * k, 3 * k);
+    this.snugT.setText(this.snug >= 1 ? 'MAXIMUM SNUG' : 'SNUG-O-METER ' + Math.round(this.snug * 100) + '%'); this.cowT.setText(this.cowsN ? 'COWS COUNTED: ' + this.cowsN : '');
+    if (this.snug >= 1 && !this.maxed) { this.maxed = true; Sound.sfx('power'); this.say('MAXIMUM SNUG ACHIEVED. Nothing happens. It\'s lovely.'); for (let i = 0; i < 16; i++) this.parts.push({ kind: 'heart', x: Math.random() * W, y: H * (0.5 + Math.random() * 0.4), vx: 0, vy: (-20 - Math.random() * 30) * k, life: 2 + Math.random() }); }
+    if (this.cap) { this.cap.t += dt; const Cp = this.cap; this.capT.setAlpha(Math.min(1, Cp.t * 3, (Cp.life - Cp.t) * 2)); if (Cp.t > Cp.life) { this.cap = null; this.capT.setAlpha(0); } }
   }
 }

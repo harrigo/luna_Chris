@@ -2527,3 +2527,13 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   anchored in the bottom-left (the rest running off the edge), Biscuit big on the quilt beside him, both in front of the
   near canvas. Bessie's photo is bigger, the fairy lights have chunkier bulbs; the tent and its door stay the same, so
   the space itself reads small and close.
+- **v3.109: the tent redrawn as an illustration.** The big-pixel close-up looked crude, so the tent is no longer pixel
+  art: it is drawn with curves at the screen's own resolution (ink outlines, soft gradients) in a 480-wide design space
+  (`makeTentArt`, helpers `tnCanvas` / `tnBlob`). A little A-frame with the ridge just overhead; Chris on his side on
+  a pillow, chef's hat on, big moustache (its own sprite: it flutters when he snores), in a puffy teal bag with stars
+  on it, one arm out and round Biscuit, who is curled up asleep on the bag (helmet off, by the door with Chris's boots).
+  Hanging lantern, fairy lights, the cow mobile, Bessie's polaroid, cocoa, the radio, a rag rug.
+  Splendidly pointless things to do: poke Chris (HONK-shoo), pet Biscuit (tail wags, hearts, he dreams of a bone), spin
+  the mobile, count cows jumping over the moon through the door (the tally is kept), dim the lantern, radio on / off,
+  and a SNUG-O-METER that creeps up to MAXIMUM SNUG, at which point nothing happens. Controller: A Chris, X Biscuit,
+  Y mobile, LB lantern, RB radio, up cows, B out.
