@@ -1350,16 +1350,18 @@ class TitleBackdrop {
     // the shots: the game's own macaroni, at the game's own size, flying straight out of the barrel
     this.shotT = (this.shotT || 0) - dt;
     if (this.burst > 0 && this.shotT <= 0 && sc.textures.exists('mac0')) {
-      this.shotT = 0.1;
+      this.shotT = 0.12;
       const ga = this.rig.gunArm, root = this.rig.root, r = ga.rotation, cs = Math.cos(r), sn = Math.sin(r), lx = 58;
       const sx = root.x + (ga.x + lx * ga.scaleX * cs) * root.scaleX, sy = root.y + (ga.y + lx * ga.scaleX * sn) * root.scaleY, dir = Math.sign(ga.scaleX * root.scaleX) || 1;
-      const im = sc.add.image(sx, sy, 'mac' + (this.shots.length % 3)).setDepth(this.g.depth + 0.08).setScale(cz);
-      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 330 * cz, vy: sn * 330 * cz, r: Math.random() * 6 });
+      // (v3.99g) at the game's own size (one art pixel = one screen pixel, as in a level on a phone), not doubled, and
+      // tumbling by the game's three frames rather than spun as a whole (doubled and spun they looked massive and broken)
+      const ms = Math.max(1, Math.floor(cz * 0.6)), im = sc.add.image(sx, sy, 'mac0').setDepth(this.g.depth + 0.08).setScale(ms).setRotation(r);
+      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 420, vy: sn * 420, age: 0, ph: Math.floor(Math.random() * 3) });
       if (typeof Sound !== 'undefined' && sc.scene.key === 'intro' && sc.phase !== 'gate') Sound.sfx('shoot');
     }
     const rat = this.gag && this.gag.k === 'rat' && this.gag.st === 'run' ? this.gag : null;
     for (const q of this.shots) {
-      q.x += q.vx * dt; q.y += q.vy * dt; q.r += dt * 9; q.im.setPosition(Math.round(q.x), Math.round(q.y)).setRotation(q.r);
+      q.x += q.vx * dt; q.y += q.vy * dt; q.age += dt; q.im.setPosition(Math.round(q.x), Math.round(q.y)).setTexture('mac' + (Math.floor(q.age * 20 + q.ph) % 3));
       if (rat && q.x > rat.x - 12 * z && Math.abs(q.y - (rat.s.y - 12 * z)) < 22 * z) { rat.st = 'fly'; rat.vx = 260; rat.vy = -520; rat.r = 0; Sound.sfx('bonk'); q.dead = true; }
       if (q.x > W + 30 || q.y < -30 || q.x < -30) q.dead = true;
       if (q.dead) q.im.destroy();

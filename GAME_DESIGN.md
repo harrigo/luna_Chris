@@ -2416,3 +2416,6 @@ rounded form lit from the top left, with dithered seams between tones and a litt
 - **v3.99f.** The main menu is centred again with no Chris behind it (`TitleBackdrop.noChris`: just the moon, sky and the
   odd dog-and-ball gag). Level 10's map node is the Rat King's saucer side on (`ratship`) with Bessie in its beam, bobbing,
   instead of a top-down disc; `levelIcon()` picks the picture for every map, info box and run-route icon.
+- **v3.99g.** The title screen's macaroni shots were drawn at twice the game's size and spun as a whole on top of their own
+  tumble frames, so they looked huge and broken. Now game-sized (one art pixel per screen pixel), tumbling by the game's
+  three `mac` frames at 20 a second, flying straight out of the drill tip.
