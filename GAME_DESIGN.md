@@ -2627,3 +2627,16 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   tints on the beat - a moving glimpse inside.
 - Placement: scale 3, sunk exactly the curve's sag, so the plinth's corners touch the ground and the planet-disc mask
   trims the middle - the base never rises above the curve.
+
+## v3.120: Ridic Louise goes upright, with THE BIG CHEESE builder
+- The cabinet is now an upright, cash-register shaped machine that runs off the bottom of the screen. An arched topper
+  with RIDIC LOUISE in big letters that bob and cycle colour one by one (they jump and strobe on wins), sunburst rays
+  turning behind them, 46 chasing bulbs round the arch, a pink pixel glow. Side bulb columns, a chasing-light bezel
+  round the reels, glass scanlines and a glare that sweeps across. Symbols are drawn 28% bigger and winners pump.
+- The deck steps out wider like a till, with five light-up buttons (BET-, BET+, CHEESE strength, TAKE, SPIN); SPIN
+  and a live TAKE flash. A chrome PULL LEVER on the right swings down every spin - tap it (or its sweep) to spin.
+- THE BIG CHEESE (American-style builder), a tower beside the lever: about one paid spin in five drops a cheese coin
+  (0.1x-1x the bet) that flies off the reels into a glass dome; the dome fills with stacked coins and the pot grows.
+  It MUST POP by a count shown on the meter (18-30 coins); then the whole pot pays with a big show. Coins average
+  5.1% of the bet, so the reels and trail were retuned to ~90% (splits mild .57/.33, mature .47/.43, extra .40/.50)
+  for ~95% overall. The pot persists per currency (localStorage lc_bigcheese_shop / _camp). Free spins drop none.

@@ -212,6 +212,7 @@ function makeBarTexture(scene) {
 // LEFT GLASS shows the cheese strength, the RIGHT GLASS a little pay table at your bet, an LED ticker talks to you, and
 // the deck has four arcade buttons: BET -, BET +, the lit one (TAKE when you're on the trail, MEGA when you have one)
 // and SPIN. Controller: A spin, X take / mega, LB / RB (or left / right) bet, Y strength, B leave.
+const FM_ICON = 1.28;   // (v3.120) symbols drawn 28% bigger on the upright machine
 const FM_RAINBOW = [0xff4a6a, 0xff9a2a, 0xffe040, 0x7dff8a, 0x2ad8e8, 0x6a8aff, 0xc86aff, 0xff6ad0];
 const FM = { red: [0x3a0810, 0x5a0e1a, 0x8a1a2a, 0xb83040, 0xe05a5a], gold: [0x5a3a0a, 0x8a5a12, 0xc8902a, 0xffd23f, 0xfff0a0], chrome: [0x3a3448, 0x6a7088, 0x9aa4b8, 0xc8ccd8, 0xf4f8ff] };
 const FM_LAMP = { C: [0x2a2440, 0x6a5aa0], FREE: [0x0e3a44, 0x2ad8e8], SUPER: [0x0e3a44, 0x7af0ff], RAT: [0x4a1a08, 0xff8a2a], RESPIN: [0x4a3a08, 0xffd23f], JACKPOT: [0x5a3a0a, 0xfff0a0] };
@@ -254,66 +255,75 @@ class FruityScene extends Phaser.Scene {
     const padOff = typeof Pad !== 'undefined' ? Pad.on(b => this.act({ a: 'spin', x: 'take', lb: 'down', left: 'down', rb: 'up', right: 'up', y: 'strength', b: 'back', back: 'back' }[b])) : null;
     if (padOff) this.events.once('shutdown', padOff);
     this.input.on('pointerdown', p => { const hit = [...(this.boxes || []), ...(this.oBoxes || [])].reverse().find(q => q.on() && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) hit.fn(); });
+    this.bcLoad(); this.leverT = 0;
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => { this.scale.off('resize', this.build, this); this.saveTrail(); });
     this.say(this.from === 'camp' ? 'LOUISE: WELCOME TO THE MOON BAR, CHRIS!' : 'LOUISE: SPIN ME, CHEF!');
   }
   say(m, col) { this.msg = m; this.msgCol = col || '#ff5a3a'; this.msgT0 = this.t; if (this.msgT) this.msgT.setText(m).setColor(this.msgCol); }
-  // ---------------------------------------------------------------- layout: one cabinet, in art pixels (z screen px each)
+  // ---------------------------------------------------------------- layout (v3.120): an UPRIGHT cabinet, cash-register shaped
+  // In art pixels (z screen px each). The cabinet is CWa wide and runs off the bottom of the screen; beside it on the
+  // right, the pull LEVER and THE BIG CHEESE builder tower. FW = the whole footprint (cabinet + lever + tower).
   geom() {
-    const W = this.scale.width, H = this.scale.height, CHa = 192, CWa = 300;
-    let z = Math.min((H - 4) / CHa, (W - 8) / CWa); z = z >= 2 ? Math.floor(z) : z >= 1.5 ? 1.5 : Math.max(1, Math.floor(z * 4) / 4);
-    const ox = Math.round((W - CWa * z) / 2), oy = Math.round((H - CHa * z) / 2);
+    const W = this.scale.width, H = this.scale.height, CHa = 204, CWa = 232, FW = CWa + 28 + 74;
+    const z = Math.max(1, Math.min((H - 2) / CHa, (W - 8) / (FW + 50)));
+    const ox = Math.round((W - FW * z) / 2 + 24 * z), oy = Math.round((H - CHa * z) / 2);
     const A = (x, y) => ({ x: ox + x * z, y: oy + y * z });
-    const zi = z, cw = 28 * z, chh = 24 * z, rw = 5 * cw + 4 * 3 * z, rh = 3 * chh, rx = ox + (CWa / 2) * z - rw / 2, ry = oy + 46 * z;
-    return { W, H, z, zi, CWa, CHa, ox, oy, A, cw, chh, rw, rh, rx, ry, gap: 3 * z };
+    const cw = 40 * z, chh = 30 * z, gap = 3 * z, rw = 5 * cw + 4 * gap, rh = 3 * chh, rx = ox + (CWa / 2) * z - rw / 2, ry = oy + 68 * z;
+    return { W, H, z, zi: z, CWa, CHa, FW, ox, oy, A, cw, chh, rw, rh, rx, ry, gap, LX: CWa + 14, LY: 112, TX: CWa + 30, TW: 70 };
   }
   cell(r, k) { const G = this.geom(); return { x: G.rx + r * (G.cw + G.gap) + G.cw / 2, y: G.ry + k * G.chh + G.chh / 2 }; }
   // the deck's buttons: [id, x, w (art px), label, controller hint]
-  deck() { return [['down', 18, 46, 'BET -', 'LB'], ['up', 70, 46, 'BET +', 'RB'], ['take', 122, 70, 'TAKE', 'X'], ['spin', 198, 84, 'SPIN', 'A']]; }
+  deck() { return [['down', 8, 32, 'BET-', 'LB'], ['up', 43, 32, 'BET+', 'RB'], ['strength', 78, 40, 'CHEESE', 'Y'], ['take', 121, 44, 'TAKE', 'X'], ['spin', 168, 56, 'SPIN', 'A']]; }
+  lampGeo() { const n = SLOT.STRENGTHS[this.sk].trail.length, lw = (this.geom().CWa - 16) / n; return { n, lw, x: p => 8 + p * lw, y: 46 }; }
   build() {
-    const G = this.geom(), z = G.z, f = (s, c, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.round(s * z) + 'px', color: c, stroke: '#1a1020', strokeThickness: Math.max(2, Math.round(z * 1.2)) }, o || {});
+    const G = this.geom(), z = G.z, f = (s, c, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.max(6, Math.round(s * z)) + 'px', color: c, stroke: '#1a1020', strokeThickness: Math.max(2, Math.round(z * 1.2)) }, o || {});
     this.ui.removeAll(true); this.boxes = []; this.payIm.forEach(im => im.destroy()); this.payIm = [];
+    if (this.glows) this.glows.forEach(q => q.destroy()); this.glows = [];
     // deck buttons
     this.btnT = {};
     for (const [id, x, w, , hint] of this.deck()) {
-      const p = G.A(x, 156), B = { id, x: p.x, y: p.y, w: w * z, h: 30 * z, on: () => true, fn: () => this.act(id) }; this.boxes.push(B);
-      this.btnT[id] = [this.add.text(p.x + w * z / 2, p.y + 12 * z, '', f(id === 'spin' ? 5.5 : 4, '#ffffff')).setOrigin(0.5), this.add.text(p.x + w * z / 2, p.y + 24 * z, hint, f(3, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0.5)];
+      const p = G.A(x, 186), B = { id, x: p.x, y: p.y, w: w * z, h: 18 * z, on: () => true, fn: () => this.act(id) }; this.boxes.push(B);
+      this.btnT[id] = [this.add.text(p.x + w * z / 2, p.y + 7 * z, '', f(id === 'spin' ? 5.4 : 3.4, '#ffffff')).setOrigin(0.5), this.add.text(p.x + w * z / 2, p.y + 14 * z, hint, f(2.6, '#ffffff', { strokeThickness: 2 })).setOrigin(0.5).setAlpha(0.7)];
       this.ui.add(this.btnT[id]);
     }
-    // the left glass (strength: tap it, or Y), the exit plate
-    const lg = G.A(8, 46); this.boxes.push({ x: lg.x, y: lg.y, w: 52 * z, h: 72 * z, on: () => true, fn: () => this.act('strength') });
+    // the lever: tap the ball (or anywhere on the arm's sweep) to pull it
+    { const p = G.A(G.LX - 12, G.LY - 76); this.boxes.push({ x: p.x, y: p.y, w: 26 * z, h: 100 * z, on: () => true, fn: () => this.act('spin') }); }
     const ex = this.add.text(8, 8, 'EXIT  (B)', f(3.6, '#ffffff', { backgroundColor: '#2a1a2a', padding: { x: 6, y: 4 } })).setDepth(4); this.ui.add(ex);
     this.boxes.push({ x: 8, y: 8, w: ex.width, h: ex.height, on: () => true, fn: () => this.act('back') });
-    // texts: the title, the strength, the meters, the LED ticker, the trail lamps, the pay table
-    this.titleT = this.add.text(G.A(150, 7).x, G.A(150, 7).y, 'RIDIC LOUISE', f(6, '#ffd23f', { stroke: '#7a1a1a', strokeThickness: Math.round(z * 1.6) })).setOrigin(0.5); this.ui.add(this.titleT);
-    this.strT = this.add.text(G.A(34, 52).x, G.A(34, 52).y, '', f(3.2, '#ffffff', { align: 'center' })).setOrigin(0.5, 0); this.ui.add(this.strT);
-    this.strH = this.add.text(G.A(34, 110).x, G.A(34, 110).y, 'CHANGE (Y)', f(2.8, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0.5); this.ui.add(this.strH);
-    this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(30 + i * 90, 133); const L = this.add.text(p.x, p.y, lab, f(2.8, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(5, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
-    this.msgT = this.add.text(G.A(150, 124).x, G.A(150, 124).y, this.msg || '', f(3.4, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);
-    const n = SLOT.STRENGTHS[this.sk].trail.length;
-    this.lampT = SLOT.STRENGTHS[this.sk].trail.map(() => { const t = this.add.text(0, 0, '', f(2.9, '#ffffff', { strokeThickness: 2 })).setOrigin(0.5); this.ui.add(t); return t; });
-    // (v3.111) the MAX CHEESE GRATER EDITION sticker, slapped on the corner of the marquee, and a neon sign on the wall
-    { const p = G.A(52, 8), st = this.add.text(p.x, p.y, 'MAX CHEESE\nGRATER EDITION!', f(3.1, '#1a1020', { align: 'center', stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.8)), backgroundColor: '#ffd23f', padding: { x: Math.round(2 * z), y: Math.round(0.5 * z) }, lineSpacing: -Math.round(z * 0.6) })).setOrigin(0.5).setRotation(-0.08);
-      this.ui.add(st); this.sticker = st; }
+    // THE NAME: a letter each, so they can bounce and flash one by one
+    this.nameL = [...'RIDIC LOUISE'].map((ch, i, all) => { const q = G.A(G.CWa / 2 + (i - (all.length - 1) / 2) * 14, 26); const t = this.add.text(q.x, q.y, ch, f(15, '#ffd23f', { stroke: '#2a0a0a', strokeThickness: Math.round(z * 2.4) })).setOrigin(0.5); this.ui.add(t); return t; });
+    { const q = G.A(G.CWa / 2, 40), t = this.add.text(q.x, q.y, 'MAX CHEESE GRATER EDITION', f(3, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03); this.ui.add(t); this.sticker = t; }
+    // the meters, the LED ticker
+    this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(10 + i * 72, 165); const L = this.add.text(p.x + 2 * z, p.y, lab, f(2.4, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(4.6, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
+    this.msgT = this.add.text(G.A(G.CWa / 2, 177).x, G.A(G.CWa / 2, 177).y, this.msg || '', f(3.2, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);
+    // trail lamps
+    const LG = this.lampGeo();
+    this.lampT = SLOT.STRENGTHS[this.sk].trail.map(() => { const t = this.add.text(0, 0, '', f(2.3, '#ffffff', { strokeThickness: 2, align: 'center', lineSpacing: -Math.round(z * 0.6) })).setOrigin(0.5); this.ui.add(t); return t; });
+    // THE BIG CHEESE builder tower texts
+    { const c = G.TX + G.TW / 2;
+      this.bcT = [this.add.text(G.A(c, 20).x, G.A(c, 20).y, 'THE BIG\nCHEESE', f(5, '#ffd23f', { align: 'center', stroke: '#5a1a0a', strokeThickness: Math.round(z * 1.6), lineSpacing: -Math.round(z) })).setOrigin(0.5),
+        this.add.text(G.A(c, 128).x, G.A(c, 128).y, '', f(5, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(0.5),
+        this.add.text(G.A(c, 138).x, G.A(c, 138).y, '', f(2.4, '#ffffff', { strokeThickness: 2, align: 'center' })).setOrigin(0.5, 0)];
+      this.ui.add(this.bcT); }
+    // a strength badge on the topper's corner
+    this.strT = this.add.text(G.A(G.CWa - 10, 52 + 3).x, G.A(G.CWa - 10, 52 + 3).y, '', f(2.4, '#ffffff')).setOrigin(1, 0.5).setVisible(false); this.ui.add(this.strT);
+    // pixel glows: behind the name, the SPIN button and the jar
+    const gl = (x, y, s, col) => { const q = G.A(x, y), im = this.add.image(q.x, q.y, 'pxglow').setBlendMode(Phaser.BlendModes.ADD).setTint(col).setScale(s * z).setDepth(0.95); this.glows.push(im); return im; };
+    this.glowName = gl(G.CWa / 2, 24, 3.6, 0xff4a9a); this.glowSpin = gl(196, 194, 1.4, 0x2aff6a); this.glowJar = gl(G.TX + G.TW / 2, 82, 1.6, 0xffb02a);
     this.neon = [];
-    { const right = G.W - (G.ox + G.CWa * z); if (right > 50) { const nx = G.W - right / 2, n = this.add.text(nx, G.oy + 46 * z, 'GRATE\nWINS', f(Math.min(6, right / z / 8), '#ff6ad0', { align: 'center', stroke: '#ffd0f0', strokeThickness: Math.max(1, Math.round(z * 0.6)) })).setOrigin(0.5).setShadow(0, 0, '#ff2aa0', 10 * z, true, true); this.ui.add(n); this.neon.push(n); } }
-    { const p = G.A(G.CWa - 34, 51); this.ui.add(this.add.text(p.x, p.y, 'FIVE IN A ROW', f(2.6, '#ffd23f', { strokeThickness: 2 })).setOrigin(0.5)); }
-    this.payT = [];
-    ['wheel', 'heart', 'power', 'plate'].forEach((k, i) => { const p = G.A(254, 56 + i * 15); this.payIm.push(this.add.image(p.x, p.y + 1 * z, 'fm_' + k).setScale(z * 0.45).setDepth(4)); const t = this.add.text(p.x + 8 * z, p.y + z, '', f(3, '#ffffff', { strokeThickness: 2 })).setOrigin(0, 0.5); this.ui.add(t); this.payT.push([k, t]); });
     this.refresh();
   }
   refresh() {
     if (!this.btnT) return;
-    const live = this.live(), lab = { down: 'BET -', up: 'BET +', take: this.ctxLabel(), spin: this.ph === 'idle' ? (this.free > 0 ? 'FREE ' + this.free : 'SPIN') : this.ph === 'show' ? 'SKIP' : '...' };
-    for (const id in this.btnT) this.btnT[id][0].setText(lab[id]).setAlpha(live[id] ? 1 : 0.35);
-    const S = SLOT.STRENGTHS[this.sk]; this.strT.setText('CHEESE\nSTRENGTH\n\n' + S.name.replace(' ', '\n')).setColor('#' + S.col.toString(16).padStart(6, '0'));
-    this.strH.setAlpha(this.canSetup() ? 1 : 0.3);
-    this.payT.forEach(([k, t]) => t.setText(String(Math.round(SLOT.PAYS[k][2] / 10 * SLOT.TUNE[this.sk].line * this.bet()))));
+    const live = this.live(), lab = { down: 'BET-', up: 'BET+', strength: '', take: this.ctxLabel(), spin: this.ph === 'idle' ? (this.free > 0 ? 'FREE ' + this.free : 'SPIN') : this.ph === 'show' ? 'SKIP' : '...' };
+    for (const id in this.btnT) { if (id !== 'strength') this.btnT[id][0].setText(lab[id]); this.btnT[id][0].setAlpha(live[id] ? 1 : 0.35); }
+    if (this.btnT.strength) this.btnT.strength[0].setText(SLOT.STRENGTHS[this.sk].name.split(' ').pop()).setColor('#' + SLOT.STRENGTHS[this.sk].col.toString(16).padStart(6, '0'));
+    this.bcRefresh();
   }
-  ctxLabel() { return this.pos >= 0 ? 'TAKE ' + Math.max(1, Math.round(SLOT.valAt(this.sk, this.pos) * this.bet())) : Shop.megaLeft() > 0 && this.free <= 0 ? 'MEGA x' + Shop.megaLeft() : 'TAKE'; }
-  live() { const idle = this.ph === 'idle'; return { down: this.canSetup(), up: this.canSetup(), take: idle && (this.pos >= 0 || (Shop.megaLeft() > 0 && this.free <= 0)), spin: idle || this.ph === 'show' }; }
+  ctxLabel() { return this.pos >= 0 ? 'TAKE\n' + Math.max(1, Math.round(SLOT.valAt(this.sk, this.pos) * this.bet())) : Shop.megaLeft() > 0 && this.free <= 0 ? 'MEGA x' + Shop.megaLeft() : 'TAKE'; }
+  live() { const idle = this.ph === 'idle'; return { down: this.canSetup(), up: this.canSetup(), strength: this.canSetup(), take: idle && (this.pos >= 0 || (Shop.megaLeft() > 0 && this.free <= 0)), spin: idle || this.ph === 'show' }; }
   canSetup() { return this.ph === 'idle' && this.pos < 0 && this.free <= 0; }
   stepName(p) { const s = SLOT.STRENGTHS[this.sk].trail[p]; return s === 'C' ? String(Math.max(1, Math.round(SLOT.TUNE[this.sk].val[p] * this.bet()))) : FM_SHORT[s]; }
   // ---------------------------------------------------------------- the four buttons (and Y / B)
@@ -350,6 +360,7 @@ class FruityScene extends Phaser.Scene {
     const bet = this.bet(), freeSpin = this.free > 0;
     if (!freeSpin && this.bal() < bet) { Sound.sfx('clunk'); this.say('NOT ENOUGH ' + this.unit() + ' - BET LOWER', '#ff4a2a'); this.cameras.main.shake(100, 0.004); return; }
     if (freeSpin) this.free--; else this.addBal(-bet);
+    this.leverT = 0.5; this.coinDrop = freeSpin ? null : this.bcDrop();
     this.lastWin = 0; this.winLines = []; this.res = SLOT.play(this.sk, Math.random, this.pos);
     this.startReels(this.res.stops); this.ph = 'spin'; this.say(freeSpin ? 'FREE SPIN - ' + this.free + ' LEFT' : 'GOOD LUCK!', '#ff5a3a'); Sound.sfx('clang'); this.refresh();
     if (Math.random() < 0.25) this.louise('wink', 0.9);
@@ -372,6 +383,7 @@ class FruityScene extends Phaser.Scene {
   }
   settle() {
     const r = this.res, bet = this.bet();
+    if (this.coinDrop) { this.bcFly(this.coinDrop); this.coinDrop = null; }
     this.winLines = r.wins; let win = r.x * bet; this.pos = r.pos;
     if (r.stars > 1) this.louise('cheer', 1, 'TWO STARS!');
     if (r.stars > 0) this.say(r.stars > 1 ? r.stars + ' STARS - UP ' + r.stars + ' LAMPS!' : 'A STAR - UP THE TRAIL!', '#ffd23f');
@@ -400,7 +412,7 @@ class FruityScene extends Phaser.Scene {
     const G = this.geom(), t = this.add.text(G.rx + G.rw / 2, G.ry + G.rh / 2, text, { fontFamily: PIXEL, fontSize: Math.round(9 * G.z) + 'px', color: '#' + col.toString(16).padStart(6, '0'), stroke: '#1a1020', strokeThickness: Math.round(G.z * 2.5) }).setOrigin(0.5).setDepth(8).setScale(0.1);
     this.banner = { t, life: dur + 1, max: dur + 1 };
   }
-  fountain(n) { const G = this.geom(); for (let k = 0; k < n; k++) this.coins.push({ x: G.ox + 150 * G.z + (Math.random() - 0.5) * 60, y: G.oy + 150 * G.z, vx: (Math.random() - 0.5) * 420, vy: -260 - Math.random() * 420, r: Math.random() * 6, d: Math.random() < 0.5 }); }
+  fountain(n, at) { const G = this.geom(); for (let k = 0; k < n; k++) this.coins.push({ x: (at ? at.x : G.ox + G.CWa / 2 * G.z) + (Math.random() - 0.5) * 60, y: at ? at.y : G.oy + 176 * G.z, vx: (Math.random() - 0.5) * 420, vy: -260 - Math.random() * 420, r: Math.random() * 6, d: Math.random() < 0.5 }); }
   burstAt(x, y, col, n) { for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; this.sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.4, col }); } }
   jackpot() { this.louise('cheer', 4, 'JACKPOT! THAT IS TOTALLY RIDIC!'); this.bigBanner('JACKPOT!!!', 0xffd23f, 3.5); this.cameras.main.flash(500, 255, 240, 150); this.cameras.main.shake(900, 0.014); this.fountain(140); Sound.sfx('achieve'); this.time.delayedCall(400, () => Sound.sfx('power')); this.time.delayedCall(900, () => Sound.sfx('achieve')); }
   // ---------------------------------------------------------------- TAKE: cash, or a bonus game
@@ -505,6 +517,7 @@ class FruityScene extends Phaser.Scene {
     if (this.ph === 'spin' && !this.reelsMoving()) this.settle();
     if (this.ph === 'freespin' && !this.reelsMoving()) this.freeSettle();
     if (this.count) { const C = this.count; C.t += dt; const u = Math.min(1, C.t / C.dur); C.v = C.to * (1 - Math.pow(1 - u, 2)); if (u >= 1) { this.count = null; if (this.ph === 'show') this.ph = 'idle'; this.refresh(); if (this.free > 0) this.time.delayedCall(400, () => { if (this.ph === 'idle' && this.free > 0) this.spin(); }); } }
+    if (this.bcPending && this.ph === 'idle' && !this.count) this.bcPop();
     // the trail lamp chases up (or down) to where you are, a step at a time
     this.chaseT = (this.chaseT || 0) - dt;
     if (this.dispPos !== this.pos && this.chaseT <= 0 && !this.flyers.length) { this.dispPos += this.pos > this.dispPos ? 1 : -1; this.chaseT = 0.16; Sound.sfx('blip'); if (this.pos > -1 && this.dispPos === this.pos) this.refresh(); }
@@ -529,10 +542,10 @@ class FruityScene extends Phaser.Scene {
       bg.fillStyle(c, hot ? 0.22 : 0.14).fillTriangle(x0, 0, x0 + Math.sin(a - sp) * L, Math.cos(a - sp) * L, x0 + Math.sin(a + sp) * L, Math.cos(a + sp) * L);
       bg.fillStyle(c, 1).fillRect(x0 - 3 * P, 0, 6 * P, 3 * P);
     }
-    const left = G.ox, right = W - (G.ox + G.CWa * z);
+    const left = G.ox, right = W - (G.ox + G.FW * z);
     // the next machine along (right of ours), lights chasing
     if (right > 40 * z * 0.6) {
-      const mw = Math.min(56 * z, right - 10 * P), mx = G.ox + G.CWa * z + 8 * P + Math.max(0, (right - 8 * P - mw) / 2), my = G.oy + 70 * z, mh = fy - my + 6 * z;
+      const mw = Math.min(56 * z, right - 10 * P), mx = G.ox + G.FW * z + 8 * P + Math.max(0, (right - 8 * P - mw) / 2), my = G.oy + 70 * z, mh = fy - my + 6 * z;
       bg.fillStyle(0x08040e, 1).fillRect(mx - P, my - P, mw + 2 * P, mh + 2 * P); bg.fillStyle(0x0e3a5a, 1).fillRect(mx, my, mw, mh); bg.fillStyle(0x1a5a80, 1).fillRect(mx, my, 3 * P, mh);
       bg.fillStyle(0x08040e, 1).fillRect(mx + 5 * P, my + 12 * z, mw - 10 * P, 22 * z);
       for (let k = 0; k < 3; k++) { const c = FM_RAINBOW[(k * 3 + Math.floor(t * 3 + k)) % FM_RAINBOW.length], cw2 = (mw - 14 * P) / 3; bg.fillStyle(c, 1).fillRect(mx + 7 * P + k * (cw2 + 0 * P), my + 14 * z, cw2 - 2 * P, 18 * z); }
@@ -551,7 +564,7 @@ class FruityScene extends Phaser.Scene {
         if (y > fy) continue; const c = FM_RAINBOW[i % FM_RAINBOW.length], tw = 0.5 + 0.5 * Math.sin(t * 5 + i); bg.fillStyle(c, 0.35 + 0.5 * tw).fillRect(x - P, y - P, 2 * P + (tw > 0.8 ? P : 0), 2 * P); }
     }
     // cheese bunting strung across the top, swaying
-    for (const [x0, x1] of [[0, G.ox], [G.ox + G.CWa * z, W]]) {
+    for (const [x0, x1] of [[0, G.ox], [G.ox + G.FW * z, W]]) {
       if (x1 - x0 < 20) continue; const n = Math.max(2, Math.floor((x1 - x0) / (12 * z)));
       for (let k = 0; k < n; k++) { const x = x0 + (k + 0.5) * (x1 - x0) / n, sag = Math.sin(Math.PI * (k + 0.5) / n) * 8 * z, y = G.oy + 2 * z + sag, sw = Math.sin(t * 2 + k) * 1.5 * z;
         bg.fillStyle([0xffe040, 0xff6ad0, 0x2ad8e8, 0xff9a2a, 0x7dff8a][k % 5], 1).fillTriangle(x - 4 * z, y, x + 4 * z, y, x + sw, y + 9 * z); }
@@ -561,56 +574,12 @@ class FruityScene extends Phaser.Scene {
     if (this.neon) { this.neon.forEach((n, i) => n.setAlpha(Math.random() < 0.015 ? 0.35 : (hot ? 0.85 + 0.15 * Math.sin(t * 12 + i) : 1))); }
   }
   draw(dt) {
-    const G = this.geom(), { W, H, z, A, rx, ry, rw, rh, cw, chh, gap } = G, t = this.t, g = this.cab;
+    const G = this.geom(), { W, H, z, A, rx, ry, rw, rh, cw, chh, gap } = G, t = this.t, g = this.cab, LG = this.lampGeo(), n = LG.n, lw = LG.lw;
     const r = (x, y, w, h, col, a) => g.fillStyle(col, a === undefined ? 1 : a).fillRect(G.ox + x * z, G.oy + y * z, w * z, h * z);
     const hot = this.count || this.ph === 'free' || this.ph === 'freespin' || this.ph === 'respin';
     // ---- the bar behind: dark panelling, a warm wash on the floor
     this.drawBar(G, t, hot);
-    // ---- the cabinet
-    g.clear();
-    r(-2, -2, G.CWa + 4, G.CHa + 4, FM_INK);
-    r(0, 0, G.CWa, G.CHa, FM.red[2]); r(0, 0, 3, G.CHa, FM.red[3]); r(G.CWa - 3, 0, 3, G.CHa, FM.red[1]);   // red body, lit from the left
-    for (let y = 0; y < G.CHa; y += 2) r(3, y, G.CWa - 6, 1, FM.red[1], 0.18);                                // a fine grain
-    // the topper: gold marquee with the name, chasing bulbs all round
-    r(4, 0, G.CWa - 8, 14, FM.gold[2]); r(4, 0, G.CWa - 8, 2, FM.gold[4]); r(4, 12, G.CWa - 8, 2, FM.gold[0]);
-    const nb = Math.floor((G.CWa - 12) / 7);
-    for (let k = 0; k < nb; k++) { const on = hot ? (Math.floor(t * 16) + k) % 2 === 0 : (Math.floor(t * 5) + k) % 4 === 0; const rc = FM_RAINBOW[(k + Math.floor(t * (hot ? 12 : 4))) % FM_RAINBOW.length]; r(7 + k * 7, 3, 3, 3, on ? 0xffffff : rc); r(7 + k * 7, 9, 3, 2, on ? rc : FM.gold[0]); }
-    // the TRAIL GLASS: a dark glass panel with the lamps in a row, a chrome frame
-    r(6, 16, G.CWa - 12, 26, FM.chrome[3]); r(7, 17, G.CWa - 14, 24, FM_INK); r(8, 18, G.CWa - 16, 22, 0x120a1c);
-    const T = SLOT.STRENGTHS[this.sk].trail, n = T.length, lw = (G.CWa - 22) / n;
-    for (let p = 0; p < n; p++) {
-      const s = T[p], C = FM_LAMP[s === 'C' ? 'C' : s], x = 11 + p * lw, at = p === this.dispPos, lit = p <= this.dispPos;
-      const col = at ? (Math.floor(t * 8) % 2 ? 0xffffff : C[1]) : lit ? C[1] : C[0];
-      r(x, 21, lw - 2, 15, FM_INK); r(x + 0.5, 21.5, lw - 3, 14, col); if (lit || at) r(x + 1, 22, lw - 4, 2, 0xffffff, 0.45);
-      if (s === 'JACKPOT') for (let k = 0; k < 3; k++) r(x + 1 + k * (lw - 4) / 3, 36.5, 2, 1.5, (Math.floor(t * 9) + k) % 2 ? 0xfff6c0 : FM.gold[1]);
-      const L = this.lampT[p]; if (L) { const q = A(x + (lw - 2) / 2, 28.5); L.setPosition(q.x, q.y).setText(this.stepName(p)).setColor(lit || at ? '#1a1020' : '#c8c0e0').setStroke(lit || at ? '#ffffff' : '#1a1020', 2); }
-    }
-    if (this.dispPos >= 0) { const x = 11 + this.dispPos * lw + (lw - 2) / 2; r(x - 2, 38.5, 4, 2, 0xffd23f); }        // a pointer under your lamp
-    // the side glasses: strength (left), the pay table (right)
-    for (const [x0, w0] of [[8, 52], [G.CWa - 60, 52]]) { r(x0, 46, w0, 72, FM.chrome[2]); r(x0 + 1, 47, w0 - 2, 70, FM_INK); r(x0 + 2, 48, w0 - 4, 68, 0x1c1030); }
-    { const S = SLOT.STRENGTHS[this.sk], lvl = { mild: 1, mature: 2, extra: 3 }[this.sk]; for (let k = 0; k < 3; k++) r(20 + k * 10, 94, 8, 6, k < lvl ? S.col : 0x2a2440); }
-    r(G.CWa - 58, 48, 48, 6, 0x3a2a4a); 
-    // the reel window: chrome surround, the drums, curved shading, anticipation flashes, the centre line marks
-    g.fillStyle(FM.chrome[3], 1).fillRect(rx - 4 * z, ry - 4 * z, rw + 8 * z, rh + 8 * z); g.fillStyle(FM_INK, 1).fillRect(rx - 2 * z, ry - 2 * z, rw + 4 * z, rh + 4 * z);
-    for (let i = 0; i < 5; i++) { const x = rx + i * (cw + gap), R = this.R[i]; g.fillStyle(R.ant && R.stop ? (Math.floor(t * 10) % 2 ? 0xfff0b0 : 0xf4ecd8) : 0xf4ecd8, 1).fillRect(x, ry, cw, rh); for (let b = 0; b < 6; b++) { g.fillStyle(0x000000, 0.3 - b * 0.05).fillRect(x, ry + b * z, cw, z); g.fillStyle(0x000000, 0.3 - b * 0.05).fillRect(x, ry + rh - (b + 1) * z, cw, z); } }
-    // the LED ticker and the three meters
-    r(20, 119, G.CWa - 40, 10, FM.chrome[1]); r(21, 120, G.CWa - 42, 8, 0x140404);
-    for (let k = 0; k < 3; k++) { r(26 + k * 90, 131, 76, 11, FM.chrome[1]); r(27 + k * 90, 132, 74, 9, 0x140404); }
-    // the deck: a sloped panel and four arcade buttons
-    r(4, 148, G.CWa - 8, 40, FM.red[1]); r(4, 148, G.CWa - 8, 2, FM.red[3]); r(4, 186, G.CWa - 8, 2, FM.red[0]);
-    const live = this.live();
-    for (const [id, x, w] of this.deck()) {
-      const on = live[id], pr = this.press[id] > 0 ? 1.5 : 0, col = id === 'spin' ? [0x0e4a1a, 0x2aa04a, 0x7dff8a] : id === 'take' ? [0x4a2a04, 0xc8902a, 0xffe070] : [0x2a2440, 0x5a4a90, 0xa090e0];
-      const glow = on && (id === 'spin' || (id === 'take')) ? 0.5 + 0.5 * Math.sin(t * 5) : 0;
-      r(x - 1, 155, w + 2, 32, FM_INK); r(x, 156 + pr, w, 30 - pr, on ? col[1] : 0x2a2030); r(x, 156 + pr, w, 3, on ? col[2] : 0x3a3040); r(x, 183, w, 3, on ? col[0] : 0x1a1420);
-      if (glow) r(x + 2, 159 + pr, w - 4, 1, 0xffffff, glow * 0.7);
-      this.btnT[id][0].setY(G.oy + (168 + pr) * z); this.btnT[id][1].setY(G.oy + (180 + pr) * z);
-    }
-    // ---- Louise, beside the cabinet (as big as the gap allows; off if there's no room)
-    { this.louT = Math.max(0, this.louT - dt); if (this.louT <= 0 && this.louPose !== 'idle') this.louPose = 'idle';
-      const room = G.ox - 6, sc = Math.min(z, room / 46);
-      if (sc < 1) this.lou.setVisible(false);
-      else { const bob = this.louPose === 'cheer' ? Math.abs(Math.sin(t * 9)) * 3 * sc : Math.sin(t * 1.8) * 0.6 * sc; this.lou.setVisible(true).setTexture('lou_' + this.louPose).setScale(sc).setPosition(Math.round(G.ox / 2), Math.round(G.oy + 188 * z - bob)); } }
+    this.drawCab(G, t, hot, dt);
     // ---- the symbols on the reels
     const strips = SLOT.STRIPS[this.sk];
     this.R.forEach((R, i) => {
@@ -619,16 +588,16 @@ class FruityScene extends Phaser.Scene {
         const idx = ((base + j - 1) % nn + nn) % nn, row = base + j - 1 - R.pos, y = ry + (row + 0.5) * chh;
         let key = strips[i][idx];
         if (!R.stop && this.res && this.res.grid && Math.abs(row - Math.round(row)) < 0.01 && row > -0.5 && row < 2.5) key = this.res.grid[i][Math.round(row)] || key;
-        const wob = !R.stop && this.winLines.length && this.winCell(i, Math.round(row)) ? Math.sin(t * 14 + i) * 0.1 : 0, sy = z * (blur ? 1.25 : 1 + wob);
-        im.setTexture('fm_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z * (1 + wob), sy).setAlpha(blur ? 0.7 : 1);
+        const wob = !R.stop && this.winLines.length && this.winCell(i, Math.round(row)) ? 0.08 + Math.abs(Math.sin(t * 9 + i)) * 0.14 : 0, sy = z * FM_ICON * (blur ? 1.3 : 1 + wob);
+        im.setTexture('fm_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z * FM_ICON * (1 + wob), sy).setAlpha(blur ? 0.75 : 1);
         const hh = 11 * sy, y0 = y - hh, y1 = y + hh, v0 = Math.max(y0, ry), v1 = Math.min(y1, ry + rh);
         if (v1 <= v0) { im.setVisible(false); return; }
         im.setVisible(true).setCrop(0, (v0 - y0) / sy, 22, (v1 - v0) / sy);
       });
     });
-    this.stickyIm.forEach((im, k) => { const s = this.sticky[k]; if (!s || !(this.ph === 'free' || this.ph === 'freespin')) { im.setVisible(false); return; } const c = this.cell(s[0], s[1]); im.setVisible(true).setPosition(c.x, c.y).setScale(z * (1 + Math.sin(t * 6 + k) * 0.06)); });
+    this.stickyIm.forEach((im, k) => { const s = this.sticky[k]; if (!s || !(this.ph === 'free' || this.ph === 'freespin')) { im.setVisible(false); return; } const c = this.cell(s[0], s[1]); im.setVisible(true).setPosition(c.x, c.y).setScale(z * FM_ICON * (1 + Math.sin(t * 6 + k) * 0.06)); });
     // ---- the win lines
-    const fg = this.fg; fg.clear();
+    const fg = this.fg; fg.clear(); this.drawGlass(G, t);
     fg.fillStyle(0xff3a3a, 0.8).fillRect(rx - 6 * z, ry + rh / 2 - z, 3 * z, 2 * z).fillRect(rx + rw + 3 * z, ry + rh / 2 - z, 3 * z, 2 * z);
     if (!this.reelsMoving() && this.winLines.length) {
       const cols = [0xffd23f, 0x7dff8a, 0x5ce1ff, 0xff6ad0, 0xff9a2a], k = Math.floor(t * 1.5) % this.winLines.length;
@@ -649,13 +618,148 @@ class FruityScene extends Phaser.Scene {
     for (const s of this.sparks) { s.life -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 200 * dt; fx.fillStyle(s.col, Math.max(0, s.life * 2)).fillRect(s.x - z, s.y - z, 2 * z, 2 * z); }
     this.sparks = this.sparks.filter(s => s.life > 0);
     for (const q of this.flyers) {
-      q.t += dt * 1.8; const tgt = Math.max(0, Math.min(n - 1, this.dispPos + 1)), tp = A(11 + tgt * lw + (lw - 2) / 2, 28), u = Math.min(1, q.t), e = u * u * (3 - 2 * u), x = q.x + (tp.x - q.x) * e, y = q.y + (tp.y - q.y) * e - Math.sin(u * Math.PI) * 30 * z;
+      q.t += dt * 1.8; const tgt = Math.max(0, Math.min(n - 1, this.dispPos + 1)), tp = A(LG.x(tgt) + lw / 2, LG.y + 8), u = Math.min(1, q.t), e = u * u * (3 - 2 * u), x = q.x + (tp.x - q.x) * e, y = q.y + (tp.y - q.y) * e - Math.sin(u * Math.PI) * 30 * z;
       if (!q.im) q.im = this.add.image(x, y, 'fm_star').setDepth(7.5);
       q.im.setPosition(x, y).setScale(z * (1 + Math.sin(u * Math.PI) * 0.6)).setRotation(u * 6); this.sparks.push({ x, y, vx: 0, vy: 0, life: 0.3, col: 0xffd23f });
       if (u >= 1) { q.im.destroy(); q.dead = true; this.burstAt(tp.x, tp.y, 0xffd23f, 14); }
     }
     this.flyers = this.flyers.filter(q => !q.dead);
     if (this.banner) { const B = this.banner; B.life -= dt; const age = B.max - B.life, s = age < 0.35 ? 0.1 + (age / 0.35) * 1.25 : 1.2 + Math.sin(age * 10) * 0.06; B.t.setScale(s).setRotation(Math.sin(age * 7) * 0.06).setAlpha(Math.min(1, B.life * 2)); if (B.life <= 0) { B.t.destroy(); this.banner = null; } }
+  }
+  // (v3.120) THE CABINET: an upright, cash-register shaped machine. Topper: an arched sign with the name in big
+  // bouncing letters, sunburst rays turning behind it, a ring of chasing bulbs. Then the trail glass, the reel window
+  // (big drums, glass glare, scanlines), the meters and ticker, and a deck that steps out wider like a till, with five
+  // light-up buttons. On its right side: a chrome pull lever. Beyond it: THE BIG CHEESE builder tower.
+  drawCab(G, t, hot, dt) {
+    const { z, A, rx, ry, rw, rh, cw, chh, gap, CWa: CW } = G, g = this.cab, H = G.H;
+    const r = (x, y, w, h, col, a) => g.fillStyle(col, a === undefined ? 1 : a).fillRect(G.ox + x * z, G.oy + y * z, w * z, h * z);
+    const bottom = (H - G.oy) / z + 2, win = !!this.count, strobe = win || this.ph === 'pop' || this.ph === 'feat';
+    const RB = k => FM_RAINBOW[((k % 8) + 8) % 8];
+    g.clear();
+    // -- the body: red, lit from the left, a gold pinstripe; it runs off the bottom of the screen
+    r(-2, 44, CW + 4, bottom - 44, FM_INK); r(0, 46, CW, bottom - 46, FM.red[2]); r(0, 46, 4, bottom - 46, FM.red[3]); r(CW - 4, 46, 4, bottom - 46, FM.red[1]);
+    for (let y = 46; y < bottom; y += 2) r(4, y, CW - 8, 1, FM.red[1], 0.16);
+    r(3, 46, 1, bottom - 46, FM.gold[3]); r(CW - 4, 46, 1, bottom - 46, FM.gold[1]);
+    // side bulb columns, chasing (they race when you win)
+    for (let k = 0; k * 6 < 130; k++) for (const sx of [1, CW - 3]) { const on = strobe ? (Math.floor(t * 20) + k) % 2 : (Math.floor(t * 6) - k + (sx > 9 ? 3 : 0)) % 5 === 0; r(sx, 50 + k * 6, 2, 3, on ? 0xffffff : RB(k + Math.floor(t * (strobe ? 10 : 2)))); }
+    // -- the topper: an arch. Dark glass inside, sunburst rays, a gold frame, bulbs all round
+    const AH = 44, arch = y => y >= 18 ? CW / 2 : Math.sqrt(Math.max(0, 1 - Math.pow((18 - y) / 18, 2))) * CW / 2;
+    for (let y = 0; y < AH; y++) { const hw = arch(y); if (hw < 1) continue; r(CW / 2 - hw - 2, y, hw * 2 + 4, 1, FM_INK); r(CW / 2 - hw, y, hw * 2, 1, FM.gold[y < 3 ? 4 : 2]); const ih = Math.max(0, hw - 4); if (y > 3 && y < AH - 3 && ih > 0) r(CW / 2 - ih, y, ih * 2, 1, y < 20 ? 0x2a0a3a : 0x1a0828); }
+    { const cxp = G.ox + CW / 2 * z, cyp = G.oy + 26 * z, nR = 18, spin = t * (strobe ? 1.6 : 0.35);           // sunburst rays (clipped to the arch's inside)
+      for (let k = 0; k < nR; k++) { const a0 = spin + k * Math.PI * 2 / nR, a1 = a0 + Math.PI / nR;
+        const reach = a => { let L = 200; for (let s2 = 4; s2 < 200; s2 += 2) { const xx = Math.cos(a) * s2, yy = 26 + Math.sin(a) * s2; if (yy < 4 || yy > AH - 4 || Math.abs(xx) > arch(yy) - 5) { L = s2 - 2; break; } } return L; };
+        const L0 = reach(a0), L1 = reach(a1); g.fillStyle(k % 2 ? (strobe ? RB(k + Math.floor(t * 6)) : 0x8a2a9a) : 0x3a0e4a, strobe ? 0.7 : 1).fillTriangle(cxp, cyp, cxp + Math.cos(a0) * L0 * z, cyp + Math.sin(a0) * L0 * z, cxp + Math.cos(a1) * L1 * z, cyp + Math.sin(a1) * L1 * z); } }
+    { const nb = 46; for (let k = 0; k < nb; k++) {                                                                  // bulbs round the arch
+      const u = k / (nb - 1), ang = Math.PI * (1 - u), bx = CW / 2 + Math.cos(ang) * (CW / 2 - 2.5), by0 = 18 - Math.sin(ang) * 16, by = Math.max(2, Math.min(AH - 3, u < 0.08 ? 18 + (0.08 - u) * 300 : u > 0.92 ? 18 + (u - 0.92) * 300 : by0));
+      const on = strobe ? (Math.floor(t * 22) + k) % 2 === 0 : (Math.floor(t * 8) + k) % 6 < 2; r(bx - 1.5, by - 1.5, 3, 3, FM_INK); r(bx - 1, by - 1, 2, 2, on ? 0xffffff : RB(k + Math.floor(t * 3))); } }
+    // the name: each letter bobs on a wave and cycles colour; on a win they jump and strobe
+    this.nameL.forEach((L, i) => { const ph = t * (strobe ? 9 : 3) - i * 0.5, q = A(CW / 2 + (i - 5.5) * 14, 26 - Math.max(0, Math.sin(ph)) * (strobe ? 4 : 1.6));
+      L.setPosition(q.x, q.y).setColor('#' + (strobe ? RB(i + Math.floor(t * 14)) : [0xffd23f, 0xffe070, 0xffffff, 0xffd23f][Math.floor((t * 5 - i) % 4 + 4) % 4]).toString(16).padStart(6, '0')).setScale(strobe ? 1 + Math.max(0, Math.sin(ph)) * 0.18 : 1); });
+    if (this.sticker) this.sticker.setScale(1 + 0.05 * Math.max(0, Math.sin(t * 3))).setRotation(-0.03 + Math.sin(t * 1.3) * 0.02);
+    this.glowName.setAlpha(strobe ? 0.75 + 0.25 * Math.sin(t * 20) : 0.42 + 0.12 * Math.sin(t * 2)).setTint(strobe ? RB(Math.floor(t * 8)) : 0xff4a9a);
+    // -- the trail glass
+    const LG = this.lampGeo(), T = SLOT.STRENGTHS[this.sk].trail;
+    r(5, LG.y - 2, CW - 10, 20, FM.chrome[3]); r(6, LG.y - 1, CW - 12, 18, FM_INK);
+    for (let p = 0; p < LG.n; p++) {
+      const s2 = T[p], C = FM_LAMP[s2 === 'C' ? 'C' : s2], x = LG.x(p), at = p === this.dispPos, lit = p <= this.dispPos;
+      const col = at ? (Math.floor(t * 8) % 2 ? 0xffffff : C[1]) : lit ? C[1] : (strobe && Math.random() < 0.08 ? C[1] : C[0]);
+      r(x + 0.5, LG.y, LG.lw - 1, 16, col); if (lit || at) r(x + 1, LG.y + 0.5, LG.lw - 2, 2, 0xffffff, 0.5);
+      const L = this.lampT[p]; if (L) { const q = A(x + LG.lw / 2, LG.y + 8); L.setPosition(q.x, q.y).setText(this.lampName(p)).setColor(lit || at ? '#1a1020' : '#d8d0f0').setStroke(lit || at ? '#ffffff' : '#1a1020', 2); }
+    }
+    if (this.dispPos >= 0) { const x = LG.x(this.dispPos) + LG.lw / 2; r(x - 2, LG.y + 17, 4, 2, 0xffd23f); }
+    // -- the reel window: a chrome bezel with chasing lights, the drums, glass glare, scanlines
+    const bz = 5; r((rx - G.ox) / z - bz - 1, (ry - G.oy) / z - bz - 1, rw / z + 2 * bz + 2, rh / z + 2 * bz + 2, FM_INK);
+    r((rx - G.ox) / z - bz, (ry - G.oy) / z - bz, rw / z + 2 * bz, rh / z + 2 * bz, FM.chrome[3]);
+    { const per = 2 * (rw / z + rh / z) + 8 * bz, nb = 40; for (let k = 0; k < nb; k++) { let d = (k / nb) * per; const x0 = (rx - G.ox) / z - bz + 1.5, y0 = (ry - G.oy) / z - bz + 1.5, W2 = rw / z + 2 * bz - 3, H2 = rh / z + 2 * bz - 3; let x, y;
+      if (d < W2) { x = x0 + d; y = y0; } else if ((d -= W2) < H2) { x = x0 + W2; y = y0 + d; } else if ((d -= H2) < W2) { x = x0 + W2 - d; y = y0 + H2; } else { d -= W2; x = x0; y = y0 + H2 - Math.min(H2, d); }
+      const on = strobe ? (Math.floor(t * 24) + k) % 2 === 0 : (Math.floor(t * 10) + k) % 8 < 2; r(x - 1, y - 1, 2, 2, on ? 0xffffff : RB(Math.floor(k / 2))); } }
+    for (let i = 0; i < 5; i++) { const x = rx + i * (cw + gap), R = this.R[i]; g.fillStyle(R.ant && R.stop ? (Math.floor(t * 10) % 2 ? 0xfff0b0 : 0xf4ecd8) : 0xf4ecd8, 1).fillRect(x, ry, cw, rh);
+      for (let b = 0; b < 7; b++) { g.fillStyle(0x000000, 0.32 - b * 0.045).fillRect(x, ry + b * z, cw, z); g.fillStyle(0x000000, 0.32 - b * 0.045).fillRect(x, ry + rh - (b + 1) * z, cw, z); }
+      if (i < 4) g.fillStyle(FM_INK, 1).fillRect(x + cw, ry, gap, rh); }
+    // -- the meters and the ticker
+    for (let k = 0; k < 3; k++) { r(9 + k * 72, 159, 70, 12, FM.chrome[1]); r(10 + k * 72, 160, 68, 10, 0x140404); }
+    r(9, 172, CW - 18, 10, FM.chrome[1]); r(10, 173, CW - 20, 8, 0x140404);
+    for (let x = 11; x < CW - 11; x += 2) r(x, 173, 1, 8, 0x2a0a0a, 0.5);
+    // -- the deck: steps out wider, like a till, with five arcade buttons that light up
+    r(-8, 183, CW + 16, bottom - 183, FM_INK); r(-6, 184, CW + 12, bottom - 184, FM.red[1]); r(-6, 184, CW + 12, 2, FM.gold[3]); r(-6, 186, CW + 12, 1, FM.gold[1]);
+    const live = this.live();
+    for (const [id, x, w] of this.deck()) {
+      const on = live[id], pr = this.press[id] > 0 ? 1.2 : 0, col = id === 'spin' ? [0x0e4a1a, 0x2aa04a, 0x7dff8a] : id === 'take' ? [0x4a2a04, 0xc8902a, 0xffe070] : id === 'strength' ? [0x3a0e4a, 0x9a3ac0, 0xe08aff] : [0x0e2a4a, 0x2a6ac0, 0x8ac0ff];
+      const flash = on && (id === 'spin' ? Math.floor(t * 3) % 2 : id === 'take' && this.pos >= 0 ? Math.floor(t * 5) % 2 : 0);
+      r(x - 1, 187, w + 2, 18, FM_INK); r(x, 188 + pr, w, 16 - pr, on ? (flash ? col[2] : col[1]) : 0x2a2030); r(x, 188 + pr, w, 2, on ? 0xffffff : 0x3a3040, on ? 0.6 : 1);
+      for (let k = 0; k < w; k += 4) r(x + k, 187, 2, 1, on && (Math.floor(t * 12) + k / 4) % 4 === 0 ? 0xffffff : col[0]);
+      this.btnT[id][0].setY(G.oy + (194 + pr) * z); this.btnT[id][1].setY(G.oy + (200 + pr) * z);
+    }
+    this.glowSpin.setAlpha(live.spin ? 0.35 + 0.3 * Math.abs(Math.sin(t * 3)) : 0.05);
+    // -- THE BIG CHEESE builder tower: a glass dome over a cheese plate that fills with coins; MUST POP by N
+    { const x0 = G.TX, w = G.TW, B = this.bc, frac = Math.min(1, B.n / B.N), cxj = x0 + w / 2, near = frac > 0.75;
+      r(x0 - 2, 6, w + 4, bottom - 6, FM_INK); r(x0, 8, w, bottom - 8, 0x2a1a5a); r(x0, 8, 3, bottom - 8, 0x4a3a8a); r(x0 + w - 3, 8, 3, bottom - 8, 0x1a0e3a);
+      r(x0, 8, w, 22, FM.gold[2]); r(x0, 8, w, 2, FM.gold[4]); r(x0, 28, w, 2, FM.gold[0]);
+      for (let k = 0; k < 10; k++) r(x0 + 3 + k * (w - 6) / 10, 31, 3, 2, (Math.floor(t * (near ? 14 : 4)) + k) % 3 ? 0xffd23f : 0xffffff);
+      // the dome
+      const dy = 40, dh = 74, dw = w - 12;
+      for (let y = 0; y < dh; y++) { const hw = y < dw / 2 ? Math.sqrt(Math.max(0, Math.pow(dw / 2, 2) - Math.pow(dw / 2 - y, 2))) : dw / 2; if (hw < 1) continue; r(cxj - hw - 1, dy + y, 2 * hw + 2, 1, FM.chrome[3]); r(cxj - hw, dy + y, 2 * hw, 1, 0x140a28); }
+      // the coins inside, piling up: rows of gold, the top one wobbling
+      const coinsN = Math.min(B.n, 40), per = 6;
+      for (let k = 0; k < coinsN; k++) { const row = Math.floor(k / per), col2 = k % per, yy = dy + dh - 5 - row * 4.5, xx = cxj - (per - 1) * 4.5 + col2 * 9 + (row % 2 ? 2 : -2), wob = k === coinsN - 1 ? Math.sin(t * 10) : 0;
+        r(xx - 4, yy - 2 + wob, 8, 4, FM_INK); r(xx - 3.5, yy - 1.5 + wob, 7, 3, 0xffd23f); r(xx - 3, yy - 1.5 + wob, 6, 1, 0xfff0a0); }
+      for (let y = 0; y < dh; y += 3) r(cxj - dw / 2 + 4, dy + y + 6, 2, 2, 0xffffff, 0.18 + (y % 9 === 0 ? 0.2 : 0));       // glass glint
+      r(cxj - dw / 2 - 3, dy + dh, dw + 6, 5, FM.gold[2]); r(cxj - dw / 2 - 3, dy + dh, dw + 6, 1, FM.gold[4]);
+      // the pot LED, the must-pop meter
+      r(x0 + 4, 122, w - 8, 12, FM.chrome[1]); r(x0 + 5, 123, w - 10, 10, 0x140404);
+      const segs = B.N, sw = (w - 10) / segs; for (let k = 0; k < segs; k++) r(x0 + 5 + k * sw, 150, Math.max(0.6, sw - 0.6), 6, k < B.n ? (near ? (Math.floor(t * 12) + k) % 2 ? 0xff4a2a : 0xffd23f : 0xffd23f) : 0x3a2a5a);
+      this.glowJar.setAlpha(near ? 0.5 + 0.4 * Math.abs(Math.sin(t * 8)) : 0.18 + frac * 0.3);
+      if (this.ph === 'pop') { const k = Math.floor(t * 20); r(x0, 8, w, bottom - 8, RB(k), 0.25); }
+    }
+    // -- the LEVER: a chrome mount on the cabinet's side, a long arm and a red ball. It swings down when the reels go
+    this.leverT = Math.max(0, (this.leverT || 0) - dt); const lu = this.leverT > 0 ? 1 - this.leverT / 0.5 : 1, pull = lu < 0.35 ? Math.sin(lu / 0.35 * Math.PI / 2) : Math.cos((lu - 0.35) / 0.65 * Math.PI / 2);
+    { const px = G.LX, py = G.LY, ang = -Math.PI / 2 + 0.12 + pull * (Math.PI - 0.5), L = 70, bx = px + Math.cos(ang) * L, by = py + Math.sin(ang) * L;
+      r(CW - 1, py - 12, 10, 24, FM_INK); r(CW, py - 11, 8, 22, FM.chrome[2]); r(CW, py - 11, 8, 2, FM.chrome[4]);
+      g.lineStyle(5 * z, FM_INK, 1).lineBetween(G.ox + px * z, G.oy + py * z, G.ox + bx * z, G.oy + by * z);
+      g.lineStyle(3 * z, FM.chrome[3], 1).lineBetween(G.ox + px * z, G.oy + py * z, G.ox + bx * z, G.oy + by * z);
+      g.lineStyle(1 * z, 0xffffff, 0.8).lineBetween(G.ox + (px - 0.8) * z, G.oy + py * z, G.ox + (bx - 0.8) * z, G.oy + by * z);
+      g.fillStyle(FM_INK, 1).fillCircle(G.ox + px * z, G.oy + py * z, 6 * z); g.fillStyle(FM.chrome[2], 1).fillCircle(G.ox + px * z, G.oy + py * z, 5 * z);
+      const idleHint = this.ph === 'idle' && Math.floor(t * 2) % 2;
+      g.fillStyle(FM_INK, 1).fillCircle(G.ox + bx * z, G.oy + by * z, 8.5 * z); g.fillStyle(idleHint ? 0xff4a4a : 0xd81a2a, 1).fillCircle(G.ox + bx * z, G.oy + by * z, 7.5 * z);
+      g.fillStyle(0x8a0a14, 1).fillCircle(G.ox + (bx + 2) * z, G.oy + (by + 2) * z, 4.5 * z); g.fillStyle(0xff8a8a, 1).fillCircle(G.ox + (bx - 2.5) * z, G.oy + (by - 2.5) * z, 2.2 * z); g.fillStyle(0xffffff, 1).fillRect(G.ox + (bx - 3.5) * z, G.oy + (by - 3.5) * z, 1.5 * z, 1.5 * z); }
+    // -- Louise, left of the cabinet
+    { this.louT = Math.max(0, this.louT - dt); if (this.louT <= 0 && this.louPose !== 'idle') this.louPose = 'idle';
+      const room = G.ox - 14 * z, sc = Math.min(z * 1.1, room / 46);
+      if (sc < 1) this.lou.setVisible(false);
+      else { const bob = this.louPose === 'cheer' ? Math.abs(Math.sin(t * 9)) * 3 * sc : Math.sin(t * 1.8) * 0.6 * sc; this.lou.setVisible(true).setTexture('lou_' + this.louPose).setScale(sc).setPosition(Math.round((G.ox - 10 * z) / 2), Math.round(Math.min(G.H + 4, G.oy + 206 * z) - bob)); } }
+  }
+  // the reel glass over the symbols: scanlines and a glare that sweeps across now and then
+  drawGlass(G, t) {
+    const fg = this.fg, { rx, ry, rw, rh, z } = G;
+    for (let y = 0; y < rh; y += 3 * z) fg.fillStyle(0x000000, 0.12).fillRect(rx, ry + y, rw, Math.max(1, z * 0.8));
+    const u = (t * 0.25) % 1.6; if (u < 1) { const x = rx - rh + u * (rw + rh * 2); fg.fillStyle(0xffffff, 0.12).fillTriangle(x, ry, x + 18 * z, ry, x - rh + 18 * z, ry + rh).fillTriangle(x, ry, x - rh, ry + rh, x - rh + 18 * z, ry + rh); }
+  }
+  lampName(p) { const s2 = SLOT.STRENGTHS[this.sk].trail[p]; return s2 === 'C' ? String(Math.max(1, Math.round(SLOT.TUNE[this.sk].val[p] * this.bet()))) : { FREE: 'FREE', SUPER: 'SUPR', RAT: 'RAT', RESPIN: 'CASH', JACKPOT: 'JACK\nPOT' }[s2]; }
+  // ---------------------------------------------------------------- (v3.120) THE BIG CHEESE: an American-style builder
+  // About one base spin in five drops a cheese coin (worth 0.1x-1x the bet) on a reel; it flies up into the dome and
+  // the pot grows. The dome MUST POP by a hidden-ish count (shown as the meter, 18-30 coins): then the whole pot pays.
+  // Coins are worth 5.1% of the bet on average, so with the reels and trail at ~90% the machine stays at ~95%.
+  bcLoad() { let B = null; try { B = JSON.parse(localStorage.getItem('lc_bigcheese_' + this.from) || 'null'); } catch (e) { /* */ } this.bc = B && B.N ? B : { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; }
+  bcSave() { try { localStorage.setItem('lc_bigcheese_' + this.from, JSON.stringify(this.bc)); } catch (e) { /* */ } }
+  bcRefresh() { if (!this.bcT || !this.bc) return; this.bcT[1].setText(String(Math.round(this.bc.pot))); this.bcT[2].setText('MUST POP BY\n' + this.bc.N + ' COINS'); }
+  bcDrop() {                                           // called as a paid spin settles: maybe a coin lands
+    if (Math.random() >= 0.2) return null;
+    const vs = [[0.1, 0.35], [0.2, 0.3], [0.3, 0.2], [0.5, 0.1], [1, 0.05]]; let u = Math.random(), v = 0.1; for (const [x, p] of vs) { if ((u -= p) <= 0) { v = x; break; } }
+    return { v: v * this.bet(), reel: Math.floor(Math.random() * 5), row: Math.floor(Math.random() * 3) };
+  }
+  bcFly(c) {
+    const G = this.geom(), from = this.cell(c.reel, c.row), to = G.A(G.TX + G.TW / 2, 96), im = this.add.image(from.x, from.y, 'fm_coin').setDepth(7.6).setScale(G.z * 1.6);
+    const tx = this.add.text(from.x, from.y + 12 * G.z, '+' + Math.round(c.v), { fontFamily: PIXEL, fontSize: Math.round(4 * G.z) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(7.7);
+    Sound.sfx('chime'); this.burstAt(from.x, from.y, 0xffd23f, 12);
+    this.tweens.add({ targets: im, scale: G.z * 2.2, duration: 200, yoyo: true });
+    this.tweens.add({ targets: [im], x: to.x, y: to.y, delay: 420, duration: 520, ease: 'Cubic.easeIn', onComplete: () => { im.destroy(); this.bc.pot += c.v; this.bc.n++; this.bcSave(); this.bcRefresh(); Sound.sfx('pickup'); this.burstAt(to.x, to.y, 0xffd23f, 16); if (this.bc.n >= this.bc.N) this.bcPending = true; } });
+    this.tweens.add({ targets: tx, y: tx.y - 20 * G.z, alpha: 0, delay: 300, duration: 900, onComplete: () => tx.destroy() });
+  }
+  bcPop() {
+    const B = this.bc, amt = B.pot, G = this.geom(), at = G.A(G.TX + G.TW / 2, 80); this.bcPending = false; this.ph = 'pop';
+    this.louise('cheer', 3.5, 'THE BIG CHEESE! THAT IS SO RIDIC!'); this.bigBanner('THE BIG CHEESE!', 0xffd23f, 2.2); Sound.sfx('reveal'); this.cameras.main.flash(400, 255, 230, 120); this.cameras.main.shake(700, 0.01);
+    this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(70, at); this.fountain(40);
+    this.time.delayedCall(2300, () => { this.bc = { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; this.bcSave(); const w = this.addBal(amt); this.lastWin = w; this.bcRefresh(); this.countWin(amt, amt / this.bet()); this.say('THE BIG CHEESE PAID ' + Math.round(amt) + ' ' + this.unit() + '!', '#ffd23f'); });
   }
   winCell(rr, row) { return this.winLines.some(w => rr < w.n && SLOT.LINES[w.line][rr] === row); }
 }

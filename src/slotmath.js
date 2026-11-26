@@ -21,19 +21,19 @@ const SLOT = (() => {
     mild: {
       name: 'MILD', col: 0xffe070, desc: 'Small wins, often. A short trail that barely slips.',
       counts: { wedge: [7, 7, 7, 7, 7], coin: [6, 6, 6, 6, 6], slow: [5, 5, 5, 5, 5], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 2, 1, 2, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'C', 'JACKPOT'], slip: 0.08, split: [0.62, 0.33], jackK: 6,
+      trail: ['C', 'C', 'FREE', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'C', 'JACKPOT'], slip: 0.08, split: [0.57, 0.33], jackK: 6,
       free: { spins: 8, mult: 1 }, rat: [1, 1, 2, 2, 3, 3, 4, 5, 8, 12], rats: 2, respin: { start: 6, p: 0.075, vals: [1, 1, 1, 2, 2, 3, 5], grand: 50 }
     },
     mature: {
       name: 'MATURE', col: 0xf0c030, desc: 'Balanced. A longer trail and bigger bonuses.',
       counts: { wedge: [8, 8, 8, 8, 8], coin: [7, 7, 7, 7, 7], slow: [6, 6, 6, 6, 6], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 1, 2, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'RAT', 'C', 'FREE', 'C', 'JACKPOT'], slip: 0.1, split: [0.52, 0.43], jackK: 10,
+      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'RAT', 'C', 'FREE', 'C', 'JACKPOT'], slip: 0.1, split: [0.47, 0.43], jackK: 10,
       free: { spins: 10, mult: 1 }, rat: [1, 2, 2, 3, 4, 5, 8, 10, 15, 25], rats: 2, respin: { start: 6, p: 0.07, vals: [1, 1, 2, 2, 3, 5, 10], grand: 200 }
     },
     extra: {
       name: 'EXTRA MATURE', col: 0xd87a1a, desc: 'Long dry spells. The trail slips back. Massive top end.',
       counts: { wedge: [9, 9, 9, 9, 9], coin: [8, 8, 8, 8, 8], slow: [7, 7, 7, 7, 7], plate: [6, 6, 6, 6, 6], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 1, 2, 1, 0], star: [1, 1, 1, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'FREE', 'C', 'C', 'SUPER', 'C', 'C', 'JACKPOT'], slip: 0.15, split: [0.45, 0.5], jackK: 25,
+      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'FREE', 'C', 'C', 'SUPER', 'C', 'C', 'JACKPOT'], slip: 0.15, split: [0.40, 0.50], jackK: 25,
       free: { spins: 10, mult: 1 }, super: { spins: 12, mult: 3 }, rat: [1, 2, 3, 5, 8, 10, 15, 25, 50, 100], rats: 3, respin: { start: 5, p: 0.065, vals: [1, 2, 2, 3, 5, 10, 25], grand: 1000 }
     }
   };
@@ -42,7 +42,7 @@ const SLOT = (() => {
   // step's bonus game worth its val on average. Each val is exactly what carrying on from that step is worth, so taking
   // is never a mistake: it's banking versus gambling, and the RTP is the same however you play.
   // @@TUNE@@
-  const TUNE = {"mild":{"line":1.40453,"val":[1.468,3.383,3.492,4.986,4.75,6.138,5.658,6.97,6.256,7.504,9.35,11.577],"fx":[0,0,0.14434,0,0.16447,0,0.17274,0,0.12857,0,0,0]},"mature":{"line":1.1605,"val":[2.401,5.993,7.268,10.308,14.218,15.299,18.23,18.564,21.122,21.023,23.364,22.913,25.079,24.297,26.297,29.987],"fx":[0,0,0.1509,0,0,0.13688,0,0.17884,0,0.11821,0,0.16426,0,0.21237,0,0]},"extra":{"line":1.11072,"val":[3.59,10.722,14.542,21.922,32.806,39.752,50.231,64.184,73.541,86.384,94.048,105.24,119.899,128.665,140.949,156.691,177.127],"fx":[0,0,0.61837,0,0,0.14098,0,0,0.13855,0,0.79094,0,0,0.19812,0,0,0]}};
+  const TUNE = {"mild":{"line":1.29298,"val":[1.468,3.383,3.492,4.986,4.75,6.138,5.658,6.97,6.256,7.504,9.35,11.577],"fx":[0,0,0.14472,0,0.16381,0,0.17319,0,0.1286,0,0,0]},"mature":{"line":1.04405,"val":[2.401,5.993,7.268,10.308,14.218,15.299,18.23,18.564,21.122,21.023,23.364,22.913,25.079,24.297,26.297,29.987],"fx":[0,0,0.15073,0,0,0.13724,0,0.17865,0,0.11837,0,0.16469,0,0.21215,0,0]},"extra":{"line":0.97772,"val":[3.59,10.722,14.542,21.922,32.806,39.752,50.231,64.184,73.541,86.384,94.048,105.24,119.899,128.665,140.949,156.691,177.127],"fx":[0,0,0.61566,0,0,0.14075,0,0,0.13875,0,0.78748,0,0,0.19736,0,0,0]}};
   // @@END@@
   // reel strips: the counts, spread out so stars and wilds never bunch (a star at most once in any 3-high window)
   function strips(sk) {
