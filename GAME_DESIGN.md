@@ -2640,3 +2640,11 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   It MUST POP by a count shown on the meter (18-30 coins); then the whole pot pays with a big show. Coins average
   5.1% of the bet, so the reels and trail were retuned to ~90% (splits mild .57/.33, mature .47/.43, extra .40/.50)
   for ~95% overall. The pot persists per currency (localStorage lc_bigcheese_shop / _camp). Free spins drop none.
+
+## v3.121: beers at the Moon Bar
+- Clank sells pints of moon ale: BUY A BEER (5 golden crumbs). The pint slides along the bar, Chris glugs it
+  (glug glug), *HIC*. No crumbs, no beer; four pints and Clank cuts you off.
+- Each pint is 30 seconds tipsy, stacking (src/tipsy.js): the screen's edges go blurry and warm (a CSS backdrop-blur
+  layer masked to the edges) and the whole picture sways a little; more pints, more blur, easing off in the last ten
+  seconds. Chris staggers: Tipsy.steer() bends his walking and he drifts even standing still, sways on his feet, and
+  hiccups. Works in the bar and out at camp (the stagger is camp-only; the blur is everywhere until it wears off).

@@ -13,7 +13,8 @@ const BAR_GAMES = [   // the arcade cabinets: [id, art x, name, two-line marquee
   { id: 'freefall', x: 568, name: 'GRILL FREEFALL', mq: 'FREEFALL', col: [0x4a2a08, 0xff9a2a, 0xffe040] },
   { id: 'centrifuge', x: 628, name: 'CENTRIFUGE', mq: 'SPIN DRUM', col: [0x0e3a1a, 0x7dff8a, 0xc8ff6a] }
 ];
-const BarRoom = { back: false };   // set while a bonus level was started from the bar: its exit comes back here
+const BarRoom = { back: false };
+const BAR_BEER = 5;   // (v3.121) a pint of moon ale, in golden crumbs   // set while a bonus level was started from the bar: its exit comes back here
 
 function makeBarRoomArt(scene) {
   if (scene.textures.exists('br_bg')) return;
@@ -62,6 +63,7 @@ function makeBarRoomArt(scene) {
     R(c, 0, 40, 180, 2, 0xc8ccd8);       // the brass foot rail
     for (const x of [30, 70, 110, 150]) { R(c, x - 2, -6, 5, 6, 0xf4ecd8, 0.9); R(c, x - 1, -9, 3, 3, 0xff9a2a); }   // pint glasses on the bar
   });
+  cv('br_pint', 8, 12, (c) => { R(c, 0, 2, 8, 10, 0x1a1020); R(c, 1, 3, 6, 8, 0xffb03a); R(c, 1, 3, 6, 2, 0xfff4e0); R(c, 1, 0, 6, 3, 0xffffff); R(c, 2, 5, 1, 5, 0xffe0a0); R(c, 7, 4, 1, 4, 0x1a1020); });
   cv('br_stool', 14, 26, (c) => { R(c, 0, 0, 14, 4, 0x1a1020); R(c, 1, 0, 12, 3, 0xd83a2a); R(c, 1, 0, 12, 1, 0xff6a6a); R(c, 6, 4, 2, 20, 0xc8ccd8); R(c, 2, 24, 10, 2, 0x9aa4b8); R(c, 3, 15, 8, 1, 0x9aa4b8); });
   // ---- the arcade cabinets (one texture each, their screens are animated over the top)
   for (const g of BAR_GAMES) cv('br_cab_' + g.id, 36, 78, (c) => {
@@ -106,7 +108,7 @@ class BarRoomScene extends Phaser.Scene {
     BarRoom.back = false;
     this.t = 0; this.going = false; this.cx = 60; this.goal = null; this.useOnArrive = null; this.hold = 0;
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0.1, power: 0, duck: false, facing: 1 };
-    this.spots = [{ id: 'door', x: 23, name: 'THE DOOR', verb: 'BACK TO CAMP' }, { id: 'bot', x: 130, name: 'CLANK THE BARMAN', verb: 'ORDER A DRINK' },
+    this.spots = [{ id: 'door', x: 23, name: 'THE DOOR', verb: 'BACK TO CAMP' }, { id: 'bot', x: 130, name: 'CLANK THE BARMAN', verb: 'BUY A BEER (' + BAR_BEER + ' CRUMBS)' },
       { id: 'slot', x: 290, name: 'RIDIC LOUISE', verb: 'PLAY' }]
       .concat(BAR_GAMES.map(g => ({ id: g.id, x: g.x, name: g.name, verb: 'PLAY', game: g })), [{ id: 'juke', x: 716, name: 'THE JUKEBOX', verb: 'CHANGE THE TUNE' }]);
     this.build();
@@ -187,12 +189,30 @@ class BarRoomScene extends Phaser.Scene {
     if (this.going) return; s = s || this.near(); if (!s) return;
     const go = (fn) => { this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, fn); };
     if (s.id === 'door') { this.leave(); return; }
-    if (s.id === 'bot') { Sound.sfx('pickup'); this.botT = 1.2; this.say(['CLANK: ONE MILKSHAKE, EXTRA MOON.', 'CLANK: WE ONLY SERVE CHEESE-BASED DRINKS.', 'CLANK: THIS ONE IS ON THE HOUSE. THEY ALL ARE.', 'CLANK: *POLISHES GLASS MENACINGLY*', 'CLANK: GORGONZOLA COLADA? GOOD CHOICE.'][Math.floor(Math.random() * 5)]); return; }
+    if (s.id === 'bot') { this.buyBeer(); return; }
     if (s.id === 'juke') { this.trackI = (this.trackI + 1) % this.tracks.length; Sound.music(this.tracks[this.trackI]); Sound.sfx('blip'); this.jukeT = 1; this.say('NOW PLAYING: ' + ['MOON BAR BOOGIE', 'THE CAMP ANTHEM', 'LEVEL ONE (LOUNGE MIX)', 'THE TENT LULLABY'][this.trackI]); return; }
     if (s.id === 'slot') { go(() => this.scene.start('fruity', { from: 'camp', back: 'bar' })); return; }
     if (s.game) { if (typeof Run !== 'undefined' && Run.on) return; BarRoom.back = true; const id = s.id;
       go(() => { if (id === 'centrifuge') this.scene.start('centrifuge'); else if (id === 'freefall') this.scene.start('freefall'); else this.scene.start('zerog', { room: id }); }); }
   }
+  // (v3.121) a pint from Clank: costs crumbs, Chris glugs it, and he's tipsy for 30 seconds (src/tipsy.js)
+  buyBeer() {
+    if (this.drinkT > 0) return;
+    if (Meta.crumbs() < BAR_BEER) { Sound.sfx('clunk'); this.botT = 0.6; this.say(['CLANK: NO CRUMBS, NO BEER, CHEF.', 'CLANK: YOUR CRUMB TAB IS... EMPTY.', 'CLANK: COME BACK WITH ' + BAR_BEER + ' GOLDEN CRUMBS.'][Math.floor(Math.random() * 3)]); return; }
+    if (Tipsy.pints() >= Tipsy.MAX) { Sound.sfx('clunk'); this.say('CLANK: I THINK YOU\'VE HAD ENOUGH, CHEF.'); return; }
+    Meta.addCrumbs(-BAR_BEER); Sound.sfx('pickup'); this.botT = 1.2;
+    this.say(['CLANK: ONE PINT OF MOON ALE. -' + BAR_BEER + ' CRUMBS', 'CLANK: FRESH FROM THE CRATER. -' + BAR_BEER + ' CRUMBS', 'CLANK: MIND THE HEAD ON THAT. -' + BAR_BEER + ' CRUMBS'][Math.floor(Math.random() * 3)]);
+    // the pint slides along the bar to him, he glugs it, it's gone
+    const z = this.z, pint = this.add.image(130 * z, 122 * z, 'br_pint').setOrigin(0.5, 1).setScale(z * 1.3).setDepth(3.5);
+    this.drinkT = 2.2; this.goal = null; this.useOnArrive = null;
+    this.tweens.add({ targets: pint, x: this.cx * z + this.P.facing * 6 * z, y: (BAR.FL - 22) * z, duration: 500, ease: 'Quad.easeOut', onComplete: () => {
+      Sound.sfx('jump'); this.tweens.add({ targets: pint, angle: -this.P.facing * 70, y: pint.y - 8 * z, duration: 300 });
+      this.time.delayedCall(450, () => { let k = 0; this.time.addEvent({ delay: 180, repeat: 4, callback: () => { Sound.sfx('blip'); pint.setScale(z * 1.3, z * 1.3 * (1 - ++k * 0.18)); } }); });
+      this.time.delayedCall(1500, () => { pint.destroy(); const n = Tipsy.drink(); Sound.sfx('power'); this.hic(); this.say(n > 1 ? n + ' PINTS IN... THE ROOM IS SPINNING' : 'AHHH. THAT HITS THE SPOT. *HIC*'); });
+    } });
+  }
+  hic() { const z = this.z, t = this.add.text(this.cx * z + (Math.random() - 0.5) * 20 * z, (BAR.FL - 48) * z, '*HIC*', { fontFamily: PIXEL, fontSize: Math.round(4 * z) + 'px', color: '#ffd9a0', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(5);
+    this.tweens.add({ targets: t, y: t.y - 16 * z, alpha: 0, angle: (Math.random() - 0.5) * 30, duration: 1100, onComplete: () => t.destroy() }); Sound.sfx('bonk'); }
   leave() { if (this.going) return; this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('level1', { camp: true, at: CAMP_ST.find(s => s.id === 'bar').theta })); }
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000); this.t += dt; const t = this.t, z = this.z, { FL, RW } = BAR, P = this.P, W = this.scale.width, H = this.scale.height;
@@ -200,11 +220,14 @@ class BarRoomScene extends Phaser.Scene {
     let dir = 0; const K = this.keys;
     if (K && (K.LEFT.isDown || K.A.isDown)) dir -= 1; if (K && (K.RIGHT.isDown || K.D.isDown)) dir += 1;
     if (typeof Pad !== 'undefined' && Pad.state) { if (Pad.state.left) dir = -1; if (Pad.state.right) dir = 1; }
+    this.drinkT = Math.max(0, (this.drinkT || 0) - dt); if (this.drinkT > 0) dir = 0;
     if (dir) { this.goal = null; this.useOnArrive = null; }
     else if (this.goal !== null) { const d = this.goal - this.cx; if (Math.abs(d) < 2) { this.goal = null; if (this.useOnArrive) { const s = this.useOnArrive; this.useOnArrive = null; this.use(s); } } else dir = Math.sign(d); }
+    if (Tipsy.level() > 0 && !this.drinkT && !this.going) { dir = Tipsy.steer(dir, this.time.now); if (Math.random() < dt * 0.25) this.hic(); }
     const sp = 95; P.vx = this.going ? 0 : dir * sp * z; this.cx = Math.max(14, Math.min(RW - 14, this.cx + (this.going ? 0 : dir * sp * dt)));
-    if (dir) P.facing = dir;
+    if (Math.abs(dir) > 0.15) P.facing = Math.sign(dir);
     this.rig.update(P, dt, Math.round(this.cx * z), Math.round(FL * z), z * 0.58, 1, Math.floor(t * 10) % 4);
+    if (Tipsy.level() > 0) this.rig.root.setRotation(this.rig.root.rotation + Tipsy.sway(this.time.now));
     const cam = this.cameras.main; cam.scrollX = Math.max(0, Math.min(Math.max(0, RW * z - W), this.cx * z - W / 2));
     // the prompt over whatever you're next to
     const s = this.near();

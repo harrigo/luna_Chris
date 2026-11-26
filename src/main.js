@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.120';
+const BUILD = 'v3.121';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1918,6 +1918,7 @@ class Level1 extends Phaser.Scene {
     P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
     let ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);      // crouched: a slow waddle (and steering while dropping)
+    if (this.camp && typeof Tipsy !== 'undefined' && Tipsy.level() > 0 && !inp.down) ax = Tipsy.steer(ax, this.time.now);   // (v3.121) a pint or two: he staggers
     if (this.fullCam) {                                       // FULL camera: left/right follow the SCREEN. The way round is decided when you
       if (ax && !this.axHeld) {                               // press, and kept while
         const lag = this.camLag || 0, c = Math.cos(lag);
