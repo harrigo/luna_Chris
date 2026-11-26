@@ -64,14 +64,17 @@ const Ach = (() => {
   const save = () => { dirty = true; if (saveT) return; saveT = setTimeout(() => { saveT = null; if (!dirty) return; dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* ignore */ } }, 400); };
   const queue = [];
   let showing = false;
-  const testing = () => (typeof Progress !== 'undefined' && Progress.testMode) || (typeof Cheat !== 'undefined' && Cheat.on);
+  // (v3.135) only CHEAT mode holds trophies back now. Test mode used to as well, which left counters sitting at 10/10
+  // with the cup still grey and no toast - it looked broken. Anything already earned on the counters is handed over
+  // the next time the game starts (reconcile), with its toast.
+  const testing = () => typeof Cheat !== 'undefined' && Cheat.on;
 
   function unlock(id) {
     if (S.got[id]) return false;
     const a = ACH_LIST.find(x => x.id === id); if (!a) return false;
     if (testing()) return false;                         // (cheats and test mode don't earn trophies)
     S.got[id] = Date.now(); save();
-    queue.push(a); pump();
+    queue.push([a, ACH_LIST.filter(q => S.got[q.id]).length]); pump();
     return true;
   }
   function check(kind, key, v) {
@@ -80,6 +83,19 @@ const Ach = (() => {
   function stat(key, n) { S.n[key] = (S.n[key] || 0) + (n === undefined ? 1 : n); save(); check('stat', key, S.n[key]); }
   function best(key, v) { if (v > (S.best[key] || 0)) { S.best[key] = v; save(); } check('best', key, v); }
   function bossBeaten(lv) { const a = ACH_LIST.find(x => x.lv === lv); if (a) unlock(a.id); }
+  // hand over anything the save already shows was done: full counters, bosses already beaten, an S rank on the books
+  function reconcile() {
+    if (testing()) return;
+    for (const a of ACH_LIST) {
+      if (S.got[a.id]) continue;
+      let done = false;
+      if (a.stat) done = (S.n[a.stat] || 0) >= a.at;
+      else if (a.best) done = (S.best[a.best] || 0) >= a.at;
+      else if (a.lv !== undefined && typeof Progress !== 'undefined') done = a.lv % 1 ? Progress.secretBeat(a.lv) : Progress.best >= a.lv;
+      else if (a.id === 'ranks') try { done = Object.keys(localStorage).some(k => /^lc_rank_/.test(k) && localStorage.getItem(k) === 'S'); } catch (e) { /* ignore */ }
+      if (done) unlock(a.id);
+    }
+  }
   function progress(a) {                                 // [have, need] for the counted ones, or null
     if (a.stat) return [Math.min(a.at, S.n[a.stat] || 0), a.at];
     if (a.best) return [Math.min(a.at, S.best[a.best] || 0), a.at];
@@ -92,28 +108,35 @@ const Ach = (() => {
     const scenes = game.scene.getScenes(true); const sc = scenes[scenes.length - 1];
     if (!sc || !sc.add) { setTimeout(pump, 500); return; }
     showing = true;
-    const a = queue.shift();
+    const [a, n] = queue.shift();
     achTextures(sc);
-    const W = sc.scale.width, w = Math.min(W - 24, 300), h = 46, x = Math.round(W / 2 - w / 2);
+    const W = sc.scale.width, w = Math.min(W - 24, 320), h = 54, x = Math.round(W / 2 - w / 2);
     const c = sc.add.container(x, -h - 10).setDepth(5000).setScrollFactor(0);
     const g = sc.add.graphics();
-    if (typeof hudBox === 'function') hudBox(g, 2, 2, w - 4, h - 4, 0x2a1f5a); else g.fillStyle(0x2a1f5a, 1).fillRect(0, 0, w, h);
+    g.fillStyle(0xffd23f, 1).fillRect(0, 0, w, h); g.fillStyle(0x1a1020, 1).fillRect(2, 2, w - 4, h - 4);   // (v3.135) gold: it's a trophy
+    g.fillStyle(0x5a3e12, 1).fillRect(4, 4, w - 8, h - 8); g.fillStyle(0x7a5618, 1).fillRect(4, 4, w - 8, 3);
+    g.fillStyle(0xffd23f, 0.25).fillCircle(26, h / 2, 18);
     const f = (sz, col) => ({ fontFamily: PIXEL, fontSize: sz + 'px', color: col, stroke: '#1a1020', strokeThickness: 3 });
-    c.add([g, sc.add.image(24, h / 2, 'ach_cup').setScale(1),
-      sc.add.text(46, 9, 'TROPHY UNLOCKED!', f(7, '#9fd8ff')),
-      sc.add.text(46, 21, a.name, f(10, '#ffd23f')),
-      sc.add.text(46, 34, a.desc.toUpperCase(), f(6, '#ffffff')).setAlpha(0.85)]);
-    const shine = sc.add.image(24, h / 2, 'spark').setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0a0).setScale(0.2);
+    const cup = sc.add.image(26, h / 2, 'ach_cup').setScale(1.3);
+    c.add([g, cup,
+      sc.add.text(50, 9, 'TROPHY UNLOCKED!', f(7, '#7dff8a')),
+      sc.add.text(w - 10, 9, n + '/' + ACH_LIST.length, f(7, '#ffd23f')).setOrigin(1, 0),
+      sc.add.text(50, 22, a.name, f(11, '#ffe680')),
+      sc.add.text(50, 39, a.desc.toUpperCase(), f(6, '#fff4d8'))]);
+    const shine = sc.add.image(26, h / 2, 'spark').setBlendMode(Phaser.BlendModes.ADD).setTint(0xfff0a0).setScale(0.2);
     c.add(shine);
-    sc.tweens.add({ targets: shine, scale: 2.4, alpha: 0, angle: 90, duration: 700, delay: 300 });
-    if (sc.cameras && sc.hudCam) { /* (the pixel look's HUD camera picks it up by depth) */ }
+    sc.tweens.add({ targets: shine, scale: 2.8, alpha: 0, angle: 90, duration: 700, delay: 300 });
+    sc.tweens.add({ targets: cup, scale: 1.6, yoyo: true, duration: 160, delay: 320, repeat: 1 });
+    if (typeof buzz === 'function') buzz([30, 40, 60]);
     if (typeof Sound !== 'undefined') Sound.sfx('achieve');
     sc.tweens.add({ targets: c, y: 8, duration: 320, ease: 'Back.easeOut' });
-    sc.tweens.add({ targets: c, y: -h - 10, duration: 260, delay: 2900, ease: 'Cubic.easeIn', onComplete: () => { c.destroy(); showing = false; pump(); } });
+    sc.tweens.add({ targets: c, y: -h - 10, duration: 260, delay: 3400, ease: 'Cubic.easeIn', onComplete: () => { c.destroy(); showing = false; pump(); } });
     sc.events.once('shutdown', () => { if (showing) { showing = false; setTimeout(pump, 300); } });
   }
 
-  return { list: ACH_LIST, unlock, stat, best, bossBeaten, progress, has: id => !!S.got[id], count: () => Object.keys(S.got).length, _S: () => S };
+  const has = id => !!S.got[id];
+  setTimeout(() => { try { reconcile(); } catch (e) { /* ignore */ } }, 3500);   // (v3.135) once the game is up, whatever screen it starts on
+  return { list: ACH_LIST, unlock, stat, best, bossBeaten, progress, reconcile, has, when: id => S.got[id] || 0, held: testing, count: () => ACH_LIST.filter(a => has(a.id)).length, _S: () => S };
 })();
 
 // the little gold cup (and a grey locked one)
@@ -138,22 +161,38 @@ class TrophyScene extends Phaser.Scene {
     makeTextures(this); achTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(200, 0, 0, 0);
     const W = this.scale.width, H = this.scale.height, f = (sz, col) => ({ fontFamily: PIXEL, fontSize: sz + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 });
-    const L = Ach.list, got = Ach.count();
-    this.add.text(W / 2, 16, 'TROPHIES', f(18, '#ffd23f')).setOrigin(0.5, 0).setDepth(10);
-    this.add.text(W / 2, 40, got + ' / ' + L.length + ' UNLOCKED', f(8, '#9fd8ff')).setOrigin(0.5, 0).setDepth(10);
-    const head = this.add.graphics().setDepth(9); head.fillStyle(0x0b1020, 1).fillRect(0, 0, W, 56);
+    const L = Ach.list, got = Ach.count(), TOP = 74;
+    this.add.text(W / 2, 12, 'TROPHIES', f(18, '#ffd23f')).setOrigin(0.5, 0).setDepth(10);
+    this.add.text(W / 2, 36, got + ' / ' + L.length + ' UNLOCKED  (' + Math.round(100 * got / L.length) + '%)', f(8, got === L.length ? '#7dff8a' : '#9fd8ff')).setOrigin(0.5, 0).setDepth(10);
+    const head = this.add.graphics().setDepth(9); head.fillStyle(0x0b1020, 1).fillRect(0, 0, W, TOP - 6);
+    { const bw = Math.min(300, W - 40), bx = Math.round(W / 2 - bw / 2), by = 52;                 // the overall bar
+      hudBox(head, bx, by, bw, 6, 0x0c0a24); head.fillStyle(0xffd23f, 1).fillRect(bx, by, Math.round(bw * got / L.length), 6); head.fillStyle(0xfff2a0, 1).fillRect(bx, by, Math.round(bw * got / L.length), 2); }
+    if (Ach.held()) this.add.text(W / 2, 62, 'CHEAT MODE IS ON: TROPHIES ARE PAUSED', f(6, '#ff4d8d')).setOrigin(0.5, 0).setDepth(10);
     // two columns of cards (one on a narrow screen), in a container that scrolls
     const cols = W >= 560 ? 2 : 1, gap = 10, cw = Math.min(330, (W - 30 - gap * (cols - 1)) / cols), ch = 44, x0 = (W - (cols * cw + (cols - 1) * gap)) / 2;
-    const list = this.add.container(0, 64);
-    // unlocked first, then the nearest to done
-    const order = L.slice().sort((a, b) => { const ga = Ach.has(a.id) ? 1 : 0, gb = Ach.has(b.id) ? 1 : 0; if (ga !== gb) return gb - ga; const pa = Ach.progress(a), pb = Ach.progress(b); return (pb ? pb[0] / pb[1] : 0) - (pa ? pa[0] / pa[1] : 0); });
+    const list = this.add.container(0, TOP);
+    const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    // unlocked first (newest first), then the nearest to done
+    const order = L.slice().sort((a, b) => { const ga = Ach.has(a.id) ? 1 : 0, gb = Ach.has(b.id) ? 1 : 0; if (ga !== gb) return gb - ga; if (ga) return Ach.when(b.id) - Ach.when(a.id); const pa = Ach.progress(a), pb = Ach.progress(b); return (pb ? pb[0] / pb[1] : 0) - (pa ? pa[0] / pa[1] : 0); });
     order.forEach((a, i) => {
       const x = x0 + (i % cols) * (cw + gap), y = Math.floor(i / cols) * (ch + 8), on = Ach.has(a.id), g = this.add.graphics();
-      hudBox(g, x + 2, y + 2, cw - 4, ch - 4, on ? 0x2a1f5a : 0x1a1630);
+      if (on) {                                            // DONE: a gold card, the cup shining, a stamp and the date
+        g.fillStyle(0xffd23f, 1).fillRect(x - 1, y - 1, cw + 2, ch + 2);
+        g.fillStyle(0x1a1020, 1).fillRect(x + 1, y + 1, cw - 2, ch - 2);
+        g.fillStyle(0x5a3e12, 1).fillRect(x + 3, y + 3, cw - 6, ch - 6);
+        g.fillStyle(0x7a5618, 1).fillRect(x + 3, y + 3, cw - 6, 2);
+        g.fillStyle(0xffd23f, 0.22).fillCircle(x + 22, y + ch / 2, 15);
+      } else hudBox(g, x + 2, y + 2, cw - 4, ch - 4, 0x161228);
       list.add(g);
-      list.add(this.add.image(x + 22, y + ch / 2, on ? 'ach_cup' : 'ach_lock').setAlpha(on ? 1 : 0.7));
-      list.add(this.add.text(x + 42, y + 8, a.name, f(9, on ? '#ffd23f' : '#8a8aa8')));
-      list.add(this.add.text(x + 42, y + 22, a.desc.toUpperCase(), f(6, on ? '#ffffff' : '#9aa0bc')));
+      list.add(this.add.image(x + 22, y + ch / 2, on ? 'ach_cup' : 'ach_lock').setAlpha(on ? 1 : 0.55));
+      list.add(this.add.text(x + 42, y + 8, a.name, f(9, on ? '#ffe680' : '#6e6e8c')));
+      list.add(this.add.text(x + 42, y + 22, a.desc.toUpperCase(), f(6, on ? '#fff4d8' : '#8088a8')));
+      if (on) {
+        const st = this.add.text(x + cw - 10, y + 7, 'DONE', { fontFamily: PIXEL, fontSize: '7px', color: '#1a1020', backgroundColor: '#7dff8a', padding: { x: 3, y: 2 } }).setOrigin(1, 0);
+        list.add(st);
+        const d = new Date(Ach.when(a.id) || Date.now());
+        list.add(this.add.text(x + cw - 10, y + ch - 9, d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(), f(5, '#d8b860')).setOrigin(1, 1));
+      }
       const pr = Ach.progress(a);
       if (pr && !on) {                                     // how far along
         const bw = cw - 56, bx = x + 42, by = y + ch - 10;
@@ -161,9 +200,9 @@ class TrophyScene extends Phaser.Scene {
         list.add(this.add.text(x + cw - 10, y + 8, pr[0] + '/' + pr[1], f(6, '#7dc8ff')).setOrigin(1, 0));
       }
     });
-    const rows = Math.ceil(order.length / cols), contentH = rows * (ch + 8), viewH = H - 64 - 40;
+    const rows = Math.ceil(order.length / cols), contentH = rows * (ch + 8), viewH = H - TOP - 40;
     this.scrollY = 0; const maxS = Math.max(0, contentH - viewH);
-    const setS = v => { this.scrollY = Math.max(0, Math.min(maxS, v)); list.y = 64 - this.scrollY; };
+    const setS = v => { this.scrollY = Math.max(0, Math.min(maxS, v)); list.y = TOP - this.scrollY; };
     // BACK
     const back = this.add.container(W / 2, H - 20).setDepth(10), bg = this.add.graphics();
     const foot = this.add.graphics().setDepth(9); foot.fillStyle(0x0b1020, 1).fillRect(0, H - 40, W, 40);

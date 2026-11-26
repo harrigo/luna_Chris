@@ -164,6 +164,7 @@ class MenuScene extends Phaser.Scene {
     if (typeof Run !== 'undefined' && Run.on) Run.restore(this.registry);   // (v3.05) never leave a run's state lying about
     makeTextures(this); makeLevelTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020').fadeIn(250, 0, 0, 0);
+    if (typeof Ach !== 'undefined' && Ach.reconcile) this.time.delayedCall(1200, () => Ach.reconcile());   // (v3.135) hand over trophies the save already shows were earnt
     Sound.init(); Sound.music('title');
     this.bg = null; this.backdrop = new TitleBackdrop(this, 0.09, 0); this.backdrop.noChris = true;   // (v3.99f) just the moon and the sky behind the menu: Chris was in the way of the cards   // (v2.54: the pixel title scene, not the painted cover art)
     this.events.on('update', () => { if (this.backdrop) this.backdrop.update(); });

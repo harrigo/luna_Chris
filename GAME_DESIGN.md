@@ -2758,3 +2758,10 @@ Dying on a run no longer just cuts to the summary. Chris keels over (KO stars), 
 with a random home folk at the controls (Gromit-dog, or anyone the story has brought home), they shout a line, a green
 tractor beam hauls him up, and the rocket blasts off. At camp, once the run card closes, the rescuer has a few words
 (STORY_RESCUE in story.js). The roguelike loop: die, get fetched, regroup at camp, go again.
+
+## v3.135: trophies you can see
+Test mode used to block trophies while their counters kept counting, so the list showed 100/100 with a grey cup and no
+toast ever came. Now only cheat mode holds them back (the TROPHIES screen says so when it's on), and a reconcile pass a
+few seconds after boot hands over everything the save already shows: full counters, bosses already beaten, an S rank.
+Earned trophies are gold cards with a DONE stamp and the date, sorted newest first; the header has an overall bar and %.
+The unlock toast is gold, bigger, buzzes, and shows the running x/y.
