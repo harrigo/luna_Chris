@@ -468,7 +468,7 @@ const DepthMixin = {
       // curled up at the screen sides and its rocks floated), its base just BELOW the bottom edge so they stand on it,
       // sliding past only a little faster than the planet's surface (1.2x)
       const H = this.scale.height, k = Math.max(1, this.zoom * 1.4), Rs = F.fgRb * k;
-      F.fg.setPosition(cx, H + 6 + Rs).setScale(k).setRotation(-unwV * 1.2 * (Rz / Rs));
+      F.fg.setPosition(cx, H + 6 + Rs + (this.camLiftPx || 0) * 1.3).setScale(k).setRotation(-unwV * 1.2 * (Rz / Rs));
     }
   }
 };

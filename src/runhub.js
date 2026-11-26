@@ -33,8 +33,8 @@ const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strin
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    jetCeil: 700,   // (v3.124) the sky's open at camp: there's a secret up there
-    ledges: [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 355 }, { theta: 2.97, half: 0.13, h: 525 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    jetCeil: 820,   // (v3.124) the sky's open at camp: there's a secret up there
+    ledges: [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 430 }, { theta: 2.97, half: 0.13, h: 640 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -327,7 +327,7 @@ const CampMixin = {
       for (let y = 2; y < 12; y++) for (let x = 12; x < 28; x++) put(x, y, x === 12 || x === 27 || y === 2 || y === 11 ? 0x5a3a0a : y === 3 ? 0xfff0a0 : x < 16 ? 0xffe070 : 0xc8902a);
       for (let x = 10; x < 30; x++) { put(x, 0, 0x5a3a0a); put(x, 1, 0xffd23f); }
     });
-    { const th = 3.03, h0 = 525 + 6;
+    { const th = 3.03, h0 = 640 + 6;
       const aura = this.add.image(0, 0, 'pxglow').setDepth(2.38).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd23f); aura.bsx = aura.bsy = 3.2;
       const ped = this.add.image(0, 0, 'cr_sky_ped').setOrigin(0.5, 1).setDepth(2.4); ped.bsx = ped.bsy = 2.2; ped.pixSnap = true;
       const st = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(2.41).setTint(0xffd23f); st.bsx = st.bsy = 1.3;
@@ -394,8 +394,9 @@ const CampMixin = {
   },
   campUpdate(dt, inp) {
     if (this.sky) {                                     // (v3.124) the camera climbs with Chris; the shrine shines; touch it
-      const K = this.sky, P = this.pl, want = Math.max(0, P.h - 120); K.lift += (want - K.lift) * Math.min(1, dt * 4);
-      this.cy = this.groundY + R * this.zoom + K.lift * this.zoom;
+      const K = this.sky, P = this.pl, want = Math.max(0, P.h - 200) * 1.2;   // no climb until he's above the first ledge, then catch up
+      K.lift += (want - K.lift) * Math.min(1, dt * 4);
+      this.camLiftPx = K.lift * this.zoom; this.cy = this.groundY + R * this.zoom + this.camLiftPx;
       const t = this.time.now / 1000; K.st.h = K.h0 + 30 + Math.sin(t * 2) * 3; K.st.rot = Math.sin(t * 1.3) * 0.05; K.aura.spr.setAlpha(0.45 + 0.2 * Math.sin(t * 3));
       if (Math.random() < dt * 6) this.burst(wrap(K.th + (Math.random() - 0.5) * 0.06), K.h0 + 20 + Math.random() * 40, 'spark', 1, 0.3);
       K.cd = Math.max(0, K.cd - dt);

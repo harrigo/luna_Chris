@@ -2670,3 +2670,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - On the top ledge, on a little cloud with a golden plinth: THE GOLDEN BESSIE, glowing, bobbing, sparkling. Touch
   her: a moo, fireworks and a flash; the first time, +50 golden crumbs and the SECRET OF THE SKIES trophy. After
   that she moos softly at you.
+
+## v3.125: the sky climb, further up
+- The hidden ledges now sit at h 185 / 430 / 640 (jet ceiling 820): from the ground, or standing on the first ledge,
+  you can't see the second. The camera only starts climbing once Chris is above 200 (lift = (h - 200) x 1.2), and the
+  foreground rock strip along the bottom (depth.js) drops away with it (1.3x, it's nearer) instead of staying stuck to
+  the bottom of the screen.
