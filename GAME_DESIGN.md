@@ -2599,7 +2599,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Heat haze over geysers and lava cracks: small pxglows that dim in three hard steps instead of a soft blob fading.
 
 ## v3.116: the tent, pixelled up
-- Same composition and animation, now in the game's art style. Each piece (background, Chris, moustache, arm, Biscuit,
-  tail, lantern, cows, bone) is still drawn as a smooth illustration but at 0.56 art pixels per design unit, then
-  converted: hard edges, every colour snapped to the master palette (FX_PALETTE) through a 4x4 ordered dither so the
-  gradients become dither bands, and scaled back up with square pixels (tnCanvas in tent.js).
+- Same composition and animation, now in pixel art. Each piece (background, Chris, moustache, arm, Biscuit, tail,
+  lantern, cows, bone) is still drawn as a smooth illustration but at 0.46 art pixels per design unit, then converted
+  (tnCanvas in tent.js): hard edges; each piece reduced to its own small palette (its 12 most-used colours kept
+  apart from each other, 22 for the background) so shading falls into flat cel bands in the painted colours; a light
+  4x4 ordered dither on the background only; scaled back up with square pixels.
+  (First try snapped everything to the master palette with dither everywhere: muddy colours and noisy. Don't.)
