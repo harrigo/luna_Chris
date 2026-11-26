@@ -715,7 +715,7 @@ class ChrisRig {
     let tF, front = true, hand = null, aF = 0;
     if (two) { tF = fromGun(H.f[0], H.f[1]); hand = this.fHand; aF = gunRot; }
     else if (jam) tF = [this.fist.x - 2, this.fist.y + 6];              // reaching up to the great fist that thumps the gun
-    else if (dW > 0) { const g0 = held && H.f ? fromGun(H.f[0], H.f[1]) : dHand; tF = [g0[0] + (dHand[0] - g0[0]) * dW, g0[1] + (dHand[1] - g0[1]) * dW]; hand = this.fFist; aF = dRot * dW + 0.4; }
+    else if (dW > 0) { const g0 = held && H.f ? fromGun(H.f[0], H.f[1]) : dHand; tF = [g0[0] + (dHand[0] - g0[0]) * dW, g0[1] + (dHand[1] - g0[1]) * dW]; hand = this.fFist; aF = dRot * dW + 0.4; front = false; }   // (v3.129) the arm itself stays BEHIND his chest, like it does when it swings free; only the hand and glass are in front
     else {
       front = false;
       aF = free != null ? free                                          // (set from outside: the skydive)
@@ -734,7 +734,7 @@ class ChrisRig {
     if (hand) hand.setPosition(tF[0], tF[1]).setRotation(hand === this.fHand ? aF : hand === this.fOpen ? aF + Math.sin(t * 20) * 0.15 : aF - 0.4);
     const sc0 = this.root.scene;
     if (glass && !this.pint && sc0.textures.exists('br_pint0')) { this.pint = sc0.add.image(0, 0, 'br_pint0').setOrigin(1.5 / 12, 2.5 / 14); this.root.add(this.pint); }
-    if ((dW > 0) !== !!this.fistFront) { this.fistFront = dW > 0; if (this.fistFront) this.root.moveAbove(this.fFist, this.fArm); else this.root.moveAbove(this.fFist, this.bootF); }
+    if ((dW > 0) !== !!this.fistFront) { this.fistFront = dW > 0; if (this.fistFront) this.root.moveAbove(this.fFist, this.torso); else this.root.moveAbove(this.fFist, this.bootF); }
     if (this.pint) { this.pint.setVisible(!!glass); if (glass) { this.root.moveAbove(this.pint, this.fFist); this.pint.setTexture('br_pint' + glass.lv).setScale(glass.SC).setPosition(glass.x, glass.y).setRotation(glass.rot); } }
   }
 

@@ -2702,3 +2702,8 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   comes across his chest and swings the glass up in an arc to his mouth; its hand cups the back of the glass and is
   drawn behind it, so the whole glass and the beer level going down are in plain view. Same glass-driven placement
   (lip to his real mouth), glugs, AHHH, moustache wipe and toss.
+
+## v3.129: the drinking arm goes behind his chest
+- Rule in the rig (unchanged): the far arm is drawn in FRONT of the torso only while its hand is on the gun's
+  foregrip (or reaching for the jam-thump fist); swinging free, it's BEHIND. Drinking now follows the free rule: the
+  arm is behind his chest, and only the hand (behind the glass) and the glass are in front.
