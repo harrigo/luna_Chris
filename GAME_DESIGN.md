@@ -2778,3 +2778,6 @@ The unlock toast is gold, bigger, buzzes, and shows the running x/y.
 
 ## v3.137
 The Mozzarella Magma-Golem boss: 305 -> 229 HP (-25%).
+
+## v3.138
+Camp tent: scale 1.9 -> 1.7 and sunk 7px, so its corners sit on the curve instead of floating.
