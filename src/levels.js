@@ -1190,6 +1190,11 @@ class SelectScene extends Phaser.Scene {
     this.going = true;
     Sound.sfx('wave');
     this.cameras.main.fadeOut(200, 0, 0, 0);
+    if (gunsOwned() < 2) {                                                     // (v3.136) only the one gun: no point choosing
+      try { localStorage.setItem('lc_weapon', '0'); } catch (e) { /* ignore */ }
+      const next = { level: n, direct: true }, train = n === 1 && !(typeof Run !== 'undefined' && Run.on) && !(() => { try { return localStorage.getItem('lc_trained'); } catch (e) { return '1'; } })();
+      this.time.delayedCall(230, () => this.scene.start('level1', train ? { training: { from: 'campaign', next } } : next));
+    } else
     this.time.delayedCall(230, () => this.scene.start('weapons', { level: n }));     // next: choose a weapon (timer, not the fade event: that can be skipped)
   }
 

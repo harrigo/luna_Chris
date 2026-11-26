@@ -11,7 +11,7 @@ const PX_BLOCK = (() => { const m = /[?&]pixlook=(\d)/.exec(location.search); re
 // (v3.89) A third number lifts the dimming off the sky at the top of the screen (0-1), for levels whose sky is already dark.
 const MOOD = {
   1: [0x9894b8, 0xfff0d0],      // Gruyère Globe: purple night
-  2: [0x8aa89c, 0xf0ffd8],      // Gorgonzola Gulch: swamp green gloom
+  2: [0xa8c2b4, 0xf0ffd8, 0.3], // Gorgonzola Gulch: swamp green gloom (v3.136: lifted, it was a bit too dark)
   3: [0x9890c0, 0xf0e8ff],      // Brie-muda Triangle: ghostly violet
   4: [0xc09a8c, 0xffe0b8, 0.55], // Mount Mozzarella: red heat (the lava does the lighting); its sky is already dark, so leave it be
   5: [0x9c9caa, 0xfff0d8],      // the Great Grater: grey factory

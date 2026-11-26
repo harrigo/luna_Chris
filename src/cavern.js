@@ -25,7 +25,7 @@ function makeCavernDef(seed) {
       RG.path = RG.holes[0];
     } else RG.bessie = +between(0, TWO).toFixed(3);                       // the bottom: one big vault, the chest somewhere in it
     // gold crumb piles and the odd cheese wedge, then the vermin
-    for (let k = 0; k < 3 + Math.floor(rnd() * 3); k++) RG.loot.push(rnd() < 0.8 ? ['gold', +between(0, TWO).toFixed(3), 3 + Math.floor(rnd() * 6)] : ['heal', +between(0, TWO).toFixed(3)]);
+    for (let k = 0; k < 3 + Math.floor(rnd() * 3); k++) RG.loot.push(rnd() < 0.8 ? ['gold', +between(0, TWO).toFixed(3), 9 + Math.floor(rnd() * 18)] : ['heal', +between(0, TWO).toFixed(3)]);
     // (v3.43) treasure chests on every level: small ones up top, the big one (and a spare) in the vault
     const nc = last ? 1 : i === 0 ? 1 : 1 + Math.floor(rnd() * 2);
     for (let k = 0; k < nc; k++) RG.loot.push(['chest', +between(0.3, TWO - 0.3).toFixed(3), 8 + Math.floor(rnd() * 8) + i * 4, false]);

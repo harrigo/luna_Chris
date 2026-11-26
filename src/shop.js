@@ -355,7 +355,7 @@ class ShopScene extends Phaser.Scene {
     for (const w of WEAPONS) {
       if (!weaponUnlocked(w, Progress.best + 1)) { L.push({ name: 'LOCKED', label: 'LOCKED', icon: w.gunTex, chip: true, desc: 'A gun you haven\'t found yet. Keep your eyes open out there.', cost: 0, max: true, locked: true }); continue; }   // (v3.04)
       const c = Math.max((s.chips || {})[w.id] || 0, this.gunLvOf(w) - 1);   // (v2.49: a level won on the Lucky Wheel counts too, so you can't buy it again)
-      if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), label: w.short + ' CHIP', icon: w.gunTex, chip: true, pips: [c, 3], desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: SHOP.chipCost[c + 1], act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
+      if (c < 3) L.push({ name: w.short + ' START CHIP ' + (c + 1), label: w.short + ' CHIP', icon: w.gunTex, chip: true, pips: [c, 3], desc: 'Starts at LEVEL ' + (c + 2) + ', and falls back to it when a life is lost.', cost: Math.round(SHOP.chipCost[c + 1] * (typeof Run !== 'undefined' && Run.on ? 1.6 : 1)), act: q => { q.chips = Object.assign({}, q.chips); q.chips[w.id] = c + 1; } });
       else L.push({ name: w.short + ' START CHIP 3', label: w.short + ' CHIP', icon: w.gunTex, chip: true, pips: [3, 3], desc: 'Always starts at LEVEL 4.', cost: 0, max: true });
     }
     { const hN = s.hearts || 0;

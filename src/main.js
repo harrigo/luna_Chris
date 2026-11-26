@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.135';
+const BUILD = 'v3.136';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -266,6 +266,8 @@ const Bonus = {
   canAgain(sc) { if (sc.runBonus) return false; return sc.practice || Progress.testMode || sc.tryNo < BONUS_TRIES; },
 };
 const weaponUnlocked = (w, levelId) => CFG.allWeapons || Progress.testMode || w.unlock <= 1 || Progress.hasGun(w.id);     // the Spinner and the Swiss-Shot come out of the bonus rooms' crates
+// (v3.136) how many guns you can actually use: one = no SWAP label, no gun pick screen, no camp gun rack
+const gunsOwned = () => WEAPONS.filter(w => weaponUnlocked(w, 99)).length;
 
 // phone buzz (Android Chrome; ignored elsewhere)
 const buzz = p => {           // phone vibration + controller rumble
@@ -849,6 +851,7 @@ class Level1 extends Phaser.Scene {
     this.cheatText.setPosition(10, 76);
     this.weaponIcon.setPosition(266, 56);
     this.swapText.setPosition(266, 72); this.lvText.setPosition(266, 83);
+    this.swapText.setVisible(gunsOwned() > 1); if (gunsOwned() < 2) this.lvText.setPosition(266, 74);
     if (this.weapon) { this.weaponIcon.setTexture(this.weapon.gunTex); this.macText.setText(this.weapon.short); }
     this.ovBg.setSize(W, H);
     this.ovTitle.setPosition(W / 2, H * (this.landscape ? 0.17 : 0.28)).setWordWrapWidth(W - 40);
@@ -1282,7 +1285,7 @@ class Level1 extends Phaser.Scene {
     }
     this.banner((Run.on && this.waveIdx === 0 ? (this.def.short || this.def.name) + ' (' + Run.str().name + ')\n' : '') + (this.waveIdx === 0 && this.def.tip ? w.name + '\n' + this.def.tip : w.name) + (isCp && !this.resumed && !Run.on ? '\nCHECKPOINT!' : ''));
     if (this.waveIdx > 0 && this.waveIdx < this.waves.length - 1) Sound.sfx('wave');
-    if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard' && !(Run.on && Run.str().noHeal)) {      // a breather: a cheese wedge drops in between waves when you're hurt
+    if (this.waveIdx > 0 && this.pl.hp < this.maxHp && Settings.diff !== 'hard' && !(Run.on && (Run.str().noHeal || Math.random() < 0.6))) {      // (v3.136: in a run, only 4 breaks in 10) a breather: a cheese wedge drops in between waves when you're hurt
       this.pickups.push({ kind: 'heal', theta: wrap(this.pl.theta + 0.14), h: 330, vh: 0, life: 16, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
     }
     this.waveText.setText(this.waveIdx < this.waves.length - 1 ? 'WAVE ' + (this.waveIdx + 1) + '/' + (this.waves.length - 1) : 'BOSS');
@@ -3102,7 +3105,7 @@ class Level1 extends Phaser.Scene {
         if (B.life < 2) B.spr.setAlpha(Math.floor(B.life * 8) % 2 ? 0.5 : 1);
         if (B.hp <= 0 || B.life <= 0) {
           this.burst(B.theta, 20, 'crumb', 18, 1.2); Sound.sfx('kill');
-          if (B.hp <= 0 && Math.random() < 0.35) this.pickups.push({ kind: 'heal', theta: B.theta, h: 30, vh: 160, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+          if (B.hp <= 0 && Math.random() < (Run.on ? 0.12 : 0.35)) this.pickups.push({ kind: 'heal', theta: B.theta, h: 30, vh: 160, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
           this.dynLedges.splice(this.dynLedges.indexOf(B.ledge), 1); B.spr.destroy(); this.blocks.splice(i, 1);
         }
       }
@@ -4677,7 +4680,7 @@ class Level1 extends Phaser.Scene {
       } else if (e.big && Math.random() < 0.05) {        // later big ones: now and then another Parmesan (v2.45: 1 in 8, was 3 in 10; v3.02: 1 in 20)
         this.gotPower = true;
         this.pickups.push({ kind: 'power', theta: e.theta, h: e.h + e.ch, vh: 220, life: 14, spr: (() => { const im = this.add.image(0, 0, 'power').setDepth(6); bakedGlow(im, 0xfff3a0, 3, 8); return im; })() });
-      } else if (Math.random() < (e.drop || 0)) {
+      } else if (Math.random() < (e.drop || 0) * (Run.on ? 0.35 : 1)) {   // (v3.136) runs: about a third as many wedges
         this.pickups.push({ kind: 'heal', theta: e.theta, h: e.h + e.ch, vh: 150, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
       }
       e.spr.destroy();
@@ -5484,7 +5487,7 @@ class Level1 extends Phaser.Scene {
       if (L.hp <= 0) {
         this.burst(L.theta, L.h, 'spark', 12, 1); this.bang(L.theta, L.h, 26); Sound.sfx('kill');
         this.spillCheddar(L.theta, L.h + 10, 3);
-        if (Math.random() < 0.12) this.pickups.push({ kind: 'heal', theta: L.theta, h: L.h + 10, vh: 180, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
+        if (Math.random() < (Run.on ? 0.04 : 0.12)) this.pickups.push({ kind: 'heal', theta: L.theta, h: L.h + 10, vh: 180, life: 12, spr: this.add.image(0, 0, 'wedge').setDepth(6) });
         L.spr.destroy(); this.lumps.splice(i, 1);
       }
     }

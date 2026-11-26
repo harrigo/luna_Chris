@@ -14,7 +14,7 @@ const BAR_GAMES = [   // the arcade cabinets: [id, art x, name, two-line marquee
   { id: 'centrifuge', x: 628, name: 'CENTRIFUGE', mq: 'SPIN DRUM', col: [0x0e3a1a, 0x7dff8a, 0xc8ff6a] }
 ];
 const BarRoom = { back: false };
-const BAR_BEER = 5;   // (v3.121) a pint of moon ale, in golden crumbs   // set while a bonus level was started from the bar: its exit comes back here
+const BAR_BEER = 15;   // (v3.121) a pint of moon ale, in golden crumbs   // set while a bonus level was started from the bar: its exit comes back here
 
 function makeBarRoomArt(scene) {
   if (scene.textures.exists('br_bg')) return;

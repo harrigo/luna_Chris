@@ -314,7 +314,7 @@ const CampMixin = {
     makeStoryTextures(this);
     this.shopMet = Story.home('fridge');
     const feat = { larder: 'larder', train: 'train', lunch: 'lunch', board: 'board', cave: 'cave', bar: 'bar', clay: 'clay', rush: 'rush' };
-    const stDefs = []; for (const d of CAMP_ST) { const f = feat[d.id]; if (!f || Story.built(f)) stDefs.push(d); else if (Story.building(f)) stDefs.push({ id: 'site', f, theta: d.theta, tex: 'cr_build', sc: d.id === 'bar' ? 2.6 : 1.5, name: STORY_FEATURE[f] + ' (BUILDING)', verb: 'CHECK ON IT' }); }
+    const stDefs = []; for (const d of CAMP_ST) { if (d.id === 'rack' && gunsOwned() < 2) continue; const f = feat[d.id];   /* (v3.136) the gun rack needs a second gun to hold */ if (!f || Story.built(f)) stDefs.push(d); else if (Story.building(f)) stDefs.push({ id: 'site', f, theta: d.theta, tex: 'cr_build', sc: d.id === 'bar' ? 2.6 : 1.5, name: STORY_FEATURE[f] + ' (BUILDING)', verb: 'CHECK ON IT' }); }
     if (Story.building('juke') && !Story.building('bar') && Story.built('bar')) { /* the jukebox goes up inside the bar */ }
     this.campSt = stDefs.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
       const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);

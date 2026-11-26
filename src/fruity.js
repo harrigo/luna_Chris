@@ -9,7 +9,7 @@
 //   * any win can be GAMBLED on hi-lo at true odds (it never changes the 95%)
 //   * MEGA SPINS (one per golden set) are 10 free spins at your bet
 const FM_INK = 0x1a1020;
-const SLOT_BETS = { shop: [5, 10, 25, 50, 100], camp: [1, 2, 5, 10] };
+const SLOT_BETS = { shop: [5, 10, 25, 50, 100], camp: [3, 5, 15, 30] };   // (v3.136 camp: x3 with the crumbs)
 const SLOT_TIERS = [[50, 'CHEESE-TASTROPHIC!', 0xff6ad0], [25, 'MEGA WIN!', 0xffd23f], [10, 'BIG WIN!', 0x7dff8a]];
 
 // ---- the art: nine reel symbols (22 x 22), each lit from the top left with a dark outline, in the game's palette

@@ -2765,3 +2765,13 @@ toast ever came. Now only cheat mode holds them back (the TROPHIES screen says s
 few seconds after boot hands over everything the save already shows: full counters, bosses already beaten, an S rank.
 Earned trophies are gold cards with a DONE stamp and the date, sorted newest first; the header has an overall bar and %.
 The unlock toast is gold, bigger, buzzes, and shows the running x/y.
+
+## v3.136: run economy, guns, trophies rarer
+- Runs drop about a third as many heart wedges (enemy drops x0.35, block/lump drops cut, wave-break wedge 4 in 10).
+- Golden crumbs x3 (24 a planet, 1 per 3 rats, 1 per 15 cheddar, +60 for a win) and the camp costs x3 to match:
+  larder upgrades, a pint (15), the camp slot bets (3/5/15/30), cavern gold piles.
+- GUN CHIP perk: not before planet 3, then at most one per two planets. Run shop chips cost x1.6.
+- One gun only (nothing won from the bonus crates yet): no SWAP label, no gun pick screen, no camp gun rack.
+- Gorgonzola Gulch ambient lifted.
+- Trophies: the easy ones now take real doing (100 rats for the first, x40 combo, 10 parries...), DOUBLE KILL is gone,
+  and a trophy earned mid-fight waits for the level clear (or a death, or camp) before its toast shows.

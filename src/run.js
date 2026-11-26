@@ -21,7 +21,7 @@ const RUN_PERKS = [
   { id: 'heart',  name: '+1 HEART', sub: 'BIGGER BELLY', icon: 'hud_cheese', desc: 'One more cheese heart to lose.', can: (s, sc) => sc.hp < CFG.heartCap, act: s => { s.hearts = (s.hearts || 0) + 1; } },
   { id: 'armour', name: 'BLACK RIND', sub: '+1 MARK', icon: 'si_armour', desc: 'Armour plates that soak hits first. Fully mended.', can: s => (s.armMk || 0) < 4, act: s => { s.armMk = (s.armMk || 0) + 1; s.armHp = SHOP.armHp[s.armMk]; } },
   { id: 'mboots', name: 'MOON BOOTS', sub: '+1 LEVEL', icon: 'si_boots', desc: 'Run faster, jump higher, and a jetpack that burns slower and refills faster.', can: s => (s.boots || 0) < SHOP.bootMax, act: s => { s.boots = (s.boots || 0) + 1; } },
-  { id: 'chip',   name: 'GUN CHIP', sub: 'YOUR GUN +1', icon: null, desc: 'Your current gun starts a level higher.', can: s => !!runGun() && ((s.chips || {})[runGun().id] || 0) < 3, act: s => { const w = runGun(); s.chips = Object.assign({}, s.chips || {}); s.chips[w.id] = (s.chips[w.id] || 0) + 1; } },
+  { id: 'chip',   name: 'GUN CHIP', sub: 'YOUR GUN +1', icon: null, desc: 'Your current gun starts a level higher.', can: s => !!runGun() && ((s.chips || {})[runGun().id] || 0) < 3 && Run.idx >= 2 && (Run.perks.chip || 0) < Math.floor(Run.idx / 2), act: s => { const w = runGun(); s.chips = Object.assign({}, s.chips || {}); s.chips[w.id] = (s.chips[w.id] || 0) + 1; } },
   { id: 'wallet', name: 'FAT WALLET', sub: 'CHEDDAR x1.5', icon: 'cheddar', desc: 'Every bit of cheddar is worth half as much again.', once: true },
   { id: 'glass',  name: 'GLASS CHEESE', sub: 'RISKY', icon: 'wedge', desc: 'Hit 50% harder... but one heart fewer.', once: true, can: (s, sc) => sc.hp > 2 },
   { id: 'vamp',   name: 'CHEESE VAMPIRE', sub: 'MUNCH', icon: 'pu_ears', desc: 'Every 10 rats you squash mends a heart.', once: true },
@@ -30,12 +30,12 @@ const RUN_PERKS = [
 // GOLDEN CRUMBS are earned at the end of every run (win or lose) and kept for good. Fridge-o-tron trades them at camp
 // for LARDER upgrades that every future run starts with. The LUNCHBOX packs one starter perk for the next run.
 const LARDER = [
-  { id: 'hearty', name: 'HEARTY BREAKFAST', desc: 'Start every run with +1 heart.', cost: [30, 80] },
-  { id: 'purse',  name: 'NEST EGG',         desc: 'Start every run with +40 cheddar.', cost: [15, 35, 60] },
-  { id: 'rind',   name: 'THICK RIND',       desc: 'Start every run in Black Rind Mk I.', cost: [45] },
-  { id: 'toque',  name: 'SPARE TOQUE',      desc: 'Once a run, a fatal hit leaves you on half hearts.', cost: [50, 120] },
-  { id: 'dice',   name: 'LUCKY DICE',       desc: 'Reroll a perk offer once per run.', cost: [25, 60] },
-  { id: 'menu4',  name: 'BIGGER MENU',      desc: 'Perk offers show 4 cards, not 3.', cost: [100] }
+  { id: 'hearty', name: 'HEARTY BREAKFAST', desc: 'Start every run with +1 heart.', cost: [90, 240] },
+  { id: 'purse',  name: 'NEST EGG',         desc: 'Start every run with +40 cheddar.', cost: [45, 105, 180] },
+  { id: 'rind',   name: 'THICK RIND',       desc: 'Start every run in Black Rind Mk I.', cost: [135] },
+  { id: 'toque',  name: 'SPARE TOQUE',      desc: 'Once a run, a fatal hit leaves you on half hearts.', cost: [150, 360] },
+  { id: 'dice',   name: 'LUCKY DICE',       desc: 'Reroll a perk offer once per run.', cost: [75, 180] },
+  { id: 'menu4',  name: 'BIGGER MENU',      desc: 'Perk offers show 4 cards, not 3.', cost: [300] }
 ];
 const KITS = [
   { id: 'none',   name: 'NOTHING',            desc: 'Travel light.', need: 0 },
@@ -132,8 +132,9 @@ const Run = {
     sum.newBest = !b || sum.planets > b.planets || (sum.planets === b.planets && sum.score > b.score);
     if (sum.newBest && how !== 'quit') try { localStorage.setItem('lc_run_best', JSON.stringify({ planets: sum.planets, score: sum.score })); } catch (e) { /* ignore */ }
     if (how === 'quit') sum.newBest = false;
-    // GOLDEN CRUMBS for the camp: 8 a planet, a crumb per 10 rats, one per 50 cheddar, +20 for the lot
-    sum.crumbs = Math.round((sum.planets * 8 + Math.floor(sum.kills / 10) + Math.floor(sum.earned / 50) + (how === 'won' ? 20 : 0)) * this.str().crumbs);
+    // GOLDEN CRUMBS for the camp (v3.136: three times what they were, and the larder costs three times as much):
+    // 24 a planet, a crumb per 3 rats, one per 15 cheddar, +60 for the lot
+    sum.crumbs = Math.round((sum.planets * 24 + Math.floor(sum.kills / 3) + Math.floor(sum.earned / 15) + (how === 'won' ? 60 : 0)) * this.str().crumbs);
     sum.crumbs += (this.styleS || 0) * 3; sum.styleS = this.styleS || 0;
     sum.tier = this.tier || 0;
     if (how === 'won' && (this.tier || 0) >= this.tierMax() && this.tier < STRENGTHS.length - 1) { Meta._s('lc_run_tiermax', this.tier + 1); sum.unlocked = STRENGTHS[this.tier + 1].name; }

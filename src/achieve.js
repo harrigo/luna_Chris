@@ -5,36 +5,35 @@
 // line pops a toast at the top of the screen with a fanfare. The menu's TROPHIES button opens the list (TrophyScene).
 const ACH_LIST = [
   // ---- rats
-  { id: 'kills1', name: 'FIRST BITE', desc: 'Squash your first rat', stat: 'kills', at: 1 },
-  { id: 'kills100', name: 'PEST CONTROL', desc: 'Squash 100 rats', stat: 'kills', at: 100 },
-  { id: 'kills1000', name: 'RAT RACE WINNER', desc: 'Squash 1,000 rats', stat: 'kills', at: 1000 },
-  { id: 'kills5000', name: 'THE PIED PIPER', desc: 'Squash 5,000 rats', stat: 'kills', at: 5000 },
+  { id: 'kills1', name: 'FIRST BITE', desc: 'Squash 100 rats', stat: 'kills', at: 100 },
+  { id: 'kills100', name: 'PEST CONTROL', desc: 'Squash 750 rats', stat: 'kills', at: 750 },
+  { id: 'kills1000', name: 'RAT RACE WINNER', desc: 'Squash 3,000 rats', stat: 'kills', at: 3000 },
+  { id: 'kills5000', name: 'THE PIED PIPER', desc: 'Squash 10,000 rats', stat: 'kills', at: 10000 },
   // ---- multi-kills
-  { id: 'multi2', name: 'DOUBLE CHEESE', desc: 'Get a DOUBLE KILL', best: 'multi', at: 2 },
   { id: 'multi3', name: 'TRIPLE DECKER', desc: 'Get a TRIPLE KILL', best: 'multi', at: 3 },
-  { id: 'multi4', name: 'QUATTRO FORMAGGI', desc: 'Get a QUAD KILL', best: 'multi', at: 4 },
-  { id: 'multi6', name: 'CHEESEPOCALYPSE', desc: 'Take out 6 rats in one go', best: 'multi', at: 6 },
+  { id: 'multi4', name: 'QUATTRO FORMAGGI', desc: 'Take out 5 rats in one go', best: 'multi', at: 5 },
+  { id: 'multi6', name: 'CHEESEPOCALYPSE', desc: 'Take out 8 rats in one go', best: 'multi', at: 8 },
   // ---- bashing
-  { id: 'strike', name: 'STRIKE!', desc: 'Bowl 3 rats over with one smashed rat', best: 'strike', at: 3 },
-  { id: 'ko1', name: 'HOME RUN', desc: 'Smash a rat clean off the screen', stat: 'kos', at: 1 },
-  { id: 'ko25', name: 'OUT OF THE PARK', desc: 'Smash 25 rats off the screen', stat: 'kos', at: 25 },
+  { id: 'strike', name: 'STRIKE!', desc: 'Bowl 4 rats over with one smashed rat', best: 'strike', at: 4 },
+  { id: 'ko1', name: 'HOME RUN', desc: 'Smash 15 rats clean off the screen', stat: 'kos', at: 15 },
+  { id: 'ko25', name: 'OUT OF THE PARK', desc: 'Smash 100 rats off the screen', stat: 'kos', at: 100 },
   { id: 'snug', name: 'SNUG AS A BUG', desc: 'Crawl into the tent at camp' },
   { id: 'skyhigh', name: 'SECRET OF THE SKIES', desc: 'Find the Golden Bessie, hidden high above the camp' },
   { id: 'legless', name: 'LEGLESS LUNATIC', desc: 'Blast off after a pint and clear a level seeing double' },
   { id: 'fruity', name: 'ONE-ARMED BANDIT', desc: 'Take a prize off Ridic Louise\'s trail' },
   { id: 'jackpot', name: 'JACKPOT!', desc: 'Climb Ridic Louise\'s trail to the jackpot' },
-  { id: 'sweet1', name: 'SWEET SPOT', desc: 'Land a bash right on the sweet spot', stat: 'sweets', at: 1 },
-  { id: 'sweet100', name: 'CHEESE WHISPERER', desc: 'Land 100 sweet-spot bashes', stat: 'sweets', at: 100 },
-  { id: 'parry', name: 'NOT TODAY', desc: 'Parry a shot back', stat: 'parries', at: 1 },
-  { id: 'parry50', name: 'RETURN TO SENDER', desc: 'Parry 50 shots', stat: 'parries', at: 50 },
+  { id: 'sweet1', name: 'SWEET SPOT', desc: 'Land 25 sweet-spot bashes', stat: 'sweets', at: 25 },
+  { id: 'sweet100', name: 'CHEESE WHISPERER', desc: 'Land 250 sweet-spot bashes', stat: 'sweets', at: 250 },
+  { id: 'parry', name: 'NOT TODAY', desc: 'Parry 10 shots back', stat: 'parries', at: 10 },
+  { id: 'parry50', name: 'RETURN TO SENDER', desc: 'Parry 150 shots', stat: 'parries', at: 150 },
   // ---- skill
   { id: 'style', name: "SMOKIN' CHEF", desc: 'Reach S style rank', best: 'style', at: 4 },
-  { id: 'combo', name: 'ON A ROLL', desc: 'Hit a x20 combo', best: 'combo', at: 20 },
+  { id: 'combo', name: 'ON A ROLL', desc: 'Hit a x40 combo', best: 'combo', at: 40 },
   { id: 'flawless', name: 'UNTOUCHABLE', desc: 'Clear a planet without being hit' },
   { id: 'ranks', name: 'S-CLASS CUISINE', desc: 'Get an S rank on a planet' },
   // ---- cheddar
-  { id: 'ched1k', name: 'BIG CHEESE', desc: 'Collect 1,000 cheddar', stat: 'cheddar', at: 1000 },
-  { id: 'ched10k', name: 'CHEESE MOGUL', desc: 'Collect 10,000 cheddar', stat: 'cheddar', at: 10000 },
+  { id: 'ched1k', name: 'BIG CHEESE', desc: 'Collect 5,000 cheddar', stat: 'cheddar', at: 5000 },
+  { id: 'ched10k', name: 'CHEESE MOGUL', desc: 'Collect 50,000 cheddar', stat: 'cheddar', at: 50000 },
   { id: 'shop', name: 'RETAIL THERAPY', desc: 'Buy something in the space shop' },
   // ---- the bosses
   { id: 'boss1', name: 'CROQUE OFF', desc: 'Beat the Crusty Croque Monsieur', lv: 1 },
@@ -50,7 +49,7 @@ const ACH_LIST = [
   { id: 'boss10', name: 'LONG LIVE THE CHEF', desc: 'Beat the Rat King', lv: 10 },
   { id: 'theend', name: "BESSIE'S HOME", desc: 'Finish the game' },
   // ---- odds and ends
-  { id: 'deaths10', name: 'TOASTED', desc: 'Get toasted 10 times', stat: 'deaths', at: 10 },
+  { id: 'deaths10', name: 'TOASTED', desc: 'Get toasted 25 times', stat: 'deaths', at: 25 },
   { id: 'cavern', name: 'SPELUNKER', desc: 'Find the secret cavern' },
   { id: 'run', name: 'ONE LIFE', desc: 'Start a run in Run Mode' },
   { id: 'runwin', name: 'LEGEND OF THE RUN', desc: 'Win a run' }
@@ -107,6 +106,8 @@ const Ach = (() => {
     if (showing || !queue.length || typeof game === 'undefined' || !game.scene) return;
     const scenes = game.scene.getScenes(true); const sc = scenes[scenes.length - 1];
     if (!sc || !sc.add) { setTimeout(pump, 500); return; }
+    // (v3.136) never mid-fight: in a level they wait for the clear screen (or a death, or the camp) to say so
+    if (sc.scene && sc.scene.key === 'level1' && !sc.camp && (sc.state === 'play' || sc.state === 'rescue' || sc.state === 'intro')) { setTimeout(pump, 700); return; }
     showing = true;
     const [a, n] = queue.shift();
     achTextures(sc);
