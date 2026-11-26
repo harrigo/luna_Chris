@@ -33,7 +33,8 @@ const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strin
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    ledges: [{ theta: 2.62, half: 0.11, h: 300 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    jetCeil: 700,   // (v3.124) the sky's open at camp: there's a secret up there
+    ledges: [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 355 }, { theta: 2.97, half: 0.13, h: 525 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -319,6 +320,19 @@ const CampMixin = {
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
     this.campFolkInit();
+    // (v3.124) THE SECRET OF THE SKIES: three ledges climb up beside the bar, the top two out of sight above the screen.
+    // On the top one, on a little cloud: the GOLDEN BESSIE shrine. The camera rises with you when you climb up there.
+    if (!this.textures.exists('cr_sky_ped')) pixTex(this, 'cr_sky_ped', 40, 24, put => {
+      for (let y = 10; y < 24; y++) for (let x = 0; x < 40; x++) { let d = 9; for (const [cx, cy, r] of [[9, 17, 7], [19, 14, 9], [30, 17, 7], [20, 19, 8]]) d = Math.min(d, Math.hypot(x - cx, y - cy) - r); if (d > 0) continue; put(x, y, d > -1 ? 0x8a8ac8 : y < 14 ? 0xffffff : y < 19 ? 0xe4e4ff : 0xc0c0f0); }
+      for (let y = 2; y < 12; y++) for (let x = 12; x < 28; x++) put(x, y, x === 12 || x === 27 || y === 2 || y === 11 ? 0x5a3a0a : y === 3 ? 0xfff0a0 : x < 16 ? 0xffe070 : 0xc8902a);
+      for (let x = 10; x < 30; x++) { put(x, 0, 0x5a3a0a); put(x, 1, 0xffd23f); }
+    });
+    { const th = 3.03, h0 = 525 + 6;
+      const aura = this.add.image(0, 0, 'pxglow').setDepth(2.38).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd23f); aura.bsx = aura.bsy = 3.2;
+      const ped = this.add.image(0, 0, 'cr_sky_ped').setOrigin(0.5, 1).setDepth(2.4); ped.bsx = ped.bsy = 2.2; ped.pixSnap = true;
+      const st = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(2.41).setTint(0xffd23f); st.bsx = st.bsy = 1.3;
+      this.sky = { th, h0, aura: { spr: aura, theta: th, h: h0 + 40, rot: 0 }, ped: { spr: ped, theta: th, h: h0, rot: 0 }, st: { spr: st, theta: th, h: h0 + 30, rot: 0 }, cd: 0, lift: 0 };
+      this.actors.push(this.sky.aura, this.sky.ped, this.sky.st); }
     this.ball = null; this.ballInit();
     this.campCaveInit();
     this.toysInit();                                                       // (v3.42) the camp toys (camptoys.js)
@@ -379,6 +393,14 @@ const CampMixin = {
     return bd < 46 && P.h < 60 ? best : null;
   },
   campUpdate(dt, inp) {
+    if (this.sky) {                                     // (v3.124) the camera climbs with Chris; the shrine shines; touch it
+      const K = this.sky, P = this.pl, want = Math.max(0, P.h - 120); K.lift += (want - K.lift) * Math.min(1, dt * 4);
+      this.cy = this.groundY + R * this.zoom + K.lift * this.zoom;
+      const t = this.time.now / 1000; K.st.h = K.h0 + 30 + Math.sin(t * 2) * 3; K.st.rot = Math.sin(t * 1.3) * 0.05; K.aura.spr.setAlpha(0.45 + 0.2 * Math.sin(t * 3));
+      if (Math.random() < dt * 6) this.burst(wrap(K.th + (Math.random() - 0.5) * 0.06), K.h0 + 20 + Math.random() * 40, 'spark', 1, 0.3);
+      K.cd = Math.max(0, K.cd - dt);
+      if (K.cd <= 0 && Math.abs(angDiff(P.theta, K.th)) < 0.07 && Math.abs(P.h - K.h0 + 6) < 40) { K.cd = 6; this.skyShrine(); }
+    }
     this.campCool = Math.max(0, this.campCool - dt);
     const near = this.campTarget();
     if (inp.down && !this.campDownHeld && near && this.campCool <= 0) this.campUse(near);
@@ -401,6 +423,16 @@ const CampMixin = {
     if (this.campGo) this.campLaunchTick(dt);
   },
   // after render: the level HUD goes, the camp's own bits go on
+  skyShrine() {
+    const first = !Meta._j('lc_skyshrine', 0), K = this.sky;
+    Sound.sfx('moo'); this.time.delayedCall(250, () => Sound.sfx('achieve')); this.cameras.main.flash(300, 255, 230, 140);
+    for (let k = 0; k < 4; k++) this.time.delayedCall(k * 220, () => this.burst(wrap(K.th + (Math.random() - 0.5) * 0.1), K.h0 + 40 + Math.random() * 50, 'spark', 14, 1.1));
+    if (first) { Meta._s('lc_skyshrine', 1); Meta.addCrumbs(50); if (typeof Ach !== 'undefined') Ach.unlock('skyhigh');
+      this.campSay ? this.campSay('THE GOLDEN BESSIE! A SECRET SHRINE IN THE SKY. +50 GOLDEN CRUMBS!') : 0; }
+    else if (this.campSay) this.campSay(['THE GOLDEN BESSIE MOOS SOFTLY AT YOU.', 'A HEAVENLY MOO.', 'YOU FEEL BLESSED. AND CHEESY.'][Math.floor(Math.random() * 3)]);
+    const tx = this.add.text(this.W / 2, this.H * 0.3, first ? 'SECRET FOUND!' : 'MOOOO', { fontFamily: PIXEL, fontSize: '22px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 6 }).setOrigin(0.5).setDepth(50).setScrollFactor(0);
+    this.tweens.add({ targets: tx, y: tx.y - 30, alpha: 0, delay: 900, duration: 900, onComplete: () => tx.destroy() });
+  },
   campDraw() {
     if (this.barMaskG) this.barMaskG.clear().fillStyle(0xffffff, 1).fillCircle(this.cx, this.cy, R * this.zoom + 2);
     if (this.barIn) {                                  // (v3.119) the view through the bar's open door: a window onto the bar-room art, sliding with the view

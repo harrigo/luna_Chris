@@ -2662,3 +2662,11 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Main menu: the LUNA CHRIS logo hides on every sub-screen (it sat over the OPTIONS list).
 - Camp: the golden trophy moved from in front of the bar to theta 1.48 (between the gun rack and the cave); the bar is
   19% bigger (scale 3.57); the glimpse through its door moves 20x less as you walk past.
+
+## v3.124: the Secret of the Skies
+- The platform over the bar is gone. Instead a hidden way up beside it: a ledge at h 185 just right of the bar, one
+  at h 355 above it (off the top of the screen from the ground), and a third at h 525. The camp's jet ceiling is
+  raised to 700 and the camera rises with Chris as he climbs (sky.lift: it keeps him ~120 up the screen).
+- On the top ledge, on a little cloud with a golden plinth: THE GOLDEN BESSIE, glowing, bobbing, sparkling. Touch
+  her: a moo, fireworks and a flash; the first time, +50 golden crumbs and the SECRET OF THE SKIES trophy. After
+  that she moos softly at you.
