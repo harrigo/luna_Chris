@@ -19,11 +19,27 @@ const TENT_SAYS = {
 // Not pixel art: a storybook illustration drawn with curves at the screen's own resolution (ink outlines, soft
 // gradients), because a close-up in big pixels looked crude. Everything is in a 480-wide design space, scaled by k.
 const TN = { ink: '#1a1020' };
+// (v3.116) PIXELLED UP: every piece is still drawn as a smooth illustration, but small (TN_PX art pixels per design
+// unit), then turned into pixel art - hard edges (no half-see-through pixels), every colour snapped to the game's master
+// palette through a 4x4 ordered dither (so gradients become dither bands) - and blown back up with square pixels.
+const TN_PX = 0.56, TN_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 function tnCanvas(scene, key, w, h, k, draw) {
   if (scene.textures.exists(key)) scene.textures.remove(key);
-  const T = scene.textures.createCanvas(key, Math.ceil(w * k), Math.ceil(h * k)), c = T.getContext();
-  c.imageSmoothingEnabled = true; c.scale(k, k); c.lineJoin = 'round'; c.lineCap = 'round';
-  draw(c); T.refresh(); T.setFilter(Phaser.Textures.FilterMode.LINEAR);
+  const lw = Math.ceil(w * TN_PX), lh = Math.ceil(h * TN_PX), low = document.createElement('canvas'); low.width = lw; low.height = lh;
+  const c = low.getContext('2d', { willReadFrequently: true });
+  c.scale(TN_PX, TN_PX); c.lineJoin = 'round'; c.lineCap = 'round'; draw(c);
+  const im = c.getImageData(0, 0, lw, lh), D = im.data, pal = (typeof FX_PALETTE !== 'undefined' ? FX_PALETTE : [0, 0xffffff]).map(q => [(q >> 16) & 255, (q >> 8) & 255, q & 255]), memo = new Map();
+  for (let y = 0, i = 0; y < lh; y++) for (let x = 0; x < lw; x++, i += 4) {
+    if (D[i + 3] < 128) { D[i + 3] = 0; continue; }
+    const d = (TN_BAYER[(y & 3) * 4 + (x & 3)] / 15 - 0.5) * 26, r = D[i] + d, g = D[i + 1] + d, b = D[i + 2] + d;
+    const kk = ((r >> 2) << 16) | ((g >> 2) << 8) | (b >> 2); let best = memo.get(kk);
+    if (best === undefined) { let bd = 1e9; for (let j = 0; j < pal.length; j++) { const P = pal[j], e = (P[0] - r) * (P[0] - r) * 0.9 + (P[1] - g) * (P[1] - g) * 1.2 + (P[2] - b) * (P[2] - b) * 0.8; if (e < bd) { bd = e; best = j; } } memo.set(kk, best); }
+    D[i] = pal[best][0]; D[i + 1] = pal[best][1]; D[i + 2] = pal[best][2]; D[i + 3] = 255;
+  }
+  c.putImageData(im, 0, 0);
+  const T = scene.textures.createCanvas(key, Math.ceil(w * k), Math.ceil(h * k)), o = T.getContext();
+  o.imageSmoothingEnabled = false; o.drawImage(low, 0, 0, lw, lh, 0, 0, w * k, h * k);
+  T.refresh(); T.setFilter(Phaser.Textures.FilterMode.NEAREST);
 }
 // a closed smooth shape through points
 function tnPath(c, pts) {

@@ -2597,3 +2597,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   gravity-zone and pickup glows, the campfire, Parmesan braziers, Freefall's gun and vent light, and the intro/ending
   window, TV, lamp, fire and shine glows.
 - Heat haze over geysers and lava cracks: small pxglows that dim in three hard steps instead of a soft blob fading.
+
+## v3.116: the tent, pixelled up
+- Same composition and animation, now in the game's art style. Each piece (background, Chris, moustache, arm, Biscuit,
+  tail, lantern, cows, bone) is still drawn as a smooth illustration but at 0.56 art pixels per design unit, then
+  converted: hard edges, every colour snapped to the master palette (FX_PALETTE) through a 4x4 ordered dither so the
+  gradients become dither bands, and scaled back up with square pixels (tnCanvas in tent.js).
