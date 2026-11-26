@@ -161,6 +161,7 @@ const PixelLookMixin = {
     for (const lv of (this.lavas || [])) add(lv.theta, lv.h + 6, 110, 0xff7a1a, 0.7);
     for (const G of (this.geysers || [])) if (G.st !== 'idle') add(G.theta, G.st === 'erupt' ? 60 : 10, G.st === 'erupt' ? 190 : 90, 0xff9a2a, G.st === 'erupt' ? 1 : 0.5);
     for (const e of this.enemies) if (e.type === 'boss' && e.hp > 0) add(e.theta, e.h + (e.ch || 30), 150, 0xc8b0ff, 0.35);
+    if (this.campSt) for (const s of this.campSt) if (s.id === 'bar') add(s.theta, 70, 190, 0xff6ad0, 0.75 + 0.1 * Math.sin((this.t || 0) * 6));   // (v3.112) the Moon Bar's neon glow
     const A = this.abduct; if (A && A.theta !== undefined && A.a > 0.05) add(A.theta, A.h - 70, 160, 0xffd23f, 0.8 * A.a);
     const ox = cam.scrollX - 32, oy = cam.scrollY - 32;          // the map sits 32px outside the screen on each side
     if (!X.stamp) X.stamp = this.make.image({ key: 'pxlight', add: false }).setOrigin(0.5).setBlendMode(Phaser.BlendModes.SCREEN);   // (v3.89: SCREEN, not ADD - ADD's dest-alpha factor dimmed a square round each light)

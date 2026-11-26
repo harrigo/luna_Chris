@@ -18,21 +18,21 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
-  { id: 'bar',    theta: 2.45,  tex: 'cr_bar',    sc: 1.7, name: 'MOON BAR',      verb: 'PLAY RIDIC LOUISE' },   // (v3.102) fruity.js: mega spins for golden crumbs
+  { id: 'bar',    theta: 2.52,  tex: 'cr_bar',    sc: 2.5, name: 'MOON BAR',      verb: 'PLAY RIDIC LOUISE' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
 ['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
   ['cr_barrel', -1.15, 1.6, 0, 2.6],
   ['cr_lamp', -1.22, 1.7, 0, 2.25], ['cr_lamp', -0.55, 1.7, 0, 2.25], ['cr_lamp', 0.4, 1.7, 0, 2.25], ['cr_lamp', 1.02, 1.7, 0, 2.25],
-  ['cr_pen', 2.78, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], 
+  ['cr_pen', -2.12, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], 
 ];
 const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strings of bulbs between the lamp posts
 
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    ledges: [{ theta: 2.6, half: 0.11, h: 95 }, { theta: 2.95, half: 0.09, h: 175 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    ledges: [{ theta: 2.52, half: 0.1, h: 185 }, { theta: 2.95, half: 0.09, h: 175 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -397,7 +397,7 @@ const CampMixin = {
     for (const o of this.cheeseIcons.concat(this.macIcons)) o.setVisible(false);
     this.hudG.clear(); if (this.armG) this.armG.clear();
     const t = this.t, z = this.zoom;
-    for (const s of this.campSt) if (s.id === 'fire') s.a.spr.setTexture('cr_fire' + (Math.floor(t * 9) % 4));
+    for (const s of this.campSt) { if (s.id === 'fire') s.a.spr.setTexture('cr_fire' + (Math.floor(t * 9) % 4)); else if (s.id === 'bar' && this.textures.exists('cr_bar1')) s.a.spr.setTexture(Math.floor(t * 3) % 2 ? 'cr_bar1' : 'cr_bar'); }
     for (const q of this.campFx) { this.place(q.spr, q.theta, q.h, 0); q.spr.setAlpha(Math.min(1, q.life / q.max * 1.5) * (q.smoke ? 0.35 : 1)); }
     { const fp = this.screenPos(0.06, 30); this.campGlow.setPosition(fp.x, fp.y).setScale(z * 3.4).setAlpha(fp.vis ? 0.3 + 0.07 * Math.sin(t * 9) + 0.04 * Math.sin(t * 23) : 0); }
     // strings of bulbs between the lamp posts

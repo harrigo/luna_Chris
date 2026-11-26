@@ -2559,3 +2559,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   rainbow specks round the room, cheese bunting, a flickering GRATE WINS neon, the next machine along blinking, and a
   chequered dance floor with drifting pools of light. Everything goes faster and brighter on a big win or bonus.
 - Rainbow chasing bulbs on the marquee, and a wobbly MAX CHEESE GRATER EDITION sticker slapped on it.
+
+## v3.112: the Moon Bar stands out at camp
+- The bar is half as big again (scale 2.5), moved to theta 2.52 clear of the rocket, with a SPIN! sign on posts on its
+  roof, chasing bulbs round the sign and under the awning (two frames, swapped 3x a second) and a pink neon pool of
+  light in the moody light map. The ledge above it moved up to sit over the sign.
+- The crate tower (it stood right in front of the bar) moved to 2.9; the fenced pen moved round to -2.12.

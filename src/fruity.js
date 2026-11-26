@@ -130,7 +130,9 @@ function makeFruityTextures(scene) {
 
 // ---- the camp bar (a station on the moon): a little lean-to with a counter, a stool, a neon sign and the machine
 function makeBarTexture(scene) {
-  pixTex(scene, 'cr_bar', 64, 56, (put, w, h) => {
+  // (v3.112) two frames (bulbs and the sign chase), 12px taller: a SPIN! sign on the roof, bulbs round the awning
+  for (const fr of [0, 1]) pixTex(scene, fr ? 'cr_bar1' : 'cr_bar', 64, 68, (put0, w, h) => {
+    const put = (x, y, c) => put0(x, y + 12, c);
     const WD = [0x2a160c, 0x4a2a14, 0x6a3e1e, 0x8a5a2a], R = [0x5a0e1a, 0x8a1a2a, 0xb83040, 0xe05a5a];
     const rect = (x0, y0, x1, y1, f) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const c = f(x, y); if (c != null) put(x, y, c); } };
     rect(2, 10, 61, 55, (x, y) => (x === 2 || x === 61 || y === 10) ? FM_INK : null);
@@ -151,6 +153,13 @@ function makeBarTexture(scene) {
     rect(51, 29, 57, 29, () => 0xff3a3a);                                                                // the payline
     rect(61, 24, 62, 34, () => 0xc8ccd8); rect(60, 21, 63, 24, () => 0xff3a3a);                         // the lever
     rect(52, 44, 56, 46, () => FM_INK);                                                                  // the coin tray
+    // the roof sign on two posts: SPIN! in pink and yellow, a frame of chasing bulbs
+    const SG = { S: ['###', '#..', '###', '..#', '###'], P: ['###', '#.#', '###', '#..', '#..'], I: ['###', '.#.', '.#.', '.#.', '###'], N: ['#.#', '###', '###', '#.#', '#.#'], '!': ['.#.', '.#.', '.#.', '...', '.#.'] };
+    rect(14, -3, 15, -2, () => FM_INK); rect(48, -3, 49, -2, () => FM_INK); for (const px of [14, 48]) { rect(px, -2, px, 9, () => FM_INK); rect(px + 1, -2, px + 1, 9, () => 0x9aa4b8); }
+    rect(8, -12, 55, -3, (x, y) => (x === 8 || x === 55 || y === -12 || y === -3) ? FM_INK : 0x2a0a3a);
+    for (let x = 9; x <= 54; x += 2) for (const y of [-11, -4]) put(x, y, ((x >> 1) + fr) % 2 ? 0xfff0a0 : 0x8a5a12);
+    for (let k = 0; k < 5; k++) for (let gy = 0; gy < 5; gy++) for (let gx = 0; gx < 3; gx++) if (SG['SPIN!'[k]][gy][gx] === '#') put(19 + k * 5 + gx, -10 + gy, (k + fr) % 2 ? 0xff6ad0 : 0xffd23f);
+    for (let x = 3; x <= 60; x += 3) put(x, 15, (Math.floor(x / 3) + fr) % 2 ? 0xffe060 : 0x7dff8a);      // bulbs under the awning
     rect(20, 41, 25, 42, () => R[2]); rect(22, 43, 23, 54, () => 0xc8ccd8); rect(19, 54, 26, 54, () => 0xc8ccd8);   // a stool
   });
 }
