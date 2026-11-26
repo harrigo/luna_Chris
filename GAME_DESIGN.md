@@ -2676,3 +2676,16 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   you can't see the second. The camera only starts climbing once Chris is above 200 (lift = (h - 200) x 1.2), and the
   foreground rock strip along the bottom (depth.js) drops away with it (1.3x, it's nearer) instead of staying stuck to
   the bottom of the screen.
+
+## v3.126: a proper pint, and a properly tipsy Chris
+- Drinking is done by the rig (chris.js, P.drink 0..1 over 3 s): the pint slides down the bar, his free hand reaches
+  out and takes it, raises it, his head goes back and his eyes close, five glugs as the glass empties through five
+  frames (br_pint0..4) and tips into his face, belly wobbling on each; down it comes with a grin and AHHH!, a wipe of
+  the moustache, and the empty goes over his shoulder and smashes (Clank: "that is coming out of your crumbs").
+- Tipsy lives in the rig now (P.tipsy): the body sways ~5 degrees over feet that shuffle to stay under it; walking,
+  his steps wander and high-step; every few seconds a knee buckles and he catches himself; hiccups jolt him with
+  puffed cheeks and a *HIC*; his head lolls and his eyelids droop. The gun sways with the body and manual shots go
+  where it points (about 5 degrees of wander; auto-aimed shots still lead their target). More pints, sillier lines.
+- BUG FIXED: the old screen sway used a CSS transform on the canvas, which made Phaser think the screen was being
+  resized every frame - scenes rebuilt themselves constantly (that was the "intense" wobble and the flapping cape).
+  The transform is gone; only the blurry edges remain on screen.

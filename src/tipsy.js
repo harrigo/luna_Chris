@@ -13,7 +13,7 @@ const Tipsy = (() => {
   const level = () => { if (held) return heldL; const l = left(); if (!l) return 0; return Math.min(1, 0.45 + 0.18 * (pints - 1)) * Math.min(1, l / 10000); };
   function frame() {
     const L = level(), cv = document.querySelector('#game canvas');
-    if (!L) { if (el) el.style.display = 'none'; if (cv) cv.style.transform = ''; pints = 0; raf = 0; return; }
+    if (!L) { if (el) el.style.display = 'none'; pints = 0; raf = 0; return; }
     const t = now() / 1000;
     if (!el) { el = document.createElement('div'); el.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:19'; document.body.appendChild(el); }
     const b = (2 + 5 * L) * (0.85 + 0.15 * Math.sin(t * 1.7)), inner = Math.round(48 - 22 * L);
@@ -21,7 +21,8 @@ const Tipsy = (() => {
     el.style.display = 'block'; el.style.backdropFilter = el.style.webkitBackdropFilter = 'blur(' + b.toFixed(1) + 'px) saturate(1.25)';
     el.style.maskImage = el.style.webkitMaskImage = mask;
     el.style.background = 'radial-gradient(ellipse at center, rgba(255,190,90,0) ' + inner + '%, rgba(255,170,60,' + (0.1 * L).toFixed(2) + ') 100%)';
-    if (cv) cv.style.transform = 'rotate(' + (Math.sin(t * 0.7) * 0.22 * L).toFixed(2) + 'deg) scale(' + (1 + 0.008 * L).toFixed(3) + ')';   // (v3.123) a much gentler sway
+    // (v3.126) no more tilting the canvas: the CSS transform made the game think the screen had been resized, every
+    // frame (scenes rebuilt themselves over and over). The sway is all in Chris now (the rig, chris.js).
     raf = requestAnimationFrame(frame);
   }
   return {

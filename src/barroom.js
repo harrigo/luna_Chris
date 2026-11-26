@@ -63,6 +63,13 @@ function makeBarRoomArt(scene) {
     R(c, 0, 40, 180, 2, 0xc8ccd8);       // the brass foot rail
     for (const x of [30, 70, 110, 150]) { R(c, x - 2, -6, 5, 6, 0xf4ecd8, 0.9); R(c, x - 1, -9, 3, 3, 0xff9a2a); }   // pint glasses on the bar
   });
+  // the pint glass, full to empty (0..4): a handled tankard with a head of foam
+  for (let f = 0; f < 5; f++) cv('br_pint' + f, 12, 14, (c) => {
+    R(c, 1, 2, 9, 12, 0x1a1020); R(c, 2, 3, 7, 10, 0xdff4ff, 0.55); R(c, 9, 5, 3, 6, 0x1a1020); R(c, 10, 6, 1, 4, 0xdff4ff);
+    const lv = [9, 7, 5, 3, 0][f]; if (lv) { R(c, 2, 13 - lv, 7, lv, 0xffb03a); R(c, 2, 13 - lv, 2, lv, 0xffd27a); R(c, 7, 13 - lv, 2, lv, 0xc87a1a); }
+    if (f < 4) { R(c, 2, 12 - lv - (f ? 0 : 1), 7, f ? 1 : 2, 0xffffff); if (!f) { R(c, 1, 1, 9, 2, 0xffffff); R(c, 3, 0, 4, 1, 0xfff4e0); } }
+    R(c, 3, 4, 1, 7, 0xffffff, 0.7);
+  });
   cv('br_pint', 8, 12, (c) => { R(c, 0, 2, 8, 10, 0x1a1020); R(c, 1, 3, 6, 8, 0xffb03a); R(c, 1, 3, 6, 2, 0xfff4e0); R(c, 1, 0, 6, 3, 0xffffff); R(c, 2, 5, 1, 5, 0xffe0a0); R(c, 7, 4, 1, 4, 0x1a1020); });
   cv('br_stool', 14, 26, (c) => { R(c, 0, 0, 14, 4, 0x1a1020); R(c, 1, 0, 12, 3, 0xd83a2a); R(c, 1, 0, 12, 1, 0xff6a6a); R(c, 6, 4, 2, 20, 0xc8ccd8); R(c, 2, 24, 10, 2, 0x9aa4b8); R(c, 3, 15, 8, 1, 0x9aa4b8); });
   // ---- the arcade cabinets (one texture each, their screens are animated over the top)
@@ -202,17 +209,33 @@ class BarRoomScene extends Phaser.Scene {
     if (Tipsy.pints() >= Tipsy.MAX) { Sound.sfx('clunk'); this.say('CLANK: I THINK YOU\'VE HAD ENOUGH, CHEF.'); return; }
     Meta.addCrumbs(-BAR_BEER); Sound.sfx('pickup'); this.botT = 1.2;
     this.say(['CLANK: ONE PINT OF MOON ALE. -' + BAR_BEER + ' CRUMBS', 'CLANK: FRESH FROM THE CRATER. -' + BAR_BEER + ' CRUMBS', 'CLANK: MIND THE HEAD ON THAT. -' + BAR_BEER + ' CRUMBS'][Math.floor(Math.random() * 3)]);
-    // the pint slides along the bar to him, he glugs it, it's gone
-    const z = this.z, pint = this.add.image(130 * z, 122 * z, 'br_pint').setOrigin(0.5, 1).setScale(z * 1.3).setDepth(3.5);
-    this.drinkT = 2.2; this.goal = null; this.useOnArrive = null;
-    this.tweens.add({ targets: pint, x: this.cx * z + this.P.facing * 6 * z, y: (BAR.FL - 22) * z, duration: 500, ease: 'Quad.easeOut', onComplete: () => {
-      Sound.sfx('jump'); this.tweens.add({ targets: pint, angle: -this.P.facing * 70, y: pint.y - 8 * z, duration: 300 });
-      this.time.delayedCall(450, () => { let k = 0; this.time.addEvent({ delay: 180, repeat: 4, callback: () => { Sound.sfx('blip'); pint.setScale(z * 1.3, z * 1.3 * (1 - ++k * 0.18)); } }); });
-      this.time.delayedCall(1500, () => { pint.destroy(); const n = Tipsy.drink(); Sound.sfx('power'); this.hic(); this.say(n > 1 ? n + ' PINTS IN... THE ROOM IS SPINNING' : 'AHHH. THAT HITS THE SPOT. *HIC*'); });
-    } });
+    // (v3.126) the pint slides down the bar; Chris takes it (the rig does the drinking: reach, raise, head back, five
+    // glugs as the glass empties, down with a grin, a wipe of the moustache), then tosses the empty over his shoulder
+    const z = this.z, pint = this.add.image(134 * z, 124 * z, 'br_pint0').setOrigin(0.5, 1).setScale(z * 0.75).setDepth(1.65);
+    this.goal = null; this.useOnArrive = null; this.drinkT = 3.3; this.drinkU = 0; this.slidePint = pint; this.gulps = 0; this.P.facing = this.cx < 130 ? 1 : this.P.facing;
+    Sound.sfx('zing');
+    this.tweens.add({ targets: pint, x: (this.cx + this.P.facing * 10) * z, duration: 380, ease: 'Cubic.easeOut' });
+  }
+  drinkTick(dt) {
+    if (!(this.drinkT > 0)) { this.P.drink = 0; return; }
+    const T = 3.0, u = this.drinkU = Math.min(1, this.drinkU + dt / T), z = this.z, R0 = this.rig.root;
+    this.P.drink = u < 1 ? Math.max(0.001, u) : 0;
+    if (this.slidePint && u >= 0.12) { this.slidePint.destroy(); this.slidePint = null; Sound.sfx('pickup'); }
+    const g = Math.floor((u - 0.3) / 0.44 * 5); if (u > 0.3 && u < 0.74 && g >= this.gulps) { this.gulps = g + 1; Sound.sfx('blip'); this.rig.bv = (this.rig.bv || 0) + 3; }
+    if (u >= 0.78 && !this.ahh) { this.ahh = true; const n = Tipsy.drink(); Sound.sfx('power');
+      const t = this.add.text(R0.x + this.P.facing * 14 * z, R0.y - 50 * z, 'AHHH!', { fontFamily: PIXEL, fontSize: Math.round(5 * z) + 'px', color: '#fff0c8', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5).setDepth(5).setScale(0.3);
+      this.tweens.add({ targets: t, scale: 1, y: t.y - 10 * z, duration: 260, ease: 'Back.easeOut' }); this.tweens.add({ targets: t, alpha: 0, delay: 900, duration: 400, onComplete: () => t.destroy() });
+      this.say(n > 3 ? 'FOUR PINTS. HE CAN SEE THROUGH TIME.' : n > 2 ? 'THREE PINTS... WHO PUT TWO MOONS UP THERE?' : n > 1 ? 'TWO PINTS IN... THE ROOM IS SPINNING' : 'AHHH. THAT HITS THE SPOT.'); }
+    if (u >= 0.86 && !this.tossed) { this.tossed = true; Sound.sfx('jump');                       // the empty goes over his shoulder
+      const gl = this.add.image(R0.x, R0.y - 40 * z, 'br_pint4').setScale(z * 0.75).setDepth(3.4), dir = -this.P.facing;
+      this.tweens.add({ targets: gl, x: gl.x + dir * 90 * z, angle: dir * 720, duration: 700, ease: 'Linear' });
+      this.tweens.add({ targets: gl, y: gl.y - 40 * z, duration: 300, ease: 'Quad.easeOut', yoyo: false, onComplete: () => this.tweens.add({ targets: gl, y: BAR.FL * z, duration: 400, ease: 'Quad.easeIn', onComplete: () => {
+        Sound.sfx('clang'); for (let k = 0; k < 6; k++) { const sh = this.add.rectangle(gl.x, gl.y, 2 * z, 2 * z, 0xdff4ff).setDepth(3.4); this.tweens.add({ targets: sh, x: sh.x + (Math.random() - 0.5) * 40 * z, y: sh.y - Math.random() * 22 * z, alpha: 0, duration: 450, onComplete: () => sh.destroy() }); }
+        gl.destroy(); this.botT = 1; this.say('CLANK: ...THAT IS COMING OUT OF YOUR CRUMBS.'); } }) }); }
+    this.drinkT -= dt; if (this.drinkT <= 0) { this.P.drink = 0; this.ahh = false; this.tossed = false; }
   }
   hic() { const z = this.z, t = this.add.text(this.cx * z + (Math.random() - 0.5) * 20 * z, (BAR.FL - 48) * z, '*HIC*', { fontFamily: PIXEL, fontSize: Math.round(4 * z) + 'px', color: '#ffd9a0', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(5);
-    this.tweens.add({ targets: t, y: t.y - 16 * z, alpha: 0, angle: (Math.random() - 0.5) * 30, duration: 1100, onComplete: () => t.destroy() }); Sound.sfx('bonk'); }
+    this.tweens.add({ targets: t, y: t.y - 16 * z, alpha: 0, angle: (Math.random() - 0.5) * 30, duration: 1100, onComplete: () => t.destroy() }); Sound.sfx('squeak'); }
   leave() { if (this.going) return; this.going = true; Sound.sfx('wave'); this.cameras.main.fadeOut(350, 0, 0, 0); this.time.delayedCall(380, () => this.scene.start('level1', { camp: true, at: CAMP_ST.find(s => s.id === 'bar').theta })); }
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000); this.t += dt; const t = this.t, z = this.z, { FL, RW } = BAR, P = this.P, W = this.scale.width, H = this.scale.height;
@@ -220,14 +243,15 @@ class BarRoomScene extends Phaser.Scene {
     let dir = 0; const K = this.keys;
     if (K && (K.LEFT.isDown || K.A.isDown)) dir -= 1; if (K && (K.RIGHT.isDown || K.D.isDown)) dir += 1;
     if (typeof Pad !== 'undefined' && Pad.state) { if (Pad.state.left) dir = -1; if (Pad.state.right) dir = 1; }
-    this.drinkT = Math.max(0, (this.drinkT || 0) - dt); if (this.drinkT > 0) dir = 0;
+    this.drinkTick(dt); if (this.drinkT > 0) dir = 0;
     if (dir) { this.goal = null; this.useOnArrive = null; }
     else if (this.goal !== null) { const d = this.goal - this.cx; if (Math.abs(d) < 2) { this.goal = null; if (this.useOnArrive) { const s = this.useOnArrive; this.useOnArrive = null; this.use(s); } } else dir = Math.sign(d); }
-    if (Tipsy.level() > 0 && !this.drinkT && !this.going) { dir = Tipsy.steer(dir, this.time.now); if (Math.random() < dt * 0.25) this.hic(); }
+    if (Tipsy.level() > 0 && !(this.drinkT > 0) && !this.going) dir = Tipsy.steer(dir, this.time.now);
+    P.tipsy = Tipsy.level();
     const sp = 95; P.vx = this.going ? 0 : dir * sp * z; this.cx = Math.max(14, Math.min(RW - 14, this.cx + (this.going ? 0 : dir * sp * dt)));
     if (Math.abs(dir) > 0.15) P.facing = Math.sign(dir);
     this.rig.update(P, dt, Math.round(this.cx * z), Math.round(FL * z), z * 0.58, 1, Math.floor(t * 10) % 4);
-    if (Tipsy.level() > 0) this.rig.root.setRotation(this.rig.root.rotation + Tipsy.sway(this.time.now));
+    if (this.rig.hicFlag) { this.rig.hicFlag = false; this.hic(); }
     const cam = this.cameras.main; cam.scrollX = Math.max(0, Math.min(Math.max(0, RW * z - W), this.cx * z - W / 2));
     // the prompt over whatever you're next to
     const s = this.near();

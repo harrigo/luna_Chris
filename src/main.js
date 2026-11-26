@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.125';
+const BUILD = 'v3.126';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -3604,6 +3604,7 @@ class Level1 extends Phaser.Scene {
     o = o || {};
     if ((this.shotN = (this.shotN || 0) + 1) % W.sfxEvery === 0) Sound.sfx(W.sfx);
     let dx = P.facing * Math.cos(P.aimA || 0), dy = Math.sin(P.aimA || 0);    // aimed up/down with the right stick
+    if (P.tipsy > 0) { const w = (Math.sin(this.time.now / 1000 * 1.9) * 0.065 + Math.sin(this.time.now / 1000 * 3.1 + 1) * 0.03) * Math.min(1, P.tipsy * 1.6) * 1.3, c = Math.cos(w), sn = Math.sin(w) * P.facing; const nx = dx * c - dy * sn, ny = dx * sn + dy * c; dx = nx; dy = ny; }   // (v3.126) tipsy: the gun sways about 5 degrees, and the shots go where it points
     const M = this.muzzle;
     const gh = M ? M.h : P.h + (P.duck ? 29 : 40);   // shots leave the real muzzle (falls back to chest / crouch height)
     if (tgt) {
@@ -5806,8 +5807,9 @@ class Level1 extends Phaser.Scene {
     P.firing = Math.max(0, (P.firing || 0) - (this.lastDt || 0.016));
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
+    P.tipsy = typeof Tipsy !== 'undefined' && (this.camp || Tipsy.held()) ? Tipsy.level() : 0;   // (v3.126) the rig does the drunk: legs, sway, hiccups
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
-    if (typeof Tipsy !== 'undefined' && Tipsy.level() > 0 && (this.camp || Tipsy.held())) this.rig.root.setRotation(this.rig.root.rotation + Tipsy.sway(this.time.now));   // (v3.122) swaying on his feet
+    if (this.rig.hicFlag) { this.rig.hicFlag = false; Sound.sfx('squeak'); const sp = this.screenPos(P.theta, P.h + 62), hx = this.add.text(sp.x, sp.y, '*HIC*', { fontFamily: PIXEL, fontSize: '10px', color: '#ffd9a0', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(20); this.tweens.add({ targets: hx, y: hx.y - 18, alpha: 0, angle: (Math.random() - 0.5) * 30, duration: 1000, onComplete: () => hx.destroy() }); }
     { // (v3.65) grounding: a puff of dust where he lands, and a skid of it when he turns on his heel at a run
       const fl = P.floor || 0, g = P.h <= fl + 0.5 && P.vh <= 0, dir = Math.abs(P.vx || 0) > 120 ? Math.sign(P.vx) : 0;
       if (this.state === 'play' && !this.cave) {
