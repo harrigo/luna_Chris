@@ -307,7 +307,9 @@ const CampMixin = {
     makeCampTextures(this); if (typeof makeBarTexture === 'function') makeBarTexture(this); makeGrowTextures(this); makeCavernTextures(this); makeToyTextures(this); if (typeof makeLabTextures === 'function') makeLabTextures(this);
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
-    this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
+    // (v3.131) Fridge-o-tron and THE LARDER only move into camp once you've met him at a run's shop stop
+    { const L = Meta.larder(); this.shopMet = !!Meta._j('lc_shop_met', 0) || Object.keys(L).some(k => L[k] > 0); }
+    this.campSt = CAMP_ST.filter(d => d.id !== 'larder' || this.shopMet).map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
       const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
       // (v3.118) the bar stands BEHIND the planet: sunk well into it and masked by the planet's disc (everything inside
       // the circle is cut away), so the ground's curve hides its base wherever you look at it from
@@ -318,7 +320,7 @@ const CampMixin = {
         this.barIn = { spr: ins, theta: d.theta, h: a.h, rot: 0, sc: d.sc, w: spr.width }; this.actors.push(this.barIn); }
       return Object.assign({}, d, { a }); });
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
-    this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
+    this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; if (this.shopMet) this.actors.push(this.campBot); else this.campBot.spr.setVisible(false);
     this.campFolkInit();
     // (v3.124) THE SECRET OF THE SKIES: three ledges climb up beside the bar, the top two out of sight above the screen.
     // On the top one, on a little cloud: the GOLDEN BESSIE shrine. The camera rises with you when you climb up there.
@@ -347,6 +349,7 @@ const CampMixin = {
     this.campHud = this.add.container(0, 0).setDepth(21);
     this.campHudBuild();
     this.campLine = this.campPickLine();
+    if (this.shopMet && !Meta._j('lc_shop_home', 0)) { Meta._s('lc_shop_home', 1); this.campLine = 'FRIDGE-O-TRON: I FOLLOWED YOU HOME, CHEF. THE LARDER IS OPEN - TRADE YOUR GOLDEN CRUMBS HERE!'; }
     const P = this.pl; P.theta = this.campSum ? 0.42 : this.campAt !== undefined ? this.campAt - 0.05 : -0.14;
     if (this.campSum && this.campSum.cavern) { P.theta = 1.65; P.h = 0; P.vh = 560; Sound.sfx('jump'); this.time.delayedCall(900, () => this.campShowCard()); }   // (v3.41) popping back out of the cavern hole
     else if (this.campSum) { P.h = 640; P.vh = -120; this.time.delayedCall(1500, () => this.campShowCard()); }
@@ -386,7 +389,7 @@ const CampMixin = {
     if (S.how === 'quit') return 'GAVE UP? THE CRUMBS STILL COUNT.';
     return P(['GRATED AGAIN? HAPPENS TO THE BEST CHEESES.', 'OUCH. STILL, CRUMBS ARE CRUMBS.', 'YOU SMELL OF RAT. TRADE?', 'DEATH IS JUST A LONG NAP. SPEND!']);
   },
-  campSay(text, secs) { this.campBubble.setText(text).setVisible(true); this.campBubbleT = secs || 3.5; },
+  campSay(text, secs) { if (!this.shopMet) return; this.campBubble.setText(text).setVisible(true); this.campBubbleT = secs || 3.5; },
   campNear() {
     const P = this.pl; let best = null, bd = 1e9;
     for (const s of this.campSt) { if (s.id === 'cave' && !this.cvStation) continue; if (s.id === 'clay' && this.toyOpen && !this.toyOpen('clay')) continue; const d = Math.abs(angDiff(P.theta, s.theta)) * R; if (d < bd) { bd = d; best = s; } }

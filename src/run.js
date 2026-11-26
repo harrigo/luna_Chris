@@ -91,7 +91,8 @@ const Run = {
     const L = Meta.larder();
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
-    Object.assign(this, { styleS: 0, bonusAt: 1 + Math.floor(Math.random() * (RUN_ROUTE.length - 2)), vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    const shopAt = 2 + Math.floor(Math.random() * 2), bAts = [1, 2, 3].filter(k => k !== shopAt);   // (v3.131) the SHOP stop: after planet 2 or 3; the BONUS stop somewhere else on the line
+    Object.assign(this, { styleS: 0, shopAt, shopDone: false, bonusAt: bAts[Math.floor(Math.random() * bAts.length)], vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
     const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
     if (kp) this.take(reg, kp);
   },
@@ -106,6 +107,13 @@ const Run = {
     this.saved = null;
   },
   stages() { return RUN_ROUTE.length; },
+  // (v3.131) the stop on the line before stage idx that you must pass through first: 'shop', a bonus id, or null
+  stopAt(idx) {
+    if (idx === undefined) idx = this.idx;
+    if (idx === this.shopAt && !this.shopDone) return 'shop';
+    if (idx === this.bonusAt && !this.bonusDone[idx]) { if (this.bonusOffer[idx] === undefined) this.bonusOffer[idx] = RUN_BONUS[Math.floor(Math.random() * RUN_BONUS.length)]; return this.bonusOffer[idx]; }
+    return null;
+  },
   // the run's summary, and the best run on this device ({ planets, score })
   finish(reg, how) {
     try { localStorage.setItem('lc_cave_ready', '1'); } catch (e) { /* ignore */ }   // (v3.41) the rats restock the secret cavern after every run

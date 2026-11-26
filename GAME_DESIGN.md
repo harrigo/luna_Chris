@@ -2710,3 +2710,12 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 
 ## v3.130: less campfire smoke
 - The campfire puffs 70% less smoke (9% of its particles are smoke, was 30%); the sparks are unchanged.
+
+## v3.131: STORY & PROGRESSION, stage 1 - stops on the road
+- The run route has two STOPS sitting ON the line, which everyone passes through before picking the next planet:
+  - THE SHOP (Fridge-o-tron's stall), after planet 2 or 3 at random (Run.shopAt). The route screen's SHOP button is
+    gone: this is the only shop in a run.
+  - THE BONUS level (a gold star), somewhere else on the line (Run.bonusAt, never the same stage as the shop).
+  Run.stopAt() says which stop is waiting; the planets ahead only light up once it's done.
+- Fridge-o-tron and THE LARDER now only move into camp after you've met him at a run's shop stop (lc_shop_met; old
+  saves that have bought anything keep them). The first time home after that, he says he followed you.

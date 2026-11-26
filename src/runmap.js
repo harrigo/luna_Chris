@@ -15,12 +15,13 @@ function runMapLayout() {
     if (opts.length === 1) cols.push([{ id: opts[0], x, y }]);
     else { const s = 0.17 + rnd() * 0.06; cols.push(opts.map((id, k) => ({ id, x: x + (rnd() - 0.5) * 0.02, y: Math.max(0.14, Math.min(0.86, y + (k ? s : -s))) }))); }
   }
-  // the bonus stop: a star off to one side, between the stage before it and its own column
-  const bi = Run.bonusAt, c0 = cols[bi], up = rnd() < 0.5;
-  const by = up ? Math.min(...c0.map(q => q.y)) - 0.24 : Math.max(...c0.map(q => q.y)) + 0.24;
-  const bonus = { x: (c0[0].x + (bi ? cols[bi - 1][0].x : 0.05)) / 2, y: Math.max(0.1, Math.min(0.9, by)) };
+  // (v3.131) the STOPS sit ON the line, half way between the stage before and their own stage: the bonus (a star) and
+  // the shop (Fridge-o-tron's stall). Everyone passes through them.
+  const camp0 = { x: 0.5 / (n + 1), y: 0.5 }, mid = c => c.reduce((a, q) => a + q.y, 0) / c.length;
+  const stopPos = i => { const a = i ? cols[i - 1] : [camp0], b = cols[i]; return { x: (a[0].x + b[0].x) / 2, y: (mid(a) + mid(b)) / 2 }; };
+  const bonus = stopPos(Run.bonusAt), shop = Run.shopAt !== undefined ? stopPos(Run.shopAt) : null;
   const deco = []; for (let i = 0; i < 14; i++) deco.push({ x: rnd(), y: rnd(), r: 2 + rnd() * 6, k: rnd() < 0.3 ? 'rock' : 'dust', c: [0x6a4a9a, 0x3a5a9a, 0x9a4a6a][Math.floor(rnd() * 3)] });
-  Run.map = { t0: Run.t0, cols, bonus, deco, camp: { x: 0.5 / (n + 1), y: 0.5 } };
+  Run.map = { t0: Run.t0, cols, bonus, shop, deco, camp: camp0 };
   return Run.map;
 }
 
@@ -40,15 +41,17 @@ Object.assign(RunScene.prototype, {
     };
     // where you've actually been, stage by stage (the camp, then each planet you picked)
     const at = i => (i < 0 ? M.camp : M.cols[i].find(q => q.id === Run.done[i]) || M.cols[i][0]);
+    const stopOf = i => i === Run.bonusAt ? M.bonus : i === Run.shopAt ? M.shop : null;
     for (let i = 0; i < M.cols.length; i++) {
-      const froms = i === 0 ? [M.camp] : (i - 1 < Run.idx ? [at(i - 1)] : M.cols[i - 1]);
-      for (const a of froms) for (const b of M.cols[i]) {
-        const walked = i < Run.idx && b.id === Run.done[i], next = i === Run.idx, gone = i < Run.idx && b.id !== Run.done[i];
+      const froms = i === 0 ? [M.camp] : (i - 1 < Run.idx ? [at(i - 1)] : M.cols[i - 1]), S = stopOf(i);
+      const stDone = S && (i === Run.shopAt ? Run.shopDone || Run.idx > i : Run.bonusDone[i] || Run.idx > i);
+      if (S) for (const a of froms) { const walked = i <= Run.idx && (i < Run.idx || stDone); dots(X(a), Y(a), X(S), Y(S), walked || i === Run.idx ? 0xffd23f : 0x6a7090, walked ? 1 : i === Run.idx ? 0.85 : 0.45, walked); }
+      for (const a of S ? [S] : froms) for (const b of M.cols[i]) {
+        const walked = i < Run.idx && b.id === Run.done[i], next = i === Run.idx && (!S || stDone), gone = i < Run.idx && b.id !== Run.done[i];
         dots(X(a), Y(a), X(b), Y(b), walked ? 0xffd23f : next ? 0xffd23f : 0x6a7090, walked ? 1 : next ? 0.85 : gone ? 0.25 : 0.45, walked);
       }
     }
-    const bonusLive = Run.bonusOffer[Run.idx] && !Run.bonusDone[Run.idx] && Run.idx === Run.bonusAt;
-    { const from = Run.bonusAt === 0 ? M.camp : at(Run.bonusAt - 1); dots(X(from), Y(from), X(M.bonus), Y(M.bonus), 0xffd23f, Run.bonusDone[Run.bonusAt] ? 0.9 : bonusLive ? 0.85 : Run.idx > Run.bonusAt ? 0.2 : 0.4, !!Run.bonusDone[Run.bonusAt]); }
+    const stopNow = Run.stopAt(), bonusLive = stopNow && stopNow !== 'shop', shopLive = stopNow === 'shop';
     // Moon Camp
     { const x = X(M.camp), y = Y(M.camp); g.fillStyle(0xffd23f, 0.15).fillCircle(x, y, 18); g.fillStyle(0xd8c890, 1).fillCircle(x, y, 13); g.fillStyle(0xb8a870, 1).fillCircle(x + 4, y + 3, 4); g.fillStyle(0xb8a870, 1).fillCircle(x - 5, y - 2, 3);
       if (this.textures.exists('cr_tent')) { const t = RUN_UI.fit(this.add.image(x, y - 12, 'cr_tent'), 18); this.ui.add(t); }
@@ -62,15 +65,21 @@ Object.assign(RunScene.prototype, {
       for (const o of objs) { if (gone) { if (o.setTint) o.setTint(0x555566); o.setAlpha(0.35); } else if (!cur && !done) o.setAlpha(0.6); this.ui.add(o); }
       if (done) { g.lineStyle(2, 0x7dff8a, 1).strokeCircle(x, y, r + 3); this.ui.add(this.add.text(x + r * 0.7, y - r * 0.9, '✓', f(9, '#7dff8a')).setOrigin(0.5)); }
       if (i === M.cols.length - 1) this.ui.add(this.add.text(x, y - r - 12, 'FINAL BOSS', f(6, '#ff9d3a', { strokeThickness: 3 })).setOrigin(0.5));
-      if (cur) { this.ui.add(this.add.text(x, y + r + 6, LEVELS[q.id].short || LEVELS[q.id].name, f(small ? 6 : 7, '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); opts.push({ id: q.id, x, y, r }); }
+      if (cur) { this.ui.add(this.add.text(x, y + r + 6, LEVELS[q.id].short || LEVELS[q.id].name, f(small ? 6 : 7, '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); if (!stopNow) opts.push({ id: q.id, x, y, r }); }
     }));
     // the bonus star
-    { const x = X(M.bonus), y = Y(M.bonus), r = bonusLive ? rBig * 0.85 : rSmall * 0.8, done = Run.bonusDone[Run.bonusAt];
+    { const x = X(M.bonus), y = Y(M.bonus), r = bonusLive ? rBig * 0.85 : rSmall * 0.8, done = Run.bonusDone[Run.bonusAt] || Run.idx > Run.bonusAt;
       const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; pts.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr }); }
       g.fillStyle(0xffd23f, bonusLive ? 0.25 : 0.1).fillCircle(x, y, r + 8); g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true);
       g.fillStyle(done ? 0x7dff8a : 0xffd23f, bonusLive || done ? 1 : 0.45).fillPoints(pts, true);
       this.ui.add(this.add.text(x, y + r + 4, done ? 'BONUS DONE' : 'BONUS', f(6, done ? '#7dff8a' : '#ffd23f', { strokeThickness: 3 })).setOrigin(0.5, 0));
-      if (bonusLive) opts.push({ bonus: Run.bonusOffer[Run.idx], x, y, r }); }
+      if (bonusLive) opts.push({ bonus: stopNow, x, y, r }); }
+    // (v3.131) the SHOP stop: Fridge-o-tron's stall, on the line
+    if (M.shop) { const x = X(M.shop), y = Y(M.shop), done = Run.shopDone || Run.idx > Run.shopAt, r = shopLive ? rBig * 0.85 : rSmall * 0.8;
+      g.fillStyle(0x7dff8a, shopLive ? 0.25 : 0.1).fillCircle(x, y, r + 8); g.fillStyle(0x1a1020, 1).fillCircle(x + 2, y + 2, r); g.fillStyle(done ? 0x2a6a3a : 0x2a8a5a, shopLive || done ? 1 : 0.5).fillCircle(x, y, r);
+      if (this.textures.exists('cr_stall')) { const im = RUN_UI.fit(this.add.image(x, y + 2, 'cr_stall'), r * 1.5); if (!shopLive && !done) im.setAlpha(0.55); this.ui.add(im); }
+      this.ui.add(this.add.text(x, y + r + 4, done ? 'SHOP DONE' : 'SHOP', f(6, done ? '#7dff8a' : '#7dff8a', { strokeThickness: 3 })).setOrigin(0.5, 0));
+      if (shopLive) opts.push({ shop: true, x, y, r }); }
     // the rocket: you are here
     { const here = Run.idx === 0 ? M.camp : at(Run.idx - 1);
       if (this.textures.exists('cr_rocket')) { const rk = RUN_UI.fit(this.add.image(X(here) + 10, Y(here) - 20, 'cr_rocket'), 26).setRotation(0.6); this.ui.add(rk); this.mapRocket = { im: rk, y: rk.y }; } }
@@ -84,9 +93,9 @@ Object.assign(RunScene.prototype, {
     for (const k in this.mapInfo) this.ui.add(this.mapInfo[k]);
     this.mapOpts = opts;
     opts.forEach(o => this.hits.push({ x: o.x - o.r - 6, y: o.y - o.r - 6, w: o.r * 2 + 12, h: o.r * 2 + 12, map: o,
-      act: () => { if (o.bonus) { Sound.sfx('power'); Run.bonusDone[Run.idx] = true; this.go(o.bonus, o.bonus === 'zerog' ? { room: 'zerog' } : undefined); } else { Sound.sfx('power'); this.go('level1', { level: o.id, direct: true }); } } }));
-    const bw = small ? 96 : 116, bh = small ? 20 : 24, bx = px + pw - bw * 2 - 22, bby = py + panH / 2 - bh / 2;
-    [['SHOP', () => { Sound.sfx('wave'); this.go('shop'); }], ['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('level1', { camp: true, sum })); }]].forEach(([lab, act], i) => {
+      act: () => { if (o.shop) { Sound.sfx('wave'); Run.shopDone = true; Meta._s('lc_shop_met', 1); this.go('shop'); return; } if (o.bonus) { Sound.sfx('power'); Run.bonusDone[Run.idx] = true; this.go(o.bonus, o.bonus === 'zerog' ? { room: 'zerog' } : undefined); } else { Sound.sfx('power'); this.go('level1', { level: o.id, direct: true }); } } }));
+    const bw = small ? 96 : 116, bh = small ? 20 : 24, bx = px + pw - bw - 12, bby = py + panH / 2 - bh / 2;
+    [['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('level1', { camp: true, sum })); }]].forEach(([lab, act], i) => {
       const x = bx + i * (bw + 10);
       RUN_UI.btn(this, this.ui, x, bby, bw, bh, lab, i ? 0xd86a8a : 0xffd23f, i ? '#ff9db8' : '#ffd23f');
       this.hits.push({ x, y: bby, w: bw, h: bh, act });
@@ -101,7 +110,8 @@ Object.assign(RunScene.prototype, {
     const I = this.mapInfo, h = this.hits && this.hits[this.sel]; if (!I) return;
     const o = h && h.map;
     if (!o) { I.title.setText(Run.idx === 0 ? 'WHERE TO FIRST?' : 'WHERE NEXT?'); I.sub.setText(''); I.body.setText('Pick a planet on the map. ' + (this.mapOpts.length > 1 ? 'A fork: you only get to visit one.' : '')); return; }
-    if (o.bonus) { I.title.setText('BONUS STOP: ' + RUN_BONUS_NAME[o.bonus]); I.sub.setText('ONE GO. NO DANGER.'); I.body.setText('Win it for a LEGENDARY perk: bigger, better, rarer. Then pick your planet.'); return; }
+    if (o.shop) { I.title.setText('THE SHOP: FRIDGE-O-TRON'); I.sub.setText('A STOP ON THE ROAD.'); I.body.setText('Spend this run\'s cheddar on upgrades before the next planet. Once you\'ve found him, he sets up shop at camp too.'); return; }
+    if (o.bonus) { I.title.setText('BONUS STOP: ' + RUN_BONUS_NAME[o.bonus]); I.sub.setText('ONE GO. NO DANGER.'); I.body.setText('On the road, so everyone plays it. Win it for a LEGENDARY perk: bigger, better, rarer.'); return; }
     const L = LEVELS[o.id]; I.title.setText(L.short || L.name); I.sub.setText('BOSS: ' + L.bossName); I.body.setText((L.blurb || '').replace(/\n/g, ' '));
   }
 });
