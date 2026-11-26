@@ -178,7 +178,7 @@ class MenuScene extends Phaser.Scene {
     // (v3.37) the main menu is three big cards - CAMPAIGN, RUN MODE, TRAINING - and a little row underneath for the rest.
     // The text menus are kept for the sub-screens (options, controls, the new-game check).
     const hasSave = () => { try { return Object.keys(localStorage).some(k => /^lc_(best|cbeat|found|sbeat_|gun_|rank_|wheels_|spins)/.test(k) && localStorage.getItem(k) && localStorage.getItem(k) !== '0'); } catch (e) { return false; } };
-    const sub = (items, title) => { this.tilesShow(false); this.logo.setVisible(title !== 'NEW GAME?'); this.sub.setVisible(false); if (this.menu) this.menu.destroy();
+    const sub = (items, title) => { this.tilesShow(false); this.logo.setVisible(false);   /* (v3.123) the logo sat over the longer lists */ this.sub.setVisible(false); if (this.menu) this.menu.destroy();
       this.menu = makeMenu(this, { items, title, dim: false, y: Math.round(this.scale.height * 0.5), minWidth: 220, depth: 5, onBack: toMain }); };
     const toMain = () => { if (this.menu) { this.menu.destroy(); this.menu = null; } this.logo.setVisible(true); this.sub.setVisible(true); this.tilesShow(true); };
     const confirmNew = () => [

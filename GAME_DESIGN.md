@@ -2654,3 +2654,11 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   whole level - blurry edges, the swaying screen, Chris staggering as he walks (Tipsy.steer, now in levels too while
   held) and swaying on his feet. Clear the level like that: the LEGLESS LUNATIC trophy, and it starts to wear off
   (10 s fade). Dying or quitting back to camp or the map also sobers him up.
+
+## v3.123: tidy-ups
+- Tipsy is gentler and more in his legs: the screen sway is a quarter of what it was; walking goes in a stop-start
+  lurching rhythm (Tipsy.steer: ~0.5 s beats, slowing almost to a stop between lurches) with only a slight drift, and
+  he leans in time with the lurches (Tipsy.sway). Standing still he barely moves.
+- Main menu: the LUNA CHRIS logo hides on every sub-screen (it sat over the OPTIONS list).
+- Camp: the golden trophy moved from in front of the bar to theta 1.48 (between the gun rack and the cave); the bar is
+  19% bigger (scale 3.57); the glimpse through its door moves 20x less as you walk past.

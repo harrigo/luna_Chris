@@ -21,7 +21,7 @@ const Tipsy = (() => {
     el.style.display = 'block'; el.style.backdropFilter = el.style.webkitBackdropFilter = 'blur(' + b.toFixed(1) + 'px) saturate(1.25)';
     el.style.maskImage = el.style.webkitMaskImage = mask;
     el.style.background = 'radial-gradient(ellipse at center, rgba(255,190,90,0) ' + inner + '%, rgba(255,170,60,' + (0.1 * L).toFixed(2) + ') 100%)';
-    if (cv) cv.style.transform = 'rotate(' + (Math.sin(t * 0.9) * 0.9 * L).toFixed(2) + 'deg) translateX(' + (Math.sin(t * 0.63) * 6 * L).toFixed(1) + 'px) scale(' + (1 + 0.015 * L).toFixed(3) + ')';
+    if (cv) cv.style.transform = 'rotate(' + (Math.sin(t * 0.7) * 0.22 * L).toFixed(2) + 'deg) scale(' + (1 + 0.008 * L).toFixed(3) + ')';   // (v3.123) a much gentler sway
     raf = requestAnimationFrame(frame);
   }
   return {
@@ -33,7 +33,12 @@ const Tipsy = (() => {
     pints: () => (left() ? pints : 0),
     drink() { if (!left()) pints = 0; pints = Math.min(MAX, pints + 1); end = Math.min(now() + PER * MAX, Math.max(end, now()) + PER); if (!raf) raf = requestAnimationFrame(frame); return pints; },
     // a stagger on top of whatever left/right you're pressing (-1..1). Standing still, he still drifts about.
-    steer(ax, ms) { const L = level(); if (!L) return ax; const w = Math.sin(ms / 700) * 0.6 + Math.sin(ms / 233 + 1) * 0.25; return Math.max(-1, Math.min(1, ax * (1 - 0.25 * L) + w * L * (ax ? 0.7 : 0.55))); },
-    sway(ms) { return Math.sin(ms / 520) * 0.12 * level(); }
+    // (v3.123) the stagger is in his legs, not the stick: walking goes in a stop-start rhythm (lurch, lurch, wobble...)
+    // and only a slight drift. Standing still he barely moves.
+    steer(ax, ms) { const L = level(); if (!L) return ax; if (!ax) return Math.sin(ms / 1300) * 0.08 * L;
+      const beat = (ms / 520) % 1, go = beat < 0.55 ? 1 : beat < 0.7 ? 1 - (beat - 0.55) / 0.15 * (0.85 * L) : 1 - 0.85 * L;
+      return Math.max(-1, Math.min(1, ax * go + Math.sin(ms / 900) * 0.12 * L)); },
+    // a lean and sway on his feet, in time with the lurches
+    sway(ms) { const L = level(); if (!L) return 0; const beat = (ms / 520) % 1; return (Math.sin(ms / 640) * 0.07 + Math.sin(beat * Math.PI * 2) * 0.04) * L; }
   };
 })();

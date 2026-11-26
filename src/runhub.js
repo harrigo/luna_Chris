@@ -18,7 +18,7 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
-  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 3,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
+  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 3.57,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
@@ -33,7 +33,7 @@ const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strin
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    ledges: [{ theta: 2.62, half: 0.11, h: 262 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    ledges: [{ theta: 2.62, half: 0.11, h: 300 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -406,7 +406,7 @@ const CampMixin = {
     if (this.barIn) {                                  // (v3.119) the view through the bar's open door: a window onto the bar-room art, sliding with the view
       const B = this.barIn, D = BAR_DOOR, k = B.sc, bs = 0.9, cw = Math.round((D.x1 - D.x0 + 1) * k / bs), ch = Math.round((D.y1 - D.y0 + 1) * k / bs);
       if (B.dx === undefined) { B.dx = ((D.x0 + D.x1 + 1) / 2 - B.w / 2) * k; B.theta = wrap(B.theta + B.dx / (R + B.h)); B.h += (84 - D.y1 - 1) * k; }
-      const par = angDiff(this.viewT(), B.theta), cx0 = Math.max(44, Math.min(220 - cw, Math.round(110 + par * 220 + Math.sin(this.time.now / 3000) * 14))), cy0 = 44;   // the back bar's shelves of glowing bottles
+      const par = angDiff(this.viewT(), B.theta), cx0 = Math.max(44, Math.min(220 - cw, Math.round(110 + par * 11 + Math.sin(this.time.now / 9000) * 3))), cy0 = 44;   // the back bar's shelves of glowing bottles
       B.spr.setCrop(cx0, cy0, cw, ch).setOrigin((cx0 + cw / 2) / BAR.RW, (cy0 + ch) / BAR.RH);
       const tt = this.time.now / 1000, cols = [0xffc8f0, 0xc8f4ff, 0xfff0b0, 0xd0ffd8]; B.spr.setTint(cols[Math.floor(tt * 118 / 60) % 4]);
     }
