@@ -20,20 +20,20 @@ const SLOT = (() => {
   const STRENGTHS = {
     mild: {
       name: 'MILD', col: 0xffe070, desc: 'Small wins, often. A short trail that barely slips.',
-      counts: { wedge: [7, 7, 7, 7, 7], coin: [6, 6, 6, 6, 6], slow: [5, 5, 5, 5, 5], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 1, 1, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'JACKPOT'], slip: 0.12, split: [0.7, 0.25],
+      counts: { wedge: [7, 7, 7, 7, 7], coin: [6, 6, 6, 6, 6], slow: [5, 5, 5, 5, 5], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 2, 1, 2, 1] },
+      trail: ['C', 'C', 'FREE', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'C', 'JACKPOT'], slip: 0.08, split: [0.62, 0.33], jackK: 6,
       free: { spins: 8, mult: 1 }, rat: [1, 1, 2, 2, 3, 3, 4, 5, 8, 12], rats: 2, respin: { start: 6, p: 0.075, vals: [1, 1, 1, 2, 2, 3, 5], grand: 50 }
     },
     mature: {
       name: 'MATURE', col: 0xf0c030, desc: 'Balanced. A longer trail and bigger bonuses.',
-      counts: { wedge: [8, 8, 8, 8, 8], coin: [7, 7, 7, 7, 7], slow: [6, 6, 6, 6, 6], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 1, 1, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'FREE', 'C', 'JACKPOT'], slip: 0.15, split: [0.6, 0.35],
+      counts: { wedge: [8, 8, 8, 8, 8], coin: [7, 7, 7, 7, 7], slow: [6, 6, 6, 6, 6], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 1, 2, 1, 1] },
+      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'RAT', 'C', 'FREE', 'C', 'JACKPOT'], slip: 0.1, split: [0.52, 0.43], jackK: 10,
       free: { spins: 10, mult: 1 }, rat: [1, 2, 2, 3, 4, 5, 8, 10, 15, 25], rats: 2, respin: { start: 6, p: 0.07, vals: [1, 1, 2, 2, 3, 5, 10], grand: 200 }
     },
     extra: {
       name: 'EXTRA MATURE', col: 0xd87a1a, desc: 'Long dry spells. The trail slips back. Massive top end.',
       counts: { wedge: [9, 9, 9, 9, 9], coin: [8, 8, 8, 8, 8], slow: [7, 7, 7, 7, 7], plate: [6, 6, 6, 6, 6], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 1, 2, 1, 0], star: [1, 1, 1, 1, 1] },
-      trail: ['C', 'C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'C', 'C', 'SUPER', 'C', 'C', 'JACKPOT'], slip: 0.2, split: [0.5, 0.45],
+      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'FREE', 'C', 'C', 'SUPER', 'C', 'C', 'JACKPOT'], slip: 0.15, split: [0.45, 0.5], jackK: 25,
       free: { spins: 10, mult: 1 }, super: { spins: 12, mult: 3 }, rat: [1, 2, 3, 5, 8, 10, 15, 25, 50, 100], rats: 3, respin: { start: 5, p: 0.065, vals: [1, 2, 2, 3, 5, 10, 25], grand: 1000 }
     }
   };
@@ -42,7 +42,7 @@ const SLOT = (() => {
   // step's bonus game worth its val on average. Each val is exactly what carrying on from that step is worth, so taking
   // is never a mistake: it's banking versus gambling, and the RTP is the same however you play.
   // @@TUNE@@
-  const TUNE = {"mild":{"line":1.5206,"val":[1.497,3.966,7.068,10.581,14.36,18.314,22.38,26.52,30.698,35.191],"fx":[0,0,0.4583,0,1.05547,0,0,1.23029,0,0]},"mature":{"line":1.30059,"val":[2.274,6.571,12.666,20.362,29.48,39.864,51.374,63.885,77.286,91.479,106.377,121.874,138.929],"fx":[0,0,0.57635,0,0,1.59142,0,0,2.24023,0,4.84052,0,0]},"extra":{"line":1.23414,"val":[3.18,10.497,23.194,42.892,71.696,112.345,168.403,244.506,346.684,482.78,663.001,900.62,1212.904,1622.316,2158.095,2856.623,3833.642],"fx":[0,0,0,3.48238,0,0,3.08005,0,0,7.26242,0,0,0,30.49778,0,0,0]}};
+  const TUNE = {"mild":{"line":1.40453,"val":[1.468,3.383,3.492,4.986,4.75,6.138,5.658,6.97,6.256,7.504,9.35,11.577],"fx":[0,0,0.14434,0,0.16447,0,0.17274,0,0.12857,0,0,0]},"mature":{"line":1.1605,"val":[2.401,5.993,7.268,10.308,14.218,15.299,18.23,18.564,21.122,21.023,23.364,22.913,25.079,24.297,26.297,29.987],"fx":[0,0,0.1509,0,0,0.13688,0,0.17884,0,0.11821,0,0.16426,0,0.21237,0,0]},"extra":{"line":1.11072,"val":[3.59,10.722,14.542,21.922,32.806,39.752,50.231,64.184,73.541,86.384,94.048,105.24,119.899,128.665,140.949,156.691,177.127],"fx":[0,0,0.61837,0,0,0.14098,0,0,0.13855,0,0.79094,0,0,0.19812,0,0,0]}};
   // @@END@@
   // reel strips: the counts, spread out so stars and wilds never bunch (a star at most once in any 3-high window)
   function strips(sk) {
@@ -103,6 +103,7 @@ const SLOT = (() => {
   function ratTrap(sk, rnd) {
     const T = STRENGTHS[sk], cards = T.rat.map(v => v).concat(Array(T.rats).fill(0));
     for (let i = cards.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [cards[i], cards[j]] = [cards[j], cards[i]]; }
+    if (cards[0] === 0) { const j = cards.findIndex(c => c > 0); [cards[0], cards[j]] = [cards[j], cards[0]]; }   // (v3.111) the first pick is never the rat
     let tot = 0, picks = 0; for (const c of cards) { picks++; if (c === 0) break; tot += c; }
     return { x: tot, cards, picks };
   }
@@ -128,25 +129,36 @@ const SLOT = (() => {
     if (kind === 'RAT') return Object.assign({ kind: 'rat' }, ratTrap(sk, rnd));
     return Object.assign({ kind: 'respin' }, respins(sk, rnd));
   }
-  // TAKE the step you're on: cash, or play its bonus. Returns { kind, x (total-bet multiple), k (the bonus's scale), ...the bonus }
-  function take(sk, step, rnd) {
-    const T = STRENGTHS[sk], s = T.trail[step], U = TUNE[sk];
-    if (s === 'C' || s === 'JACKPOT') return { kind: s === 'C' ? 'cash' : 'jackpot', x: U.val[step] || 0, step };
-    const b = bonusRaw(sk, s, rnd), k = U.fx[step] || 1; b.k = k; b.x *= k; b.step = step; return b;
+  // (v3.111) BONUS STEPS PLAY THEMSELVES: climbing the trail, you stop on the first bonus lamp you reach and its game
+  // plays there and then (you stay on that lamp and climb on from it). Any lamp you're sitting on can be TAKEN as cash
+  // (back to the start); the top pays the JACKPOT and sends you back to the start.
+  const isBonus = s => s && s !== 'C' && s !== 'JACKPOT';
+  // the bonus game at a step, scaled by that step's fx
+  function bonusAt(sk, step, rnd) { const b = bonusRaw(sk, STRENGTHS[sk].trail[step], rnd), k = TUNE[sk].fx[step] || 1; b.k = k; b.x *= k; b.step = step; return b; }
+  // TAKE the lamp you're on: its cash. Returns { kind, x (total-bet multiple), step }
+  function take(sk, step) {
+    const T = STRENGTHS[sk], U = TUNE[sk], top = T.trail.length - 1;
+    return { kind: step === top ? 'jackpot' : 'cash', x: U.val[step] || 0, step };
+  }
+  // where k stars take you from pos: up k lamps, but stopping on the first bonus lamp on the way
+  function climb(sk, pos, k) {
+    const T = STRENGTHS[sk], top = T.trail.length - 1; let q = Math.min(top, pos + k);
+    for (let b = pos + 1; b < q; b++) if (isBonus(T.trail[b])) { q = b; break; }
+    return q;
   }
   // one base-game spin plus what it does to the trail. pos: trail position before (-1 = not on it yet).
-  // Each star ON THE CENTRE LINE moves you up a step; a spin with none may SLIP you back one (the strength's slip chance).
-  // Reaching the top pays the JACKPOT there and then and sends you back to the start. Anything else waits to be TAKEN.
+  // Each star ON THE CENTRE LINE moves you up a lamp; a spin with none may SLIP you back one (the strength's slip chance).
   function play(sk, rnd, pos) {
     const T = STRENGTHS[sk], { stops, grid } = spin(sk, rnd), wins = lineWins(grid), st = stars(grid), L = TUNE[sk].line, top = T.trail.length - 1;
     wins.forEach(w => { w.x *= L; });
     let x = wins.reduce((a, q) => a + q.x, 0), np = pos, feat = null, slipped = false;
-    if (st > 0) np = Math.min(top, pos + st);
+    if (st > 0) np = climb(sk, pos, st);
     else if (pos >= 0 && rnd() < T.slip) { np = pos - 1; slipped = true; }
-    if (np === top) { feat = take(sk, top, rnd); np = -1; }
+    if (np === top) { feat = take(sk, top); np = -1; }
+    else if (np !== pos && np >= 0 && st > 0 && isBonus(T.trail[np])) feat = bonusAt(sk, np, rnd);
     return { stops, grid, wins, stars: st, x, pos: np, feat, slipped };
   }
   const valAt = (sk, pos) => pos >= 0 ? (TUNE[sk].val[pos] || 0) : 0;
-  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, take, play, valAt };
+  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, bonusAt, take, play, climb, isBonus, valAt };
 })();
 if (typeof module !== 'undefined') module.exports = SLOT;

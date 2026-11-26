@@ -2546,3 +2546,16 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   flash and a knock-back on the first, K.O.! into orbit on the second), others he lets walk right up and BASHES with
   the game's own butt-first gun swing (sweet-spot crack, a star, a little shake, BOSH! as it sails off). Any rat that
   gets too close while he's shooting gets bashed instead. Biscuit's ball chase still turns up every third gag.
+
+## v3.111: RIDIC LOUISE - MAX CHEESE GRATER EDITION
+- Bonuses come much more often. Bonus lamps now PLAY THEMSELVES: climbing the trail you stop on the first bonus lamp
+  you reach and its game plays there and then (free spins / rat trap / cheddar respins / super spins), then you keep
+  climbing from it. Any lamp can still be TAKEN as cash; the top still pays the jackpot. More stars on the reels,
+  less slipping, more bonus lamps on each trail, and the rat trap's first pick is never the rat.
+  Roughly: Mild a bonus every ~13 spins, Mature every ~15, Extra Mature every ~25 (was 1 in 30-100 for free spins and
+  1 in 800+ for the others in practice). Every bonus is worth the same on average (higher lamps a bit more); the
+  tuner (tools/slotsim.js, rewritten for the new chain) still holds every strength at ~95% RTP however you play.
+- The Moon Bar behind the machine: purple wallpapered walls, four sweeping spotlights, two disco balls throwing
+  rainbow specks round the room, cheese bunting, a flickering GRATE WINS neon, the next machine along blinking, and a
+  chequered dance floor with drifting pools of light. Everything goes faster and brighter on a big win or bonus.
+- Rainbow chasing bulbs on the marquee, and a wobbly MAX CHEESE GRATER EDITION sticker slapped on it.
