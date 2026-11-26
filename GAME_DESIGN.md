@@ -2605,3 +2605,8 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   apart from each other, 22 for the background) so shading falls into flat cel bands in the painted colours; a light
   4x4 ordered dither on the background only; scaled back up with square pixels.
   (First try snapped everything to the master palette with dither everywhere: muddy colours and noisy. Don't.)
+
+## v3.117: the bar sits properly
+- The Moon Bar is 15% smaller (scale 4.25) and stands on a grey stone plinth (8 new rows at the bottom of cr_bar).
+  It's sunk 1.1x the curve's sag, so the planet's curve buries plinth rather than the bar's front, and the corners
+  meet the ground instead of hanging off it. The roof ledge came down to match (h 300).

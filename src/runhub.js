@@ -18,7 +18,7 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
-  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 5,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
+  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 4.25,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
@@ -32,7 +32,7 @@ const CAMP_LIGHTS = [[-1.22, -0.55], [-0.55, 0.4], [0.4, 1.02]];        // strin
 function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
-    ledges: [{ theta: 2.62, half: 0.16, h: 345 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    ledges: [{ theta: 2.62, half: 0.14, h: 300 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -305,7 +305,7 @@ const CampMixin = {
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
-      const a = { spr, theta: d.theta, h: (d.h || 0) - this.campSink(spr, d.sc), rot: 0 }; this.actors.push(a); return Object.assign({}, d, { a }); });
+      const a = { spr, theta: d.theta, h: (d.h || 0) - this.campSink(spr, d.sc) * (d.id === 'bar' ? 1.1 : 1), rot: 0 }; this.actors.push(a); return Object.assign({}, d, { a }); });
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
     this.campFolkInit();

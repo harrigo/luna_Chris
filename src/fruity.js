@@ -131,7 +131,12 @@ function makeFruityTextures(scene) {
 // ---- the camp bar (a station on the moon): a little lean-to with a counter, a stool, a neon sign and the machine
 function makeBarTexture(scene) {
   // (v3.112) two frames (bulbs and the sign chase), 12px taller: a SPIN! sign on the roof, bulbs round the awning
-  for (const fr of [0, 1]) pixTex(scene, fr ? 'cr_bar1' : 'cr_bar', 64, 68, (put0, w, h) => {
+  // (v3.117) +8 rows: a stone plinth under the bar, so sinking it into the curved ground buries stone, not the bar
+  for (const fr of [0, 1]) pixTex(scene, fr ? 'cr_bar1' : 'cr_bar', 64, 76, (put0, w, h) => {
+    for (let y = 68; y < 76; y++) for (let x = 0; x < 64; x++) {
+      const row = (y - 68) >> 2, mort = (y - 68) % 4 === 3 || (x + row * 5) % 10 === 0;
+      put0(x, y, x === 0 || x === 63 ? 0x1a1020 : mort ? 0x3a3448 : y === 68 ? 0xa8a0b8 : row ? 0x5e566e : 0x7a7290);
+    }
     const put = (x, y, c) => put0(x, y + 12, c);
     const WD = [0x2a160c, 0x4a2a14, 0x6a3e1e, 0x8a5a2a], R = [0x5a0e1a, 0x8a1a2a, 0xb83040, 0xe05a5a];
     const rect = (x0, y0, x1, y1, f) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const c = f(x, y); if (c != null) put(x, y, c); } };
