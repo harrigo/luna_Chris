@@ -471,7 +471,7 @@ const ParmMixin = {
     }
     { const hz = this.ppHaze; hz.clear();
       if (S.layer === 0) {
-        for (const q of this.ppSmoke) { q.y -= 0.25; q.r += 0.12; q.a -= 0.006; hz.fillStyle(0x3a1418, Math.max(0, q.a)).fillCircle(q.x + this.cameras.main.scrollX, q.y + this.cameras.main.scrollY, q.r * z); } this.ppSmoke = this.ppSmoke.filter(q => q.a > 0);
+        for (const q of this.ppSmoke) { q.y -= 0.25; q.r += 0.12; q.a -= 0.006; pxCloud(hz, q.x + this.cameras.main.scrollX, q.y + this.cameras.main.scrollY, q.r * z * Math.min(1, q.a / 0.15), Math.max(2, Math.round(z)), [0x6a2a2e, 0x4a1c20, 0x2e1014]); }   // (v3.114) hard pixels that shrink away, no fade this.ppSmoke = this.ppSmoke.filter(q => q.a > 0);
         const n = 40, a0 = vt - vh - 0.05, st = (vh * 2 + 0.1) / n;
         for (const [h0, h1, al] of [[-30, 26, 0.34], [26, 70, 0.2], [70, 130, 0.09]]) for (let i = 0; i < n; i++) { const p1 = this.screenPos(wrap(a0 + i * st), h0), p2 = this.screenPos(wrap(a0 + (i + 1) * st), h0), p3 = this.screenPos(wrap(a0 + (i + 1) * st), h1), p4 = this.screenPos(wrap(a0 + i * st), h1); hz.fillStyle(0xff8a3a, al).fillTriangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y).fillTriangle(p1.x, p1.y, p3.x, p3.y, p4.x, p4.y); }
       } }

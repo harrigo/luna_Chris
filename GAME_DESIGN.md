@@ -2580,3 +2580,13 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Walk with left/right or the pad, or tap the floor; tap a machine (or UP / A next to it) to play it; B or the door
   goes back out to camp. Every bonus level (and Ridic Louise) comes back to the bar when you leave it (BarRoom.back).
   Out of prize goes, a cabinet still plays as a practice run.
+
+## v3.114: neo-retro smoke
+- Rule: smoke is never a soft see-through blob. It is hard pixels, lit from the top left, that BREAK UP as they go.
+- All particle smoke (gun jam, golem crater, oven chimney, ship stacks, campfire...) is now fully opaque and dissolves
+  through the puff_1..3 frames instead of fading; the puff art got a dark rim and a dithered shadow.
+- Intro / ending chimney, barn, ship and steam emitters: the 12px blob with an alpha ramp is replaced by the four puff
+  frames (ixSmoke() in levels.js builds the emitter config; '__puffs' is the 4-frame sheet).
+- Grill Freefall: the smoke hazard is chunky pixel lobes (pxCloud()) instead of translucent circles; the drifting
+  layers are solid dark clouds behind and a small checkerboard-dither wisp in front (puff_d).
+- Parmesan city ship trails: pxCloud lobes that shrink away rather than fade.

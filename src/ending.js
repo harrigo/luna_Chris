@@ -107,7 +107,7 @@ class EndingScene extends IntroScene {
     this.img(0, GY + 4, 'ix_hills_mid').setTint(0x9a6a4a);
     this.add2(this.add.particles(0, -120, 'spark', { x: { min: -360, max: 360 }, speedY: { min: 20, max: 60 }, lifespan: 4000, scale: { start: 0.6, end: 0.2 }, tint: 0xff8a3a, frequency: 120, blendMode: 'ADD' }));   // ash
     const wreck = this.img(150, GY + 8, 'ratking', 0.5, 1).setAngle(-12).setTint(0x8a7a7a);
-    this.add2(this.add.particles(150, GY - 70, 'ix_smoke', { lifespan: 2400, speedY: { min: -24, max: -10 }, speedX: { min: -6, max: 10 }, scale: { start: 0.7, end: 1.8 }, alpha: { start: 0.8, end: 0 }, frequency: 160 }));
+    this.add2(this.add.particles(150, GY - 70, '__puffs', ixSmoke(this, { lifespan: 2400, speedY: { min: -24, max: -10 }, speedX: { min: -6, max: 10 }, scale: { start: 0.7, end: 1.8 }, alpha: { start: 0.8, end: 0 }, frequency: 160 })));
     this.img(0, GY - 1, 'ix_ground', 0.5, 0).setTint(0xd8c8a0);
     for (const [x, k] of [[-240, 'p_skull'], [-150, 'db_bolt'], [230, 'p_skull'], [-60, 'db_bolt']]) this.img(x, GY + 2, k).setTint(0xd8c0b0);
     // Bessie, sulking in the extraction tank
@@ -221,7 +221,7 @@ class EndingScene extends IntroScene {
     const hills = this.img(0, GY + 4, 'ix_hills_mid').setTint(0x9a6a4a);
     const ground = this.img(0, GY - 1, 'ix_ground', 0.5, 0).setTint(0xd8c8a0);
     this.img(110, GY + 8, 'ratking', 0.5, 1).setAngle(-12).setTint(0x8a7a7a);
-    const smoke = this.add2(this.add.particles(110, GY - 70, 'ix_smoke', { lifespan: 2000, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.8, end: 0 }, frequency: 200 }));
+    const smoke = this.add2(this.add.particles(110, GY - 70, '__puffs', ixSmoke(this, { lifespan: 2000, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.8, end: 0 }, frequency: 200 })));
     this.makeChris(-120, 1, 'gun');
     const B = this.bessie = this.img(-60, GY + 1, 'bessie');
     const K = this.img(110, GY - 20, 'ix_king').setAlpha(0);

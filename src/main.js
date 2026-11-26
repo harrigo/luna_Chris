@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.113';
+const BUILD = 'v3.114';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -5923,7 +5923,7 @@ class Level1 extends Phaser.Scene {
     if (this.def.cave) this.drawCave();
     if (this.acidPools.length || this.eBullets.some(b => b.shadow) || this.acidG) this.drawAcid();
     for (const a of this.actors) this.place(a.spr, a.theta, a.h, a.rot);
-    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(p.fade ? Math.max(0, Math.min(1, p.life / p.fade)) * (p.a0 || 1) : Math.min(1, p.life * 3)); }
+    for (const p of this.parts) { this.place(p.spr, p.theta, p.h, p.rot || 0); p.spr.setAlpha(p.puff > 0 && !p.spr.blendMode ? 1 : p.fade ? Math.max(0, Math.min(1, p.life / p.fade)) * (p.a0 || 1) : Math.min(1, p.life * 3)); }   // (v3.114) smoke never fades: it breaks up (puff_1..3)
     for (const e of this.enemies) if (e.gp) this.gpDraw(e);                              // (v3.91) rigged bosses (bossart.js)
     if (this.gpList) for (let i = this.gpList.length - 1; i >= 0; i--) if (!this.enemies.includes(this.gpList[i])) { this.gpClear(this.gpList[i]); this.gpList.splice(i, 1); }
     this.updatePopups(this.lastDt || 0.016);

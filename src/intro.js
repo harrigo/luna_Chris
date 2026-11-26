@@ -732,7 +732,7 @@ class IntroScene extends Phaser.Scene {
     const cabin = this.img(-190, GY + 3, 'ix_cabin');
     const glowW = this.img(-210, GY - 26, 'puff', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glowW, alpha: 0.2, yoyo: true, repeat: -1, duration: 900 });
-    const chimney = this.add2(this.add.particles(-164, GY - 70, 'ix_smoke', { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 }));
+    const chimney = this.add2(this.add.particles(-164, GY - 70, '__puffs', ixSmoke(this, { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 })));
     this.barn = this.img(BX, GY + 2, 'ix_barn');
     this.buildStockpile();
     this.img(112, GY + 2, 'ix_fence');
@@ -872,7 +872,7 @@ class IntroScene extends Phaser.Scene {
   shipCrash() {
     Sound.sfx('ufoFly');
     const ship = this.ship = this.img(-430, -190, 'ratship', 0.5, 0.5).setScale(1.1).setRotation(0.5);
-    const smoke = this.add2(this.add.particles(0, 0, 'ix_smoke', { lifespan: 900, speed: { min: 6, max: 20 }, scale: { start: 0.7, end: 1.4 }, alpha: { start: 0.9, end: 0 }, frequency: 30 }));
+    const smoke = this.add2(this.add.particles(0, 0, '__puffs', ixSmoke(this, { lifespan: 900, speed: { min: 6, max: 20 }, scale: { start: 0.7, end: 1.4 }, alpha: { start: 0.9, end: 0 }, frequency: 30 })));
     const fire = this.add2(this.add.particles(0, 0, 'flame', { lifespan: 300, speed: { min: 10, max: 40 }, scale: { start: 1.6, end: 0 }, blendMode: 'ADD', frequency: 25 }));
     smoke.startFollow(ship, -30, 0); fire.startFollow(ship, -34, 2);
     this.shipFx = [smoke, fire];
@@ -895,7 +895,7 @@ class IntroScene extends Phaser.Scene {
     }
     this.dust(BX, GY - 70, 10, 'ix_dust', 30, 40);
     this.dust(BX, GY, 8, 'ix_dust', 50, 20);
-    this.barnSmoke = this.add2(this.add.particles(BX, GY - 80, 'ix_smoke', { lifespan: 2000, speedX: { min: -6, max: 8 }, speedY: { min: -26, max: -12 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.85, end: 0 }, frequency: 140 }));
+    this.barnSmoke = this.add2(this.add.particles(BX, GY - 80, '__puffs', ixSmoke(this, { lifespan: 2000, speedX: { min: -6, max: 8 }, speedY: { min: -26, max: -12 }, scale: { start: 0.6, end: 1.6 }, alpha: { start: 0.85, end: 0 }, frequency: 140 })));
     // the pancake goes flying... and lands on his helmet
     const pc = this.pcake; pc.mode = 'air2';
     const h = this.headPoint();
@@ -991,13 +991,13 @@ class IntroScene extends Phaser.Scene {
     this.acts.push(() => { const a = Math.sin(this.time.now / 500) * 0.4; pendG.clear().lineStyle(1, 0xffd23f, 1).lineBetween(-38, -32, -38 + Math.sin(a) * 10, -32 + Math.cos(a) * 10).fillStyle(0xffd23f, 1).fillCircle(-38 + Math.sin(a) * 10, -32 + Math.cos(a) * 10, 2); });
     this.img(-212, -58, 'ix_pans', 0.5, 0.5);
     this.img(-212, GY + 1, 'ix_stove');
-    const steam = this.add2(this.add.particles(-220, GY - 44, 'ix_smoke', { lifespan: 1600, speedY: { min: -18, max: -8 }, speedX: { min: -4, max: 4 }, scale: { start: 0.3, end: 0.9 }, alpha: { start: 0.5, end: 0 }, frequency: 300, tint: 0xffffff }));
+    const steam = this.add2(this.add.particles(-220, GY - 44, '__puffs', ixSmoke(this, { lifespan: 1600, speedY: { min: -18, max: -8 }, speedX: { min: -4, max: 4 }, scale: { start: 0.3, end: 0.9 }, alpha: { start: 0.5, end: 0 }, frequency: 300, tint: 0xffffff })));
     this.img(-158, GY + 1, 'ix_plant');
     this.img(-104, GY + 1, 'ix_sofa');
     this.img(-14, GY + 9, 'ix_rug');
     this.img(-92, GY + 6, 'ix_table');
     this.img(-84, GY - 4, 'ix_teapot');                                 // tea's brewing
-    const teaSteam = this.add2(this.add.particles(-74, GY - 16, 'ix_smoke', { lifespan: 1400, speedY: { min: -14, max: -6 }, speedX: { min: -3, max: 3 }, scale: { start: 0.15, end: 0.45 }, alpha: { start: 0.45, end: 0 }, frequency: 420 }));
+    const teaSteam = this.add2(this.add.particles(-74, GY - 16, '__puffs', ixSmoke(this, { lifespan: 1400, speedY: { min: -14, max: -6 }, speedX: { min: -3, max: 3 }, scale: { start: 0.15, end: 0.45 }, alpha: { start: 0.45, end: 0 }, frequency: 420 })));
     this.img(-30, -80, 'ix_ukbunting', 0.5, 0); this.img(130, -80, 'ix_ukbunting', 0.5, 0).setFlipX(true);   // bunting along the beams
     this.img(122, -40, 'ix_darts', 0.5, 0.5);
     this.img(176, GY + 1 - 66, 'ix_biscuits');                          // biscuit tin on top of the bookshelf
@@ -1145,7 +1145,7 @@ class IntroScene extends Phaser.Scene {
     this.img(BX, GY + 2, 'ix_barn_x').setTint(0x8080b0);
     this.img(120, GY + 2, 'ix_tower').setTint(0x8080b0);
     this.img(112, GY + 2, 'ix_fence').setTint(0x7070a0);
-    this.add2(this.add.particles(BX, GY - 80, 'ix_smoke', { lifespan: 2400, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.6, end: 0 }, frequency: 220, tint: 0x9090c0 }));
+    this.add2(this.add.particles(BX, GY - 80, '__puffs', ixSmoke(this, { lifespan: 2400, speedY: { min: -20, max: -10 }, scale: { start: 0.6, end: 1.4 }, alpha: { start: 0.6, end: 0 }, frequency: 220, tint: 0x9090c0 })));
     this.img(0, GY - 1, 'ix_ground', 0.5, 0).setTint(0x8a90c8);
 
     this.makeChris(-20, 1, 'gun');

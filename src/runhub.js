@@ -381,8 +381,8 @@ const CampMixin = {
     this.campSparkT -= dt;
     if (this.campSparkT <= 0) { this.campSparkT = 0.09; const fire = this.campSt.find(s => s.id === 'fire');
       const spr = this.add.image(0, 0, Math.random() < 0.7 ? 'spark' : 'puff').setDepth(2.3).setBlendMode(Phaser.BlendModes.ADD);
-      const smoke = spr.texture.key === 'puff'; spr.setTint(smoke ? 0x8a7a9a : 0xffb03a).setBlendMode(smoke ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD);
-      spr.bsx = spr.bsy = smoke ? 0.5 : rnd(0.4, 0.8);
+      const smoke = spr.texture.key === 'puff'; spr.setTint(smoke ? 0x6a5a82 : 0xffb03a).setBlendMode(smoke ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD);
+      spr.bsx = spr.bsy = smoke ? 0.4 : rnd(0.4, 0.8);
       this.campFx.push({ spr, theta: fire.theta + rnd(-0.015, 0.015), h: 40, vt: rnd(-0.03, 0.03), vh: smoke ? 40 : rnd(60, 130), life: smoke ? 2.2 : rnd(0.6, 1.2), max: smoke ? 2.2 : 1, smoke }); }
     for (let i = this.campFx.length - 1; i >= 0; i--) { const q = this.campFx[i]; q.life -= dt; q.h += q.vh * dt; q.theta += q.vt * dt + Math.sin(this.t * 3 + i) * 0.002;
       if (q.smoke) { q.spr.bsx = q.spr.bsy = 0.5 + (1 - q.life / q.max) * 1.6; }
@@ -398,7 +398,7 @@ const CampMixin = {
     this.hudG.clear(); if (this.armG) this.armG.clear();
     const t = this.t, z = this.zoom;
     for (const s of this.campSt) { if (s.id === 'fire') s.a.spr.setTexture('cr_fire' + (Math.floor(t * 9) % 4)); else if (s.id === 'bar' && this.textures.exists('cr_bar1')) s.a.spr.setTexture(Math.floor(t * 3) % 2 ? 'cr_bar1' : 'cr_bar'); }
-    for (const q of this.campFx) { this.place(q.spr, q.theta, q.h, 0); q.spr.setAlpha(Math.min(1, q.life / q.max * 1.5) * (q.smoke ? 0.35 : 1)); }
+    for (const q of this.campFx) { this.place(q.spr, q.theta, q.h, 0); if (q.smoke) { const f = q.life / q.max, k = f > 0.6 ? 'puff' : f > 0.4 ? 'puff_1' : f > 0.2 ? 'puff_2' : 'puff_3'; if (q.spr.texture.key !== k) q.spr.setTexture(k); q.spr.setAlpha(1); } else q.spr.setAlpha(Math.min(1, q.life / q.max * 1.5)); }
     { const fp = this.screenPos(0.06, 30); this.campGlow.setPosition(fp.x, fp.y).setScale(z * 3.4).setAlpha(fp.vis ? 0.3 + 0.07 * Math.sin(t * 9) + 0.04 * Math.sin(t * 23) : 0); }
     // strings of bulbs between the lamp posts
     const g = this.campLightG; g.clear();

@@ -1016,11 +1016,48 @@ function makeLevelTextures(scene) {
         let best = 0, lit = 0;
         for (const [cx, cy, r] of frames[f]) { const dx = (x + 0.5 - cx) / r, dy = (y + 0.5 - cy) / r, q = 1 - (dx * dx + dy * dy); if (q > best) { best = q; lit = -0.65 * dx - 0.75 * dy; } }
         if (best <= 0) continue;
-        const c = best < 0.2 ? 0xb8c0cc : lit > 0.25 ? 0xffffff : lit > -0.3 ? 0xe4e8ee : 0xc8ced8;
+        // (v3.114) more volume: a dark rim on the shaded side, and the shadow joins the mid-tone through a dither
+        const c = best < 0.2 ? (lit < -0.1 ? 0x8e96a6 : 0xc4cad6) : lit > 0.25 ? 0xffffff : lit > -0.2 ? 0xe4e8ee : lit > -0.45 ? ((x + y) % 2 ? 0xe4e8ee : 0xc0c6d2) : 0xc0c6d2;
         put(x * 2, y * 2, c); put(x * 2 + 1, y * 2, c); put(x * 2, y * 2 + 1, c); put(x * 2 + 1, y * 2 + 1, c);
       }
     }));
+    // (v3.114) puff_d: the same cloud as a checkerboard, for smoke you need to see through (no soft alpha)
+    pixTex(scene, 'puff_d', 64, 64, put => {
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+        if ((x + y) % 2) continue; let best = 0;
+        for (const [cx, cy, r] of L0) { const dx = (x + 0.5 - cx) / r, dy = (y + 0.5 - cy) / r, q = 1 - (dx * dx + dy * dy); if (q > best) best = q; }
+        if (best <= 0) continue;
+        put(x * 2, y * 2, 0xffffff); put(x * 2 + 1, y * 2, 0xffffff); put(x * 2, y * 2 + 1, 0xffffff); put(x * 2 + 1, y * 2 + 1, 0xffffff);
+      }
+    });
   }
+}
+// (v3.114) NEO-RETRO SMOKE helpers. No soft see-through blobs anywhere: smoke is hard pixels that break up as they go.
+// pxCloud: one lobe of a chunky cloud on a Graphics - rows of px-sized blocks, lit from the top left, shaded underneath.
+function pxCloud(g, x, y, r, px, cols) {
+  px = Math.max(1, Math.round(px)); x = Math.round(x / px) * px; y = Math.round(y / px) * px;
+  const n = Math.max(1, Math.round(r / px));
+  for (let j = -n; j < n; j++) {
+    const w = Math.round(Math.sqrt(Math.max(0, n * n - (j + 0.5) * (j + 0.5))));
+    if (w <= 0) continue;
+    g.fillStyle(j > n * 0.3 ? cols[2] : cols[1], 1).fillRect(x - w * px, y + j * px, w * 2 * px, px);
+    if (j < -n * 0.15 && w > 2) g.fillStyle(cols[0], 1).fillRect(x - (w - 1) * px, y + j * px, Math.max(1, Math.round(w * 0.8)) * px, px);
+  }
+}
+// ixSmoke: a particle-emitter config for chunky smoke. Give it the old soft-blob config (scale for the 12px blob,
+// alpha start..end): it comes back using the four puff frames (whole -> thinning -> wisps) instead of a fade.
+function ixSmoke(scene, cfg) {
+  const T = scene.textures;
+  if (!T.exists('__puffs')) {
+    const ct = T.createCanvas('__puffs', 256, 64), c = ct.getContext(); c.imageSmoothingEnabled = false;
+    ['puff', 'puff_1', 'puff_2', 'puff_3'].forEach((k, i) => { const f = T.getFrame(k); c.drawImage(f.source.image, f.cutX, f.cutY, f.cutWidth, f.cutHeight, i * 64, 0, 64, 64); });
+    ct.refresh(); ct.setFilter(Phaser.Textures.FilterMode.NEAREST); for (let i = 0; i < 4; i++) ct.add(i, 0, i * 64, 0, 64, 64);
+  }
+  const FR = [0, 1, 2, 3].map(i => T.getFrame('__puffs', i)), sc = cfg.scale || { start: 1, end: 1 }, thin = cfg.alpha && cfg.alpha.start < 0.5;
+  const o = Object.assign({}, cfg, { frame: 0, scale: { start: sc.start * 0.3, end: sc.end * 0.3 } });
+  o.alpha = { onEmit: () => 1, onUpdate: (p, k, t) => { p.frame = FR[thin ? (t < 0.3 ? 1 : t < 0.65 ? 2 : 3) : (t < 0.45 ? 0 : t < 0.65 ? 1 : t < 0.83 ? 2 : 3)]; return 1; } };
+  if (o.tint === undefined) o.tint = [0x9a9aae, 0x77778c, 0x5e5e72];
+  return o;
 }
 
 // ---------------------------------------------------------------- level select

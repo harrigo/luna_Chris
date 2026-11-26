@@ -230,8 +230,8 @@ class FreefallScene extends Phaser.Scene {
     this.vent = this.add.image(0, 0, 'ffvent').setScrollFactor(0).setDepth(-0.95).setScale(2);
     this.ventGlow = this.add.image(0, 0, 'puff').setScrollFactor(0).setDepth(-0.96).setBlendMode(Phaser.BlendModes.ADD).setTint(0xc8dcff);
     this.smokeB = []; this.smokeF = [];
-    for (let i = 0; i < 9; i++) this.smokeB.push({ im: this.add.image(0, 0, 'puff').setDepth(-0.5).setTint(0x2a2a2e).setAlpha(0.35), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(3, 6), v: rnd(-14, 14) });
-    for (let i = 0; i < 5; i++) this.smokeF.push({ im: this.add.image(0, 0, 'puff').setDepth(7).setTint(0x4a4448).setAlpha(0.22), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(5, 9), v: rnd(-20, 20) });
+    for (let i = 0; i < 9; i++) this.smokeB.push({ im: this.add.image(0, 0, 'puff').setDepth(-0.5).setTint(0x16201e), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(3, 6), v: rnd(-14, 14) });
+    for (let i = 0; i < 5; i++) this.smokeF.push({ im: this.add.image(0, 0, 'puff_d').setDepth(7).setTint(0x2a2a2e), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(5, 9), v: rnd(-20, 20) });
     this.heat = this.add.rectangle(0, 0, 10, 10, 0xff4a10, 0).setOrigin(0).setScrollFactor(0).setDepth(8).setBlendMode(Phaser.BlendModes.ADD);
 
     // HUD
@@ -602,7 +602,7 @@ class FreefallScene extends Phaser.Scene {
         h.im.setVisible(true).setScale(2 + (h.on ? Math.sin(this.t * 20) * 0.05 : 0));
         if (h.on) { dg.fillStyle(0xd8b050, 0.5).fillRect(h.x - h.side * 12 - 2, h.y + 10, 4, 12); }
       } else if (h.type === 'smoke') {
-        for (let k2 = 0; k2 < 9; k2++) { const a = this.t * 0.5 + k2 * 0.7 + h.ph, rr = h.r * (0.35 + 0.45 * ((k2 * 37) % 10) / 10); sm.fillStyle(k2 % 2 ? 0x4a4248 : 0x6a6268, 0.38).fillCircle(h.x + Math.cos(a) * rr * 0.6, h.y + Math.sin(a * 1.3) * rr * 0.5, h.r * 0.5); }
+        for (let k2 = 0; k2 < 9; k2++) { const a = this.t * 0.5 + k2 * 0.7 + h.ph, rr = h.r * (0.35 + 0.45 * ((k2 * 37) % 10) / 10); pxCloud(sm, h.x + Math.cos(a) * rr * 0.6, h.y + Math.sin(a * 1.3) * rr * 0.5, h.r * (0.3 + 0.2 * ((k2 * 53) % 10) / 10), 4, k2 % 2 ? [0x8a8088, 0x5e565c, 0x3e383e] : [0x9a9098, 0x6e666c, 0x4a4248]); }   // (v3.114) chunky pixel lobes, not see-through circles
       }
     }
     if (this.bits) for (const b of this.bits) {                           // bits of Chris tumbling away; the eyeballs bounce
@@ -651,8 +651,8 @@ class FreefallScene extends Phaser.Scene {
     const vy = 300 - cam.scrollY * 0.5;                                     // daylight from the lid's vent, way up above, fading as you drop
     this.vent.setVisible(false);
     this.ventGlow.setPosition(W / 2, Math.min(0, vy - 300)).setScale(10, 5).setAlpha(Math.max(0, 0.45 - Math.max(0, -vy) / 900)).setVisible(vy > -400);
-    for (const s of this.smokeB) { s.x += s.v * dt; const yy = viewTop + (((s.y * 2400 - cam.scrollY * 0.45) % (viewH + 600)) + viewH + 600) % (viewH + 600) - 300; s.im.setPosition(s.x, yy).setScale(s.s).setTint(deep > 0.6 ? 0x3a1a14 : 0x2a2a2e); if (s.x < -200) s.x = SW + 200; if (s.x > SW + 200) s.x = -200; }
-    for (const s of this.smokeF) { s.x += s.v * dt; const yy = viewTop + (((s.y * 3000 - cam.scrollY * 1.35) % (viewH + 800)) + viewH + 800) % (viewH + 800) - 400; s.im.setPosition(s.x, yy).setScale(s.s); if (s.x < -300) s.x = SW + 300; if (s.x > SW + 300) s.x = -300; }
+    for (const s of this.smokeB) { s.x += s.v * dt; const yy = viewTop + (((s.y * 2400 - cam.scrollY * 0.45) % (viewH + 600)) + viewH + 600) % (viewH + 600) - 300; s.im.setPosition(s.x, yy).setScale(s.s).setTint(deep > 0.6 ? 0x2a1410 : 0x16201e); if (s.x < -200) s.x = SW + 200; if (s.x > SW + 200) s.x = -200; }
+    for (const s of this.smokeF) { s.x += s.v * dt; const yy = viewTop + (((s.y * 3000 - cam.scrollY * 1.35) % (viewH + 800)) + viewH + 800) % (viewH + 800) - 400; s.im.setPosition(s.x, yy).setScale(Math.round(s.s * 0.4)); if (s.x < -300) s.x = SW + 300; if (s.x > SW + 300) s.x = -300; }
     this.heat.setFillStyle(0xff3a08, Math.min(0.26, 0.18 * deep * deep + (plunge ? 0.05 + 0.04 * Math.sin(this.t * 13) : 0)));
     if (plunge) { this.roarT -= dt; if (this.roarT <= 0) { this.roarT = 0.9; Sound.sfx('fan'); } }
     // the coals breathe; flames lick up off them
