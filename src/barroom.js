@@ -221,7 +221,7 @@ class BarRoomScene extends Phaser.Scene {
     const T = 3.2, u = this.drinkU = Math.min(1, this.drinkU + dt / T), z = this.z, R0 = this.rig.root;
     this.P.drink = u < 1 ? Math.max(0.001, u) : 0;
     if (this.slidePint && u > 0.04) {                    // off the bar and into his reaching hand
-      const k = Math.min(1, (u - 0.04) / 0.08), e = k * k * (3 - 2 * k), H = this.rig.nHand, hx = R0.x + H.x * R0.scaleX, hy = R0.y + (H.y + 6) * R0.scaleY, sp = this.slidePint;
+      const k = Math.min(1, (u - 0.04) / 0.08), e = k * k * (3 - 2 * k), H = this.rig.fFist, hx = R0.x + (H.x - 6) * R0.scaleX, hy = R0.y + (H.y + 2) * R0.scaleY, sp = this.slidePint;
       if (sp.fx === undefined) { this.tweens.killTweensOf(sp); sp.fx = sp.x; sp.fy = sp.y; sp.setDepth(3.4); }
       sp.setPosition(sp.fx + (hx - sp.fx) * e, sp.fy + (hy - sp.fy) * e - Math.sin(e * Math.PI) * 4 * z);
     }

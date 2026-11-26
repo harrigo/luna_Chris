@@ -2696,3 +2696,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Everything is placed from the GLASS: its near lip travels from his reach to his actual mouth (worked out from the
   head's position and tilt, under the moustache), it tips further as each of the five glugs empties it, and the hand
   goes wherever the tankard's handle is. The pint lifts off the bar in a little arc into the reaching hand.
+
+## v3.128: the pint, flipped to the rear arm
+- The front arm keeps hold of the gun but drops it right down and tips it (11px, 0.6 rad) out of the way. The REAR arm
+  comes across his chest and swings the glass up in an arc to his mouth; its hand cups the back of the glass and is
+  drawn behind it, so the whole glass and the beer level going down are in plain view. Same glass-driven placement
+  (lip to his real mouth), glugs, AHHH, moustache wipe and toss.
