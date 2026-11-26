@@ -688,22 +688,38 @@ class ChrisRig {
     let aN = free != null ? free * 0.85 - 0.25 : 1.4 - sw * 0.75 * run - air * 0.9;
     const tN = held ? fromGun(H.g[0], H.g[1]) : [sN[0] + Math.cos(aN) * 29, sN[1] + Math.sin(aN) * 29];
     const kN = this.limbJoint(sN, tN, 16.5, 16.5, 1); kN[0] += E.x; kN[1] += E.y;
-    this.bendLimb(this.nArm, sN, kN, tN, LIMB.armI0, LIMB.armIK);
-    this.nHand.setPosition(tN[0], tN[1]).setRotation(held ? gunRot : aN - 0.4);
+    // (v3.127) THE PINT is in his GUN hand: it lets go of the grip (the other hand keeps hold of the gun, which sags),
+    // and everything is placed from the GLASS: its lip goes to his actual mouth (head position and tilt), it tips as it
+    // empties, and the hand is wherever the glass's handle is.
+    const dr = this.drinkPose || { u: 0 }; let handRot = held ? gunRot : aN - 0.4, tN2 = tN, glass = null;
+    if (dr.u > 0) {
+      const sm = (a, b) => { const u = Math.max(0, Math.min(1, (dr.u - a) / (b - a))); return u * u * (3 - 2 * u); }, L = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+      const hr = this.head.rotation, mx = 3.5, my = 10.5, mouth = fromT(this.head.x + mx * Math.cos(hr) - my * Math.sin(hr), this.head.y + mx * Math.sin(hr) + my * Math.cos(hr));
+      const lv = Math.max(0, Math.min(4, Math.floor((dr.u - 0.3) / 0.44 * 5))), SC = 1.3;
+      const reach = fromT(24, -30), low = fromT(22, -24), up = sm(0.2, 0.34), dn = sm(0.74, 0.84);
+      const lip = dr.u < 0.74 ? L(reach, mouth, up) : L(mouth, low, dn);                                // where the glass's near lip is
+      const rot = dr.u < 0.74 ? -(0.55 + 0.2 * lv) * up - 0.08 * dr.glug : -(0.55 + 0.8) * (1 - dn);       // tipped further as it empties
+      const hx = 9 * SC, hy = 6.5 * SC, hand = [lip[0] + hx * Math.cos(rot) - hy * Math.sin(rot), lip[1] + hx * Math.sin(rot) + hy * Math.cos(rot)];
+      const holding = dr.u >= 0.12 && dr.u < 0.86;
+      const wipe = dr.u >= 0.86 ? [mouth[0] + 3 + Math.sin((dr.u - 0.86) / 0.08 * Math.PI * 2) * 4, mouth[1] - 1] : null;      // the back of his hand across the moustache
+      const tgt = wipe ? L(low, wipe, sm(0.86, 0.89)) : hand, w = sm(0, 0.11) * (1 - sm(0.95, 1));
+      tN2 = L(tN, tgt, w); handRot = handRot + (rot + 0.3 - handRot) * w;
+      if (holding) glass = { x: lip[0], y: lip[1], rot, lv: dr.u < 0.3 ? 0 : lv, SC };
+    }
+    const kN2 = tN2 === tN ? kN : (() => { const k = this.limbJoint(sN, tN2, 16.5, 16.5, 1); k[0] += E.x; k[1] += E.y; return k; })();
+    this.bendLimb(this.nArm, sN, kN2, tN2, LIMB.armI0, LIMB.armIK);
+    this.nHand.setPosition(tN2[0], tN2[1]).setRotation(handRot);
+    const sc0 = this.root.scene;
+    if (glass && !this.pint && sc0.textures.exists('br_pint0')) { this.pint = sc0.add.image(0, 0, 'br_pint0').setOrigin(1.5 / 12, 2.5 / 14); this.root.add(this.pint); }
+    if (this.pint) { this.pint.setVisible(!!glass); if (glass) { this.root.bringToTop(this.pint); this.root.bringToTop(this.nHand); this.pint.setTexture('br_pint' + glass.lv).setScale(glass.SC).setPosition(glass.x, glass.y).setRotation(glass.rot); } }
 
     // ---- the far arm
-    const open = this.handB.visible, jam = jB > 0 && this.fist && this.fist.visible, dr = this.drinkPose || { u: 0 };
-    const two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0) && free == null && !(dr.u > 0);
+    const open = this.handB.visible, jam = jB > 0 && this.fist && this.fist.visible;
+    const two = held && H.f && !(jB > 0) && !P.grabbed && !open && !(P.bashSpin || 0) && free == null;
     const sF = fromT(-7, -27);
     let tF, front = true, hand = null, aF = 0;
     if (two) { tF = fromGun(H.f[0], H.f[1]); hand = this.fHand; aF = gunRot; }
     else if (jam) tF = [this.fist.x - 2, this.fist.y + 6];              // reaching up to the great fist that thumps the gun
-    else if (dr.u > 0) {                                                // (v3.126) the pint: out to take it, up to his mouth, glug, down, a wipe of the moustache
-      const reach = fromT(21, -19), mouth = fromT(13 - 2 * dr.tip, -37 - 2 * dr.tip - dr.glug), low = fromT(19, -12), L = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
-      const sm = (a, b) => { const u = Math.max(0, Math.min(1, (dr.u - a) / (b - a))); return u * u * (3 - 2 * u); };
-      tF = dr.u < 0.2 ? L(fromT(14, -14), reach, sm(0, 0.12)) : dr.u < 0.74 ? L(reach, mouth, sm(0.2, 0.34)) : dr.u < 0.86 ? L(mouth, low, sm(0.74, 0.84)) : L(low, fromT(11 + Math.sin((dr.u - 0.86) / 0.14 * Math.PI * 2) * 4, -38), Math.sin((dr.u - 0.86) / 0.14 * Math.PI));
-      hand = this.fFist; aF = -0.9 * dr.tip;
-    }
     else {
       front = false;
       aF = free != null ? free                                          // (set from outside: the skydive)
@@ -720,12 +736,6 @@ class ChrisRig {
     if (front !== this.fArmFront) { this.fArmFront = front; if (front) this.root.moveAbove(this.fArm, this.torso); else this.root.moveBelow(this.fArm, this.fFist); }
     for (const o of [this.fHand, this.fFist, this.fOpen]) o.setVisible(o === hand);
     if (hand) hand.setPosition(tF[0], tF[1]).setRotation(hand === this.fHand ? aF : hand === this.fOpen ? aF + Math.sin(t * 20) * 0.15 : aF - 0.4);
-    // the pint in that fist: full to empty over the glugs, tipping back towards his face as his head goes back
-    const has = dr.u >= 0.12 && dr.u < 0.86, sc = this.root.scene;
-    if (has && !this.pint && sc.textures.exists('br_pint0')) { this.pint = sc.add.image(0, 0, 'br_pint0').setOrigin(0.5, 0.9).setScale(1.35); this.root.add(this.pint); }
-    if (this.pint) { this.pint.setVisible(has);
-      if (has) { const lv = Math.max(0, Math.min(4, Math.floor((dr.u - 0.3) / 0.44 * 5))); this.root.bringToTop(hand || this.fFist); this.root.bringToTop(this.pint);
-        this.pint.setTexture('br_pint' + (dr.u < 0.3 ? 0 : lv)).setPosition(tF[0] + 2 - 3 * dr.tip, tF[1] - 4 - 2 * dr.tip).setRotation(-1.35 * dr.tip * (0.6 + 0.1 * Math.min(4, lv)) - 0.1 * dr.glug); } }
   }
 
   // chef mode (the intro / ending at home): "Kiss the Cook" apron, no cape. Battle mode: just the cape.
@@ -853,6 +863,7 @@ class ChrisRig {
     // ---- (v3.126) DRINKING (P.drink 0..1): reach, raise, head back and glug, lower with a grin, wipe the moustache
     const dU = P.drink || 0, dSm = (a, b) => { const u = Math.max(0, Math.min(1, (dU - a) / (b - a))); return u * u * (3 - 2 * u); };
     const dTip = dU > 0 ? dSm(0.2, 0.34) * (1 - dSm(0.74, 0.84)) : 0, dGlug = dU > 0.3 && dU < 0.74 ? Math.max(0, Math.sin((dU - 0.3) / 0.44 * Math.PI * 5)) : 0;
+    const dOff = dU > 0 ? dSm(0.02, 0.14) * (1 - dSm(0.93, 1)) : 0;     // his gun hand's off the gun: it sags, held by the other hand
     this.drinkPose = { u: dU, tip: dTip, glug: dGlug };
     this.drkOff = [Math.sin(t * 1.9 - 0.7) * 2.6 * DRK + buckK * 2.5 * (this.buckSide || 1) - dTip * 1.5, buckK * 4.5 - hicK * 3, dsw + buckK * 0.16 * (this.buckSide || 1) - dTip * 0.13];
     if (dTip > 0.5) this.blinkOn = Math.max(this.blinkOn, 0.08);
@@ -987,9 +998,9 @@ class ChrisRig {
     if (P.firing > 0.09) this.recoil = 1;
     this.recoil = Math.max(0, this.recoil - dt * 9);
     const jk = P.jamKick || 0;                                  // a jammed gun bucks back and up
-    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 4.5 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 23 + Math.cos(this.wp * 2 - 1) * 1.1 * run + Math.sin(t * 2.6 - 0.8) * 0.5 * idle + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0));
+    this.gunArm.setPosition(this.torso.x + 4 - this.recoil * 4.5 - jk * 8 + (P.bashX || 0) + Math.sin(t * 43) * 1.6 * jS, this.torso.y - 23 + Math.cos(this.wp * 2 - 1) * 1.1 * run + Math.sin(t * 2.6 - 0.8) * 0.5 * idle + (P.bashY || 0) + Math.cos(t * 51) * 2.2 * jS + (jB > 0.6 && jB < 0.85 ? 3 : 0) + dOff * 6);
     const flail = P.grabbed ? Math.sin(this.t * 26) * 1.1 + Math.sin(this.t * 41) * 0.35 - 0.6 : 0;      // grabbed: waving the useless gun about hysterically
-    this.gunArm.setRotation(-this.recoil * 0.1 + Math.sin(t * 2.6) * 0.02 * idle - Math.sin(this.wp * 2 - 1) * 0.035 * run - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 + dsw * 0.6 + Math.sin(t * 3.1 + 1) * 0.03 * DRK + dTip * 0.35 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
+    this.gunArm.setRotation(-this.recoil * 0.1 + Math.sin(t * 2.6) * 0.02 * idle - Math.sin(this.wp * 2 - 1) * 0.035 * run - jk * 0.42 + Math.sin(t * 43) * 0.26 * jS + (jB > 0.6 && jB < 0.85 ? 0.3 : 0) + sw * 0.03 * run + this.torso.rotation * 0.4 + dsw * 0.6 + Math.sin(t * 3.1 + 1) * 0.03 * DRK + dOff * 0.42 - (P.aimA || 0) + (P.bashA || 0) + flail);   // + melee swing
     this.gunArm.setScale(1 + this.recoil * 0.16, 1 - this.recoil * 0.07);                            // (v2.59) a smear: the arm stretches along the kick
     this.grip.setVisible(!(P.bashSpin || 0));
     this.gunPivot.setRotation(P.bashSpin || 0);                                                     // melee: the gun flips round, butt first   // twin-stick aim tilts the gun

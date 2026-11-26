@@ -212,14 +212,19 @@ class BarRoomScene extends Phaser.Scene {
     // (v3.126) the pint slides down the bar; Chris takes it (the rig does the drinking: reach, raise, head back, five
     // glugs as the glass empties, down with a grin, a wipe of the moustache), then tosses the empty over his shoulder
     const z = this.z, pint = this.add.image(134 * z, 124 * z, 'br_pint0').setOrigin(0.5, 1).setScale(z * 0.75).setDepth(1.65);
-    this.goal = null; this.useOnArrive = null; this.drinkT = 3.3; this.drinkU = 0; this.slidePint = pint; this.gulps = 0; this.P.facing = this.cx < 130 ? 1 : this.P.facing;
+    this.goal = null; this.useOnArrive = null; this.drinkT = 3.5; this.drinkU = 0; this.slidePint = pint; this.gulps = 0; this.P.facing = this.cx < 130 ? 1 : this.P.facing;
     Sound.sfx('zing');
-    this.tweens.add({ targets: pint, x: (this.cx + this.P.facing * 10) * z, duration: 380, ease: 'Cubic.easeOut' });
+    this.tweens.add({ targets: pint, x: (this.cx + this.P.facing * 12) * z, duration: 300, ease: 'Cubic.easeOut' });
   }
   drinkTick(dt) {
     if (!(this.drinkT > 0)) { this.P.drink = 0; return; }
-    const T = 3.0, u = this.drinkU = Math.min(1, this.drinkU + dt / T), z = this.z, R0 = this.rig.root;
+    const T = 3.2, u = this.drinkU = Math.min(1, this.drinkU + dt / T), z = this.z, R0 = this.rig.root;
     this.P.drink = u < 1 ? Math.max(0.001, u) : 0;
+    if (this.slidePint && u > 0.04) {                    // off the bar and into his reaching hand
+      const k = Math.min(1, (u - 0.04) / 0.08), e = k * k * (3 - 2 * k), H = this.rig.nHand, hx = R0.x + H.x * R0.scaleX, hy = R0.y + (H.y + 6) * R0.scaleY, sp = this.slidePint;
+      if (sp.fx === undefined) { this.tweens.killTweensOf(sp); sp.fx = sp.x; sp.fy = sp.y; sp.setDepth(3.4); }
+      sp.setPosition(sp.fx + (hx - sp.fx) * e, sp.fy + (hy - sp.fy) * e - Math.sin(e * Math.PI) * 4 * z);
+    }
     if (this.slidePint && u >= 0.12) { this.slidePint.destroy(); this.slidePint = null; Sound.sfx('pickup'); }
     const g = Math.floor((u - 0.3) / 0.44 * 5); if (u > 0.3 && u < 0.74 && g >= this.gulps) { this.gulps = g + 1; Sound.sfx('blip'); this.rig.bv = (this.rig.bv || 0) + 3; }
     if (u >= 0.78 && !this.ahh) { this.ahh = true; const n = Tipsy.drink(); Sound.sfx('power');

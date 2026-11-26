@@ -2689,3 +2689,10 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - BUG FIXED: the old screen sway used a CSS transform on the canvas, which made Phaser think the screen was being
   resized every frame - scenes rebuilt themselves constantly (that was the "intense" wobble and the flapping cape).
   The transform is gone; only the blurry edges remain on screen.
+
+## v3.127: the pint, done with the right arm
+- He drinks with his GUN hand (the near arm you can see). It lets go of the grip; the other hand keeps hold of the
+  gun, which sags 6px and tips down while he drinks, then comes back up as the hand returns to the grip.
+- Everything is placed from the GLASS: its near lip travels from his reach to his actual mouth (worked out from the
+  head's position and tilt, under the moustache), it tips further as each of the five glugs empties it, and the hand
+  goes wherever the tankard's handle is. The pint lifts off the bar in a little arc into the reaching hand.
