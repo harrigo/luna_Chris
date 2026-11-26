@@ -739,7 +739,7 @@ class CentrifugeScene extends Phaser.Scene {
     btn(W / 2, won ? (pad ? 'A: ON THROUGH THE WARP' : 'ON THROUGH THE WARP') : (pad ? 'A: MAP' : 'MAP'), () => won ? this.onward() : this.leave(), '#ffd23f');
     this.exitBtn.setVisible(false);
   }
-  onward() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(400, 255, 255, 255); this.time.delayedCall(430, () => this.scene.start('level1', { level: 5.5, warped: true, autostart: true })); }
+  onward() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(400, 255, 255, 255); this.time.delayedCall(430, () => { if (typeof BarRoom !== 'undefined' && BarRoom.back) { BarRoom.back = false; this.scene.start('barroom'); return; } this.scene.start('level1', { level: 5.5, warped: true, autostart: true }); }); }
   again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
-  leave() { if (this.core) return; if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start(Run.on ? 'runpick' : 'select', Run.on ? { phase: Run.freePerk ? 'perk' : 'route' } : undefined)); }
+  leave() { if (this.core) return; if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => { if (typeof BarRoom !== 'undefined' && BarRoom.back) { BarRoom.back = false; this.scene.start('barroom'); return; } this.scene.start(Run.on ? 'runpick' : 'select', Run.on ? { phase: Run.freePerk ? 'perk' : 'route' } : undefined); }); }
 }

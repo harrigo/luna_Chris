@@ -177,7 +177,7 @@ const FM_SHORT = { FREE: 'FREE', SUPER: 'SUPER', RAT: 'RAT', RESPIN: 'COINS', JA
 
 class FruityScene extends Phaser.Scene {
   constructor() { super('fruity'); }
-  init(data) { this.from = (data && data.from) || 'shop'; }
+  init(data) { this.from = (data && data.from) || 'shop'; this.backTo = data && data.back; }
   bal() { return this.from === 'camp' ? Meta.crumbs() : Shop.get(this.registry).coins; }
   addBal(n) {                                       // whole units only; the fractions are carried, so the 95% is exact
     const t = n + (this.carry || 0), w = Math.floor(t + 1e-9); this.carry = t - w;
@@ -283,7 +283,7 @@ class FruityScene extends Phaser.Scene {
       if (id === 'up' || id === 'down') { let k = this.ratSel; for (let j = 0; j < n; j++) { k = (k + (id === 'up' ? 1 : -1) + n) % n; if (closed(k)) break; } this.ratSel = k; this.ratPaint(); Sound.sfx('blip'); return; }
       if (id === 'spin' || id === 'take') { if (!closed(this.ratSel)) { const k = this.ratCells.findIndex((c, i) => closed(i)); if (k < 0) return; this.ratSel = k; } this.ratPick(this.ratCells[this.ratSel]); return; }
     }
-    if (id === 'back') { if (this.ph !== 'idle') return; this.going = true; this.saveTrail(); Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => { if (this.from === 'camp') this.scene.start('level1', { camp: true, at: 2.45 }); else this.scene.start('shop'); }); return; }
+    if (id === 'back') { if (this.ph !== 'idle') return; this.going = true; this.saveTrail(); Sound.sfx('wave'); this.cameras.main.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => { if (this.backTo === 'bar') this.scene.start('barroom'); else if (this.from === 'camp') this.scene.start('level1', { camp: true, at: 2.62 }); else this.scene.start('shop'); }); return; }
     if (id === 'spin') { if (this.ph === 'show') { if (this.count) this.count.t = this.count.dur; return; } if (this.ph === 'idle') this.spin(); return; }
     if (id === 'take') { if (this.ph !== 'idle') return; if (this.pos >= 0) this.takeStep(); else if (Shop.megaLeft() > 0 && this.free <= 0) this.mega(); return; }
     if (id === 'up' || id === 'down') {

@@ -1028,6 +1028,7 @@ class SelectScene extends Phaser.Scene {
   constructor() { super('select'); }
 
   create() {
+    if (typeof BarRoom !== 'undefined') BarRoom.back = false;              // (v3.113) back on the map: a bonus is the map's again
     this.cheddarB = null;                                                 // (v3.46) the top-left cheddar badge (made with the info box)
     makeTextures(this); makeLevelTextures(this); makePowerupTextures(this);
     this.cameras.main.setBackgroundColor('#0b1020');

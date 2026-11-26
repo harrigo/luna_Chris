@@ -14,7 +14,7 @@
 //                         goes wild. Streaks count.
 const TOY_UNLOCK = { hoop: 1, cans: 1, striker: 2, tower: 3, clay: 4, cave: 5 };   // (v3.43) runs finished (won or lost) before each one turns up
 const TOY_NAME = { hoop: 'A BASKETBALL HOOP', striker: 'A HIGH STRIKER', tower: 'A CRATE TOWER', cans: 'TIN CANS ON THE FENCE', clay: 'CLANK\'S CLAY CHEESE TRAP', cave: 'SOMETHING UNDER A BOULDER...' };
-const TOY = { strikerTh: -0.7, hoopTh: 0.86, trapTh: -2.55, towerTh: 2.9, cansTh: -1.9, railH: 34, strikerH: 150, rimH: 141, rimHalf: 29, rimOff: -3 };
+const TOY = { strikerTh: -0.7, hoopTh: 0.86, trapTh: -2.55, towerTh: 1.1, cansTh: -1.9, railH: 34, strikerH: 150, rimH: 141, rimHalf: 29, rimOff: -3 };
 
 function makeToyTextures(scene) {
   if (scene.textures.exists('ty_striker')) return;

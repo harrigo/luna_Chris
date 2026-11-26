@@ -2565,3 +2565,18 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   roof, chasing bulbs round the sign and under the awning (two frames, swapped 3x a second) and a pink neon pool of
   light in the moody light map. The ledge above it moved up to sit over the sign.
 - The crate tower (it stood right in front of the bar) moved to 2.9; the fenced pen moved round to -2.12.
+
+## v3.113: inside the Moon Bar
+- The bar at camp is twice the size again (scale 5, theta 2.62) and its verb is GO IN. A ledge sits on its roof sign.
+  The crate tower moved to theta 1.1 (by the gun rack) to make room.
+- GO IN opens a new scene, the MOON BAR (src/barroom.js): a side-on room 760 art px wide (200 tall, z = screen
+  height / 200) that scrolls with Chris. Brick walls, two porthole windows (the Earth, a cheese moon), the MOON BAR and
+  BONUS ARCADE neon signs, a back bar of glowing bottles, Clank the barman behind a red counter with stools and pints
+  (tap him for a drink line), a disco ball throwing rainbow specks, sweeping spotlights, a dance floor whose tiles pulse
+  on the beat, a jukebox (tap it to change the tune: the new MOON BAR BOOGIE disco track, the camp anthem, level 1,
+  the tent lullaby), RIDIC LOUISE, and a row of five arcade cabinets, one per bonus level: Zero-G Room, Zero-G Room II,
+  Warp Bonus Room, Grill Freefall, Centrifuge. Each shows its attract screen and its status underneath (CLEARED /
+  n PRIZE GOES / PRACTICE). All of them are in for now; later they'll appear as you discover them (BAR_GAMES).
+- Walk with left/right or the pad, or tap the floor; tap a machine (or UP / A next to it) to play it; B or the door
+  goes back out to camp. Every bonus level (and Ridic Louise) comes back to the bar when you leave it (BarRoom.back).
+  Out of prize goes, a cabinet still plays as a practice run.

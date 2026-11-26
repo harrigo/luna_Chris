@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.112';
+const BUILD = 'v3.113';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -242,7 +242,7 @@ const BONUS_TRIES = 3, BONUS_SPARE = 50;
 const Bonus = {
   begin(sc, id) {
     if (Run.on) { sc.bonusId = id; sc.practice = false; sc.tryNo = 1; sc.runBonus = true; sc.prize = null; return; }     // (v3.11: a legendary perk, not a gun)     // (v3.10) a run's bonus stop: one go, the campaign's tries untouched
-    sc.bonusId = id; sc.practice = !Progress.testMode && Progress.bonusWon(id);
+    sc.bonusId = id; sc.practice = !Progress.testMode && (Progress.bonusWon(id) || (typeof BarRoom !== 'undefined' && BarRoom.back && Progress.bonusLocked(id)));   // (v3.113) the bar's cabinets: out of prize goes = practice
     sc.tryNo = sc.practice ? 0 : Progress.bonusStart(id);
     if (sc.practice) sc.prize = null;
   },
@@ -6167,7 +6167,7 @@ const startPhaser = () => { window.game = new Phaser.Game({
   // then scaled up, so a big PC monitor shows the same framing as a phone instead of a tiny world.
   scale: { mode: Phaser.Scale.NONE, width: fitSize().w, height: fitSize().h, zoom: fitSize().k, fullscreenTarget: document.documentElement },
   input: { activePointers: 4 },
-  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, FruityScene, TentScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, TrophyScene]
+  scene: [IntroScene, EndingScene, MenuScene, SelectScene, WeaponScene, ShopScene, FruityScene, TentScene, BarRoomScene, Level1, ZeroGScene, FreefallScene, CentrifugeScene, RunScene, TrophyScene]
 });
   // Phones report the new size late when going fullscreen / rotating, so check a few times after each
   // event and also poll: whenever the window size and the game size disagree, refit.

@@ -637,6 +637,16 @@ const Sound = (() => {
       { drums: true, p: 'kkhskkhskkhskshs', vol: 1 }
     ] }),
 
+    // (v3.113) the Moon Bar: a disco strut in A minor (Am7 Dm7 Fmaj7 E7), four on the floor, octave bass, a sly lead
+    bar: build({ bpm: 118, ch: [
+      { p: J('A5:2 -:1 C6:1 E6:2 D6:2 C6:2 A5:2 -:4', 'D6:2 -:1 F6:1 A6:2 G6:2 F6:2 D6:2 -:4', 'C6:2 -:1 E6:1 G6:2 F6:2 E6:2 C6:2 A5:4', 'G#5:2 B5:2 D6:2 E6:2 -:4 E6:1 F6:1 G#6:2',
+             'A5:2 -:1 C6:1 E6:2 G6:2 E6:2 C6:2 -:4', 'F6:2 -:1 E6:1 D6:2 C6:2 A5:2 F5:2 -:4', 'E6:4 C6:2 A5:2 F6:4 E6:2 C6:2', 'B5:2 G#5:2 E5:2 G#5:2 B5:2 D6:2 E6:4'),
+        w: 'pulse', duty: 0.25, vol: 0.13, gate: 0.7 },
+      { p: J(arpBar([57, 60, 64]), arpBar([50, 53, 57]), arpBar([53, 57, 60]), arpBar([52, 56, 59]), arpBar([57, 60, 64]), arpBar([50, 53, 57]), arpBar([53, 57, 60]), arpBar([52, 56, 59])), w: 'pulse', duty: 0.125, vol: 0.05, pluck: true, gate: 1 },
+      { p: J(bassBar(33), bassBar(38), bassBar(41), bassBar(40), bassBar(33), bassBar(38), bassBar(41), bassBar(40)), w: 'triangle', vol: 0.34, gate: 0.55 },
+      { drums: true, p: 'k.h.s.h.k.h.s.hh', vol: 0.9 }
+    ] }),
+
     // (v3.103) the tent: a slow, soft lullaby on the little radio (no drums, just a music box over a hum)
     tent: build({ bpm: 64, ch: [
       { p: J('E5:4 G5:4 C6:6 B5:2', 'A5:8 G5:8', 'F5:4 A5:4 G5:6 E5:2', 'D5:12 -:4', 'E5:4 G5:4 C6:6 D6:2', 'E6:8 D6:4 C6:4', 'A5:4 G5:4 E5:4 D5:4', 'C5:12 -:4'), w: 'triangle', vol: 0.11, gate: 0.95 },

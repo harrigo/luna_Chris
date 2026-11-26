@@ -739,5 +739,5 @@ class FreefallScene extends Phaser.Scene {
     this.exitBtn.setVisible(false);
   }
   again() { if (this.leaving || !Bonus.canAgain(this)) return; this.leaving = true; this.cameras.main.fadeOut(200, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(200, 0, 0, 0); this.time.delayedCall(220, () => this.scene.restart()); }
-  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => this.scene.start(Run.on ? 'runpick' : 'select', Run.on ? { phase: Run.freePerk ? 'perk' : 'route' } : undefined)); }
+  leave() { if (this.leaving) return; this.leaving = true; this.cameras.main.fadeOut(250, 0, 0, 0); if (this.hudCam) this.hudCam.fadeOut(250, 0, 0, 0); this.time.delayedCall(280, () => { if (typeof BarRoom !== 'undefined' && BarRoom.back) { BarRoom.back = false; this.scene.start('barroom'); return; } this.scene.start(Run.on ? 'runpick' : 'select', Run.on ? { phase: Run.freePerk ? 'perk' : 'route' } : undefined); }); }
 }
