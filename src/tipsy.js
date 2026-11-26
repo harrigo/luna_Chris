@@ -6,11 +6,11 @@
 //     when you stand still.
 const Tipsy = (() => {
   const PER = 30000, MAX = 4;
-  let end = 0, pints = 0, el = null, raf = 0;
+  let end = 0, pints = 0, el = null, raf = 0, held = false, heldL = 0;
   const now = () => Date.now();
   const left = () => Math.max(0, end - now());
   // how drunk, 0..1: grows with pints, eases off in the last ten seconds
-  const level = () => { const l = left(); if (!l) return 0; return Math.min(1, 0.45 + 0.18 * (pints - 1)) * Math.min(1, l / 10000); };
+  const level = () => { if (held) return heldL; const l = left(); if (!l) return 0; return Math.min(1, 0.45 + 0.18 * (pints - 1)) * Math.min(1, l / 10000); };
   function frame() {
     const L = level(), cv = document.querySelector('#game canvas');
     if (!L) { if (el) el.style.display = 'none'; if (cv) cv.style.transform = ''; pints = 0; raf = 0; return; }
@@ -26,6 +26,10 @@ const Tipsy = (() => {
   }
   return {
     PER, MAX, left, level,
+    // (v3.122) blast off tipsy and it lasts the whole level (LEGLESS LUNATIC): hold() freezes it, release() lets it fade
+    held: () => held,
+    hold() { const L = level(); if (!L) return false; heldL = Math.max(0.6, L); held = true; if (!raf) raf = requestAnimationFrame(frame); return true; },
+    release() { if (!held) return; held = false; end = now() + 10000; pints = Math.max(1, pints); if (!raf) raf = requestAnimationFrame(frame); },
     pints: () => (left() ? pints : 0),
     drink() { if (!left()) pints = 0; pints = Math.min(MAX, pints + 1); end = Math.min(now() + PER * MAX, Math.max(end, now()) + PER); if (!raf) raf = requestAnimationFrame(frame); return pints; },
     // a stagger on top of whatever left/right you're pressing (-1..1). Standing still, he still drifts about.

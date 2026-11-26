@@ -19,6 +19,7 @@ const ACH_LIST = [
   { id: 'ko1', name: 'HOME RUN', desc: 'Smash a rat clean off the screen', stat: 'kos', at: 1 },
   { id: 'ko25', name: 'OUT OF THE PARK', desc: 'Smash 25 rats off the screen', stat: 'kos', at: 25 },
   { id: 'snug', name: 'SNUG AS A BUG', desc: 'Crawl into the tent at camp' },
+  { id: 'legless', name: 'LEGLESS LUNATIC', desc: 'Blast off after a pint and clear a level seeing double' },
   { id: 'fruity', name: 'ONE-ARMED BANDIT', desc: 'Take a prize off Ridic Louise\'s trail' },
   { id: 'jackpot', name: 'JACKPOT!', desc: 'Climb Ridic Louise\'s trail to the jackpot' },
   { id: 'sweet1', name: 'SWEET SPOT', desc: 'Land a bash right on the sweet spot', stat: 'sweets', at: 1 },

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.121';
+const BUILD = 'v3.122';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1342,6 +1342,7 @@ class Level1 extends Phaser.Scene {
   }
 
   finishWin() {
+    if (typeof Tipsy !== 'undefined' && Tipsy.held()) { Ach.unlock('legless'); Tipsy.release(); }   // (v3.122) cleared a level legless
     if (Run.on) { this.runWin(); return; }             // (v3.05) a run: no ranks, unlocks or boards
     Progress.beat(this.levelId); Sound.say('woohoo', { force: true });
     if (this.hurtCount === 0) Ach.unlock('flawless'); if (this.levelId === CFG.finalLevel) Ach.unlock('theend');   // (v3.92) trophies
@@ -1918,7 +1919,7 @@ class Level1 extends Phaser.Scene {
     P.duck = !!inp.down && !inp.jump;                        // on the ground: crouch; in the air: tuck and drop   // crouch: stop, shoot low, smaller target
     const onGround = P.h <= (P.floor || 0) + 0.5 && P.vh <= 0;
     let ax = (inp.right ? 1 : 0) - (inp.left ? 1 : 0);      // crouched: a slow waddle (and steering while dropping)
-    if (this.camp && typeof Tipsy !== 'undefined' && Tipsy.level() > 0 && !inp.down) ax = Tipsy.steer(ax, this.time.now);   // (v3.121) a pint or two: he staggers
+    if ((this.camp || (typeof Tipsy !== 'undefined' && Tipsy.held())) && typeof Tipsy !== 'undefined' && Tipsy.level() > 0 && !inp.down) ax = Tipsy.steer(ax, this.time.now);   // (v3.121) a pint or two: he staggers (v3.122: all level long, if you blasted off tipsy)
     if (this.fullCam) {                                       // FULL camera: left/right follow the SCREEN. The way round is decided when you
       if (ax && !this.axHeld) {                               // press, and kept while
         const lag = this.camLag || 0, c = Math.cos(lag);
@@ -5806,6 +5807,7 @@ class Level1 extends Phaser.Scene {
     this.augerPhase += (this.lastDt || 0.016) * (P.firing > 0 ? 40 : 5);
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    if (typeof Tipsy !== 'undefined' && Tipsy.level() > 0 && (this.camp || Tipsy.held())) this.rig.root.setRotation(this.rig.root.rotation + Tipsy.sway(this.time.now));   // (v3.122) swaying on his feet
     { // (v3.65) grounding: a puff of dust where he lands, and a skid of it when he turns on his heel at a run
       const fl = P.floor || 0, g = P.h <= fl + 0.5 && P.vh <= 0, dir = Math.abs(P.vx || 0) > 120 ? Math.sign(P.vx) : 0;
       if (this.state === 'play' && !this.cave) {

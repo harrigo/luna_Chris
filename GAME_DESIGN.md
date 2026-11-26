@@ -2648,3 +2648,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   layer masked to the edges) and the whole picture sways a little; more pints, more blur, easing off in the last ten
   seconds. Chris staggers: Tipsy.steer() bends his walking and he drifts even standing still, sways on his feet, and
   hiccups. Works in the bar and out at camp (the stagger is camp-only; the blur is everywhere until it wears off).
+
+## v3.122: LEGLESS LUNATIC
+- Blast off from camp while tipsy and it doesn't wear off: Tipsy.hold() freezes it (at least 60% strength) for the
+  whole level - blurry edges, the swaying screen, Chris staggering as he walks (Tipsy.steer, now in levels too while
+  held) and swaying on his feet. Clear the level like that: the LEGLESS LUNATIC trophy, and it starts to wear off
+  (10 s fade). Dying or quitting back to camp or the map also sobers him up.
