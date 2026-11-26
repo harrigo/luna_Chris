@@ -48,6 +48,7 @@ function makeEndingPix(scene) {
 
 class EndingScene extends IntroScene {
   constructor() { super('ending'); }
+  init(data) { this.runSum = data && data.runSum; }
   preload() {}
 
   create() {
@@ -374,6 +375,6 @@ class EndingScene extends IntroScene {
     this.leaving = true;
     Sound.jet(false); Sound.music(null);
     this.cameras.main.fadeOut(500, 0, 0, 0);
-    this.time.delayedCall(540, () => this.scene.start('menu'));
+    this.time.delayedCall(540, () => this.runSum ? this.scene.start('level1', { camp: true, sum: this.runSum }) : this.scene.start('menu'));   // (v3.133) a run's ending goes home to camp
   }
 }

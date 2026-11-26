@@ -299,6 +299,7 @@ function makeShelf(scene, opts) {
 // ---------------------------------------------------------------- the camp, as a mode of the level scene (mixed into Level1)
 const CampMixin = {
   campInit(data) {
+    if (typeof runRouteNow === 'function') runRouteNow();
     if (typeof Tipsy !== 'undefined' && Tipsy.held()) Tipsy.release();   // back at camp: the legless level's over, it wears off
     this.camp = true; this.levelId = 1; this.def = campDef(); R = this.def.radius;
     this.waves = []; this.autostart = true; this.campSum = (data && data.sum) || null; this.campAt = data && data.at;   // (at: back from the Moon Bar, stand at it)

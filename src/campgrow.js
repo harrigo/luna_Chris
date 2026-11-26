@@ -8,7 +8,7 @@ const CAMP_GROW = [
   { id: 'tub',    tex: 'cr_tub',    theta: 1.15,  sc: 1.6, say: 'A FONDUE HOT TUB!',          need: () => rushBestPlanets() >= 4,       how: 'Clear 4 planets in a run' },
   { id: 'trophy', tex: 'cr_trophy', theta: 1.48,   sc: 1.7, say: 'THE GOLDEN TROPHY!',         need: () => Meta.stats().wins >= 1,     how: 'Win a run' },
   { id: 'target', tex: 'cr_target', theta: -2.2,  sc: 1.6, say: 'A TARGET BOARD!',            need: () => WEAPONS.filter(w => Progress.hasGun(w.id)).length >= 3, how: 'Own 3 guns' },
-  { id: 'bessie', tex: 'bessie',    theta: 2.8,   sc: 0.9, say: 'BESSIE MOVED IN!',           need: () => Progress.best >= 10,        how: 'Beat the campaign' },
+  { id: 'bessie', tex: 'bessie',    theta: 2.8,   sc: 0.9, say: 'BESSIE MOVED IN!',           need: () => Progress.best >= 10 || !!Meta._j('lc_run_ending', 0),        how: 'Beat the campaign' },
   { id: 'crown',  tex: 'cr_crown',  theta: -2.95, sc: 1.4, h: 118, say: 'A CROWN FOR THE BOSS GATE!', need: () => { const b = Rush.best(); return !!(b && b.n >= RUSH_ORDER.length); }, how: 'Clear the Boss Rush' }
 ];
 function rushBestPlanets() { const b = Run.best(); return b ? b.planets || 0 : 0; }

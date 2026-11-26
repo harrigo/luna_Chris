@@ -117,7 +117,7 @@ Object.assign(FOLK, {
   feta: { name: 'MADAME FETA', title: 'FORTUNE TELLER', tex: 'cf_feta', sc: 1.5, col: 0x8a2a8a, theta: 3.05, home: [3.05, 3.05], speed: 0, sit: true,
     barks: ['I see...', 'Mmmm.', 'The cards say cheese.', '*the ball glows*'],
     first: [['feta', 'I KNEW you would come, Chris. I saw it. In the brine.'], ['chris', 'You\'re the Rat King\'s prisoner?'], ['feta', 'His fortune teller. I told him he would lose. He did not like that.'],
-      ['feta', 'Take me home. I see a secret above your camp. A golden one. Look UP, Chris. Always look up.']],
+      ['feta', 'Take me home and I will show you the way to Parmesan Prime - the rats\' homeworld. And their KING. Your cow is there, Chris.'], ['chris', 'Bessie...'], ['feta', 'Also, there is a secret above your camp. A golden one. Look UP.']],
     died: [['feta', 'I saw that coming. I did not say anything. It is more fun this way.']],
     won: [['feta', 'As foretold. Mostly.']],
     quit: [['feta', 'The cards say: "try again". The cards always say that.']],

@@ -2741,3 +2741,14 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Bonus stops on the run route only start once the Moon Bar is built.
 - Old saves that had played runs keep everything (legacy). NEW GAME > RESET RUN MODE starts the story from scratch.
 - New sprites: Granny Gouda, Sprocket, Captain Stilton, Madame Feta, DJ Camembeat (2 frames each) and the site.
+
+## v3.133: runs can reach the ending
+- The short route (Gruyere -> Gorgonzola/Brie-muda -> Mozzarella -> Grater/Gorge -> Armada) is all there is until
+  MADAME FETA is home. She's found at the end of the Armada, and only once everyone stranded on the planets you pass
+  earlier has been found (one a run, Clank and Zib first on the Gruyere Globe, DJ Camembeat always on the way...), so
+  it takes 5-6 runs at the very least. No shortcut.
+- With her home, runs take the LONG route: ... -> Armada OR Lactose Labyrinth -> Parmesan Prime -> the Royal Saucer.
+  The route is fixed for the length of a run (Run.routeLong), so finding her doesn't extend the run you're on.
+- Beat the Rat King on a run: the ENDING plays (the same one as the campaign), THE END trophy, Bessie moves into
+  camp (lc_run_ending), then home to camp with the run summary.
+- Still one shop a run, one life, and the strengths stack up, so the long route is a real climb.

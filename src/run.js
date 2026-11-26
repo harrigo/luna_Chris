@@ -3,7 +3,14 @@
 // middle one, the last) + its boss. Beat a boss -> pick 1 of 3 perks, then choose the next planet (and shop if you like).
 // Cheddar, shop upgrades and perks last for this run only; the guns you've FOUND in the campaign come with you.
 // The campaign's own lives / cheddar / shop / gun levels are put aside at the start and handed back at the end.
-const RUN_ROUTE = [[1], [2, 3], [4], [5, 6], [7]];
+// (v3.133) THE ROUTE. Until you've found Madame Feta (on the Armada, the end of the short route) nobody knows where the
+// rats' homeworld is: a run ends at the Astro-Rat Armada. Once she's home she shows the way, and runs go on - Armada
+// or the Lactose Labyrinth, then Parmesan Prime, then the Rat King's Royal Saucer. Beating him in a run is the
+// ENDING. Finding her takes several runs (one new face a run, and everyone on your path comes first), so there's no
+// shortcut to the end - and with one shop a run, one life and the strengths climbing, the long route is a real climb.
+const RUN_ROUTE_SHORT = [[1], [2, 3], [4], [5, 6], [7]], RUN_ROUTE_LONG = [[1], [2, 3], [4], [5, 6], [7, 8], [9], [10]];
+let RUN_ROUTE = RUN_ROUTE_SHORT;
+function runRouteNow() { const long = typeof Run !== 'undefined' && Run.on && Run.routeLong !== undefined ? Run.routeLong : typeof Story !== 'undefined' && Story.home('feta'); RUN_ROUTE = long ? RUN_ROUTE_LONG : RUN_ROUTE_SHORT; return RUN_ROUTE; }   // (fixed for the length of a run)
 const RUN_START_CHEDDAR = 60;
 
 // the perk pool. can(s) = is it on offer, given the run's shop state s; act(s, reg) applies it (s = shop object, saved after)
@@ -91,6 +98,7 @@ const Run = {
     const L = Meta.larder();
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
+    this.routeLong = typeof Story !== 'undefined' && Story.home('feta'); this.on = true; runRouteNow();
     const shopAt = 2 + Math.floor(Math.random() * 2), bAts = [1, 2, 3].filter(k => k !== shopAt);   // (v3.131) the SHOP stop: after planet 2 or 3; the BONUS stop somewhere else on the line
     const barOpen = typeof Story === 'undefined' || Story.built('bar');                                     // (v3.132) ...but only once the Moon Bar's open
     Object.assign(this, { styleS: 0, shopAt, shopDone: false, arrived: null, bonusAt: barOpen ? bAts[Math.floor(Math.random() * bAts.length)] : -1, vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
@@ -314,9 +322,12 @@ class RunScene extends Phaser.Scene {
   init(data) { this.phase = (data && data.phase) || (Run.idx > 0 ? 'perk' : 'route'); if (this.phase === 'perk' && Run.idx > 0 && !Run.freePerk && Run.lastPerkAt === Run.idx) this.phase = 'route'; }
   create() {
     makeTextures(this); makeLevelTextures(this); makeShopTextures(this); makePowerupTextures(this);
-    Sound.init();
+    Sound.init(); runRouteNow();
     if (!Run.on) { this.scene.start('menu'); return; }
-    if (Run.idx >= Run.stages()) { this.scene.start('level1', { camp: true, sum: Run.finish(this.registry, 'won') }); return; }
+    if (Run.idx >= Run.stages()) {
+      const ended = Run.done.includes(10), sum = Run.finish(this.registry, 'won');
+      if (ended) { sum.ending = true; Meta._s('lc_run_ending', 1); if (typeof Ach !== 'undefined') Ach.unlock('theend'); this.scene.start('ending', { runSum: sum }); return; }   // (v3.133) the Rat King's beaten: the ENDING, then home to camp
+      this.scene.start('level1', { camp: true, sum }); return; }
     this.cameras.main.fadeIn(220, 0, 0, 0);
     this.going = false; this.sel = 0; this.t = 0;
     this.gold = this.phase === 'perk' && Run.freePerk === 'gold';
