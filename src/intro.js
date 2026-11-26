@@ -1218,10 +1218,17 @@ class TitleBackdrop {
     if (!this.gag) {
       this.gagT -= dt; if (this.gagT > 0) return;
       this.gagN++;
-      if (this.gagN % 2 && !this.noChris) {                                  // a rat runs in from the right... (only with Chris there to shoot it)
-        const s = img('mouse'); if (!s) { this.gagT = 3; return; }
-        s.setOrigin(0.5, 1).setFlipX(true).setScale(z / (TEX_DENS['mouse'] || 1));
-        this.gag = { k: 'rat', s, x: W + 30, st: 'run', t: 0, shots: [] };
+      if (this.gagN % 3 && !this.noChris) {                                  // (v3.110) a little wave of rats comes at him, from either side...
+        const kinds = [['mouse', 'mouse_b'], ['chiprat', 'chiprat_b'], ['forkrat0', 'forkrat0b']].filter(f => sc.textures.exists(f[0]));
+        if (!kinds.length) { this.gagT = 3; return; }
+        const side = Math.random() < 0.7 ? 1 : -1, n = 1 + Math.floor(Math.random() * 3), foes = [];
+        for (let i = 0; i < n; i++) {
+          const f = kinds[Math.floor(Math.random() * kinds.length)], s = img(f[0]); if (!s) break;
+          s.setOrigin(0.5, 1).setFlipX(side > 0).setScale(z / (TEX_DENS[f[0]] || 1));
+          foes.push({ s, f, x: side > 0 ? W + 30 + i * (60 + Math.random() * 50) : -30 - i * (60 + Math.random() * 50), dir: -side, sp: 95 + Math.random() * 45, st: 'run', hp: 2, t: Math.random(), hitT: 0,
+            plan: Math.random() < 0.45 ? 'bash' : 'shoot' });   // ...he shoots some, and lets others get close for a BASH
+        }
+        this.gag = { k: 'foes', foes, t: 0 };
       } else {                                                                // ...or Biscuit chases a ball across
         const d = img('cf_dog0'), b = img('cr_ball');   // (v3.103: was 'cf_dog', which doesn't exist - the gag never showed)
         if (!d || !b) { this.gagN++; this.gagT = 0.5; return; }
@@ -1231,20 +1238,41 @@ class TitleBackdrop {
       return;
     }
     const G = this.gag; G.t += dt;
-    if (G.k === 'rat') {
-      const s = G.s;
-      if (G.st === 'run') {
-        G.x -= 120 * dt; s.setPosition(G.x, gy(G.x) + 2).setRotation(Math.sin(G.t * 20) * 0.08);
-        if (G.x < cx + W * 0.42 && !G.fired) { G.fired = true; this.burst = 0.6; P.aimA = 0.05; }   // Chris takes aim...
-      } else if (G.st === 'fly') {                                            // ...BOSH: off it goes, spinning, into orbit
-        G.vy += 300 * dt; G.x += G.vx * dt; G.y = (G.y === undefined ? gy(G.x) - 10 : G.y) + G.vy * dt; G.r += dt * 14;
-        s.setPosition(G.x, G.y).setRotation(G.r);
-        if (G.y < -20 || G.x > W + 40) {
-          const k = sc.add.text(Math.min(W - 40, Math.max(40, G.x)), 30, 'K.O.!', { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(this.g.depth + 0.1);
-          sc.tweens.add({ targets: k, y: 50, alpha: 0, duration: 900, onComplete: () => k.destroy() }); Sound.sfx('chime');
-          this.gagDone(); return;
+    if (G.k === 'foes') {
+      let tgt = null, best = 1e9;
+      for (const F of G.foes) {
+        const s = F.s; F.t += dt;
+        if (F.st === 'run') {
+          F.hitT = Math.max(0, F.hitT - dt);
+          const d = Math.abs(F.x - cx);
+          if (d > 26 * z) F.x += F.dir * F.sp * dt * (F.hitT > 0 ? -0.6 : 1);       // a shot knocks him back a step
+          s.setTexture(F.f[Math.floor(F.t * 8) % 2]).setPosition(F.x, gy(F.x) + 2).setRotation(Math.sin(F.t * 20) * 0.08);
+          if (F.hitT > 0) s.setTintFill(0xffffff); else s.clearTint();
+          if (d < best) { best = d; tgt = F; }
+        } else if (F.st === 'fly') {                                             // off he goes, spinning, into orbit
+          F.vy += 300 * dt; F.x += F.vx * dt; F.y += F.vy * dt; F.r += dt * F.spin;
+          s.setPosition(F.x, F.y).setRotation(F.r).clearTint();
+          if (F.y < -30 || F.x > W + 50 || F.x < -50) {
+            F.st = 'gone'; s.setVisible(false);
+            const k = sc.add.text(Math.min(W - 40, Math.max(40, F.x)), 30, F.how, { fontFamily: PIXEL, fontSize: '14px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 5 }).setOrigin(0.5).setDepth(this.g.depth + 0.1);
+            sc.tweens.add({ targets: k, y: 50, alpha: 0, duration: 900, onComplete: () => k.destroy() }); this.sfx('chime');
+          }
         }
       }
+      this.target = tgt;
+      if (tgt) {
+        P.facing = tgt.x < cx ? -1 : 1;
+        const d = Math.abs(tgt.x - cx);
+        // BASH: let him come, then swing the gun round butt-first and send him flying
+        if (tgt.plan === 'bash' && d < 34 * z && !(this.bashT > 0)) { this.bashT = 0.34; this.bashHit = false; this.sfx('swish'); }
+        if (tgt.plan === 'shoot' && d < W * 0.45 && !(this.bashT > 0)) this.burst = 0.15;
+        if (tgt.plan === 'shoot' && d < 24 * z && !(this.bashT > 0)) { tgt.plan = 'bash'; }        // got too close: bash him instead
+      }
+      if (this.bashT > 0 && !this.bashHit && 1 - this.bashT / 0.34 >= 0.33) {
+        this.bashHit = true;
+        for (const F of G.foes) if (F.st === 'run' && Math.abs(F.x - cx) < 46 * z && Math.sign(F.x - cx) === P.facing) this.fling(F, 'BOSH!', 1.6);
+      }
+      if (G.foes.every(F => F.st === 'gone')) this.gagDone();
       return;
     }
     if (G.k === 'dog') {                                                      // the ball bounces along, Biscuit galloping after it
@@ -1255,7 +1283,18 @@ class TitleBackdrop {
       if (G.x > W + 60) this.gagDone();
     }
   }
-  gagDone() { for (const s of this.gagSpr) s.destroy(); this.gagSpr = []; this.gag = null; this.gagT = 4 + Math.random() * 3; this.P.aimA = 0.5; }
+  gagDone() { for (const s of this.gagSpr) s.destroy(); this.gagSpr = []; this.gag = null; this.gagT = 2 + Math.random() * 3; this.target = null; }
+  sfx(k) { if (typeof Sound !== 'undefined' && this.s.scene.key === 'intro' && this.s.phase !== 'gate') Sound.sfx(k); }
+  // knock a rat flying (a shot: up and away; a bash: further and flatter, with a star where it landed)
+  fling(F, how, pow) {
+    const away = Math.sign(F.x - this.rig.root.x) || 1;
+    F.st = 'fly'; F.how = how; F.y = F.s.y - 6; F.vx = away * (200 + Math.random() * 80) * pow; F.vy = -(380 + Math.random() * 120) * (pow > 1 ? 0.85 : 1); F.r = 0; F.spin = away * (pow > 1 ? 22 : 13);
+    this.sfx(pow > 1 ? 'sweet' : 'bonk');
+    if (!this.s.textures.exists('spark')) { if (pow > 1) this.s.cameras.main.shake(90, 0.006); return; }
+    const z = this.pz || 2, star = this.s.add.image(F.x, F.s.y - F.s.displayHeight * 0.5, 'spark').setDepth(this.g.depth + 0.09).setScale(pow > 1 ? 3 * z : 1.6 * z).setTint(0xffffff).setBlendMode(Phaser.BlendModes.ADD);
+    this.s.tweens.add({ targets: star, scale: star.scale * 1.8, alpha: 0, angle: 90, duration: pow > 1 ? 320 : 200, onComplete: () => star.destroy() });
+    if (pow > 1) this.s.cameras.main.shake(90, 0.006);
+  }
   // (v3.99) the whole backdrop painted once, pixel by pixel, at the same pixel size as Chris (so nothing is crisper than
   // anything else): a dithered night sky with a soft nebula and stars, a ringed planet, and the Gruyere Globe as proper
   // pixel art (shaded on the cheese ramp, a bright rim, speckles, and holes with a shadowed lip).
@@ -1339,9 +1378,16 @@ class TitleBackdrop {
     if (this.shootT <= 0) { this.shootT = 2.5 + Math.random() * 4; this.shoot = { x: Math.random() * W * 0.8 + W * 0.2, y: Math.random() * H * 0.3, l: 0.6 }; }
     if (this.shoot) { const q = this.shoot; q.l -= dt; q.x -= 520 * dt; q.y += 200 * dt; if (q.l <= 0) this.shoot = null; else for (let i = 0; i < 7; i++) { const sx = Math.round((q.x + i * 6 * z) / z) * z, sy = Math.round((q.y - i * 2.3 * z) / z) * z; g.fillStyle(i ? 0xb4d8ff : 0xffffff, (q.l / 0.6) * (1 - i / 8)).fillRect(sx, sy, i < 2 ? 2 * z : z, z); } }
     // Chris on top, cape in the wind; now and then a blast of the gun into the sky
-    const P = this.P; this.fireT -= dt;
-    if (this.fireT <= 0) { this.fireT = 3 + Math.random() * 3; this.burst = 0.5; }
-    this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0; P.aimA = this.gag && this.gag.k === 'rat' && this.gag.fired ? 0.05 : 0.45 + 0.1 * Math.sin(t * 0.8);
+    // (v3.110) Chris on top, cape in the wind. He only fires at something now: no more blasting the empty sky
+    const P = this.P;
+    this.burst = Math.max(0, (this.burst || 0) - dt); P.firing = this.burst > 0 ? 0.12 : 0;
+    const tg = this.target && this.target.st === 'run' ? this.target : null;
+    if (tg) { const ga = this.rig.gunArm, root = this.rig.root, gy0 = root.y + ga.y * root.scaleY;
+      P.aimA = Math.max(-0.35, Math.min(0.6, Math.atan2(gy0 - (tg.s.y - tg.s.displayHeight * 0.45), Math.max(8, Math.abs(tg.x - root.x))))); }
+    else { P.aimA = 0.12 + 0.05 * Math.sin(t * 0.8); if (!this.gag) P.facing = 1; }
+    this.bashT = Math.max(0, (this.bashT || 0) - dt);
+    { const k = this.bashT > 0 ? 1 - this.bashT / 0.34 : 1, SW = -2.1, pose = e => { P.bashSpin = SW * e; P.bashX = 10 * e; P.bashY = 2 * e; P.bashA = 0.1 * e; P.bashLean = 0.16 * e; };
+      if (k < 0.36) pose(1 - Math.pow(1 - k / 0.36, 3)); else if (k < 0.48) pose(1.03); else if (k < 0.82) { const q = (k - 0.48) / 0.34; pose(1.03 * (1 - q * q * (3 - 2 * q))); } else pose(0); }
     const x = Math.round(W * this.cx / z) * z, y = Math.round((top + z + (R - Math.sqrt(Math.max(0, R * R - (x - mx) * (x - mx))))) / z) * z;
     if (this.noChris) { this.rig.root.setVisible(false); this.burst = 0; }   // (v3.99f) the menu: no Chris, no shooting
     const cz = z * (this.chrisK || 1);                                  // (v3.99e) the menu shows him a bit smaller, to leave room for the cards
@@ -1356,13 +1402,20 @@ class TitleBackdrop {
       // (v3.99g) at the game's own size (one art pixel = one screen pixel, as in a level on a phone), not doubled, and
       // tumbling by the game's three frames rather than spun as a whole (doubled and spun they looked massive and broken)
       const ms = Math.max(1, Math.floor(cz * 0.6)), im = sc.add.image(sx, sy, 'mac0').setDepth(this.g.depth + 0.08).setScale(ms).setRotation(r);
-      this.shots.push({ im, x: sx, y: sy, vx: cs * dir * 420, vy: sn * 420, age: 0, ph: Math.floor(Math.random() * 3) });
-      if (typeof Sound !== 'undefined' && sc.scene.key === 'intro' && sc.phase !== 'gate') Sound.sfx('shoot');
+      let vx = cs * dir * 420, vy = sn * 420;
+      if (tg) { const dx = tg.x - sx, dy = tg.s.y - tg.s.displayHeight * 0.45 - sy, l = Math.hypot(dx, dy) || 1; vx = dx / l * 420; vy = dy / l * 420; }
+      this.shots.push({ im, x: sx, y: sy, vx, vy, age: 0, ph: Math.floor(Math.random() * 3) });
+      this.sfx('shoot');
     }
-    const rat = this.gag && this.gag.k === 'rat' && this.gag.st === 'run' ? this.gag : null;
+    const foes = this.gag && this.gag.k === 'foes' ? this.gag.foes.filter(F => F.st === 'run') : [];
     for (const q of this.shots) {
       q.x += q.vx * dt; q.y += q.vy * dt; q.age += dt; q.im.setPosition(Math.round(q.x), Math.round(q.y)).setTexture('mac' + (Math.floor(q.age * 20 + q.ph) % 3));
-      if (rat && q.x > rat.x - 12 * z && Math.abs(q.y - (rat.s.y - 12 * z)) < 22 * z) { rat.st = 'fly'; rat.vx = 260; rat.vy = -520; rat.r = 0; Sound.sfx('bonk'); q.dead = true; }
+      for (const F of foes) {
+        if (F.st !== 'run' || Math.abs(q.x - F.x) > Math.max(8 * z, F.s.displayWidth * 0.4) || Math.abs(q.y - (F.s.y - F.s.displayHeight * 0.45)) > F.s.displayHeight * 0.55 + 4 * z) continue;
+        q.dead = true;
+        if (--F.hp <= 0) this.fling(F, 'K.O.!', 1); else { F.hitT = 0.14; this.sfx('hit'); }
+        break;
+      }
       if (q.x > W + 30 || q.y < -30 || q.x < -30) q.dead = true;
       if (q.dead) q.im.destroy();
     }

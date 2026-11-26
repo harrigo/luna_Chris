@@ -97,6 +97,19 @@ function makeTentArt(scene, k, LH) {
   tnCanvas(scene, 'tn_chris', 410, 150, k, c => {
     tnEll(c, 210, 143, 200, 7, '#0a0810', 0.5);
     tnBlob(c, [[4, 122], [14, 92], [60, 82], [124, 88], [142, 112], [132, 138], [70, 144], [12, 140]], '#fbf7ee', q => { const g = q.createLinearGradient(0, 100, 0, 146); g.addColorStop(0, 'rgba(190,170,190,0)'); g.addColorStop(1, 'rgba(150,130,170,0.55)'); q.fillStyle = g; q.fillRect(0, 80, 150, 70); tnLine(q, [[20, 100], [40, 108], [30, 124]], 'rgba(150,130,170,0.5)', 1.5); });
+    // (v3.110) the body first, so the head and the arm have something to join: a shoulder in white pyjamas poking out of
+    // the bag, a neck up to the head; the bag's opening runs diagonally below the shoulder with its collar turned back
+    tnBlob(c, [[116, 130], [120, 102], [136, 82], [160, 76], [178, 88], [182, 112], [164, 130], [136, 136]], '#ffffff', q => { const g = q.createLinearGradient(0, 76, 0, 136); g.addColorStop(0.35, 'rgba(170,170,210,0)'); g.addColorStop(1, 'rgba(150,150,200,0.75)'); q.fillStyle = g; q.fillRect(110, 70, 80, 70); tnLine(q, [[130, 96], [140, 108], [134, 122]], 'rgba(130,130,180,0.55)', 1.4); }, 2.2);
+    tnBlob(c, [[102, 128], [114, 108], [132, 104], [136, 120], [124, 136], [108, 140]], '#eeb08a', q => tnEll(q, 122, 132, 16, 8, '#c98a68', 0.6), 2);
+    const bag = [[108, 147], [118, 130], [138, 116], [166, 106], [188, 84], [200, 68], [262, 72], [322, 88], [376, 104], [404, 124], [398, 142], [370, 147], [140, 147]];
+    tnBlob(c, bag, '#2f8a94', q => {
+      let g = q.createLinearGradient(0, 60, 0, 150); g.addColorStop(0, 'rgba(160,240,230,0.45)'); g.addColorStop(0.35, 'rgba(160,240,230,0)'); g.addColorStop(1, 'rgba(10,30,60,0.55)'); q.fillStyle = g; q.fillRect(100, 50, 320, 110);
+      for (let x = 176; x < 400; x += 36) { tnLine(q, [[x, 56], [x - 10, 104], [x - 4, 150]], 'rgba(12,50,70,0.75)', 2); tnLine(q, [[x + 3, 60], [x - 7, 104], [x - 1, 150]], 'rgba(170,240,230,0.28)', 1.5); }
+      for (const [x, y] of [[212, 96], [250, 112], [286, 100], [322, 120], [356, 116], [232, 130]]) { q.fillStyle = '#ffd23f'; q.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - 1.57, r = i % 2 ? 2 : 4.6; q.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } q.fill(); }   // little stars on it
+    }, 2.4);
+    tnBlob(c, [[104, 147], [114, 128], [136, 112], [164, 102], [186, 80], [198, 64], [210, 70], [196, 94], [172, 116], [146, 124], [130, 136], [122, 147]], '#f6e2b4', q => { q.setLineDash([2.5, 3]); tnLine(q, [[116, 140], [140, 118], [170, 108]], '#d83a2a', 1.4); tnLine(q, [[170, 108], [190, 90], [202, 70]], '#d83a2a', 1.4); q.setLineDash([]); }, 2.2);
+    // the head on top, tilted over on the pillow, chin tucked down towards his chest
+    c.save(); c.translate(96, 110); c.rotate(-0.3); c.translate(-96, -110);
     // the chef's hat, squashed on the pillow
     tnBlob(c, [[54, 86], [34, 70], [34, 44], [52, 24], [78, 20], [100, 24], [118, 38], [126, 58], [118, 76], [98, 86]], '#ffffff', q => { const g = q.createLinearGradient(30, 20, 120, 90); g.addColorStop(0.3, 'rgba(180,180,215,0)'); g.addColorStop(1, 'rgba(160,160,205,0.7)'); q.fillStyle = g; q.fillRect(20, 10, 120, 90); for (const [a, b, d] of [[[58, 78], [50, 52], [58, 30]], [[78, 80], [74, 50], [80, 24]], [[98, 80], [100, 54], [102, 30]]]) tnLine(q, [a, b, d], 'rgba(120,120,170,0.6)', 1.5); }, 2.4);
     tnBlob(c, [[52, 92], [56, 76], [84, 70], [112, 74], [120, 88], [112, 96], [84, 92], [58, 98]], '#f0eef8', q => tnEll(q, 90, 96, 34, 6, '#b8b8d8', 0.6), 2.2);
@@ -110,15 +123,7 @@ function makeTentArt(scene, k, LH) {
     // the nose, then (as its own sprite) the moustache
     tnBlob(c, [[88, 112], [90, 104], [98, 101], [106, 105], [107, 113], [98, 118]], '#f2a482', q => { tnEll(q, 95, 106, 3, 2, '#ffe0d0', 0.9); tnEll(q, 100, 116, 8, 3, '#d8805e', 0.5); }, 2);
     tnEll(c, 98, 131, 4.5, 3.4, '#5a1a1a'); c.beginPath(); c.ellipse(98, 131, 4.5, 3.4, 0, 0, 6.2832); c.strokeStyle = TN.ink; c.lineWidth = 1.6; c.stroke();
-    tnBlob(c, [[104, 132], [116, 120], [132, 112], [140, 124], [128, 142], [108, 146]], '#eeb08a', q => tnEll(q, 122, 138, 18, 9, '#c98a68', 0.6), 2);   // (v3.109b) his neck and shoulder, so the head joins the body
-    // the bag, drawn OVER the chin: pulled right up under it, the collar wrapping his neck
-    const bag = [[100, 140], [108, 122], [122, 102], [146, 80], [196, 66], [262, 72], [322, 88], [376, 104], [404, 124], [398, 142], [370, 147], [140, 147], [106, 147]];
-    tnBlob(c, bag, '#2f8a94', q => {
-      let g = q.createLinearGradient(0, 60, 0, 150); g.addColorStop(0, 'rgba(160,240,230,0.45)'); g.addColorStop(0.35, 'rgba(160,240,230,0)'); g.addColorStop(1, 'rgba(10,30,60,0.55)'); q.fillStyle = g; q.fillRect(100, 50, 320, 110);
-      for (let x = 176; x < 400; x += 36) { tnLine(q, [[x, 56], [x - 10, 104], [x - 4, 150]], 'rgba(12,50,70,0.75)', 2); tnLine(q, [[x + 3, 60], [x - 7, 104], [x - 1, 150]], 'rgba(170,240,230,0.28)', 1.5); }
-      for (const [x, y] of [[212, 96], [250, 112], [286, 100], [322, 120], [356, 116], [232, 130]]) { q.fillStyle = '#ffd23f'; q.beginPath(); for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 - 1.57, r = i % 2 ? 2 : 4.6; q.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } q.fill(); }   // little stars on it
-    }, 2.4);
-    tnBlob(c, [[98, 142], [104, 122], [120, 100], [144, 78], [158, 84], [142, 102], [128, 124], [120, 147]], '#f6e2b4', q => { q.setLineDash([2.5, 3]); tnLine(q, [[108, 138], [124, 110], [148, 86]], '#d83a2a', 1.4); q.setLineDash([]); tnEll(q, 124, 142, 16, 8, '#c8a070', 0.5); }, 2.2);   // the collar, snug round his neck
+    c.restore();
 
   });
   tnCanvas(scene, 'tn_mo', 80, 30, k, c => {
@@ -127,6 +132,7 @@ function makeTentArt(scene, k, LH) {
   // his arm, out of the bag and round the pup
   tnCanvas(scene, 'tn_arm', 120, 50, k, c => {
     tnBlob(c, [[4, 20], [12, 8], [40, 4], [74, 12], [98, 24], [96, 38], [70, 36], [38, 30], [10, 34]], '#ffffff', q => { const g = q.createLinearGradient(0, 4, 0, 40); g.addColorStop(0.4, 'rgba(170,170,210,0)'); g.addColorStop(1, 'rgba(150,150,200,0.7)'); q.fillStyle = g; q.fillRect(0, 0, 120, 50); tnLine(q, [[36, 8], [40, 20], [36, 30]], 'rgba(130,130,180,0.6)', 1.4); q.fillStyle = '#d83a2a'; q.beginPath(); q.moveTo(82, 12); q.lineTo(102, 22); q.lineTo(98, 42); q.lineTo(78, 34); q.fill(); }, 2.2);
+    tnEll(c, 7, 21, 9, 11.5, '#ffffff');                                      // (no outline at the shoulder end: it runs into the shoulder)
     tnBlob(c, [[94, 24], [104, 22], [114, 28], [116, 38], [108, 44], [96, 40]], '#f6bd96', q => { tnLine(q, [[104, 30], [110, 34]], '#c98a68', 1.2); tnLine(q, [[102, 35], [108, 39]], '#c98a68', 1.2); }, 2);
   });
   // ---- Biscuit, curled up asleep in the crook of his arm (helmet off)
@@ -192,10 +198,10 @@ class TentScene extends Phaser.Scene {
     // where things are (design space): Chris along the floor, the pup on the bag in front of his chest
     const CX = 36, CY = LH - 152; G.c = { x: CX, y: CY };
     this.chris = this.add.image(...S(CX, CY + 150), 'tn_chris').setOrigin(0, 1).setDepth(3);
-    this.mo = this.add.image(...S(CX + 98, CY + 124), 'tn_mo').setOrigin(0.5, 0.35).setDepth(3.1);
+    this.mo = this.add.image(...S(CX + 100, CY + 119), 'tn_mo').setOrigin(0.5, 0.35).setDepth(3.1);
     this.tail = this.add.image(...S(CX + 318, CY + 122), 'tn_tail').setOrigin(0.1, 0.8).setDepth(3.2);
     this.pup = this.add.image(...S(CX + 196, CY + 144), 'tn_pup').setOrigin(0, 1).setDepth(3.3);
-    this.arm = this.add.image(...S(CX + 150, CY + 90), 'tn_arm').setOrigin(0.05, 0.4).setDepth(3.4);
+    this.arm = this.add.image(...S(CX + 150, CY + 96), 'tn_arm').setOrigin(0.05, 0.4).setDepth(3.25);   // from the shoulder, round BEHIND the pup
     this.lampIm = this.add.image(0, 0, 'tn_lamp').setOrigin(0.5, 0.08).setDepth(4);
     this.cows = [0, 1, 2, 3].map(() => this.add.image(0, 0, 'tn_cow').setDepth(4.2));
     this.bone = this.add.image(0, 0, 'tn_bone').setDepth(5.2).setVisible(false);
@@ -251,8 +257,8 @@ class TentScene extends Phaser.Scene {
     const br = Math.sin(t * 1.5) * 0.5 + 0.5, pb = Math.sin(t * 2.6) * 0.5 + 0.5;
     this.snore = Math.max(0, this.snore - dt); this.wag = Math.max(0, this.wag - dt); this.dream = Math.max(0, this.dream - dt);
     this.chris.setScale(1, 1 + br * 0.022);
-    this.mo.setY((C.y + 124 - br * 2) * k).setRotation(Math.sin(t * (this.snore ? 34 : 1.5)) * (this.snore ? 0.09 : 0.02)).setScale(1 + (this.snore ? Math.sin(t * 30) * 0.05 : 0));
-    this.pup.setScale(1, 1 + pb * 0.035); this.arm.setY((C.y + 90 - pb * 2.2 - br * 1.5) * k).setRotation(-pb * 0.012);
+    this.mo.setY((C.y + 119 - br * 2) * k).setRotation(-0.3 + Math.sin(t * (this.snore ? 34 : 1.5)) * (this.snore ? 0.09 : 0.02)).setScale(1 + (this.snore ? Math.sin(t * 30) * 0.05 : 0));
+    this.pup.setScale(1, 1 + pb * 0.035); this.arm.setY((C.y + 96 - br * 1.5) * k).setRotation(-0.06 - pb * 0.012);
     this.tail.setRotation(this.wag ? Math.sin(t * 26) * 0.5 : Math.sin(t * 1.3) * 0.04);
     // Zzz drifting up from Chris; a dream bubble over the pup when you pet him
     this.zT.forEach((z, i) => { const u = ((t * 0.32 + i / 3) % 1), big = this.snore ? 1.5 : 1; z.setPosition((C.x + 128 + u * 44 + Math.sin(u * 9 + i) * 5) * k, (C.y + 84 - u * 70) * k).setAlpha(Math.sin(u * Math.PI) * 0.9).setScale((0.6 + u * 0.7) * big).setRotation(Math.sin(u * 6 + i) * 0.25); });

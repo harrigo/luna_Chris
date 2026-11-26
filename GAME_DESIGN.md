@@ -2537,3 +2537,12 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   the mobile, count cows jumping over the moon through the door (the tally is kept), dim the lantern, radio on / off,
   and a SNUG-O-METER that creeps up to MAXIMUM SNUG, at which point nothing happens. Controller: A Chris, X Biscuit,
   Y mobile, LB lantern, RB radio, up cows, B out.
+
+## v3.110: the tent, Chris tucked in properly; the title fights back
+- Tent: his head tilts onto the pillow, his pyjama shoulder shows above the bag, and the arm comes out of that shoulder
+  and round behind Biscuit (it sits under the pup now), so nothing floats.
+- Title screen: no more blasting the empty sky. Little waves of 1-3 rats (mice, chip rats, fork rats) come at him,
+  mostly from the right, sometimes from behind. He turns to face each one: some he shoots (two macaroni each, a white
+  flash and a knock-back on the first, K.O.! into orbit on the second), others he lets walk right up and BASHES with
+  the game's own butt-first gun swing (sweet-spot crack, a star, a little shake, BOSH! as it sails off). Any rat that
+  gets too close while he's shooting gets bashed instead. Biscuit's ball chase still turns up every third gag.
