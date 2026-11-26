@@ -2784,3 +2784,6 @@ Camp tent: scale 1.9 -> 1.7 and sunk 7px, so its corners sit on the curve instea
 
 ## v3.139
 Camp tent: scale 2.4 (sunk 10px) - 1.7 looked tiny.
+
+## v3.140
+Camp tent: scale 2.1 (sunk 8px).
