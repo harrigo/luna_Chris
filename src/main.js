@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.114';
+const BUILD = 'v3.115';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -604,10 +604,10 @@ class Level1 extends Phaser.Scene {
       spr.bsx = spr.bsy = (L.half * 2 * R) / 124;                    // scaled evenly to the ledge's width
       const q = { spr, L, type, extras: [], t: rnd(0, 6), f: 0, ft: 0 };
       const ex = (key, dx, dy, depth, add) => { const im = this.add.image(0, 0, key).setDepth(depth); if (add) im.setBlendMode(Phaser.BlendModes.ADD); q.extras.push({ im, dx, dy }); return im; };
-      if (type === 'energy') { q.glow = ex('puff', 0, 5, 2.95, true).setTint(0x5ce1ff); q.glow.bsx = 2.4; q.glow.bsy = 0.5; }
-      if (type === 'girder') { ex('pl_siren', 26, -5, 3.05); q.beacon = ex('puff', 26, -6, 3.06, true).setTint(0xff3030); q.beacon.bsx = q.beacon.bsy = 0.5; }
-      if (type === 'crystal') { q.sparks = [ex('spark', -56, -8, 3.06, true), ex('spark', 56, -8, 3.06, true), ex('spark', -48, -12, 3.06, true)]; q.glow = ex('puff', 0, 6, 2.95, true).setTint(0xb060f0); q.glow.bsx = 2.2; q.glow.bsy = 0.7; }
-      if (type === 'panini') { q.glow = ex('puff', 0, 4, 2.95, true).setTint(0xffb040); q.glow.bsx = 2.2; q.glow.bsy = 0.45; q.dripT = rnd(0.2, 1); }
+      if (type === 'energy') { q.glow = ex('pxglow', 0, 5, 2.95, true).setTint(0x5ce1ff); q.glow.bsx = 2.4; q.glow.bsy = 0.5; }
+      if (type === 'girder') { ex('pl_siren', 26, -5, 3.05); q.beacon = ex('pxglow', 26, -6, 3.06, true).setTint(0xff3030); q.beacon.bsx = q.beacon.bsy = 0.5; }
+      if (type === 'crystal') { q.sparks = [ex('spark', -56, -8, 3.06, true), ex('spark', 56, -8, 3.06, true), ex('spark', -48, -12, 3.06, true)]; q.glow = ex('pxglow', 0, 6, 2.95, true).setTint(0xb060f0); q.glow.bsx = 2.2; q.glow.bsy = 0.7; }
+      if (type === 'panini') { q.glow = ex('pxglow', 0, 4, 2.95, true).setTint(0xffb040); q.glow.bsx = 2.2; q.glow.bsy = 0.45; q.dripT = rnd(0.2, 1); }
       this.ledgeSprs.push(q);
     });
     if (this.def.fondue) this.fdInit();                   // L5.5: resets the soggy croutons too (fondue.js)
@@ -637,7 +637,7 @@ class Level1 extends Phaser.Scene {
     const wd = !Run.on && this.def.warp;        // (v3.05: no secret warps on a run)
     if (wd) {
       makeWarpTextures(this);
-      const glow = this.add.image(0, 0, 'puff').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
+      const glow = this.add.image(0, 0, 'pxglow').setDepth(0.29).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setTint(0xa040ff);
       const tri = wd.style === 'triangle';                          // L3: the Brie-muda Triangle (lanterns + a triangular rift)
       const hole = this.add.image(0, 0, tri ? 'w_tri' : 'px_bhole').setDepth(0.3).setTint(0x6a6268).setAlpha(0.6);
       if (wd.afterBoss) { hole.setVisible(false); glow.setVisible(false); }       // (L3: nothing to see until the churn is smashed)
@@ -653,7 +653,7 @@ class Level1 extends Phaser.Scene {
     for (const z of (this.def.zones || [])) {
       const col = z.mult < 1 ? 0x6dff9a : 0xb06aff;
       for (let i = 0; i < 9; i++) {
-        const spr = this.add.image(0, 0, 'puff').setDepth(5.5).setTint(col).setAlpha(0.28).setBlendMode(Phaser.BlendModes.ADD);
+        const spr = this.add.image(0, 0, 'pxglow').setDepth(5.5).setTint(col).setAlpha(0.28).setBlendMode(Phaser.BlendModes.ADD);
         spr.bsx = spr.bsy = rnd(1.2, 2.4);
         this.zoneSprs.push({ spr, theta: z.theta + rnd(-z.half, z.half) * 0.9, h: rnd(10, 150), ph: rnd(0, 6) });
       }
@@ -681,7 +681,8 @@ class Level1 extends Phaser.Scene {
       for (const w of (this.def.waves || [])) for (const sp of (w.spawns || [])) { const st = ENEMY[sp.type], k = st && (st.k || 1.22); if (st && k >= DENS_K) { add(st.tex, k); for (const fr of (st.frames || [])) add(fr, k); } }
       const bd = this.def.boss && BOSS_DENS[this.def.boss.tex]; if (bd) add(this.def.boss.tex, bd); }
     this.pxInit();                                        // (v3.81) the pixel look trial (pixellook.js): after fxBang, which it restyles
-    this.fxHaze = this.add.particles(0, 0, 'blob', { lifespan: { min: 1100, max: 1700 }, speedY: { min: -40, max: -18 }, speedX: { min: -10, max: 10 }, scale: { start: 0.15, end: 0.55 }, alpha: { start: 0.18, end: 0 }, tint: [0xff9a2a, 0xffc04a], blendMode: 'ADD', emitting: false }).setDepth(2.9);
+    // (v3.115) heat haze: little stepped pixel glows that dim in three hard steps (was a soft blob fading out)
+    this.fxHaze = this.add.particles(0, 0, 'pxglow', { lifespan: { min: 1100, max: 1700 }, speedY: { min: -40, max: -18 }, speedX: { min: -10, max: 10 }, scale: { start: 0.14, end: 0.36 }, alpha: { onEmit: () => 0.34, onUpdate: (p, k, t) => t < 0.4 ? 0.34 : t < 0.7 ? 0.22 : t < 0.9 ? 0.12 : 0 }, tint: [0xff9a2a, 0xffc04a], blendMode: 'ADD', emitting: false }).setDepth(2.9);
     this.fxNoodle = this.add.particles(0, 0, 'spark', { lifespan: { min: 300, max: 650 }, speedX: { min: -30, max: 30 }, speedY: { min: 10, max: 60 }, gravityY: 500, scale: { start: 1.3, end: 0.4 }, tint: [0xffd23f, 0xffb52a, 0xffe27a], emitting: false }).setDepth(8);
     this.fxRatJet = this.add.particles(0, 0, 'flame', { lifespan: { min: 220, max: 420 }, speedY: { min: 30, max: 80 }, speedX: { min: -14, max: 14 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false }).setDepth(4.8);
     this.fxGlint = this.add.particles(0, 0, 'spark', { lifespan: { min: 350, max: 700 }, speed: { min: 5, max: 40 }, scale: { start: 1.2, end: 0 }, alpha: { start: 1, end: 0 }, tint: 0xfff3a0, blendMode: 'ADD', emitting: false }).setDepth(9);

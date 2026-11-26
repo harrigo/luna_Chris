@@ -2590,3 +2590,10 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Grill Freefall: the smoke hazard is chunky pixel lobes (pxCloud()) instead of translucent circles; the drifting
   layers are solid dark clouds behind and a small checkerboard-dither wisp in front (puff_d).
 - Parmesan city ship trails: pxCloud lobes that shrink away rather than fade.
+
+## v3.115: pixel glows and heat haze
+- pxglow (levels.js): a light drawn as four hard brightness bands joined by checkerboard dither, for additive blending.
+  It replaces the smoke puff everywhere that was using it as a glow: platform glows and the girder beacon, the
+  gravity-zone and pickup glows, the campfire, Parmesan braziers, Freefall's gun and vent light, and the intro/ending
+  window, TV, lamp, fire and shine glows.
+- Heat haze over geysers and lava cracks: small pxglows that dim in three hard steps instead of a soft blob fading.

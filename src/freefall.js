@@ -218,7 +218,7 @@ class FreefallScene extends Phaser.Scene {
     this.gunY = SH - 80;
     this.gunImg = this.add.image(SW / 2, this.gunY, this.prize ? this.prize.gunTex : 'burger').setDepth(3).setScale(2.2);
     this.cage = this.add.graphics().setDepth(3.1);
-    this.gunGlow = this.add.image(SW / 2, this.gunY, 'puff').setDepth(2.9).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd23f).setScale(3).setAlpha(0.5);
+    this.gunGlow = this.add.image(SW / 2, this.gunY, 'pxglow').setDepth(2.9).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd23f).setScale(3).setAlpha(0.5);
 
     // Chris, diving head first: no gun in his hands, arms out in front
     this.rig = new ChrisRig(this); this.rig.root.setDepth(5); this.rig.setWeapon(WEAPONS[0]);
@@ -228,7 +228,7 @@ class FreefallScene extends Phaser.Scene {
     this.lineG = this.add.graphics().setDepth(6.2);
     // depth layers: the daylight at the lid, smoke behind and in front, the heat haze over the screen
     this.vent = this.add.image(0, 0, 'ffvent').setScrollFactor(0).setDepth(-0.95).setScale(2);
-    this.ventGlow = this.add.image(0, 0, 'puff').setScrollFactor(0).setDepth(-0.96).setBlendMode(Phaser.BlendModes.ADD).setTint(0xc8dcff);
+    this.ventGlow = this.add.image(0, 0, 'pxglow').setScrollFactor(0).setDepth(-0.96).setBlendMode(Phaser.BlendModes.ADD).setTint(0xc8dcff);
     this.smokeB = []; this.smokeF = [];
     for (let i = 0; i < 9; i++) this.smokeB.push({ im: this.add.image(0, 0, 'puff').setDepth(-0.5).setTint(0x16201e), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(3, 6), v: rnd(-14, 14) });
     for (let i = 0; i < 5; i++) this.smokeF.push({ im: this.add.image(0, 0, 'puff_d').setDepth(7).setTint(0x2a2a2e), x: rnd(-100, SW + 100), y: rnd(0, 1), s: rnd(5, 9), v: rnd(-20, 20) });

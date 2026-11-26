@@ -730,7 +730,7 @@ class IntroScene extends Phaser.Scene {
 
     // the ranch
     const cabin = this.img(-190, GY + 3, 'ix_cabin');
-    const glowW = this.img(-210, GY - 26, 'puff', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const glowW = this.img(-210, GY - 26, 'pxglow', 0.5, 0.5).setScale(0.6).setTint(0xffb347).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glowW, alpha: 0.2, yoyo: true, repeat: -1, duration: 900 });
     const chimney = this.add2(this.add.particles(-164, GY - 70, '__puffs', ixSmoke(this, { lifespan: 2400, speedX: { min: 4, max: 12 }, speedY: { min: -16, max: -9 }, scale: { start: 0.5, end: 1.3 }, alpha: { start: 0.8, end: 0 }, frequency: 340 })));
     this.barn = this.img(BX, GY + 2, 'ix_barn');
@@ -1008,7 +1008,7 @@ class IntroScene extends Phaser.Scene {
     // the telly, angled at the sofa, flicking between a cooking show, a cow documentary and static
     this.img(-42, GY + 1, 'ix_tv').setFlipX(true);
     const tvScr = this.img(-39, GY - 10, 'ix_tv0', 0.5, 1).setFlipX(true);
-    const tvGlow = this.img(-42, GY - 18, 'puff', 0.5, 0.5).setScale(1.3).setTint(0x7ab8ff).setAlpha(0.22).setBlendMode(Phaser.BlendModes.ADD);
+    const tvGlow = this.img(-42, GY - 18, 'pxglow', 0.5, 0.5).setScale(1.3).setTint(0x7ab8ff).setAlpha(0.22).setBlendMode(Phaser.BlendModes.ADD);
     let ch = 0, chT = 0, zT = 0;
     this.acts.push(dt => {
       chT += dt; if (chT > 1.1) { chT = 0; ch = (ch + 1) % 5; tvScr.setTexture(['ix_tv0', 'ix_tv2', 'ix_tv1', 'ix_tv0', 'ix_tv1'][ch]); tvGlow.setTint(ch === 1 ? 0xffffff : 0x7ab8ff); }
@@ -1019,14 +1019,14 @@ class IntroScene extends Phaser.Scene {
     });
     this.tweens.add({ targets: tvGlow, alpha: 0.12, yoyo: true, repeat: -1, duration: 90 });
     this.img(-8, GY + 1, 'ix_lamp');
-    const lampGlow = this.img(-8, GY - 54, 'puff', 0.5, 0.5).setScale(1.5).setTint(0xffc060).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+    const lampGlow = this.img(-8, GY - 54, 'pxglow', 0.5, 0.5).setScale(1.5).setTint(0xffc060).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: lampGlow, alpha: 0.24, yoyo: true, repeat: -1, duration: 1400 });
     this.img(170, GY + 1, 'ix_shelf');
     const dog = this.cabinDog = this.img(40, GY + 8, 'ix_dog').setFlipX(true).setScale(0.9);   // (on the warm hearth)       // the space dog, fast asleep on the rug
     this.tweens.add({ targets: dog, scaleY: 0.84, yoyo: true, repeat: -1, duration: 900 });
 
     const FX = 64;                                                       // the fireplace
-    const glow = this.img(FX, GY - 22, 'puff', 0.5, 0.5).setScale(1.6).setTint(0xff7a2a).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const glow = this.img(FX, GY - 22, 'pxglow', 0.5, 0.5).setScale(1.6).setTint(0xff7a2a).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: glow, alpha: 0.22, scale: 1.4, yoyo: true, repeat: -1, duration: 160 });
     this.fire = this.add2(this.add.particles(FX, GY - 10, 'flame', { lifespan: 520, speedY: { min: -46, max: -20 }, speedX: { min: -8, max: 8 }, x: { min: -14, max: 14 }, scale: { start: 2, end: 0 }, blendMode: 'ADD', frequency: 22 }));
     this.embers = this.add2(this.add.particles(FX, GY - 20, 'spark', { lifespan: 800, speedY: { min: -40, max: -20 }, speedX: { min: -12, max: 12 }, scale: { start: 0.7, end: 0 }, blendMode: 'ADD', frequency: 180, tint: 0xffb347 }));
@@ -1094,7 +1094,7 @@ class IntroScene extends Phaser.Scene {
       this.tweens.add({ targets: this.armory, scaleX: 1, duration: 300, ease: 'Cubic.easeOut' });
       this.guns.forEach((g, i) => { g.setVisible(true); this.tweens.add({ targets: g, scaleX: 1, duration: 300, delay: 60 + i * 40, ease: 'Cubic.easeOut' }); });
       this.flash(0.85, 450);
-      const shine = this.img(FX, GY - 40, 'puff', 0.5, 0.5).setScale(2).setTint(0x39d0c8).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+      const shine = this.img(FX, GY - 40, 'pxglow', 0.5, 0.5).setScale(2).setTint(0x39d0c8).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: shine, alpha: 0.12, scale: 2.4, yoyo: true, repeat: -1, duration: 700 });
       this.add2(this.add.particles(FX, GY - 40, 'spark', { lifespan: 900, speed: { min: 20, max: 60 }, x: { min: -46, max: 46 }, y: { min: -30, max: 30 }, scale: { start: 1, end: 0 }, blendMode: 'ADD', frequency: 90, tint: [0xffd23f, 0x39d0c8, 0xffffff] }));
     } });

@@ -121,7 +121,7 @@ const ParmMixin = {
     // (the far skyline is a parallax ring now: depth.js 'skyline' / 'machines')
     this.ppFire = []; this.ppSmoke = [];
     for (let i = 0; i < 6; i++) {
-      const th = i * TAU / 6 + 0.42, base = this.add.image(0, 0, 'ppbrazier').setOrigin(0.5, 1).setDepth(2.55), fl = this.add.image(0, 0, 'ppflame0').setOrigin(0.5, 1).setDepth(2.56), gl = this.add.image(0, 0, 'puff').setDepth(2.54).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff9a3a);
+      const th = i * TAU / 6 + 0.42, base = this.add.image(0, 0, 'ppbrazier').setOrigin(0.5, 1).setDepth(2.55), fl = this.add.image(0, 0, 'ppflame0').setOrigin(0.5, 1).setDepth(2.56), gl = this.add.image(0, 0, 'pxglow').setDepth(2.54).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff9a3a);
       base.bsx = base.bsy = 1.2; fl.bsx = fl.bsy = 1.3; gl.bsx = gl.bsy = 1.8; this.ppFire.push({ th, base, fl, gl, ph: i * 1.7 });
     }
     this.ppShip = this.add.image(0, 0, 'ppb_ship').setDepth(0.6).setScrollFactor(0).setAlpha(0.95);

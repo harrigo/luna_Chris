@@ -237,7 +237,7 @@ class EndingScene extends IntroScene {
     this.at(8800, () => {                                            // Bessie produces a glowing wheel of Mad Cheese
       Sound.sfx('reveal'); this.say('SO BESSIE MADE HIM A WHEEL OF MAD CHEESE.');
       const W = this.img(-20, GY - 120, 'wheel', 0.5, 0.5).setScale(0.5).setTint(0xfff0a0);
-      const glow = this.img(-20, GY - 120, 'puff', 0.5, 0.5).setScale(2).setTint(0xffd23f).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
+      const glow = this.img(-20, GY - 120, 'pxglow', 0.5, 0.5).setScale(2).setTint(0xffd23f).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: [W, glow], x: 40, y: GY - 20, duration: 900, ease: 'Quad.easeIn', onComplete: () => { Sound.sfx('clunk'); this.dust(40, GY, 6, 'ix_dust', 16, 12); } });
       this.tweens.add({ targets: W, angle: 360, duration: 900 });
       this.at(1500, () => { Sound.sfx('flap'); this.bubble(70, GY - 50, '*NOM*', 900); });

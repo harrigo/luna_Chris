@@ -313,7 +313,7 @@ const CampMixin = {
     this.campCaveInit();
     this.toysInit();                                                       // (v3.42) the camp toys (camptoys.js)
     this.campGrowInit();                                                   // (v3.36) the camp grows (campgrow.js)                                     // (v3.32) the beach ball
-    this.campGlow = this.add.image(0, 0, 'puff').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
+    this.campGlow = this.add.image(0, 0, 'pxglow').setDepth(2.2).setBlendMode(Phaser.BlendModes.ADD).setTint(0xff8a2a);
     this.campLightG = this.add.graphics().setDepth(2.5);
     const f = RUN_UI.f;
     this.campPrompt = this.add.text(0, 0, '', f(9, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 7, y: 5 } })).setOrigin(0.5, 1).setDepth(19).setVisible(false).setInteractive({ useHandCursor: true });

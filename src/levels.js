@@ -1021,6 +1021,18 @@ function makeLevelTextures(scene) {
         put(x * 2, y * 2, c); put(x * 2 + 1, y * 2, c); put(x * 2, y * 2 + 1, c); put(x * 2 + 1, y * 2 + 1, c);
       }
     }));
+    // (v3.115) pxglow: a light, the pixel way - four hard bands of brightness joined by checkerboard dither, for ADD
+    // blending (darker = less light). Replaces the smoke puff wherever it was being used as a glow.
+    pixTex(scene, 'pxglow', 64, 64, put => {
+      const B = [0xffffff, 0xa4a4a4, 0x5c5c5c, 0x2a2a2a], E = [0.28, 0.52, 0.76, 1], DW = 0.09;
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
+        const d = Math.hypot(x + 0.5 - 16, y + 0.5 - 16) / 15.5; if (d >= 1) continue;
+        let k = 0; while (d > E[k]) k++;
+        let c = B[k];
+        if (E[k] - d < DW && (x + y) % 2) { if (k === 3) continue; c = B[k + 1]; }
+        put(x * 2, y * 2, c); put(x * 2 + 1, y * 2, c); put(x * 2, y * 2 + 1, c); put(x * 2 + 1, y * 2 + 1, c);
+      }
+    });
     // (v3.114) puff_d: the same cloud as a checkerboard, for smoke you need to see through (no soft alpha)
     pixTex(scene, 'puff_d', 64, 64, put => {
       for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
