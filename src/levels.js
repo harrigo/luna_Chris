@@ -192,7 +192,7 @@ const LEVELS = {
       { name: 'WAVE 2', spawns: [S('rocketrat', 0), S('ovendrone', 0.8), S('mouse', 1.8), S('anchovy', 2.8), S('mgolem', 3.8), S('rocketrat', 4.8), S('mouse', 5.6), S('anchovy', 6.6), S('rocketrat', 7.6)] },
       { name: 'WAVE 3', spawns: [S('mgolem', 0), S('anchovy', 1), S('rocketrat', 1.8), S('ovendrone', 2.6), S('mouse', 3.4), S('ovendrone', 3.9), S('mgolem', 4.4), S('anchovy', 5.4), S('rocketrat', 6.2), S('ovendrone', 7.2), S('rocketrat', 8.2)] }
     ],
-    boss: { tex: 'magmagolem', hp: 305, ai: 'magmagolem', scale: 1.25 },
+    boss: { tex: 'magmagolem', hp: 229, ai: 'magmagolem', scale: 1.25 },
     win: 'The Magma-Golem has cooled into a crust!\nBessie popped out of the cheese... and into a rat-ship. AGAIN.\nThe trail leads to a grinding industrial asteroid...'
   },
 

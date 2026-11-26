@@ -2775,3 +2775,6 @@ The unlock toast is gold, bigger, buzzes, and shows the running x/y.
 - Gorgonzola Gulch ambient lifted.
 - Trophies: the easy ones now take real doing (100 rats for the first, x40 combo, 10 parries...), DOUBLE KILL is gone,
   and a trophy earned mid-fight waits for the level clear (or a death, or camp) before its toast shows.
+
+## v3.137
+The Mozzarella Magma-Golem boss: 305 -> 229 HP (-25%).
