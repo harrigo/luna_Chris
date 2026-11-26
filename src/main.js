@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.133';
+const BUILD = 'v3.134';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1431,6 +1431,7 @@ class Level1 extends Phaser.Scene {
   }
 
   gameOverSeq() {
+    if (Run.on && typeof this.runRescue === 'function') { this.runRescue(); return; }   // (v3.134) a run: someone comes to get you
     const P = this.pl, rig = this.rig, dirn = P.facing || 1, cam = this.cameras.main;
     const at = (ms, fn) => this.time.delayedCall(ms, () => { if (this.state === 'gameover') fn(); });
     const fx = P.spr.x, fy = P.spr.y - 34 * this.zoom;                         // centre of Chris on screen
@@ -5809,6 +5810,7 @@ class Level1 extends Phaser.Scene {
     this.giantK += ((this.buffOn('giant') ? 1.9 : 1) - this.giantK) * Math.min(1, (this.lastDt || 0.016) * 6);
     P.tipsy = typeof Tipsy !== 'undefined' && (this.camp || Tipsy.held()) ? Tipsy.level() : 0;   // (v3.126) the rig does the drunk: legs, sway, hiccups
     this.rig.update(P, this.lastDt || 0.016, P.spr.x, P.spr.y + (P.sink || 0) * this.zoom, this.zoom * this.warpK * this.giantK, P.spr.alpha, Math.floor(this.augerPhase) % 4);
+    if (this.koLie && this.state === 'gameover') this.rig.root.setRotation(this.rig.root.rotation - this.koLie * 1.45 * (this.pl.facing || 1));   // (v3.134) knocked flat, waiting for the rescue
     if (this.rig.hicFlag) { this.rig.hicFlag = false; Sound.sfx('squeak'); const sp = this.screenPos(P.theta, P.h + 62), hx = this.add.text(sp.x, sp.y, '*HIC*', { fontFamily: PIXEL, fontSize: '10px', color: '#ffd9a0', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(20); this.tweens.add({ targets: hx, y: hx.y - 18, alpha: 0, angle: (Math.random() - 0.5) * 30, duration: 1000, onComplete: () => hx.destroy() }); }
     { // (v3.65) grounding: a puff of dust where he lands, and a skid of it when he turns on his heel at a run
       const fl = P.floor || 0, g = P.h <= fl + 0.5 && P.vh <= 0, dir = Math.abs(P.vx || 0) > 120 ? Math.sign(P.vx) : 0;

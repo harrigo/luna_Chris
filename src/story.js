@@ -132,6 +132,21 @@ Object.assign(FOLK.kid, { found: [['kid', 'MISTER CHRIS! SURPRISE! I hid in a ch
   ['kid', 'She thinks I\'m at a sleepover. ...On the moon. Kind of true!'], ['kid', 'Can I come to the camp? I brought my toys! And a lunchbox! It\'s got a sandwich in it. Mostly.']] });
 Object.assign(FOLK.hen, { found: [['hen', 'BAWK! Keep your voice down, Chris. I\'m UNDERCOVER.'], ['chris', 'Henrietta, you\'re covered in blue mould.'], ['hen', 'It\'s a DISGUISE. I\'ve been tailing the rats for weeks.'],
   ['hen', 'I\'ve got evidence. Photos. String. I need a BOARD, Chris. And a telescope. They\'re WATCHING us.']] });
+// (v3.134) THE RESCUE: die on a run and someone from camp comes for you in the cheese rocket. Who: anyone who's home
+// (Biscuit's always there, so it's him at first). [shout as they land, what they say back at camp]
+const STORY_RESCUE = {
+  dog: ['AROOOOO!', [['dog', '(Biscuit flew the rocket. With his PAWS. He dragged you in by the collar and looks extremely proud of himself.)'], ['chris', '...Good boy.']]],
+  bot: ['RECOVERY PROTOCOL ENGAGED.', [['bot', 'RETRIEVAL COMPLETE. I HAVE STARTED A SPREADSHEET OF YOUR DEATHS.'], ['bot', 'IT HAS A CHART NOW.']]],
+  kid: ['MISTER CHRIS! I\'M DRIVING!', [['kid', 'I DROVE THE ROCKET! Mum said I could!'], ['chris', 'Did she?'], ['kid', '...She said I could drive "when I\'m older". I\'m older than yesterday.']]],
+  hen: ['BAWK! GET IN! THEY\'RE BEHIND US!', [['hen', 'We weren\'t followed. I checked. Twice. ...Three times.'], ['hen', 'Rest up, Chris. The rats will still be there tomorrow. That\'s what worries me.']]],
+  gouda: ['UP YOU GET, SONNY.', [['gouda', 'Hauled heavier sacks of cheese than you, sonny. Not many, mind.'], ['gouda', 'Now. Again. And this time, duck.']]],
+  louise: ['DARLING, YOU LOOK DREADFUL!', [['louise', 'Darling, you were a CRUMPLE. I had to leave a full bar for you.'], ['louise', 'Next time, die near a bar. It\'s more convenient.']]],
+  dj: ['EMERGENCY EXIT, MY DUDE!', [['dj', 'Bro. BRO. You were out cold. I played you a banger in the rocket. Nothing.'], ['dj', 'That\'s how I knew it was serious.']]],
+  sprocket: ['HOLD ON! I SOUPED IT UP!', [['sprocket', 'Rocket did nought to sixty in under a second. With you in it. Sorry about your hat.'], ['chris', 'My hat\'s fine.'], ['sprocket', 'Not your OTHER hat.']]],
+  stilton: ['TALLY HO! NEVER LEAVE A MAN BEHIND!', [['stilton', 'Picked you up under fire, old boy! Just like flight school!'], ['chris', 'You crashed in flight school.'], ['stilton', 'And I picked MYSELF up!']]],
+  feta: ['I SAW THIS COMING. I LEFT EARLY.', [['feta', 'I saw you fall, three days ago. I could have said. But you would not have listened.'], ['feta', 'You will do better next time. Probably. The brine is cloudy.']]]
+};
+function storyRescuer() { const c = Object.keys(STORY_RESCUE).filter(id => id === 'dog' || Story.home(id)); return c[Math.floor(Math.random() * c.length)]; }
 // what Clank says at a construction site
 const STORY_SITE = ['CLANK: CONSTRUCTION IN PROGRESS. ESTIMATED COMPLETION: ONE (1) RUN.', 'CLANK: DO NOT TOUCH THE SCAFFOLDING. IT IS LOAD-BEARING. AND SENTIMENTAL.', 'CLANK: I AM BUILDING. YOU ARE STANDING. ONE OF US IS BEING USEFUL.'];
 const STORY_NOCLANK = 'THE MATERIALS ARE HERE, BUT NOBODY TO BUILD IT. FIND CLANK - THE RANCH ROBOT - ON THE GRUYERE GLOBE.';

@@ -2752,3 +2752,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Beat the Rat King on a run: the ENDING plays (the same one as the campaign), THE END trophy, Bessie moves into
   camp (lc_run_ending), then home to camp with the run summary.
 - Still one shop a run, one life, and the strengths stack up, so the long route is a real climb.
+
+## v3.134: the rescue
+Dying on a run no longer just cuts to the summary. Chris keels over (KO stars), the camp's cheese rocket screams down
+with a random home folk at the controls (Gromit-dog, or anyone the story has brought home), they shout a line, a green
+tractor beam hauls him up, and the rocket blasts off. At camp, once the run card closes, the rescuer has a few words
+(STORY_RESCUE in story.js). The roguelike loop: die, get fetched, regroup at camp, go again.

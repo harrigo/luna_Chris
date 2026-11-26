@@ -954,7 +954,7 @@ class ChrisRig {
     this.head.setPosition(2 + sw * 0.6 * run + Math.sin(t * 37) * 1.3 * jS, -44 + vyLag * 0.2 + (jB > 0.55 && jB < 0.8 ? 1.5 : 0)); this.crack.setPosition(this.head.x, this.head.y);
     if (jS) { this.hat.x += Math.sin(t * 37 - 0.9) * 2.2 * jS; this.hat.rotation += Math.sin(t * 37 - 0.9) * 0.1 * jS; }
     // ---- (v2.59) the face: what's he doing?
-    this.ouchT = Math.max(0, this.ouchT - dt); this.grinT = Math.max(0, this.grinT - dt); this.blinkOn = Math.max(0, this.blinkOn - dt); this.twitch = Math.max(0, this.twitch - dt);
+    this.ouchT = Math.max(this.koHold ? 0.44 : 0, this.ouchT - dt); this.grinT = Math.max(0, this.grinT - dt); this.blinkOn = Math.max(0, this.blinkOn - dt); this.twitch = Math.max(0, this.twitch - dt);
     if ((this.blinkT -= dt) <= 0) { this.blinkT = 1.8 + Math.random() * 3.2; this.blinkOn = 0.12; }
     if ((this.twitchT -= dt) <= 0) { this.twitchT = 2.5 + Math.random() * 4; this.twitch = 0.22; }
     const angry = this.ouchT > 0 || jS || jB || P.firing > 0 || (P.charge || 0) > 0 || P.grabbed;

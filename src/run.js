@@ -241,10 +241,54 @@ function runInstall(L) {
       seen[who] = me; Meta._s('lc_talk', seen);
       chatBar(this, st[who], { header: 'MESSAGE FROM MOON CAMP', onClose: () => this.scene.start('select') });
     },
+    // (v3.134) THE RESCUE. Down for the count on a run: he keels over (stars, out cold) and the cheese rocket comes
+    // screaming down out of the sky with someone from camp at the controls. They lean out and shout, a tractor beam
+    // hauls him up into it, and off it blasts - home. Back at camp they've something to say about it.
+    runRescue() {
+      const P = this.pl, who = typeof storyRescuer === 'function' ? storyRescuer() : 'dog', R0 = typeof STORY_RESCUE !== 'undefined' && STORY_RESCUE[who], z = this.zoom, cam = this.cameras.main;
+      Run.rescuer = who;
+      if (this.rig) { this.rig.ouchT = 0.44; this.rig.koHold = true; }
+      this.koLie = 0; this.tweens.add({ targets: this, koLie: 1, duration: 450, ease: 'Bounce.easeOut' });
+      Sound.sfx('clunk'); cam.shake(200, 0.006);
+      if (this.ctrlG) this.ctrlG.setVisible(false);
+      const at = (ms, fn) => this.time.delayedCall(ms, () => { if (this.state === 'gameover') fn(); });
+      const D = FOLK[who] || FOLK.dog;
+      makeFolkTextures(this); if (typeof makeStoryTextures === 'function') makeStoryTextures(this); if (typeof makeCampTextures === 'function') makeCampTextures(this);
+      at(900, () => {
+        Sound.sfx('jet'); Sound.music(null);
+        const sx = P.spr.x, sy = P.spr.y, ry = sy - 150 * z, rk = this.add.image(sx + 30 * z, -120, 'cr_rocket').setDepth(40).setScale(z * 1.6).setRotation(Math.PI);
+        const pilotKey = this.textures.exists(D.tex + '0') ? D.tex + '0' : D.tex, pilot = this.add.image(0, 0, pilotKey).setDepth(40.1).setScale(z * 1.1).setVisible(false);
+        const beam = this.add.graphics().setDepth(39).setBlendMode(Phaser.BlendModes.ADD);
+        this.rsq = { rk, pilot, beam, sx, sy };
+        this.tweens.add({ targets: rk, y: ry, rotation: Math.PI * 0.94, duration: 900, ease: 'Back.easeOut', onUpdate: () => { if (Math.random() < 0.6) { const q = this.add.image(rk.x + (Math.random() - 0.5) * 10 * z, rk.y - 40 * z, 'pxglow').setTint(Math.random() < 0.5 ? 0xffb03a : 0xffe070).setBlendMode(Phaser.BlendModes.ADD).setScale(0.3 * z).setDepth(39.5); this.tweens.add({ targets: q, y: q.y - 30 * z, alpha: 0, scale: 0.05, duration: 380, onComplete: () => q.destroy() }); } },
+          onComplete: () => {
+            Sound.sfx('clang'); cam.shake(150, 0.005);
+            pilot.setVisible(true).setPosition(rk.x - 26 * z, rk.y + 10 * z).setScale(0.1);
+            this.tweens.add({ targets: pilot, scale: z * 1.1, duration: 260, ease: 'Back.easeOut' });
+            const sh = this.add.text(rk.x, rk.y - 70 * z, (R0 ? R0[0] : 'HANG ON, CHRIS!'), { fontFamily: PIXEL, fontSize: Math.round(9 * Math.max(1, z)) + 'px', color: '#1a1020', backgroundColor: '#ffffff', padding: { x: 6, y: 4 }, align: 'center', wordWrap: { width: 260 } }).setOrigin(0.5, 1).setDepth(41).setScale(0.2);
+            this.tweens.add({ targets: sh, scale: 1, duration: 220, ease: 'Back.easeOut' }); this.rsq.sh = sh;
+            Sound.sfx(who === 'dog' ? 'flap' : 'pickup');
+          } });
+      });
+      at(2700, () => {                                       // the tractor beam: up he goes
+        const Q = this.rsq; if (!Q) return; Sound.sfx('reveal'); this.beamOn = true;
+        this.tweens.add({ targets: P, h: P.h + 150, duration: 1100, ease: 'Quad.easeIn' });
+        this.tweens.add({ targets: this, koLie: 0.3, duration: 900 });
+      });
+      at(3900, () => {                                       // ...in, and away
+        const Q = this.rsq; if (!Q) return; this.beamOn = false; Q.beam.clear(); P.spr.setVisible(false); if (this.rig) this.rig.root.setVisible(false);
+        Q.pilot.setVisible(false); if (Q.sh) Q.sh.destroy(); Sound.sfx('jet'); cam.shake(300, 0.01);
+        this.tweens.add({ targets: Q.rk, y: -300, x: Q.rk.x + 60 * z, rotation: 0.2, duration: 900, ease: 'Cubic.easeIn' });
+      });
+      at(4700, () => this.runLost());
+      const tick = () => { if (this.state !== 'gameover' || !this.rsq) { this.events.off('update', tick); return; }
+        const Q = this.rsq; Q.beam.clear(); if (this.beamOn) { const t = this.time.now / 1000, a = 0.25 + 0.15 * Math.sin(t * 20); Q.beam.fillStyle(0x7dff8a, a).fillTriangle(Q.rk.x, Q.rk.y + 30 * z, Q.sx - 40 * z, Q.sy + 10 * z, Q.sx + 40 * z, Q.sy + 10 * z); for (let k = 0; k < 6; k++) { const u = ((t * 1.5 + k / 6) % 1); Q.beam.fillStyle(0xd0ffd8, 0.5).fillRect(Q.sx + Math.sin(k * 2 + t * 4) * 20 * z * u - z, Q.sy - (Q.sy - Q.rk.y) * u, 2 * z, 2 * z); } } };
+      this.events.on('update', tick);
+    },
     runLost() {
       if (this.leavingGO) return; this.leavingGO = true;
       Run.score += this.score;
-      Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'died');
+      Run.atLv = this.levelId; const sum = Run.finish(this.registry, 'died'); sum.rescuer = Run.rescuer || null; Run.rescuer = null;
       this.cameras.main.fadeOut(900, 0, 0, 0);
       this.time.delayedCall(950, () => { Sound.music(null); this.scene.start('level1', { camp: true, sum }); });
     },

@@ -639,7 +639,9 @@ const CampMixin = {
     this.campCard = c; Sound.sfx(won ? 'reveal' : 'clunk');
     const close = () => { if (!this.campCard || this.time.now - opened < 900) return; this.campCard = null; window.removeEventListener('keydown', close); padOff(); this.input.off('pointerup', close);
       this.state = 'play'; this.campCool = 0.4; this.campDownHeld = true; this.tweens.add({ targets: c, alpha: 0, duration: 200, onComplete: () => c.destroy() });
-      this.time.delayedCall(500, () => this.campSay(this.campLine, 4)); };
+      this.time.delayedCall(500, () => this.campSay(this.campLine, 4));
+      const rs = S && S.rescuer && typeof STORY_RESCUE !== 'undefined' && STORY_RESCUE[S.rescuer];         // (v3.134) whoever came to get you
+      if (rs) this.time.delayedCall(700, () => { if (this.campChat) return; this.campChat = true; chatBar(this, rs[1], { header: 'RESCUED', onClose: () => { this.campChat = false; } }); }); };
     const opened = this.time.now, padOff = Pad.on(b => { if (b === 'a' || b === 'b' || b === 'start') close(); });
     window.addEventListener('keydown', close); this.input.on('pointerup', close);
     this.events.once('shutdown', () => { window.removeEventListener('keydown', close); padOff(); });
