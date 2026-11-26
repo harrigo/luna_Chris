@@ -2610,3 +2610,9 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - The Moon Bar is 15% smaller (scale 4.25) and stands on a grey stone plinth (8 new rows at the bottom of cr_bar).
   It's sunk 1.1x the curve's sag, so the planet's curve buries plinth rather than the bar's front, and the corners
   meet the ground instead of hanging off it. The roof ledge came down to match (h 300).
+
+## v3.118: the bar stands behind the planet
+- Smaller again (scale 3.4, 20% down) and sunk 34 units into the ground, with an inverted geometry mask of the planet's
+  disc (barMaskG, redrawn in campDraw at cx, cy, R*zoom): everything inside the circle is cut away, so the ground's
+  curve hides the bar's base from any angle and it reads as standing just behind the horizon. The roof ledge sits
+  above the SPIN! sign (h 262).
