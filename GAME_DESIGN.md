@@ -2616,3 +2616,14 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   disc (barMaskG, redrawn in campDraw at cx, cy, R*zoom): everything inside the circle is cut away, so the ground's
   curve hides the bar's base from any angle and it reads as standing just behind the horizon. The roof ledge sits
   above the SPIN! sign (h 262).
+
+## v3.119: the Moon Bar is a proper building
+- cr_bar redrawn (76 x 84, two frames): a plank-walled pub with a pitched tin roof and chimney, a MOON BAR marquee on
+  posts over the ridge, a CHEESE HERE banner under the eaves, a glowing window with BEER in amber neon, a SPINS board
+  with chasing dots, bulbs along the eaves, a stone plinth, and a little beer garden on the plinth (parasol, table
+  with a pint and a cheese, a stool). A GAMES A-board (cr_games) stands out front.
+- The door is propped open and the doorway is see-through: behind it the camp draws a crop of the bar-room art (the
+  back bar's shelves of glowing bottles), which slides as your view moves round the planet and pulses with disco
+  tints on the beat - a moving glimpse inside.
+- Placement: scale 3, sunk exactly the curve's sag, so the plinth's corners touch the ground and the planet-disc mask
+  trims the middle - the base never rises above the curve.

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.118';
+const BUILD = 'v3.119';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 

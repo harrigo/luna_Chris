@@ -129,43 +129,80 @@ function makeFruityTextures(scene) {
 }
 
 // ---- the camp bar (a station on the moon): a little lean-to with a counter, a stool, a neon sign and the machine
+// (v3.119) THE MOON BAR, a proper building: a plank-walled pub with a pitched tin roof, a MOON BAR marquee on top,
+// a CHEESE HERE banner under the eaves, BEER glowing in the window, a SPINS board, and the door propped open - the
+// doorway is see-through, and the camp draws a slice of the bar's real inside behind it (runhub.js: barInside), which
+// slides as you walk past. Outside on the plinth: a little beer garden - a parasol table, a stool and a GAMES A-board.
+// 76 x 84 art px, two frames (the bulbs chase). Stone plinth along the bottom 8 rows.
+const BAR_DOOR = { x0: 24, x1: 37, y0: 47, y1: 75 };      // the doorway (art px, transparent)
 function makeBarTexture(scene) {
-  // (v3.112) two frames (bulbs and the sign chase), 12px taller: a SPIN! sign on the roof, bulbs round the awning
-  // (v3.117) +8 rows: a stone plinth under the bar, so sinking it into the curved ground buries stone, not the bar
-  for (const fr of [0, 1]) pixTex(scene, fr ? 'cr_bar1' : 'cr_bar', 64, 76, (put0, w, h) => {
-    for (let y = 68; y < 76; y++) for (let x = 0; x < 64; x++) {
-      const row = (y - 68) >> 2, mort = (y - 68) % 4 === 3 || (x + row * 5) % 10 === 0;
-      put0(x, y, x === 0 || x === 63 ? 0x1a1020 : mort ? 0x3a3448 : y === 68 ? 0xa8a0b8 : row ? 0x5e566e : 0x7a7290);
+  const F = {
+    M: ['#.#', '###', '###', '#.#', '#.#'], O: ['###', '#.#', '#.#', '#.#', '###'], N: ['##.', '#.#', '#.#', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'],
+    A: ['.#.', '#.#', '###', '#.#', '#.#'], R: ['##.', '#.#', '##.', '#.#', '#.#'], C: ['###', '#..', '#..', '#..', '###'], H: ['#.#', '#.#', '###', '#.#', '#.#'],
+    E: ['###', '#..', '##.', '#..', '###'], S: ['###', '#..', '###', '..#', '###'], P: ['##.', '#.#', '##.', '#..', '#..'], I: ['###', '.#.', '.#.', '.#.', '###'],
+    G: ['###', '#..', '#.#', '#.#', '###'], '!': ['#', '#', '#', '.', '#'], ' ': ['..', '..', '..', '..', '..']
+  };
+  for (const fr of [0, 1]) pixTex(scene, fr ? 'cr_bar1' : 'cr_bar', 76, 84, (put, w, h) => {
+    const rect = (x0, y0, x1, y1, f) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const c = typeof f === 'function' ? f(x, y) : f; if (c != null) put(x, y, c); } };
+    const text = (str, x, y, col) => { for (const ch of str) { const g = F[ch] || F[' ']; g.forEach((row, gy) => [...row].forEach((q, gx) => { if (q === '#') put(x + gx, y + gy, typeof col === 'function' ? col(ch) : col); })); x += g[0].length + 1; } };
+    const tw = str => [...str].reduce((a, ch) => a + (F[ch] || F[' '])[0].length + 1, -1);
+    const INK = 0x1a1020, WD = [0x2a160c, 0x4a2a14, 0x6a3e1e, 0x8a5a2a, 0xa8743a], ROOF = [0x3a3448, 0x5e566e, 0x7a7290, 0x9a92b0];
+    // --- the plinth (whole width) and the beer-garden deck on it
+    for (let y = 76; y < 84; y++) for (let x = 0; x < 76; x++) { const row = (y - 76) >> 2, mort = (y - 76) % 4 === 3 || (x + row * 5) % 10 === 0; put(x, y, x === 0 || x === 75 ? INK : mort ? 0x3a3448 : y === 76 ? 0xa8a0b8 : row ? 0x5e566e : 0x7a7290); }
+    rect(56, 74, 75, 75, (x, y) => y === 74 ? WD[3] : (x % 4 === 0 ? WD[0] : WD[1]));
+    // --- the building: plank walls
+    rect(3, 34, 55, 75, (x, y) => x === 3 || x === 55 ? INK : (y % 5 === 0 ? WD[0] : (x * 7 + Math.floor(y / 5) * 13) % 23 === 0 ? WD[1] : x < 8 ? WD[3] : x > 50 ? WD[1] : WD[2]));
+    rect(4, 70, 54, 75, (x, y) => y === 70 ? INK : (x + y) % 6 === 0 ? 0x5e566e : 0x7a7290);              // stone skirting
+    // --- the pitched tin roof, overhanging both sides
+    for (let y = 18; y <= 33; y++) { const half = 8 + Math.round((y - 18) * 1.45); for (let x = 29 - half; x <= 29 + half; x++) { if (x < 0 || x > 58) continue; const edge = x === 29 - half || x === 29 + half || y === 33;
+      put(x, y, edge ? INK : (x % 3 === 0 ? ROOF[0] : x < 29 ? ROOF[2] : ROOF[1])); } }
+    rect(0, 33, 58, 34, (x, y) => y === 33 ? INK : ROOF[3]);
+    rect(22, 14, 25, 20, (x, y) => x === 22 || x === 25 ? INK : 0x7a2a2a); rect(21, 13, 26, 14, INK);         // the chimney
+    // --- the MOON BAR marquee on two posts over the roof ridge, bulbs chasing round it
+    rect(17, 6, 18, 18, INK); rect(40, 6, 41, 18, INK);
+    rect(9, 0, 49, 9, (x, y) => (x === 9 || x === 49 || y === 0 || y === 9) ? INK : 0x2a0a3a);
+    for (let x = 10; x <= 48; x += 2) for (const y of [1, 8]) put(x, y, ((x >> 1) + fr) % 2 ? 0xfff0a0 : 0x8a5a12);
+    { const T = 'MOON BAR'; text(T, 29 - (tw(T) >> 1), 2, ch => (('MOON BAR'.indexOf(ch) + fr) % 2 ? 0xff6ad0 : 0xffd23f)); }
+    // --- CHEESE HERE banner under the eaves
+    rect(5, 36, 53, 43, (x, y) => (x === 5 || x === 53 || y === 36 || y === 43) ? INK : 0xffd23f);
+    rect(6, 37, 52, 37, 0xfff0a0); rect(6, 42, 52, 42, 0xc8902a);
+    { const T = 'CHEESE HERE'; text(T, 29 - (tw(T) >> 1), 37, 0x8a1a2a); }
+    // --- the door: frame, the open door swung back against the wall (left), the doorway itself left see-through
+    const D = BAR_DOOR;
+    rect(D.x0 - 2, D.y0 - 2, D.x1 + 2, D.y1, (x, y) => (x < D.x0 || x > D.x1 || y < D.y0) ? (x === D.x0 - 2 || x === D.x1 + 2 || y === D.y0 - 2 ? INK : WD[4]) : null);
+    for (let y = D.y0; y <= D.y1; y++) for (let x = D.x0; x <= D.x1; x++) put(x, y, 0, 0);
+    rect(D.x0 - 9, D.y0 + 1, D.x0 - 3, D.y1, (x, y) => (x === D.x0 - 9 || x === D.x0 - 3 || y === D.y0 + 1) ? INK : (y - D.y0) % 9 === 4 ? WD[1] : WD[3]);     // the door, open
+    rect(D.x0 - 6, D.y0 + 13, D.x0 - 5, D.y0 + 14, 0xffd23f);
+    rect(D.x0 - 1, D.y1 + 1, D.x1 + 1, D.y1 + 1, 0x8a1a2a);                                                     // a red mat
+    // --- the window, glowing, BEER in amber neon
+    rect(41, 48, 53, 62, (x, y) => (x === 41 || x === 53 || y === 48 || y === 62) ? INK : (x === 47 || y === 55) ? WD[0] : ((x + y + fr) % 7 === 0 ? 0xffe8a0 : 0xffc860));
+    rect(40, 63, 54, 64, (x, y) => y === 63 ? WD[4] : INK);
+    { const T = 'BEER'; rect(41, 66, 41 + tw(T) + 2, 72, (x, y) => (y === 66 || y === 72 || x === 41 || x === 41 + tw(T) + 2) ? INK : 0x2a0a10); text(T, 43, 67, fr ? 0xffb03a : 0xffd27a); }
+    // --- SPINS board hung by the door (left wall), with chasing dots
+    rect(5, 49, 18, 57, (x, y) => (x === 5 || x === 18 || y === 49 || y === 57) ? INK : 0x3a0e4a);
+    { const T = 'SPINS'; text(T, 6 + ((12 - tw(T)) >> 1) + 1, 51, 0xff6ad0); }
+    for (let x = 6; x <= 17; x += 2) put(x, 58, ((x >> 1) + fr) % 2 ? 0xff6ad0 : 0x5a1a5a);
+    // --- bulbs along the eaves
+    for (let x = 1; x <= 57; x += 3) put(x, 35, (Math.floor(x / 3) + fr) % 2 ? 0xffe060 : 0x7dff8a);
+    // --- the beer garden: parasol table, a stool, the GAMES A-board
+    rect(63, 50, 64, 73, 0xc8ccd8);                                                                              // parasol pole
+    for (let y = 44; y <= 50; y++) { const hw = 1 + (y - 44) * 1.6; for (let x = Math.round(63.5 - hw); x <= Math.round(63.5 + hw); x++) if (x >= 56 && x <= 75) put(x, y, y === 50 || x === Math.round(63.5 - hw) || x === Math.round(63.5 + hw) ? INK : ((x >> 1) % 2 ? 0xff4a6a : 0xf4ecd8)); }
+    rect(58, 64, 69, 65, (x, y) => y === 64 ? WD[4] : WD[1]); rect(59, 66, 59, 73, WD[1]); rect(68, 66, 68, 73, WD[1]);   // the table
+    rect(60, 61, 61, 63, 0xf4ecd8); rect(60, 60, 61, 60, 0xffffff); rect(66, 61, 67, 63, 0xffb03a);              // a pint and a cheese
+    rect(71, 68, 74, 69, 0xd83a2a); rect(72, 70, 72, 73, 0xc8ccd8); rect(73, 70, 73, 73, 0xc8ccd8);                 // a stool
+  });
+  // the GAMES A-board is its own little sprite (it stands on the ground in front)
+  pixTex(scene, 'cr_games', 22, 18, (put) => {
+    const INK = 0x1a1020;
+    for (let y = 0; y < 18; y++) for (let x = 0; x < 22; x++) {
+      const lx = 1 + Math.round(y * 0.12), rx = 20 - Math.round(y * 0.12);
+      if (x < lx || x > rx || y > 14) continue;
+      put(x, y, x === lx || x === rx || y === 0 || y === 14 ? INK : 0x0e2a20);
     }
-    const put = (x, y, c) => put0(x, y + 12, c);
-    const WD = [0x2a160c, 0x4a2a14, 0x6a3e1e, 0x8a5a2a], R = [0x5a0e1a, 0x8a1a2a, 0xb83040, 0xe05a5a];
-    const rect = (x0, y0, x1, y1, f) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const c = f(x, y); if (c != null) put(x, y, c); } };
-    rect(2, 10, 61, 55, (x, y) => (x === 2 || x === 61 || y === 10) ? FM_INK : null);
-    rect(3, 11, 60, 13, (x, y) => (x + y) % 6 < 3 ? 0xd83a2a : 0xf4ece0);                              // a striped awning
-    rect(3, 14, 60, 14, () => FM_INK);
-    rect(3, 15, 60, 54, (x, y) => WD[(y % 6 === 0) ? 0 : 1 + ((x * 7 + Math.floor(y / 6) * 13) % 9 === 0 ? 1 : 0)]);   // the back wall, planks
-    for (const sx of [8, 14, 20]) rect(sx, 19, sx + 3, 24, (x, y) => y === 19 ? FM_INK : [0x2aa04a, 0x5a3aa0, 0xd83a2a][(sx / 6) % 3 | 0]);   // bottles on a shelf
-    rect(6, 25, 26, 26, () => WD[3]);
-    const NE = 'BAR';                                                                                    // the neon sign
-    const glyph = { B: ['##.', '#.#', '##.', '#.#', '##.'], A: ['.#.', '#.#', '###', '#.#', '#.#'], R: ['##.', '#.#', '##.', '#.#', '#.#'] };
-    for (let k = 0; k < 3; k++) for (let gy = 0; gy < 5; gy++) for (let gx = 0; gx < 3; gx++) if (glyph[NE[k]][gy][gx] === '#') { const x = 33 + k * 5 + gx, y = 18 + gy; put(x, y, 0xff6ad0); }
-    rect(31, 16, 47, 24, (x, y) => (x === 31 || x === 47 || y === 16 || y === 24) ? 0x8a2a7a : null);
-    rect(3, 34, 44, 38, (x, y) => y === 34 ? FM_INK : y === 35 ? WD[3] : WD[2]);                         // the counter
-    rect(4, 39, 44, 54, (x, y) => x === 44 ? FM_INK : WD[(x % 8 === 0) ? 0 : 1]);
-    rect(48, 18, 60, 54, (x, y) => (x === 48 || x === 60 || y === 18) ? FM_INK : null);                  // the fruit machine
-    rect(49, 19, 59, 54, (x, y) => y < 23 ? (Math.floor(x / 2) % 2 ? 0xffd23f : 0xff6a2a) : R[x < 51 ? 2 : x > 57 ? 0 : 1]);
-    rect(50, 26, 58, 32, (x, y) => (y === 26 || y === 32 || x === 50 || x === 58) ? 0xc8ccd8 : (x === 53 || x === 55) ? 0x8a8498 : [0xf4ecd8, 0xffd23f, 0xf4ecd8][Math.floor((x - 51) / 2) % 3]);
-    rect(51, 29, 57, 29, () => 0xff3a3a);                                                                // the payline
-    rect(61, 24, 62, 34, () => 0xc8ccd8); rect(60, 21, 63, 24, () => 0xff3a3a);                         // the lever
-    rect(52, 44, 56, 46, () => FM_INK);                                                                  // the coin tray
-    // the roof sign on two posts: SPIN! in pink and yellow, a frame of chasing bulbs
-    const SG = { S: ['###', '#..', '###', '..#', '###'], P: ['###', '#.#', '###', '#..', '#..'], I: ['###', '.#.', '.#.', '.#.', '###'], N: ['#.#', '###', '###', '#.#', '#.#'], '!': ['.#.', '.#.', '.#.', '...', '.#.'] };
-    rect(14, -3, 15, -2, () => FM_INK); rect(48, -3, 49, -2, () => FM_INK); for (const px of [14, 48]) { rect(px, -2, px, 9, () => FM_INK); rect(px + 1, -2, px + 1, 9, () => 0x9aa4b8); }
-    rect(8, -12, 55, -3, (x, y) => (x === 8 || x === 55 || y === -12 || y === -3) ? FM_INK : 0x2a0a3a);
-    for (let x = 9; x <= 54; x += 2) for (const y of [-11, -4]) put(x, y, ((x >> 1) + fr) % 2 ? 0xfff0a0 : 0x8a5a12);
-    for (let k = 0; k < 5; k++) for (let gy = 0; gy < 5; gy++) for (let gx = 0; gx < 3; gx++) if (SG['SPIN!'[k]][gy][gx] === '#') put(19 + k * 5 + gx, -10 + gy, (k + fr) % 2 ? 0xff6ad0 : 0xffd23f);
-    for (let x = 3; x <= 60; x += 3) put(x, 15, (Math.floor(x / 3) + fr) % 2 ? 0xffe060 : 0x7dff8a);      // bulbs under the awning
-    rect(20, 41, 25, 42, () => R[2]); rect(22, 43, 23, 54, () => 0xc8ccd8); rect(19, 54, 26, 54, () => 0xc8ccd8);   // a stool
+    for (const x0 of [3, 18]) for (let y = 14; y < 18; y++) put(x0 + (x0 < 11 ? -Math.round((y - 14) * 0.4) : Math.round((y - 14) * 0.4)), y, INK);
+    const G = { G: ['###', '#..', '#.#', '#.#', '###'], A: ['.#.', '#.#', '###', '#.#', '#.#'], M: ['#.#', '###', '###', '#.#', '#.#'], E: ['###', '#..', '##.', '#..', '###'], S: ['###', '#..', '###', '..#', '###'] };
+    let x = 2; for (const ch of 'GAMES') { G[ch].forEach((row, gy) => [...row].forEach((q, gx) => { if (q === '#') put(x + gx, 4 + gy, 0x5ce1ff); })); x += 4; }
+    for (let k = 0; k < 4; k++) put(5 + k * 4, 11, [0xffd23f, 0xff6ad0, 0x7dff8a, 0xff9a2a][k]);
   });
 }
 

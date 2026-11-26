@@ -18,12 +18,13 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
   { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 1.9, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
-  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 3.4,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
+  { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 3,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
 const CAMP_DECOR = [   // [tex, theta, scale, h, depth]
 ['cr_gantry', 2.13, 2.2, 0, 2.2], ['cr_pad', 2.05, 2.2, -2, 2.45], ['shopship', -1.85, 1.15, 14, 2.2],
   ['cr_barrel', -1.15, 1.6, 0, 2.6],
+  ['cr_games', 2.84, 2.2, 0, 2.45],                // (v3.119) the Moon Bar's GAMES A-board
   ['cr_lamp', -1.22, 1.7, 0, 2.25], ['cr_lamp', -0.55, 1.7, 0, 2.25], ['cr_lamp', 0.4, 1.7, 0, 2.25], ['cr_lamp', 1.02, 1.7, 0, 2.25],
   ['cr_pen', -2.12, 1.8, 0, 2.3], ['cr_dish', -2.8, 1.7, 0, 2.3], ['cr_flag', -0.22, 1.7, 0, 2.2], 
 ];
@@ -305,10 +306,14 @@ const CampMixin = {
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     this.campSt = CAMP_ST.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
-      const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? 34 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
+      const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
       // (v3.118) the bar stands BEHIND the planet: sunk well into it and masked by the planet's disc (everything inside
       // the circle is cut away), so the ground's curve hides its base wherever you look at it from
       if (d.id === 'bar') { this.barMaskG = this.make.graphics({ add: false }); const m = this.barMaskG.createGeometryMask(); m.setInvertAlpha(true); spr.setMask(m); }
+      // (v3.119) through the open door: a slice of the real Moon Bar inside (the bar-room art), sliding as you walk past
+      if (d.id === 'bar' && typeof makeBarRoomArt === 'function') { makeBarRoomArt(this);
+        const ins = this.add.image(0, 0, 'br_bg').setOrigin(0.5, 1).setDepth(2.39); ins.bsx = ins.bsy = 0.9; ins.pixSnap = false;
+        this.barIn = { spr: ins, theta: d.theta, h: a.h, rot: 0, sc: d.sc, w: spr.width }; this.actors.push(this.barIn); }
       return Object.assign({}, d, { a }); });
     for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; this.actors.push(this.campBot);
@@ -397,6 +402,13 @@ const CampMixin = {
   // after render: the level HUD goes, the camp's own bits go on
   campDraw() {
     if (this.barMaskG) this.barMaskG.clear().fillStyle(0xffffff, 1).fillCircle(this.cx, this.cy, R * this.zoom + 2);
+    if (this.barIn) {                                  // (v3.119) the view through the bar's open door: a window onto the bar-room art, sliding with the view
+      const B = this.barIn, D = BAR_DOOR, k = B.sc, bs = 0.9, cw = Math.round((D.x1 - D.x0 + 1) * k / bs), ch = Math.round((D.y1 - D.y0 + 1) * k / bs);
+      if (B.dx === undefined) { B.dx = ((D.x0 + D.x1 + 1) / 2 - B.w / 2) * k; B.theta = wrap(B.theta + B.dx / (R + B.h)); B.h += (84 - D.y1 - 1) * k; }
+      const par = angDiff(this.viewT(), B.theta), cx0 = Math.max(44, Math.min(220 - cw, Math.round(110 + par * 220 + Math.sin(this.time.now / 3000) * 14))), cy0 = 44;   // the back bar's shelves of glowing bottles
+      B.spr.setCrop(cx0, cy0, cw, ch).setOrigin((cx0 + cw / 2) / BAR.RW, (cy0 + ch) / BAR.RH);
+      const tt = this.time.now / 1000, cols = [0xffc8f0, 0xc8f4ff, 0xfff0b0, 0xd0ffd8]; B.spr.setTint(cols[Math.floor(tt * 118 / 60) % 4]);
+    }
     for (const o of [this.heartsText, this.fpsText, this.waveText, this.scoreText, this.nameText, this.jetText, this.macText, this.portrait, this.distText, this.weaponIcon, this.swapText, this.armText, this.coinText, this.lvText, this.livesText, this.cowIcon, this.chrisMark, this.cheatText])
       if (o) o.setVisible(false);
     for (const o of this.cheeseIcons.concat(this.macIcons)) o.setVisible(false);
