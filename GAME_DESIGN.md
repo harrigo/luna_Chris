@@ -2707,3 +2707,6 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
 - Rule in the rig (unchanged): the far arm is drawn in FRONT of the torso only while its hand is on the gun's
   foregrip (or reaching for the jam-thump fist); swinging free, it's BEHIND. Drinking now follows the free rule: the
   arm is behind his chest, and only the hand (behind the glass) and the glass are in front.
+
+## v3.130: less campfire smoke
+- The campfire puffs 70% less smoke (9% of its particles are smoke, was 30%); the sparks are unchanged.

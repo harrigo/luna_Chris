@@ -413,7 +413,7 @@ const CampMixin = {
     // the fire: sparks and smoke
     this.campSparkT -= dt;
     if (this.campSparkT <= 0) { this.campSparkT = 0.09; const fire = this.campSt.find(s => s.id === 'fire');
-      const spr = this.add.image(0, 0, Math.random() < 0.7 ? 'spark' : 'puff').setDepth(2.3).setBlendMode(Phaser.BlendModes.ADD);
+      const spr = this.add.image(0, 0, Math.random() < 0.91 ? 'spark' : 'puff').setDepth(2.3).setBlendMode(Phaser.BlendModes.ADD);
       const smoke = spr.texture.key === 'puff'; spr.setTint(smoke ? 0x6a5a82 : 0xffb03a).setBlendMode(smoke ? Phaser.BlendModes.NORMAL : Phaser.BlendModes.ADD);
       spr.bsx = spr.bsy = smoke ? 0.4 : rnd(0.4, 0.8);
       this.campFx.push({ spr, theta: fire.theta + rnd(-0.015, 0.015), h: 40, vt: rnd(-0.03, 0.03), vh: smoke ? 40 : rnd(60, 130), life: smoke ? 2.2 : rnd(0.6, 1.2), max: smoke ? 2.2 : 1, smoke }); }
