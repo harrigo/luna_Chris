@@ -2719,3 +2719,25 @@ A 5 x 3 video slot with a UK-style feature trail, played with your own cheese. `
   Run.stopAt() says which stop is waiting; the planets ahead only light up once it's done.
 - Fridge-o-tron and THE LARDER now only move into camp after you've met him at a run's shop stop (lc_shop_met; old
   saves that have bought anything keep them). The first time home after that, he says he followed you.
+
+## v3.132: STORY & PROGRESSION, stage 2 - bringing the camp home (src/story.js)
+- Camp starts with just the tent, fire, gun rack, rocket, the way out and Biscuit. Everything else is BROUGHT HOME:
+  | who                         | found                     | brings                                   |
+  | Fridge-o-tron (shopkeeper)  | the run's SHOP stop       | the Larder (straight away)               |
+  | Clank (ranch robot)         | Gruyere Globe             | the builder; training dummy, crate tower |
+  | Zib (kid)                   | Gruyere Globe, after Clank| lunchbox, camp toys (ball, hoop, cans)   |
+  | Henrietta (hen)             | Gorgonzola Gulch          | noticeboard, telescope                   |
+  | Granny Gouda (prospector)   | Gorgonzola Gulch, after Hen| secret cavern, cheese patch             |
+  | Louise (hostess)            | Brie-muda Triangle        | the Moon Bar (and so the BONUS stops)    |
+  | DJ Camembeat (party rat)    | Mount Mozzarella          | the bar's jukebox (he DJs beside it)     |
+  | Sprocket (rat mechanic)     | The Great Grater          | the clay cheese trap                     |
+  | Captain Stilton (old ace)   | Cheddar Gorge             | the Boss Gate                            |
+  | Madame Feta (fortune teller)| Astro-Rat Armada (final)  | the sky climb and the Golden Bessie      |
+- At most one arrival a run, none before you've met Fridge-o-tron (so run 1 is just the shop). Arrivals happen at the
+  end of the planet they're stranded on, in a dialogue ("FOUND ON ..."), then a banner: X IS COMING HOME.
+- What they bring goes up as a CONSTRUCTION SITE (cr_build: scaffold, tarp, hazard sign) and is finished at the end of
+  your next run, by Clank (no Clank, no building). Talk to a site for a Clank line. Back at camp, Clank announces what
+  he finished ("WHILE YOU WERE AWAY").
+- Bonus stops on the run route only start once the Moon Bar is built.
+- Old saves that had played runs keep everything (legacy). NEW GAME > RESET RUN MODE starts the story from scratch.
+- New sprites: Granny Gouda, Sprocket, Captain Stilton, Madame Feta, DJ Camembeat (2 frames each) and the site.

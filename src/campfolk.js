@@ -115,7 +115,7 @@ function makeFolkTextures(scene) {
 // the Hades-style dialogue box, for any scene: lines = [[who, text], ...] (who = 'chris' or a FOLK id)
 function chatBar(scene, lines, opts) {
   opts = opts || {};
-  makeFolkTextures(scene);
+  makeFolkTextures(scene); if (typeof makeStoryTextures === 'function') makeStoryTextures(scene); if (typeof makeLouiseTextures === 'function') makeLouiseTextures(scene);
   const W = scene.scale.width, H = scene.scale.height, f = RUN_UI.f, small = H < 430, c = scene.add.container(0, 0).setDepth(60);
   const bw = Math.min(W - 16, 640), bh = small ? 96 : 120, bx = (W - bw) / 2, by = H - bh - (small ? 8 : 16), ps = bh - 20;
   const g = scene.add.graphics(); c.add(g);
@@ -142,7 +142,7 @@ function chatBar(scene, lines, opts) {
     pwell.clear(); pwell.fillStyle(0x1a1020, 1).fillRect(bx + 8, by + 8, ps + 4, ps + 4); pwell.fillStyle(tone, 1).fillRect(bx + 10, by + 10, ps, ps);
     pwell.fillStyle(0x000000, 0.25).fillRect(bx + 10, by + 10 + ps * 0.62, ps, ps * 0.38); pwell.fillStyle(0xffffff, 0.12).fillRect(bx + 10, by + 10, ps, 3);
     if (isChris) { portrait.setTexture(chris ? 'portrait' : 'c_head').setFlipX(false); RUN_UI.fit(portrait, ps * 0.92); }
-    else { portrait.setTexture(D.tex + (D.sit ? 0 : 1)).setFlipX(false); RUN_UI.fit(portrait, ps * 0.86); }
+    else { const k = D.tex + (D.sit ? 0 : 1); portrait.setTexture(scene.textures.exists(k) ? k : D.tex).setFlipX(false); RUN_UI.fit(portrait, ps * 0.86); }
     const nm = isChris ? 'CHRIS' : D.name, tl = isChris ? 'RETIRED CHEF' : D.title;
     nameT.setText(nm); titleT.setText(tl);
     const pw = Math.max(nameT.width, titleT.width) + 20, px = tx - 6, py = by - 14;
@@ -171,8 +171,8 @@ function chatBar(scene, lines, opts) {
 
 Object.assign(CampMixin, {
   campFolkInit() {
-    makeFolkTextures(this);
-    this.campFolk = Object.keys(FOLK).map(id => {
+    makeFolkTextures(this); if (typeof makeStoryTextures === 'function') makeStoryTextures(this);
+    this.campFolk = Object.keys(FOLK).filter(id => FOLK[id].camp !== false && (typeof Story === 'undefined' || Story.home(id))).map(id => {   // (v3.132) only the folk who've come home
       const d = FOLK[id], spr = this.add.image(0, 0, d.tex + '0').setOrigin(0.5, 1).setDepth(2.55); spr.bsx = spr.bsy = d.sc;
       const a = { spr, theta: d.theta + (d.sit ? 0 : rnd(-0.05, 0.05)), h: 0, rot: 0 }; this.actors.push(a);
       const bub = this.add.text(0, 0, '', RUN_UI.f(7, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: '#ffffff', padding: { x: 4, y: 3 } })).setOrigin(0.5, 1).setDepth(18).setVisible(false);

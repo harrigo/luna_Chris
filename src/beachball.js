@@ -29,6 +29,7 @@ function makeBallTexture(scene) {
 
 const BallMixin = {
   ballInit() {
+    if (this.toyOpen && !this.toyOpen('hoop')) { this.ball = null; return; }   // (v3.132) Zib's toy
     makeBallTexture(this);
     const spr = this.add.image(0, 0, 'cr_ball').setOrigin(0.5, 0.5).setDepth(5.5);
     spr.bsx = spr.bsy = BALL.r * 2 / 24;

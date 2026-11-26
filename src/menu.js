@@ -321,7 +321,8 @@ class MenuScene extends Phaser.Scene {
   // (v3.50) wipe Run Mode only: crumbs, larder, kits, strengths, stats and bests, camp unlocks, the cavern, the Boss Rush, who's said what
   resetRuns() {
     if (this.going) return;
-    try { for (const k of Object.keys(localStorage)) if (/^lc_(crumbs|larder|kit|run_|rush_|camp_seen|cave_|toys|talk)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+    try { for (const k of Object.keys(localStorage)) if (/^lc_(crumbs|larder|kit|run_|rush_|camp_seen|cave_|toys|talk|story|shop_)/.test(k)) localStorage.removeItem(k); } catch (e) { /* ignore */ }
+    if (typeof Story !== 'undefined') Story.reset();   // (v3.132) camp starts empty again: find everyone on the runs
     if (typeof Run !== 'undefined') Run.on = false;
     Sound.sfx('power'); this.cameras.main.flash(200, 255, 220, 160);
     this.scene.restart();

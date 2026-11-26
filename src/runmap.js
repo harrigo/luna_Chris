@@ -19,7 +19,7 @@ function runMapLayout() {
   // the shop (Fridge-o-tron's stall). Everyone passes through them.
   const camp0 = { x: 0.5 / (n + 1), y: 0.5 }, mid = c => c.reduce((a, q) => a + q.y, 0) / c.length;
   const stopPos = i => { const a = i ? cols[i - 1] : [camp0], b = cols[i]; return { x: (a[0].x + b[0].x) / 2, y: (mid(a) + mid(b)) / 2 }; };
-  const bonus = stopPos(Run.bonusAt), shop = Run.shopAt !== undefined ? stopPos(Run.shopAt) : null;
+  const bonus = Run.bonusAt >= 0 ? stopPos(Run.bonusAt) : null, shop = Run.shopAt !== undefined ? stopPos(Run.shopAt) : null;
   const deco = []; for (let i = 0; i < 14; i++) deco.push({ x: rnd(), y: rnd(), r: 2 + rnd() * 6, k: rnd() < 0.3 ? 'rock' : 'dust', c: [0x6a4a9a, 0x3a5a9a, 0x9a4a6a][Math.floor(rnd() * 3)] });
   Run.map = { t0: Run.t0, cols, bonus, shop, deco, camp: camp0 };
   return Run.map;
@@ -68,7 +68,7 @@ Object.assign(RunScene.prototype, {
       if (cur) { this.ui.add(this.add.text(x, y + r + 6, LEVELS[q.id].short || LEVELS[q.id].name, f(small ? 6 : 7, '#ffffff', { strokeThickness: 3 })).setOrigin(0.5, 0)); if (!stopNow) opts.push({ id: q.id, x, y, r }); }
     }));
     // the bonus star
-    { const x = X(M.bonus), y = Y(M.bonus), r = bonusLive ? rBig * 0.85 : rSmall * 0.8, done = Run.bonusDone[Run.bonusAt] || Run.idx > Run.bonusAt;
+    if (M.bonus) { const x = X(M.bonus), y = Y(M.bonus), r = bonusLive ? rBig * 0.85 : rSmall * 0.8, done = Run.bonusDone[Run.bonusAt] || Run.idx > Run.bonusAt;
       const pts = []; for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * 0.45 : r; pts.push({ x: x + Math.cos(a) * rr, y: y + Math.sin(a) * rr }); }
       g.fillStyle(0xffd23f, bonusLive ? 0.25 : 0.1).fillCircle(x, y, r + 8); g.fillStyle(0x1a1020, 1).fillPoints(pts.map(q => ({ x: q.x + 2, y: q.y + 2 })), true);
       g.fillStyle(done ? 0x7dff8a : 0xffd23f, bonusLive || done ? 1 : 0.45).fillPoints(pts, true);
@@ -93,7 +93,9 @@ Object.assign(RunScene.prototype, {
     for (const k in this.mapInfo) this.ui.add(this.mapInfo[k]);
     this.mapOpts = opts;
     opts.forEach(o => this.hits.push({ x: o.x - o.r - 6, y: o.y - o.r - 6, w: o.r * 2 + 12, h: o.r * 2 + 12, map: o,
-      act: () => { if (o.shop) { Sound.sfx('wave'); Run.shopDone = true; Meta._s('lc_shop_met', 1); this.go('shop'); return; } if (o.bonus) { Sound.sfx('power'); Run.bonusDone[Run.idx] = true; this.go(o.bonus, o.bonus === 'zerog' ? { room: 'zerog' } : undefined); } else { Sound.sfx('power'); this.go('level1', { level: o.id, direct: true }); } } }));
+      act: () => { if (o.shop) { if (this.going || this.chatting) return; Sound.sfx('wave'); Run.shopDone = true; Meta._s('lc_shop_met', 1);
+        if (typeof Story !== 'undefined' && Story.onShop()) { this.chatting = true; const seen = Meta._j('lc_talk', {}); seen.fridge = { met: true, i: 0 }; Meta._s('lc_talk', seen); chatBar(this, FOLK.fridge.first, { header: 'SOMEONE NEW!', onClose: () => { this.chatting = false; this.go('shop'); } }); return; }
+        this.go('shop'); return; } if (o.bonus) { Sound.sfx('power'); Run.bonusDone[Run.idx] = true; this.go(o.bonus, o.bonus === 'zerog' ? { room: 'zerog' } : undefined); } else { Sound.sfx('power'); this.go('level1', { level: o.id, direct: true }); } } }));
     const bw = small ? 96 : 116, bh = small ? 20 : 24, bx = px + pw - bw - 12, bby = py + panH / 2 - bh / 2;
     [['GIVE UP', () => { if (this.going) return; this.going = true; const sum = Run.finish(this.registry, 'quit'); this.cameras.main.fadeOut(220, 0, 0, 0); this.time.delayedCall(250, () => this.scene.start('level1', { camp: true, sum })); }]].forEach(([lab, act], i) => {
       const x = bx + i * (bw + 10);

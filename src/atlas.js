@@ -102,6 +102,7 @@ function buildAllTextures(scene) {
     if (d.surface) { makePlanetTexture(scene, 'surf' + id, d.radius || 420, d.surface.pal, d.surface.seed, d.surface); makePlanetShade(scene, 'shade' + id, d.radius || 420, d.surface.rimLight, d.surface.dark); }
     if (d.nebula) for (let i = 0; i < d.nebula.n; i++) if (!scene.textures.exists('neb' + id + '_' + i)) makeNebula(scene, 'neb' + id + '_' + i, 900 + i * 41, d.nebula.pal);
   }
+  if (typeof makeStoryTextures === 'function') { makeFolkTextures(scene); makeStoryTextures(scene); }   // (v3.132) the story folk + the construction site
   if (typeof REART !== 'undefined') REART.make(scene);                              // (v3.97) the weakest sprites, redrawn (reart.js)
   // pre-made glow versions (see bakedGlow in main.js) so they live on the sheet too
   for (const [k, c, s, d] of [['lava_pool', 0xff7a1a, 3, 6], ['swissball', 0xffe27a, 2, 6], ['power', 0xfff3a0, 3, 8],

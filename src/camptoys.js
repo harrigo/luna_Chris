@@ -55,7 +55,7 @@ function makeToyTextures(scene) {
 
 const CampToysMixin = {
   // (v3.43) the toys turn up one at a time as you finish runs (dying counts - something to come home to)
-  toyOpen(id) { return Progress.testMode || (Meta.stats().runs || 0) >= (TOY_UNLOCK[id] || 0); },
+  toyOpen(id) { if (Progress.testMode) return true; if (typeof Story !== 'undefined') return Story.built({ hoop: 'toys', cans: 'toys', striker: 'toys', tower: 'tower', clay: 'clay', cave: 'cave' }[id] || 'toys'); return (Meta.stats().runs || 0) >= (TOY_UNLOCK[id] || 0); },   // (v3.132) the story brings them
   toysInit() {
     makeToyTextures(this);
     const add = (tex, th, sc, depth) => { const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(depth); spr.bsx = spr.bsy = sc; spr.pixSnap = tex !== 'ty_hoop' && tex !== 'ty_striker';   /* (their rim and puck are lined up with the art in world units) */ const a = { spr, theta: th, h: -this.campSink(spr, sc), rot: 0 }; this.actors.push(a); return a; };

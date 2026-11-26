@@ -117,7 +117,7 @@ class BarRoomScene extends Phaser.Scene {
     this.P = { h: 0, floor: 0, vh: 0, vx: 0, thrusting: false, firing: 0, aimA: 0.1, power: 0, duck: false, facing: 1 };
     this.spots = [{ id: 'door', x: 23, name: 'THE DOOR', verb: 'BACK TO CAMP' }, { id: 'bot', x: 130, name: 'CLANK THE BARMAN', verb: 'BUY A BEER (' + BAR_BEER + ' CRUMBS)' },
       { id: 'slot', x: 290, name: 'RIDIC LOUISE', verb: 'PLAY' }]
-      .concat(BAR_GAMES.map(g => ({ id: g.id, x: g.x, name: g.name, verb: 'PLAY', game: g })), [{ id: 'juke', x: 716, name: 'THE JUKEBOX', verb: 'CHANGE THE TUNE' }]);
+      .concat(BAR_GAMES.map(g => ({ id: g.id, x: g.x, name: g.name, verb: 'PLAY', game: g })), (typeof Story === 'undefined' || Story.built('juke') ? [{ id: 'juke', x: 716, name: 'THE JUKEBOX', verb: 'CHANGE THE TUNE' }] : []));   // (v3.132) DJ Camembeat brings it
     this.build();
     this.scale.on('resize', this.build, this);
     this.events.once('shutdown', () => this.scale.off('resize', this.build, this));
@@ -161,7 +161,9 @@ class BarRoomScene extends Phaser.Scene {
       const st = this.add.text(...A(g.x, FL + 7), '', f(3.4, '#ffffff', { strokeThickness: 2 })).setOrigin(0.5, 0).setDepth(1.7);
       return { g, im, mq, st };
     });
-    this.juke = this.add.image(...A(716, FL), 'br_juke').setOrigin(0.5, 1).setScale(z).setDepth(1.6);
+    this.hasJuke = typeof Story === 'undefined' || Story.built('juke');
+    this.juke = this.add.image(...A(716, FL), 'br_juke').setOrigin(0.5, 1).setScale(z).setDepth(1.6).setVisible(this.hasJuke);
+    if (this.hasJuke && typeof makeStoryTextures === 'function') { makeStoryTextures(this); this.dj = this.add.image(...A(690, FL), 'cf_dj0').setOrigin(0.5, 1).setScale(z * 0.9).setDepth(1.62); }
     this.scrG = this.add.graphics().setDepth(1.65);
     this.fxG = this.add.graphics().setDepth(4);
     // Chris
@@ -298,7 +300,8 @@ class BarRoomScene extends Phaser.Scene {
     this.slotIm.forEach((im, k) => { if (reelT.length) im.setTexture(reelT[(Math.floor(t * (s && s.id === 'slot' ? 9 : 1.2) + k * 2)) % reelT.length]); });
     for (let k = 0; k < 11; k++) { const on = (Math.floor(t * 8) + k) % 3 === 0; S.fillStyle(on ? 0xffffff : RAIN[(k + Math.floor(t * 3)) % RAIN.length], 1).fillRect((290 - 23 + k * 4.2) * z, (FL - 92.5) * z, 2 * z, 2 * z); }
     if (s && s.id === 'slot') S.lineStyle(z, 0xffd23f, 0.6 + 0.4 * Math.sin(t * 8)).strokeRect((290 - 27) * z, (FL - 97) * z, 54 * z, 97 * z);
-    { const jx = 716 * z, jy = (FL - 50) * z; for (let k = 0; k < 4; k++) S.fillStyle(RAIN[(k + Math.floor(t * 4)) % RAIN.length], 0.5 + 0.5 * pulse).fillRect(jx - 9 * z, jy + (k * 3 - 14) * z, 18 * z, 2 * z);
+    if (this.dj) this.dj.setTexture('cf_dj' + (Math.floor(t * 118 / 60) % 2)).setY((FL - Math.abs(Math.sin(t * Math.PI * 118 / 60)) * 2) * z);
+    if (this.hasJuke) { const jx = 716 * z, jy = (FL - 50) * z; for (let k = 0; k < 4; k++) S.fillStyle(RAIN[(k + Math.floor(t * 4)) % RAIN.length], 0.5 + 0.5 * pulse).fillRect(jx - 9 * z, jy + (k * 3 - 14) * z, 18 * z, 2 * z);
       this.juke.setScale(z * (1 + 0.03 * pulse * (this.jukeT > 0 ? 3 : 1)), z * (1 - 0.02 * pulse)); this.jukeT = Math.max(0, (this.jukeT || 0) - dt);
       if (Math.random() < dt * 3) { const nt = this.add.text(jx + (Math.random() - 0.5) * 20 * z, jy - 20 * z, Math.random() < 0.5 ? '♪' : '♫', { fontSize: Math.round(7 * z) + 'px', color: '#' + RAIN[Math.floor(Math.random() * 8)].toString(16).padStart(6, '0') }).setDepth(4).setOrigin(0.5);
         this.tweens.add({ targets: nt, y: nt.y - 30 * z, x: nt.x + (Math.random() - 0.5) * 20 * z, alpha: 0, duration: 1600, onComplete: () => nt.destroy() }); } }

@@ -92,7 +92,8 @@ const Run = {
     reg.set('shop', { coins: RUN_START_CHEDDAR + 40 * (L.purse || 0), armMk: L.rind ? 1 : 0, armHp: L.rind ? SHOP.armHp[1] : 0, boots: 0, tank: 0, hearts: L.hearty || 0, spins: 0, chips: {} });
     reg.set('lives', 1); reg.set('gunLv', {}); reg.set('bonusHeart', false);
     const shopAt = 2 + Math.floor(Math.random() * 2), bAts = [1, 2, 3].filter(k => k !== shopAt);   // (v3.131) the SHOP stop: after planet 2 or 3; the BONUS stop somewhere else on the line
-    Object.assign(this, { styleS: 0, shopAt, shopDone: false, bonusAt: bAts[Math.floor(Math.random() * bAts.length)], vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
+    const barOpen = typeof Story === 'undefined' || Story.built('bar');                                     // (v3.132) ...but only once the Moon Bar's open
+    Object.assign(this, { styleS: 0, shopAt, shopDone: false, arrived: null, bonusAt: barOpen ? bAts[Math.floor(Math.random() * bAts.length)] : -1, vampN: 10, tier: this.tierSel(), bonusDone: {}, bonusOffer: {}, freePerk: false, atLv: 0, on: true, idx: 0, done: [], perks: {}, score: 0, earned: 0, kills: 0, t0: Date.now(), picked: [], toques: L.toque || 0, dice: L.dice || 0, cards: 3 + (L.menu4 ? 1 : 0) });
     const kit = Meta.kit(), kp = kit.perk && RUN_PERKS.find(q => q.id === kit.perk);   // the LUNCHBOX's starter perk
     if (kp) this.take(reg, kp);
   },
@@ -129,6 +130,7 @@ const Run = {
     sum.tier = this.tier || 0;
     if (how === 'won' && (this.tier || 0) >= this.tierMax() && this.tier < STRENGTHS.length - 1) { Meta._s('lc_run_tiermax', this.tier + 1); sum.unlocked = STRENGTHS[this.tier + 1].name; }
     Meta.addCrumbs(sum.crumbs);
+    if (typeof Story !== 'undefined') Story.runEnded();                  // (v3.132) the builders work while you're away
     const st = Meta.stats(); st.runs++; if (how === 'won') st.wins++; st.kills += sum.kills; st.planets += sum.planets; Meta._s('lc_run_stats', st);
     Meta._s('lc_run_last', { how, planets: sum.planets, at: sum.at || 0 });
     if (how !== 'quit' || sum.planets > 0) {                 // (v3.11) every run hands you a new gun, until you have them all
@@ -212,7 +214,17 @@ function runInstall(L) {
     },
     // after LEVEL CLEAR: a run goes to its perk pick; the campaign hears from camp first (v3.14)
     wonNext() {
-      if (Run.on) { this.scene.start('runpick', { phase: 'perk' }); return; }
+      if (Run.on) {                                     // (v3.132) someone stranded here? They come home with you
+        const who = typeof Story !== 'undefined' && this.storyShownAt !== this.endT ? Story.arrival(this.levelId) : null;
+        if (!who) { this.scene.start('runpick', { phase: 'perk' }); return; }
+        this.storyShownAt = this.endT; this.state = 'wonchat'; this.hideOverlay();
+        const seen = Meta._j('lc_talk', {}); seen[who] = Object.assign(seen[who] || { i: 0 }, { met: true }); Meta._s('lc_talk', seen);
+        const D = FOLK[who], brings = STORY_CAST.find(c => c.id === who).brings.map(f => STORY_FEATURE[f]).join(' AND ');
+        Sound.sfx('reveal');
+        chatBar(this, (D.found || D.first).concat([['chris', 'Right. Into the rocket. Camp\'s this way.']]), { header: 'FOUND ON ' + (this.def.short || this.def.name).toUpperCase(),
+          onClose: () => { this.banner(D.name + ' IS COMING HOME!\nBRINGING ' + brings); this.time.delayedCall(2200, () => this.scene.start('runpick', { phase: 'perk' })); } });
+        return;
+      }
       const id = this.levelId, st = typeof STORY !== 'undefined' && STORY[id], who = st && STORY_RADIO[id];
       if (!who || !st[who] || this.storyShownAt === this.endT) { this.scene.start('select'); return; }
       this.storyShownAt = this.endT; this.state = 'wonchat'; this.hideOverlay();

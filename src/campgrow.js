@@ -3,8 +3,8 @@
 // land back at camp after earning one, Fridge-o-tron points it out (with a sparkle on the new thing).
 const CAMP_GROW = [
   { id: 'kennel', tex: 'cr_kennel', theta: 0.55,  sc: 1.6, say: 'A KENNEL FOR BISCUIT!',     need: () => Meta.stats().runs >= 1,     how: 'Finish a run' },
-  { id: 'garden', tex: 'cr_garden', theta: -1.0,  sc: 1.6, say: 'A CHEESE PLANT PATCH!',     need: () => rushBestPlanets() >= 2,       how: 'Clear 2 planets in a run' },
-  { id: 'scope',  tex: 'cr_scope',  theta: 1.8,   sc: 1.7, say: 'A TELESCOPE, FOR SPOTTING RATS!', need: () => rushBestPlanets() >= 3, how: 'Clear 3 planets in a run' },
+  { id: 'garden', tex: 'cr_garden', theta: -1.0,  sc: 1.6, say: 'A CHEESE PLANT PATCH!',     need: () => Story.built('garden'),       how: 'Clear 2 planets in a run' },
+  { id: 'scope',  tex: 'cr_scope',  theta: 1.8,   sc: 1.7, say: 'A TELESCOPE, FOR SPOTTING RATS!', need: () => Story.built('scope'), how: 'Clear 3 planets in a run' },
   { id: 'tub',    tex: 'cr_tub',    theta: 1.15,  sc: 1.6, say: 'A FONDUE HOT TUB!',          need: () => rushBestPlanets() >= 4,       how: 'Clear 4 planets in a run' },
   { id: 'trophy', tex: 'cr_trophy', theta: 1.48,   sc: 1.7, say: 'THE GOLDEN TROPHY!',         need: () => Meta.stats().wins >= 1,     how: 'Win a run' },
   { id: 'target', tex: 'cr_target', theta: -2.2,  sc: 1.6, say: 'A TARGET BOARD!',            need: () => WEAPONS.filter(w => Progress.hasGun(w.id)).length >= 3, how: 'Own 3 guns' },

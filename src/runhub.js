@@ -34,7 +34,7 @@ function campDef() {
   return Object.assign({}, LEVELS[1], {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
     jetCeil: 820,   // (v3.124) the sky's open at camp: there's a secret up there
-    ledges: [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 430 }, { theta: 2.97, half: 0.13, h: 640 }, { theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }],
+    ledges: (typeof Story === 'undefined' || Story.built('sky') ? [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 430 }, { theta: 2.97, half: 0.13, h: 640 }] : []).concat([{ theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }]),
     props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
   });
 }
@@ -306,10 +306,16 @@ const CampMixin = {
   campStart() {
     makeCampTextures(this); if (typeof makeBarTexture === 'function') makeBarTexture(this); makeGrowTextures(this); makeCavernTextures(this); makeToyTextures(this); if (typeof makeLabTextures === 'function') makeLabTextures(this);
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
+    this.sky = null; this.camLiftPx = 0;
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     // (v3.131) Fridge-o-tron and THE LARDER only move into camp once you've met him at a run's shop stop
-    { const L = Meta.larder(); this.shopMet = !!Meta._j('lc_shop_met', 0) || Object.keys(L).some(k => L[k] > 0); }
-    this.campSt = CAMP_ST.filter(d => d.id !== 'larder' || this.shopMet).map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
+    // (v3.132) ...and everything else the story's folk bring home (story.js): built, a CONSTRUCTION SITE, or not there yet
+    makeStoryTextures(this);
+    this.shopMet = Story.home('fridge');
+    const feat = { larder: 'larder', train: 'train', lunch: 'lunch', board: 'board', cave: 'cave', bar: 'bar', clay: 'clay', rush: 'rush' };
+    const stDefs = []; for (const d of CAMP_ST) { const f = feat[d.id]; if (!f || Story.built(f)) stDefs.push(d); else if (Story.building(f)) stDefs.push({ id: 'site', f, theta: d.theta, tex: 'cr_build', sc: d.id === 'bar' ? 2.6 : 1.5, name: STORY_FEATURE[f] + ' (BUILDING)', verb: 'CHECK ON IT' }); }
+    if (Story.building('juke') && !Story.building('bar') && Story.built('bar')) { /* the jukebox goes up inside the bar */ }
+    this.campSt = stDefs.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
       const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
       // (v3.118) the bar stands BEHIND the planet: sunk well into it and masked by the planet's disc (everything inside
       // the circle is cut away), so the ground's curve hides its base wherever you look at it from
@@ -319,11 +325,12 @@ const CampMixin = {
         const ins = this.add.image(0, 0, 'br_bg').setOrigin(0.5, 1).setDepth(2.39); ins.bsx = ins.bsy = 0.9; ins.pixSnap = false;
         this.barIn = { spr: ins, theta: d.theta, h: a.h, rot: 0, sc: d.sc, w: spr.width }; this.actors.push(this.barIn); }
       return Object.assign({}, d, { a }); });
-    for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex)) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
+    for (const [tex, theta, sc, h, dep] of CAMP_DECOR) { if (!this.textures.exists(tex) || (tex === 'cr_games' && !Story.built('bar'))) continue; const spr = this.add.image(0, 0, tex).setOrigin(0.5, 1).setDepth(dep); spr.bsx = spr.bsy = sc; spr.pixSnap = true; this.actors.push({ spr, theta, h: h - (h > 0 ? 0 : this.campSink(spr, sc)), rot: 0 }); }
     this.campBot = { spr: this.add.image(0, 0, 'shopbot').setOrigin(0.5, 1).setDepth(2.45), theta: -1.36, h: 0, rot: 0 }; this.campBot.spr.bsx = this.campBot.spr.bsy = 1.3; if (this.shopMet) this.actors.push(this.campBot); else this.campBot.spr.setVisible(false);
     this.campFolkInit();
     // (v3.124) THE SECRET OF THE SKIES: three ledges climb up beside the bar, the top two out of sight above the screen.
     // On the top one, on a little cloud: the GOLDEN BESSIE shrine. The camera rises with you when you climb up there.
+    if (Story.built('sky')) {   // (v3.132) Madame Feta's secret
     if (!this.textures.exists('cr_sky_ped')) pixTex(this, 'cr_sky_ped', 40, 24, put => {
       for (let y = 10; y < 24; y++) for (let x = 0; x < 40; x++) { let d = 9; for (const [cx, cy, r] of [[9, 17, 7], [19, 14, 9], [30, 17, 7], [20, 19, 8]]) d = Math.min(d, Math.hypot(x - cx, y - cy) - r); if (d > 0) continue; put(x, y, d > -1 ? 0x8a8ac8 : y < 14 ? 0xffffff : y < 19 ? 0xe4e4ff : 0xc0c0f0); }
       for (let y = 2; y < 12; y++) for (let x = 12; x < 28; x++) put(x, y, x === 12 || x === 27 || y === 2 || y === 11 ? 0x5a3a0a : y === 3 ? 0xfff0a0 : x < 16 ? 0xffe070 : 0xc8902a);
@@ -334,7 +341,7 @@ const CampMixin = {
       const ped = this.add.image(0, 0, 'cr_sky_ped').setOrigin(0.5, 1).setDepth(2.4); ped.bsx = ped.bsy = 2.2; ped.pixSnap = true;
       const st = this.add.image(0, 0, 'bessie').setOrigin(0.5, 1).setDepth(2.41).setTint(0xffd23f); st.bsx = st.bsy = 1.3;
       this.sky = { th, h0, aura: { spr: aura, theta: th, h: h0 + 40, rot: 0 }, ped: { spr: ped, theta: th, h: h0, rot: 0 }, st: { spr: st, theta: th, h: h0 + 30, rot: 0 }, cd: 0, lift: 0 };
-      this.actors.push(this.sky.aura, this.sky.ped, this.sky.st); }
+      this.actors.push(this.sky.aura, this.sky.ped, this.sky.st); } }
     this.ball = null; this.ballInit();
     this.campCaveInit();
     this.toysInit();                                                       // (v3.42) the camp toys (camptoys.js)
@@ -349,6 +356,10 @@ const CampMixin = {
     this.campHud = this.add.container(0, 0).setDepth(21);
     this.campHudBuild();
     this.campLine = this.campPickLine();
+    { const fr = Story.fresh().filter(f => f !== 'larder');                                     // (v3.132) Clank finished something while you were away
+      if (fr.length && Story.home('bot')) { Story.markSeen(fr); this.time.delayedCall(this.campSum ? 3800 : 1200, () => { if (this.campChat || this.campPanel) return; this.campChat = true;
+        chatBar(this, [['bot', 'CONSTRUCTION COMPLETE: ' + fr.map(f => STORY_FEATURE[f]).join(', ') + '.'], ['bot', 'YOU ARE WELCOME. I ACCEPT PAYMENT IN OIL.']], { header: 'WHILE YOU WERE AWAY', onClose: () => { this.campChat = false; } }); }); }
+      else if (Story.fresh().includes('larder')) Story.markSeen(['larder']); }
     if (this.shopMet && !Meta._j('lc_shop_home', 0)) { Meta._s('lc_shop_home', 1); this.campLine = 'FRIDGE-O-TRON: I FOLLOWED YOU HOME, CHEF. THE LARDER IS OPEN - TRADE YOUR GOLDEN CRUMBS HERE!'; }
     const P = this.pl; P.theta = this.campSum ? 0.42 : this.campAt !== undefined ? this.campAt - 0.05 : -0.14;
     if (this.campSum && this.campSum.cavern) { P.theta = 1.65; P.h = 0; P.vh = 560; Sound.sfx('jump'); this.time.delayedCall(900, () => this.campShowCard()); }   // (v3.41) popping back out of the cavern hole
@@ -485,6 +496,7 @@ const CampMixin = {
   campUse(st) {
     if (this.campPanel || this.campGo || this.campCard || this.campChat) return;
     if (st.folk) { this.campTalk(st); return; }
+    if (st.id === 'site') { Sound.sfx('clunk'); this.campChat = true; chatBar(this, Story.home('bot') ? [['bot', STORY_SITE[Math.floor(Math.random() * STORY_SITE.length)].replace('CLANK: ', '')]] : [['chris', STORY_NOCLANK]], { onClose: () => { this.campChat = false; } }); return; }
     Sound.sfx('pickup');
     ({ tent: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(400, 0, 0, 0); this.time.delayedCall(430, () => this.scene.start('tent')); }, bar: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; Sound.sfx('reveal'); this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('barroom')); }, train: () => { if (this.campGo) return; this.campGo = { leave: true, t: 0 }; this.cameras.main.fadeOut(300, 0, 0, 0); this.time.delayedCall(330, () => this.scene.start('level1', { training: { from: 'camp' } })); }, rack: () => this.campRack(), sign: () => this.campLeave(), board: () => this.campBoard(), lunch: () => this.campLunch(), fire: () => this.campFire(), larder: () => this.campLarder(), rocket: () => this.campRocket(), rush: () => this.campRush(), cave: () => this.campCaveGo(), clay: () => this.clayStart() })[st.id]();
   },
