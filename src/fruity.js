@@ -317,7 +317,7 @@ class FruityScene extends Phaser.Scene {
     // THE NAME: a letter each, so they can bounce and flash one by one
     this.nameL = [...'RIDIC LOUISE'].map((ch, i, all) => { const q = G.A(G.CWa / 2 + (i - (all.length - 1) / 2) * 14, 26); const t = this.add.text(q.x, q.y, ch, f(15, '#ffd23f', { stroke: '#2a0a0a', strokeThickness: Math.round(z * 2.4) })).setOrigin(0.5); this.ui.add(t); return t; });
     if (this.sticker) this.sticker.destroy();
-    { const q = G.A(G.CWa / 2, 38), t = this.add.text(q.x, q.y, 'BURSTING UDDER MAX CHEESE GRATER EDITION 2000', f(3.6, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03).setDepth(4.5); this.sticker = t; }
+    { const q = G.A(G.CWa / 2, 38), t = this.add.text(q.x, q.y, 'BURSTING UDDER MAX CHEESE GRATER EDITION 9000', f(3.6, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03).setDepth(4.5); this.sticker = t; }
     // the meters, the LED ticker
     this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(10 + i * 72, 165); const L = this.add.text(p.x + 2 * z, p.y, lab, f(2.4, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(4.6, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
     this.msgT = this.add.text(G.A(G.CWa / 2, 177).x, G.A(G.CWa / 2, 177).y, this.msg || '', f(3.2, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);

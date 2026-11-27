@@ -2808,8 +2808,8 @@ Moon (and the stars) back behind everything; the night wash a touch lighter to s
 like the bar (sunk and masked by the planet disc), so Chris walks in front of it. Fixed the error coming back out of the
 tent: the day/night wash and light glows from the previous visit were being reused after the restart.
 
-## v3.145: RIDIC LOUISE BURSTING UDDER MAX CHEESE GRATER EDITION 2000
-- Name sticker: BURSTING UDDER MAX CHEESE GRATER EDITION 2000, 20% bigger.
+## v3.145: RIDIC LOUISE BURSTING UDDER MAX CHEESE GRATER EDITION 9000
+- Name sticker: BURSTING UDDER MAX CHEESE GRATER EDITION 9000, 20% bigger.
 - LOUISE THROWS YOU A BONE: a dead spin (no win, no star) with two of a good symbol (shield, chilli, heart, wheel,
   Bessie) starting a line - 80% of the time she respins reels 3-5. About 1 spin in 10. It's inside SLOT.baseSpin, so the
   tuner measures lines AND stars from it (tools/slotsim.js now samples the star distribution): RTP unchanged (~90% reels
