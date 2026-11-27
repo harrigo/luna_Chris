@@ -17,7 +17,7 @@ const CAMP_ST = [            // (v3.31) spread right round the moon - every stat
   { id: 'clay',   theta: -2.55, tex: 'ty_trap',   sc: 1.5, name: 'CLAY CHEESE',   verb: 'PULL!' },        // (v3.42) camptoys.js
   { id: 'cave',   theta: 1.65,  tex: 'cv_hole',   sc: 1.6, name: 'SECRET CAVERN', verb: 'DROP IN' },     // (v3.41) cavern.js - hidden until you break the boulder
   { id: 'rush',   theta: -2.95, tex: 'cr_gate',   sc: 1.7, name: 'BOSS GATE',     verb: 'BOSS RUSH' },     // (v3.36) bossrush.js
-  { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 2.1, h: -8, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
+  { id: 'tent',   theta: -0.42, tex: 'cr_tent',   sc: 2.1, h: -3, name: 'THE TENT',      verb: 'CRAWL IN' },          // (v3.103) tent.js: safe and snug
   { id: 'bar',    theta: 2.62,  tex: 'cr_bar',    sc: 3.57,   name: 'MOON BAR',      verb: 'GO IN' },   // (v3.102) fruity.js: mega spins for golden crumbs
   { id: 'sign',   theta: Math.PI, tex: 'cr_sign', sc: 1.7, name: 'MAIN MENU',     verb: 'LEAVE CAMP' }
 ];
@@ -336,7 +336,7 @@ const CampMixin = {
     if (!this.dnWash) this.dnWash = this.add.rectangle(0, 0, 10, 10, 0xffffff).setOrigin(0).setDepth(9.5).setScrollFactor(0).setBlendMode(Phaser.BlendModes.MULTIPLY);
     const lerp = (a, c, t) => Math.round(a + (c - a) * t);
     const mix = (c1, c2, t) => (lerp(c1 >> 16, c2 >> 16, t) << 16) | (lerp((c1 >> 8) & 255, (c2 >> 8) & 255, t) << 8) | lerp(c1 & 255, c2 & 255, t);
-    let wc = mix(0xffffff, 0xffd2b4, gold); wc = mix(wc, 0x5262a0, dark);
+    let wc = mix(0xffffff, 0xffd2b4, gold); wc = mix(wc, 0x6a7ab4, dark);   // (v3.144) a touch lighter: the moon and stars sit under it now
     this.dnWash.setSize(W, H).setFillStyle(wc, 1);
     // the sun: up from the left at dawn, high at midday, down on the right at dusk (p 3.35 -> 1.85, wrapping)
     const su = ((P4 - 3.35 + 4) % 4) / 2.5, sunUp = su <= 1;
@@ -377,6 +377,7 @@ const CampMixin = {
   // (v3.142) the sundown sky: a big low sun sinking behind the hills, long lit clouds drifting, fireflies, few stars yet
   duskDecor() {
     const T = this.textures;
+    this.dnWash = this.dnGlows = null;   // (v3.144) a restart (back out of the tent) must not keep the last visit's dead wash and glows
     if (!T.exists('px_star')) makePixStar(this);
     if (!T.exists('dusk_sun')) {
       pixTex(this, 'dusk_sun', 72, 72, put => {
@@ -414,7 +415,7 @@ const CampMixin = {
       });
     }
     this.dnDaySun = this.add.image(0, 0, 'dn_sun').setDepth(-0.89).setScale(2.4).setVisible(false);
-    this.dnMoon = this.add.image(0, 0, 'dn_moon').setDepth(9.52).setScale(3).setVisible(false);
+    this.dnMoon = this.add.image(0, 0, 'dn_moon').setDepth(-0.9)   // (v3.144) behind everything: hills, planet, the camp.setScale(3).setVisible(false);
     const rnd = (a, b) => a + Math.random() * (b - a);
     for (let i = 0; i < 7; i++) {
       const s = this.add.image(0, 0, 'dusk_cl' + (i % 3)).setDepth(0.05).setScale(3).setAlpha(rnd(0.7, 0.95));
@@ -424,7 +425,7 @@ const CampMixin = {
       const s = this.add.image(0, 0, 'px_star').setDepth(9.55).setTint(i % 4 ? 0xffd27a : 0xc8ff8a).setScale(1).setBlendMode(Phaser.BlendModes.ADD);
       this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.01, 0.12), k: rnd(0.8, 1.05), tw: rnd(0, 6), ta: 1, ff: rnd(0, 6) });
     }
-    for (const b of this.bgStars) if (b.s.texture && b.s.texture.key === 'bgstar') b.s.setDepth(9.52).setAlpha(b.s.alpha * Math.max(0.05, Math.min(1, (b.r - 0.35) / 0.4)));   // only the high sky has stars yet
+    for (const b of this.bgStars) if (b.s.texture && b.s.texture.key === 'bgstar') b.s.setAlpha(b.s.alpha * Math.max(0.05, Math.min(1, (b.r - 0.35) / 0.4)));   // only the high sky has stars yet
   },
   campInit(data) {
     if (typeof runRouteNow === 'function') runRouteNow();
@@ -435,7 +436,7 @@ const CampMixin = {
   campStart() {
     makeCampTextures(this); if (typeof makeBarTexture === 'function') makeBarTexture(this); makeGrowTextures(this); makeCavernTextures(this); makeToyTextures(this); if (typeof makeLabTextures === 'function') makeLabTextures(this);
     this.hideOverlay(); this.state = 'play'; Sound.init(); Sound.music('title');
-    this.sky = null; this.camLiftPx = 0;
+    this.sky = null; this.camLiftPx = 0; this.barMask = this.barMaskG = null;
     this.campPanel = null; this.campCool = 0.4; this.campDownHeld = true; this.campGo = false; this.campFx = []; this.campSparkT = 0; this.campCard = null;
     // (v3.131) Fridge-o-tron and THE LARDER only move into camp once you've met him at a run's shop stop
     // (v3.132) ...and everything else the story's folk bring home (story.js): built, a CONSTRUCTION SITE, or not there yet
@@ -445,10 +446,11 @@ const CampMixin = {
     const stDefs = []; for (const d of CAMP_ST) { if (d.id === 'rack' && gunsOwned() < 2) continue; const f = feat[d.id];   /* (v3.136) the gun rack needs a second gun to hold */ if (!f || Story.built(f)) stDefs.push(d); else if (Story.building(f)) stDefs.push({ id: 'site', f, theta: d.theta, tex: 'cr_build', sc: d.id === 'bar' ? 2.6 : 1.5, name: STORY_FEATURE[f] + ' (BUILDING)', verb: 'CHECK ON IT' }); }
     if (Story.building('juke') && !Story.building('bar') && Story.built('bar')) { /* the jukebox goes up inside the bar */ }
     this.campSt = stDefs.map(d => { const spr = this.add.image(0, 0, d.tex).setOrigin(0.5, 1).setDepth(d.id === 'rocket' ? 2.35 : 2.4); spr.bsx = spr.bsy = d.sc; spr.pixSnap = true;
-      const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
+      const a = { spr, theta: d.theta, h: (d.h || 0) - (d.id === 'bar' || d.id === 'tent' ? this.campSink(spr, d.sc) / 0.9 : this.campSink(spr, d.sc)), rot: 0 }; this.actors.push(a);
       // (v3.118) the bar stands BEHIND the planet: sunk well into it and masked by the planet's disc (everything inside
       // the circle is cut away), so the ground's curve hides its base wherever you look at it from
-      if (d.id === 'bar') { this.barMaskG = this.make.graphics({ add: false }); const m = this.barMaskG.createGeometryMask(); m.setInvertAlpha(true); spr.setMask(m); }
+      // (v3.144) and the tent too: it sits behind the planet's curve, so Chris walks in front of it, not over its base
+      if (d.id === 'bar' || d.id === 'tent') { if (!this.barMask) { this.barMaskG = this.make.graphics({ add: false }); this.barMask = this.barMaskG.createGeometryMask(); this.barMask.setInvertAlpha(true); } spr.setMask(this.barMask); }
       // (v3.119) through the open door: a slice of the real Moon Bar inside (the bar-room art), sliding as you walk past
       if (d.id === 'bar' && typeof makeBarRoomArt === 'function') { makeBarRoomArt(this);
         const ins = this.add.image(0, 0, 'br_bg').setOrigin(0.5, 1).setDepth(2.39); ins.bsx = ins.bsy = 0.9; ins.pixSnap = false;

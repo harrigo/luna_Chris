@@ -2802,3 +2802,8 @@ blended over ~20s. Four dithered skies crossfade; the sun rises on the left and 
 at the low ends, a pale white sun up high), a crescent moon crosses at night; a MULTIPLY wash tints the world (warm at
 the ends of the day, deep blue at night); hills tint sage/mauve/blue-black; clouds white/pink/slate; stars and fireflies
 come out in the dark; the campfire, tent and bar throw warm light that only really shows at night.
+
+## v3.144
+Moon (and the stars) back behind everything; the night wash a touch lighter to suit. The tent now sits behind the planet
+like the bar (sunk and masked by the planet disc), so Chris walks in front of it. Fixed the error coming back out of the
+tent: the day/night wash and light glows from the previous visit were being reused after the restart.
