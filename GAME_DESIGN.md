@@ -2822,3 +2822,8 @@ tent: the day/night wash and light glows from the previous visit were being reus
 - RULES ? button: four pages (how to play, the pays at your bet, the trail and bonuses, the udder).
 - Sound: its own tune ('slots', C Am F G, AABA), a big-win fanfare jingle ('slotbig') for tier wins / jackpot / the
   udder, bells on wins, a ding on small ones, coin ticks while the win counts up, a moo, a splash.
+
+## v3.146
+SESSION box on the slot (right of the ticker): your win/loss since you walked up to the machine, green up / red down.
+The udder is a proper droopy one now: a squashed top and two saggy lobes that jiggle, a crease, veins near the end, and
+four teats splayed outward and swinging (longer as she fills); the milk drips from the teat tips.

@@ -258,7 +258,8 @@ class FruityScene extends Phaser.Scene {
     const sv = this.registry.get('slot_' + this.from) || {};
     this.sk = sv.sk || 'mature'; this.betI = sv.betI !== undefined ? sv.betI : 1; this.pos = sv.pos !== undefined ? sv.pos : -1; this.dispPos = this.pos;
     this.carry = 0; this.going = false; this.ph = 'idle'; this.t = 0; this.free = 0; this.lastWin = 0; this.winLines = []; this.coins = []; this.sparks = []; this.flyers = []; this.banner = null;
-    this.shownBal = this.bal(); this.press = {}; this.R = [0, 1, 2, 3, 4].map(() => ({ pos: Math.floor(Math.random() * 30), stop: null, v: 0, ant: false })); this.sticky = [];
+    // (v3.146) sess0: the balance you walked up with, for this session's win/loss
+    this.shownBal = this.bal(); this.sess0 = this.bal(); this.sessN = 0; this.press = {}; this.R = [0, 1, 2, 3, 4].map(() => ({ pos: Math.floor(Math.random() * 30), stop: null, v: 0, ant: false })); this.sticky = [];
     this.bg = this.add.graphics().setDepth(0); this.cab = this.add.graphics().setDepth(1);
     this.sym = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_wedge').setDepth(2)));
     this.tile = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_t_wedge').setDepth(1.95)));
@@ -320,7 +321,8 @@ class FruityScene extends Phaser.Scene {
     { const q = G.A(G.CWa / 2, 38), t = this.add.text(q.x, q.y, 'BURSTING UDDER MAX CHEESE GRATER EDITION 9000', f(3.6, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03).setDepth(4.5); this.sticker = t; }
     // the meters, the LED ticker
     this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(10 + i * 72, 165); const L = this.add.text(p.x + 2 * z, p.y, lab, f(2.4, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(4.6, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
-    this.msgT = this.add.text(G.A(G.CWa / 2, 177).x, G.A(G.CWa / 2, 177).y, this.msg || '', f(3.2, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);
+    this.sessT = [this.add.text(G.A(230, 175).x, G.A(230, 175).y, 'SESSION', f(2.2, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), this.add.text(G.A(292, 175).x, G.A(292, 175).y, '', f(4, '#7dff8a', { stroke: '#1a0404' })).setOrigin(1, 0.5)]; this.ui.add(this.sessT);
+    this.msgT = this.add.text(G.A(116, 177).x, G.A(G.CWa / 2, 177).y, this.msg || '', f(3.2, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);
     // trail lamps
     const LG = this.lampGeo();
     this.lampT = SLOT.STRENGTHS[this.sk].trail.map(() => { const t = this.add.text(0, 0, '', f(2.3, '#ffffff', { strokeThickness: 2, align: 'center', lineSpacing: -Math.round(z * 0.6) })).setOrigin(0.5); this.ui.add(t); return t; });
@@ -433,7 +435,7 @@ class FruityScene extends Phaser.Scene {
   spin() {
     const bet = this.bet(), freeSpin = this.free > 0;
     if (!freeSpin && this.bal() < bet) { Sound.sfx('clunk'); this.say('NOT ENOUGH ' + this.unit() + ' - BET LOWER', '#ff4a2a'); this.cameras.main.shake(100, 0.004); return; }
-    if (freeSpin) this.free--; else this.addBal(-bet);
+    if (freeSpin) this.free--; else { this.addBal(-bet); this.sessN++; }
     this.leverT = 0.5; this.coinDrop = freeSpin ? null : this.bcDrop();
     this.lastWin = 0; this.winLines = []; this.res = SLOT.play(this.sk, Math.random, this.pos);
     this.boneStage = this.res.bone ? 1 : 0; this.showGrid = this.res.bone ? this.res.bone.grid : null;   // (v3.145) a close call first...
@@ -698,6 +700,7 @@ class FruityScene extends Phaser.Scene {
     const bal = this.bal(); this.shownBal += (bal - this.shownBal) * Math.min(1, dt * 8); if (Math.abs(bal - this.shownBal) < 0.5) this.shownBal = bal;
     this.metT[0].setText(String(Math.round(this.shownBal))); this.metT[1].setText(String(this.bet())); this.metT[2].setText(this.count ? String(Math.round(this.count.v)) : this.lastWin > 0 ? String(this.lastWin) : '0');
     this.msgT.setAlpha(0.75 + 0.25 * Math.sin(t * 6));
+    { const d = Math.round(this.shownBal - this.sess0); this.sessT[1].setText((d > 0 ? '+' : '') + d).setColor(d > 0 ? '#7dff8a' : d < 0 ? '#ff4a2a' : '#c8ccd8'); }
     // ---- effects: coins, sparks, stars flying to your lamp, the banner
     const fx = this.fx; fx.clear();
     if (this.boneFlash > 0) { this.boneFlash -= dt; for (let i = 2; i < 5; i++) { const x = rx + i * (cw + gap); fx.fillStyle(0xff6ad0, (Math.floor(t * 10) % 2 ? 0.35 : 0.15) * Math.min(1, this.boneFlash * 2)).fillRect(x, ry, cw, rh); } }
@@ -766,8 +769,9 @@ class FruityScene extends Phaser.Scene {
       if (i < 4) g.fillStyle(FM_INK, 1).fillRect(x + cw, ry, gap, rh); }
     // -- the meters and the ticker
     for (let k = 0; k < 3; k++) { r(9 + k * 72, 159, 70, 12, FM.chrome[1]); r(10 + k * 72, 160, 68, 10, 0x140404); }
-    r(9, 172, CW - 18, 10, FM.chrome[1]); r(10, 173, CW - 20, 8, 0x140404);
-    for (let x = 11; x < CW - 11; x += 2) r(x, 173, 1, 8, 0x2a0a0a, 0.5);
+    r(9, 172, 214, 10, FM.chrome[1]); r(10, 173, 212, 8, 0x140404);
+    for (let x = 11; x < 221; x += 2) r(x, 173, 1, 8, 0x2a0a0a, 0.5);
+    r(227, 168, 68, 14, FM.chrome[1]); r(228, 169, 66, 12, 0x140404);   // (v3.146) the session box
     // -- the deck: steps out wider, like a till, with five arcade buttons that light up
     r(-8, 183, CW + 16, bottom - 183, FM_INK); r(-6, 184, CW + 12, bottom - 184, FM.red[1]); r(-6, 184, CW + 12, 2, FM.gold[3]); r(-6, 186, CW + 12, 1, FM.gold[1]);
     const live = this.live();
@@ -798,16 +802,29 @@ class FruityScene extends Phaser.Scene {
       this.udderBoing = Math.max(0, (this.udderBoing || 0) - dt); this.udderPop = Math.max(0, (this.udderPop || 0) - dt * 0.7);
       const grow = this.udderPop > 0 ? 0.15 : frac, boing = Math.sin(this.udderBoing * 30) * this.udderBoing * 0.5, throb = near ? 1 + Math.sin(t * 14) * 0.06 : 1;
       const urx = (8 + grow * 16) * throb * (1 + boing), ury = (6 + grow * 15) * throb * (1 - boing * 0.6), ucy = y0 + 26 + ury * 0.9;
-      e(cxj + sw, ucy, urx + 1, ury + 1, FM_INK);
-      e(cxj + sw, ucy, urx, ury, near ? (Math.floor(t * 8) % 2 ? 0xff8aa8 : 0xf6a0b8) : 0xf2a6b8);
-      e(cxj - urx * 0.35 + sw, ucy - ury * 0.35, urx * 0.4, ury * 0.3, 0xffd0dc);                                     // the shine
-      if (grow > 0.5) for (let k = 0; k < 3; k++) r(cxj - urx * 0.5 + k * urx * 0.45 + sw, ucy + Math.sin(k * 2.1) * ury * 0.3, 1, Math.max(1, ury * 0.25), 0xc8506a, 0.6);   // veins: it's straining
-      const teats = [-0.55, -0.18, 0.18, 0.55].map(f2 => [cxj + f2 * urx + sw, ucy + ury * Math.sqrt(1 - f2 * f2) - 0.5]);
-      const tl = 3 + grow * 4;
-      for (const [tx, ty] of teats) { r(tx - 1.8, ty, 3.6, tl + 1, FM_INK); r(tx - 1.2, ty, 2.4, tl, 0xe08aa0); r(tx - 1.2, ty, 1, tl, 0xffc0d0); }
+      // (v3.146) a proper droopy udder, not a balloon: a squashed top, two saggy lobes that bulge out and hang lower,
+      // the whole thing jiggling; four teats splayed outward at angles, swinging, getting longer as she fills
+      const jig = Math.sin(t * 3.1) * (0.6 + grow) + boing * 6, lob = 1 + grow * 0.35;
+      const bag = (dx2, dy2, rx3, ry3, col) => e(cxj + sw + dx2, ucy + dy2, rx3, ry3, col);
+      const blobs = [[0, -ury * 0.25, urx, ury * 0.75], [-urx * 0.45 - jig * 0.3, ury * 0.18, urx * 0.62 * lob, ury * 0.72], [urx * 0.45 + jig * 0.3, ury * 0.22 + jig * 0.15, urx * 0.62 * lob, ury * 0.7]];
+      for (const [dx2, dy2, rx3, ry3] of blobs) bag(dx2, dy2, rx3 + 1, ry3 + 1, FM_INK);
+      const pink = near ? (Math.floor(t * 8) % 2 ? 0xff8aa8 : 0xf6a0b8) : 0xf2a6b8;
+      for (const [dx2, dy2, rx3, ry3] of blobs) bag(dx2, dy2, rx3, ry3, pink);
+      bag(0, ury * 0.55, urx * 0.18, ury * 0.35, 0xd8849a);                                                              // the crease down the middle
+      bag(-urx * 0.55 - jig * 0.3, ury * 0.0, urx * 0.22, ury * 0.22, 0xffd0dc);                                         // the shine
+      if (grow > 0.5) for (let k = 0; k < 4; k++) { const vx = cxj + sw + (k - 1.5) * urx * 0.42, vy = ucy + Math.sin(k * 2.1) * ury * 0.25; g.lineStyle(Math.max(1, z * 0.7), 0xc8506a, 0.55).lineBetween(G.ox + vx * z, G.oy + vy * z, G.ox + (vx + Math.sin(k * 1.7) * 3) * z, G.oy + (vy + ury * 0.35) * z); }   // veins: it's straining
+      const tl = 3 + grow * 5;
+      const teats = [[-0.62, -0.55], [-0.22, -0.18], [0.22, 0.2], [0.62, 0.58]].map(([f2, ang], k) => {
+        const bx = cxj + sw + f2 * urx * 1.05 + (f2 < 0 ? -jig * 0.3 : jig * 0.3), by = ucy + ury * (0.62 + 0.3 * (1 - Math.abs(f2))) + (f2 > 0 ? jig * 0.15 : 0);
+        const a = ang * 0.6 + Math.sin(t * 2.3 + k * 1.3) * 0.22, ex = bx + Math.sin(a) * tl, ey = by + Math.cos(a) * tl;
+        g.lineStyle(4 * z, FM_INK, 1).lineBetween(G.ox + bx * z, G.oy + by * z, G.ox + ex * z, G.oy + ey * z);
+        g.lineStyle(2.6 * z, 0xe08aa0, 1).lineBetween(G.ox + bx * z, G.oy + by * z, G.ox + ex * z, G.oy + ey * z);
+        g.fillStyle(0xd06a86, 1).fillCircle(G.ox + ex * z, G.oy + ey * z, 1.4 * z);
+        return [ex, ey];
+      });
       // milk dripping (faster the fuller she is) into the pail, which fills up with the pot
       this.drips = this.drips || []; this.dripT = (this.dripT || 0) - dt * (0.6 + frac * 6 + (near ? 6 : 0));
-      if (this.dripT <= 0 && B.n > 0) { this.dripT = 1; const tq = teats[Math.floor(Math.random() * 4)]; this.drips.push({ x: tq[0], y: tq[1] + tl, vy: 10 }); }
+      if (this.dripT <= 0 && B.n > 0) { this.dripT = 1; const tq = teats[Math.floor(Math.random() * 4)]; this.drips.push({ x: tq[0], y: tq[1], vy: 10 }); }
       const pailTop = 128 - frac * 6;
       for (const d of this.drips) { d.vy += 160 * dt; d.y += d.vy * dt; r(d.x - 0.8, d.y - 1.6, 1.6, 2.4, 0xffffff); if (d.y >= pailTop) { d.dead = true; this.sparks.push({ x: G.ox + d.x * z, y: G.oy + pailTop * z, vx: (Math.random() - 0.5) * 40, vy: -30 - Math.random() * 40, life: 0.25, col: 0xffffff }); } }
       this.drips = this.drips.filter(d => !d.dead);
