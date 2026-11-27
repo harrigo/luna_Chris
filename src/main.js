@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.141';
+const BUILD = 'v3.142';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -446,6 +446,7 @@ class Level1 extends Phaser.Scene {
       };
       // (v3.101) no live glow shader on the beam (it cost two extra full GPU passes a frame): the beam is bright enough
     }
+    if (this.def.bgDecor === 'dusk') this.duskDecor();   // (v3.142) the Moon Camp at sundown (runhub.js)
     if (this.def.nebula) {                              // big swirling pixel nebulae + four-point sparkle stars (level 2: turquoise)
       const NB = this.def.nebula;
       for (let i = 0; i < NB.n; i++) {
@@ -519,12 +520,13 @@ class Level1 extends Phaser.Scene {
       const sf = this.def.surface, hd = R <= PIX_HD_R && !sf.grater && !sf.fountain && !sf.parm;
       this.pixRes = hd ? 2 : 1;
       // (the full-resolution layers are big: only keep the current planet's)
-      for (const k of Object.keys(this.textures.list)) { const m = /^(?:surfhd|shadehd)([\d.]+)$/.exec(k) || /^d(?:shade|rim|ridge|crack|orn|fg)([\d.]+)hd/.exec(k); if (m && m[1] !== String(this.levelId)) this.textures.remove(k); }
-      const key = (hd ? 'surfhd' : 'surf') + this.levelId;
+      for (const k of Object.keys(this.textures.list)) { const m = /^(?:surfhd|shadehd)([\d.]+)$/.exec(k) || /^d(?:shade|rim|ridge|crack|orn|fg)([\d.]+)hd/.exec(k); if (m && m[1] !== String(this.camp ? 77 : this.levelId)) this.textures.remove(k); }
+      const lid = this.camp ? 77 : this.levelId;   // (v3.142) the camp has its own look: its own textures (77)
+      const key = (hd ? 'surfhd' : 'surf') + lid;
       makePlanetTexture(this, key, R * this.pixRes, sf.pal, sf.seed, Object.assign({}, sf, { res: this.pixRes }));
-      makePlanetShade(this, (hd ? 'shadehd' : 'shade') + this.levelId, R * this.pixRes, sf.rimLight, sf.dark);
+      makePlanetShade(this, (hd ? 'shadehd' : 'shade') + lid, R * this.pixRes, sf.rimLight, sf.dark);
       this.planetImg = this.add.image(0, 0, key).setDepth(1.05);
-      this.planetShade = this.add.image(0, 0, (hd ? 'shadehd' : 'shade') + this.levelId).setDepth(1.1);
+      this.planetShade = this.add.image(0, 0, (hd ? 'shadehd' : 'shade') + lid).setDepth(1.1);
       this.rimG = this.add.graphics().setDepth(1.12);
     }
     this.fx = null; this.toon = null;
@@ -815,8 +817,8 @@ class Level1 extends Phaser.Scene {
     if (this.def.skyCols) {                             // 16-bit dithered sky bands
       const sw = Math.ceil(W / 3), sh = Math.ceil(H / 3);
       if (this.skyImg) this.skyImg.destroy();
-      makeSkyDither(this, 'skyd' + this.levelId, sw, sh, this.def.skyCols, this.def.skyClean, { cx: this.cx / 3, cy: (this.groundY + Rz) / 3, R: Rz / 3, g: this.groundY / 3 });
-      this.skyImg = this.add.image(0, 0, 'skyd' + this.levelId).setOrigin(0).setScale(3).setDepth(-1);
+      makeSkyDither(this, 'skyd' + (this.camp ? 77 : this.levelId), sw, sh, this.def.skyCols, this.def.skyClean, { cx: this.cx / 3, cy: (this.groundY + Rz) / 3, R: Rz / 3, g: this.groundY / 3 });
+      this.skyImg = this.add.image(0, 0, 'skyd' + (this.camp ? 77 : this.levelId)).setOrigin(0).setScale(3).setDepth(-1);
       this.skyG.clear();
     } else this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
 

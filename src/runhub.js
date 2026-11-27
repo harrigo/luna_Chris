@@ -35,7 +35,19 @@ function campDef() {
     name: 'Moon Camp', short: 'MOON CAMP', camp: true, geysers: null, lava: 0, warp: null, waves: [], tip: '', music: 'title',
     jetCeil: 820,   // (v3.124) the sky's open at camp: there's a secret up there
     ledges: (typeof Story === 'undefined' || Story.built('sky') ? [{ theta: 2.99, half: 0.085, h: 185 }, { theta: 2.78, half: 0.075, h: 430 }, { theta: 2.97, half: 0.13, h: 640 }] : []).concat([{ theta: -1.2, half: 0.1, h: 120 }, { theta: -2.95, half: 0.1, h: 150 }]),
-    props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true }]
+    props: [{ tex: 'p_tuft1', n: 10, sc: [0.8, 1.3], fg: true, tint: 0x9ab87a }],
+    // (v3.142) COSY DUSK: its own place, not level 1 with furniture. A teal-to-amber sundown sky with a big low sun behind
+    // the hills, a mossy blue-grey rock instead of cheese, pine silhouettes catching the last light, fireflies, warm haze.
+    sky: [0x0e1a30, 0xf0a050], skyCols: [0x16284a, 0x2a4266, 0x5a5a80, 0xa86a78, 0xe08a62, 0xf6b468], bg: '#0e1830', skyClean: true,
+    starTint: 0xffe6c8, dustAlpha: 0.55, bgDecor: 'dusk', dust: [0xff9a5a, 0xffc070, 0xd8708a, 0x7ab0b0],
+    surface: { pal: [0x1e2834, 0x2e3c4a, 0x40505c, 0x56686e, 0x708480, 0x8ea292], seed: 3737, rim: [0x24402a, 0x3e6a34, 0x7aa84e], spot: [0x1a2830, 0x2c3e3e],
+      rimLight: [255, 186, 120], dark: [8, 10, 22] },
+    planet: { fill: 0x42525a, inner: 0x2e3c48, rim: 0x7aa84e, glow: 0xffc890 },
+    depth: { light: [0.75, -0.5, 0.45], dark: [26, 20, 46], shadeA: [0, 45, 90, 135], rim: [255, 176, 110], atmo: [255, 150, 96], atmoW: 0.09, atmoA: 70,
+      ridges: [{ style: 'rolling', n: 22, off: 86, amp: 44, col: [92, 56, 80], top: [240, 150, 104], k: 0.4, depth: 0.33, seed: 5 },
+               { style: 'spires', n: 26, off: 40, amp: 52, col: [30, 38, 58], top: [150, 110, 96], k: 0.68, depth: 0.37, seed: 11, glow: [255, 210, 120], glowP: 0.05 }],
+      fg: { style: 'reeds', col: [10, 14, 26], glow: [255, 210, 120] } },
+    rimGlow: 0xffb070
   });
 }
 
@@ -298,6 +310,45 @@ function makeShelf(scene, opts) {
 
 // ---------------------------------------------------------------- the camp, as a mode of the level scene (mixed into Level1)
 const CampMixin = {
+  // (v3.142) the sundown sky: a big low sun sinking behind the hills, long lit clouds drifting, fireflies, few stars yet
+  duskDecor() {
+    const T = this.textures;
+    if (!T.exists('px_star')) makePixStar(this);
+    if (!T.exists('dusk_sun')) {
+      pixTex(this, 'dusk_sun', 72, 72, put => {
+        const B = [0xfff4c0, 0xffe08a, 0xffc060, 0xff9a4a, 0xff7a4a, 0xf05a5a];
+        for (let y = 0; y < 72; y++) for (let x = 0; x < 72; x++) {
+          const d = Math.hypot(x - 35.5, y - 35.5); if (d > 34) continue;
+          if (y > 44 && (y - 44) % 7 < Math.min(3, 1 + Math.floor((y - 44) / 9))) continue;       // the sunset slats
+          const v = y / 71 * (B.length - 1), lo = Math.floor(v), f = v - lo;
+          put(x, y, B[Math.min(B.length - 1, lo + (f > bay(x, y) ? 1 : 0))]);
+        }
+      });
+      for (let i = 0; i < 3; i++) pixTex(this, 'dusk_cl' + i, 110 + i * 24, 20, put => {        // long thin sundown clouds, lit from below-right
+        let sd = 77 + i * 13; const rnd = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+        const W = 110 + i * 24, bumps = []; for (let k = 0; k < 6; k++) bumps.push([10 + rnd() * (W - 20), 4 + rnd() * 5, 8 + rnd() * 16]);
+        for (let y = 0; y < 20; y++) for (let x = 0; x < W; x++) {
+          const edge = Math.min(x, W - 1 - x); let top = 14 - Math.min(5, edge / 4);
+          for (const [bx, bh, bw] of bumps) top = Math.min(top, 14 - bh * Math.max(0, 1 - Math.abs(x - bx) / bw));
+          if (y < top || y > 16 - (edge < 6 ? (6 - edge) / 2 : 0)) continue;
+          put(x, y, y > 14 ? 0xffb070 : y > 12 ? 0xd8788a : y < top + 1.2 ? 0xa0688e : 0x6a4c78);
+        }
+      });
+    }
+    const W = this.scale.width;
+    this.duskHalo = this.add.image(W * 0.74, this.groundY - 30, 'blob').setDepth(-0.95).setTint(0xff8a40).setScale(13).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD);
+    this.duskSun = this.add.image(W * 0.74, this.groundY - 30, 'dusk_sun').setDepth(-0.9).setScale(2.4);
+    const rnd = (a, b) => a + Math.random() * (b - a);
+    for (let i = 0; i < 7; i++) {
+      const s = this.add.image(0, 0, 'dusk_cl' + (i % 3)).setDepth(0.05).setScale(3).setAlpha(rnd(0.7, 0.95));
+      this.bgStars.push({ s, a: i * TAU / 7 + rnd(-0.3, 0.3), r: rnd(0.12, 0.5), k: rnd(0.05, 0.1), radial: false, flat: true });
+    }
+    for (let i = 0; i < 36; i++) {                                                  // fireflies, low over the ground
+      const s = this.add.image(0, 0, 'px_star').setDepth(0.5).setTint(i % 4 ? 0xffd27a : 0xc8ff8a).setScale(1).setBlendMode(Phaser.BlendModes.ADD);
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(-0.03, 0.1), k: rnd(0.8, 1.05), tw: rnd(0, 6), ta: 1, ff: rnd(0, 6) });
+    }
+    for (const b of this.bgStars) if (b.s.texture && b.s.texture.key === 'bgstar') b.s.setAlpha(b.s.alpha * Math.max(0.05, Math.min(1, (b.r - 0.35) / 0.4)));   // only the high sky has stars yet
+  },
   campInit(data) {
     if (typeof runRouteNow === 'function') runRouteNow();
     if (typeof Tipsy !== 'undefined' && Tipsy.held()) Tipsy.release();   // back at camp: the legless level's over, it wears off

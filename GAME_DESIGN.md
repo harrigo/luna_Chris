@@ -2790,3 +2790,8 @@ Camp tent: scale 2.1 (sunk 8px).
 
 ## v3.141
 Camp pause menu (runs only) gets TEST: UNLOCK ALL CAMP (everyone home, every feature built, bonus guns so the rack shows) and TEST: +500 CRUMBS.
+
+## v3.142: the camp at dusk
+The Moon Camp gets its own look (texture id 77, so level 1 keeps its own): a teal-to-amber sundown sky, a big low slatted
+sun with a warm halo sinking behind the hills, long lit clouds, mossy blue-grey rock instead of cheese, mauve hills and
+pine-spire silhouettes catching the light, warm-rimmed planet, fireflies near the ground, stars only high up.

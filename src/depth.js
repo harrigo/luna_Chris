@@ -438,7 +438,7 @@ function makeDepthTextures(scene, id, Rw, cfg, res) {
 const DepthMixin = {
   depthInit() {
     const cfg = this.def.depth; if (!cfg || !this.planetImg) return;
-    const id = this.levelId;
+    const id = this.camp ? 77 : this.levelId;   // (v3.142) the camp's own ridges
     const res = this.pixRes || 1, did = res > 1 ? id + 'hd' : id;
     makeDepthTextures(this, id, R, cfg, res);
     const F = this.depthFx = { cfg, ridges: [], res };
