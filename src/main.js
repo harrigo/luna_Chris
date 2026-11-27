@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.142';
+const BUILD = 'v3.143';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -819,6 +819,7 @@ class Level1 extends Phaser.Scene {
       if (this.skyImg) this.skyImg.destroy();
       makeSkyDither(this, 'skyd' + (this.camp ? 77 : this.levelId), sw, sh, this.def.skyCols, this.def.skyClean, { cx: this.cx / 3, cy: (this.groundY + Rz) / 3, R: Rz / 3, g: this.groundY / 3 });
       this.skyImg = this.add.image(0, 0, 'skyd' + (this.camp ? 77 : this.levelId)).setOrigin(0).setScale(3).setDepth(-1);
+      if (this.camp && this.dnSkies) this.dnSkies(sw, sh, { cx: this.cx / 3, cy: (this.groundY + Rz) / 3, R: Rz / 3, g: this.groundY / 3 });   // (v3.143) day and night
       this.skyG.clear();
     } else this.skyG.clear().fillGradientStyle(this.def.sky[0], this.def.sky[0], this.def.sky[1], this.def.sky[1], 1).fillRect(0, 0, W, H);
 

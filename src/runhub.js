@@ -44,8 +44,8 @@ function campDef() {
       rimLight: [255, 186, 120], dark: [8, 10, 22] },
     planet: { fill: 0x42525a, inner: 0x2e3c48, rim: 0x7aa84e, glow: 0xffc890 },
     depth: { light: [0.75, -0.5, 0.45], dark: [26, 20, 46], shadeA: [0, 45, 90, 135], rim: [255, 176, 110], atmo: [255, 150, 96], atmoW: 0.09, atmoA: 70,
-      ridges: [{ style: 'rolling', n: 22, off: 86, amp: 44, col: [92, 56, 80], top: [240, 150, 104], k: 0.4, depth: 0.33, seed: 5 },
-               { style: 'spires', n: 26, off: 40, amp: 52, col: [30, 38, 58], top: [150, 110, 96], k: 0.68, depth: 0.37, seed: 11, glow: [255, 210, 120], glowP: 0.05 }],
+      ridges: [{ style: 'rolling', n: 22, off: 86, amp: 44, col: [150, 140, 160], top: [255, 236, 210], k: 0.4, depth: 0.33, seed: 5 },
+               { style: 'spires', n: 26, off: 40, amp: 52, col: [64, 74, 96], top: [230, 200, 170], k: 0.68, depth: 0.37, seed: 11, glow: [255, 210, 120], glowP: 0.05 }],
       fg: { style: 'reeds', col: [10, 14, 26], glow: [255, 210, 120] } },
     rimGlow: 0xffb070
   });
@@ -310,6 +310,70 @@ function makeShelf(scene, opts) {
 
 // ---------------------------------------------------------------- the camp, as a mode of the level scene (mixed into Level1)
 const CampMixin = {
+  // ---- (v3.143) DAY AND NIGHT: a four-minute loop on the real clock (so it carries on between visits).
+  // DAY -> DUSK -> NIGHT -> DAWN, each held ~40s then blended over ~20s. The sky crossfades between four dithered skies,
+  // the sun (and at night a moon) arcs over, a multiply wash tints the whole world, stars and fireflies come out at night,
+  // and the campfire, tent and bar throw warm light that shows most in the dark.
+  dnSkies(sw, sh, arc) {
+    const K = [['day', [0x3a7ad0, 0x4a90dc, 0x62a6e2, 0x84bce6, 0xa8d2ea, 0xd2e8ea]], ['dusk', this.def.skyCols],
+      ['night', [0x101a3c, 0x18264e, 0x223462, 0x2c4276, 0x3a528a, 0x4a64a0]], ['dawn', [0x1c2a52, 0x3a4a7a, 0x7a6a9a, 0xd08a9a, 0xf2ae94, 0xfcd8a8]]];
+    for (const [k, cols] of K) makeSkyDither(this, 'dnsky_' + k, sw, sh, cols, true, arc);
+    if (this.skyB) this.skyB.destroy();
+    this.skyB = this.add.image(0, 0, 'dnsky_dusk').setOrigin(0).setScale(3).setDepth(-0.99).setAlpha(0);
+    this.dnLast = -1;
+  },
+  dayNight(dt) {
+    if (!this.skyImg || !this.skyB || !this.duskSun) return;
+    const W = this.scale.width, H = this.scale.height, gy = this.groundY, KEYS = ['day', 'dusk', 'night', 'dawn'];
+    const CYCLE = 240, p = ((Date.now() / 1000) % CYCLE) / (CYCLE / 4) + (this.dnOff || 0);   // 0..4: day, dusk, night, dawn
+    const P4 = ((p % 4) + 4) % 4, i = Math.floor(P4), f = P4 - i, b = f < 0.65 ? 0 : (f - 0.65) / 0.35, e = b * b * (3 - 2 * b), j = (i + 1) % 4;
+    if (this.dnLast !== i) { this.skyImg.setTexture('dnsky_' + KEYS[i]); this.skyB.setTexture('dnsky_' + KEYS[j]); this.dnLast = i; }
+    this.skyB.setAlpha(e);
+    // how dark it is (0 day .. 1 night), and how golden (dusk/dawn)
+    const DARK = [0, 0.35, 1, 0.45], GOLD = [0, 1, 0, 0.8], dark = DARK[i] + (DARK[j] - DARK[i]) * e, gold = GOLD[i] + (GOLD[j] - GOLD[i]) * e;
+    this.dnDark = dark;
+    // the wash over the world: white by day, warm at the edges of it, deep blue at night
+    if (!this.dnWash) this.dnWash = this.add.rectangle(0, 0, 10, 10, 0xffffff).setOrigin(0).setDepth(9.5).setScrollFactor(0).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    const lerp = (a, c, t) => Math.round(a + (c - a) * t);
+    const mix = (c1, c2, t) => (lerp(c1 >> 16, c2 >> 16, t) << 16) | (lerp((c1 >> 8) & 255, (c2 >> 8) & 255, t) << 8) | lerp(c1 & 255, c2 & 255, t);
+    let wc = mix(0xffffff, 0xffd2b4, gold); wc = mix(wc, 0x5262a0, dark);
+    this.dnWash.setSize(W, H).setFillStyle(wc, 1);
+    // the sun: up from the left at dawn, high at midday, down on the right at dusk (p 3.35 -> 1.85, wrapping)
+    const su = ((P4 - 3.35 + 4) % 4) / 2.5, sunUp = su <= 1;
+    const arcY = u => gy - 26 - Math.sin(Math.PI * u) * gy * 0.55;
+    if (sunUp) {
+      const x = W * (0.12 + 0.76 * su), y = arcY(su), low = 1 - Math.sin(Math.PI * su);
+      this.duskSun.setVisible(true).setPosition(x, y).setTint(mix(0xfff6dc, 0xffffff, low));
+      this.duskSun.setAlpha(1); this.dnDaySun.setVisible(true).setPosition(x, y).setAlpha(Math.max(0, 1 - low * 1.6));
+      this.duskHalo.setVisible(true).setPosition(x, y).setTint(mix(0xfff0b0, 0xff8a40, low)).setAlpha(0.25 + 0.25 * low);
+    } else { this.duskSun.setVisible(false); this.dnDaySun.setVisible(false); this.duskHalo.setVisible(false); }
+    // the moon: the other half of the turn (p 1.75 -> 3.45)
+    const mu = ((P4 - 1.75 + 4) % 4) / 1.7;
+    if (mu <= 1) this.dnMoon.setVisible(true).setPosition(W * (0.85 - 0.7 * mu), arcY(mu) - 10).setAlpha(Math.min(1, Math.sin(Math.PI * mu) * 1.6));
+    else this.dnMoon.setVisible(false);
+    // stars and fireflies come out in the dark; the clouds go grey-blue at night and white by day
+    for (const s of this.bgStars) {
+      if (s.ff !== undefined) s.ta = Math.min(1, dark * 1.3);
+      else if (s.s.texture && s.s.texture.key === 'bgstar') { if (s.a0 === undefined) s.a0 = s.s.alpha; s.s.setAlpha(Math.min(0.95, s.a0 * (0.1 + 2.2 * dark) + 0.5 * dark * dark)); }
+      else if (s.flat) s.s.setTint(mix(mix(0xffffff, 0xe88aa0, gold), 0x56648e, dark));
+    }
+    // the hills: sage by day, mauve at sundown, blue-black at night
+    const RT = [[0x9cc2a8, 0x6e927a], [0xa47890, 0x8a6c80], [0x6a78a8, 0x4a5478], [0xb48ca4, 0x8a7290]];
+    if (this.depthFx) this.depthFx.ridges.forEach((r, n) => { const c = RT[i][Math.min(1, n)], d = RT[j][Math.min(1, n)]; r.im.setTint(mix(c, d, e)); });
+    {
+    }
+    // the warm lights: brightest at night
+    if (!this.dnGlows && this.campSt) {
+      this.dnGlows = [];
+      for (const st of this.campSt) {
+        const G = { fire: [0xff9a40, 4.2, 18], tent: [0xffc060, 2.4, 26], bar: [0xffb050, 5.5, 60], lunch: [0xffd080, 2, 14] }[st.id];
+        if (!G) continue;
+        const spr = this.add.image(0, 0, 'blob').setDepth(9.6).setTint(G[0]).setBlendMode(Phaser.BlendModes.ADD); spr.bsx = spr.bsy = G[1];
+        const a = { spr, theta: st.theta, h: G[2], rot: 0, glow: true, base: st.id === 'fire' ? 1 : 0.8 }; this.actors.push(a); this.dnGlows.push(a);
+      }
+    }
+    if (this.dnGlows) { const t = this.time.now / 1000; for (const g of this.dnGlows) g.spr.setAlpha(g.base * (0.15 + 0.85 * dark) * (g.base > 0.9 ? 0.9 + 0.1 * Math.sin(t * 9) + 0.05 * Math.sin(t * 23) : 1)); }
+  },
   // (v3.142) the sundown sky: a big low sun sinking behind the hills, long lit clouds drifting, fireflies, few stars yet
   duskDecor() {
     const T = this.textures;
@@ -331,23 +395,36 @@ const CampMixin = {
           const edge = Math.min(x, W - 1 - x); let top = 14 - Math.min(5, edge / 4);
           for (const [bx, bh, bw] of bumps) top = Math.min(top, 14 - bh * Math.max(0, 1 - Math.abs(x - bx) / bw));
           if (y < top || y > 16 - (edge < 6 ? (6 - edge) / 2 : 0)) continue;
-          put(x, y, y > 14 ? 0xffb070 : y > 12 ? 0xd8788a : y < top + 1.2 ? 0xa0688e : 0x6a4c78);
+          put(x, y, y > 14 ? 0xfff4e0 : y > 12 ? 0xe4e0ec : y < top + 1.2 ? 0xd0cce0 : 0xb0aec8);   // (v3.143) neutral: the time of day tints them
         }
       });
     }
     const W = this.scale.width;
     this.duskHalo = this.add.image(W * 0.74, this.groundY - 30, 'blob').setDepth(-0.95).setTint(0xff8a40).setScale(13).setAlpha(0.45).setBlendMode(Phaser.BlendModes.ADD);
     this.duskSun = this.add.image(W * 0.74, this.groundY - 30, 'dusk_sun').setDepth(-0.9).setScale(2.4);
+    if (!T.exists('dn_sun')) {
+      pixTex(this, 'dn_sun', 72, 72, put => { for (let y = 0; y < 72; y++) for (let x = 0; x < 72; x++) { const d = Math.hypot(x - 35.5, y - 35.5); if (d <= 34) put(x, y, d > 31 ? 0xffe890 : d > 26 && bay(x, y) > 0.5 ? 0xfff4c0 : 0xfffbe8); } });
+      pixTex(this, 'dn_moon', 40, 40, put => {
+        for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) {
+          const d = Math.hypot(x - 19.5, y - 19.5); if (d > 18) continue;
+          const sh = Math.hypot(x - 27, y - 14) < 16;                                     // a fat crescent: the shadow bite
+          if (sh && Math.hypot(x - 27, y - 14) < 14.5) continue;
+          put(x, y, sh ? 0xb8c4e0 : (Math.hypot(x - 11, y - 22) < 3 || Math.hypot(x - 15, y - 30) < 2) ? 0xc8d2ea : 0xeef2ff);
+        }
+      });
+    }
+    this.dnDaySun = this.add.image(0, 0, 'dn_sun').setDepth(-0.89).setScale(2.4).setVisible(false);
+    this.dnMoon = this.add.image(0, 0, 'dn_moon').setDepth(9.52).setScale(3).setVisible(false);
     const rnd = (a, b) => a + Math.random() * (b - a);
     for (let i = 0; i < 7; i++) {
       const s = this.add.image(0, 0, 'dusk_cl' + (i % 3)).setDepth(0.05).setScale(3).setAlpha(rnd(0.7, 0.95));
       this.bgStars.push({ s, a: i * TAU / 7 + rnd(-0.3, 0.3), r: rnd(0.12, 0.5), k: rnd(0.05, 0.1), radial: false, flat: true });
     }
     for (let i = 0; i < 36; i++) {                                                  // fireflies, low over the ground
-      const s = this.add.image(0, 0, 'px_star').setDepth(0.5).setTint(i % 4 ? 0xffd27a : 0xc8ff8a).setScale(1).setBlendMode(Phaser.BlendModes.ADD);
-      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(-0.03, 0.1), k: rnd(0.8, 1.05), tw: rnd(0, 6), ta: 1, ff: rnd(0, 6) });
+      const s = this.add.image(0, 0, 'px_star').setDepth(9.55).setTint(i % 4 ? 0xffd27a : 0xc8ff8a).setScale(1).setBlendMode(Phaser.BlendModes.ADD);
+      this.bgStars.push({ s, a: rnd(0, TAU), r: rnd(0.01, 0.12), k: rnd(0.8, 1.05), tw: rnd(0, 6), ta: 1, ff: rnd(0, 6) });
     }
-    for (const b of this.bgStars) if (b.s.texture && b.s.texture.key === 'bgstar') b.s.setAlpha(b.s.alpha * Math.max(0.05, Math.min(1, (b.r - 0.35) / 0.4)));   // only the high sky has stars yet
+    for (const b of this.bgStars) if (b.s.texture && b.s.texture.key === 'bgstar') b.s.setDepth(9.52).setAlpha(b.s.alpha * Math.max(0.05, Math.min(1, (b.r - 0.35) / 0.4)));   // only the high sky has stars yet
   },
   campInit(data) {
     if (typeof runRouteNow === 'function') runRouteNow();
@@ -459,6 +536,7 @@ const CampMixin = {
     return bd < 46 && P.h < 60 ? best : null;
   },
   campUpdate(dt, inp) {
+    this.dayNight(dt);
     if (this.sky) {                                     // (v3.124) the camera climbs with Chris; the shrine shines; touch it
       const K = this.sky, P = this.pl, want = Math.max(0, P.h - 200) * 1.2;   // no climb until he's above the first ledge, then catch up
       K.lift += (want - K.lift) * Math.min(1, dt * 4);

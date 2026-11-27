@@ -2795,3 +2795,10 @@ Camp pause menu (runs only) gets TEST: UNLOCK ALL CAMP (everyone home, every fea
 The Moon Camp gets its own look (texture id 77, so level 1 keeps its own): a teal-to-amber sundown sky, a big low slatted
 sun with a warm halo sinking behind the hills, long lit clouds, mossy blue-grey rock instead of cheese, mauve hills and
 pine-spire silhouettes catching the light, warm-rimmed planet, fireflies near the ground, stars only high up.
+
+## v3.143: day and night at camp
+A 4-minute loop on the real clock (so it carries on between visits): DAY -> DUSK -> NIGHT -> DAWN, each held ~40s and
+blended over ~20s. Four dithered skies crossfade; the sun rises on the left and sets on the right (the slatted sunset sun
+at the low ends, a pale white sun up high), a crescent moon crosses at night; a MULTIPLY wash tints the world (warm at
+the ends of the day, deep blue at night); hills tint sage/mauve/blue-black; clouds white/pink/slate; stars and fireflies
+come out in the dark; the campfire, tent and bar throw warm light that only really shows at night.
