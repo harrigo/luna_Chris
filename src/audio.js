@@ -15,7 +15,7 @@ const Sound = (() => {
   const last = {};
   const pulses = {};
   let cur = null, timer = null, jetNode = null;
-  const MIN_GAP = { shoot: 0.07, macshot: 0.07, hit: 0.07, squish: 0.07, tink: 0.07, kill: 0.05, splat: 0.05, scrap: 0.05, whoo: 0.08, cube: 0.05, flap: 0.2 };
+  const MIN_GAP = { coin: 0.05, ding: 0.1, shoot: 0.07, macshot: 0.07, hit: 0.07, squish: 0.07, tink: 0.07, kill: 0.05, splat: 0.05, scrap: 0.05, whoo: 0.08, cube: 0.05, flap: 0.2 };
 
   // ------------------------------------------------------------ setup
   function init() {
@@ -300,6 +300,12 @@ const Sound = (() => {
       noise({ f1: 1100, f2: 180, dur: 0.26, vol: 0.4, q: 2.5, t: t + at }); tone({ type: 'sine', f: 260, f2: 70, dur: 0.22, vol: 0.3, t: t + at });
       tone({ type: 'triangle', f: 90, f2: 40, dur: 0.3, vol: 0.5, t: t + at + 0.16 });
       noise({ ft: 'highpass', f1: 2200, f2: 5200, dur: 0.9, vol: 0.2, q: 0.4, t: t + at + 0.24 }); },
+    // (v3.145) the slot machine's party noises
+    coin:    () => { const t = ctx.currentTime; tone({ type: 'square', f: 1976, dur: 0.04, vol: 0.06, t }); tone({ type: 'square', f: 2637, dur: 0.08, vol: 0.06, t: t + 0.04 }); },
+    ding:    () => { arp([1047, 1568], 0.06, { type: 'triangle', vol: 0.16 }); },
+    bells:   () => { const t = ctx.currentTime; [1047, 1319, 1568, 2093, 1568, 2093, 2637].forEach((f, i) => tone({ type: 'triangle', f, dur: 0.22, vol: 0.13, t: t + i * 0.06 })); noise({ ft: 'highpass', f1: 6000, dur: 0.6, vol: 0.05, t: t + 0.1 }); },
+    moo:     () => { const t = ctx.currentTime; tone({ type: 'sawtooth', f: 160, f2: 120, dur: 0.55, vol: 0.09, t, sustain: true }); tone({ type: 'sawtooth', f: 165, f2: 118, dur: 0.55, vol: 0.06, t }); tone({ type: 'sine', f: 520, f2: 880, dur: 0.12, vol: 0.08, t: t + 0.5 }); },
+    splash:  () => { noise({ f1: 2400, f2: 500, dur: 0.6, vol: 0.32, q: 1.2 }); tone({ type: 'sine', f: 300, f2: 60, dur: 0.4, vol: 0.35 }); },
     clunk:   () => { tone({ type: 'triangle', f: 95, f2: 45, dur: 0.28, vol: 0.5 }); noise({ f1: 600, dur: 0.08, vol: 0.3 }); },
     reveal:  () => {
       arp([392, 494, 587, 784, 988], 0.09, { type: 'square', vol: 0.14 });
@@ -645,6 +651,35 @@ const Sound = (() => {
       { p: J(arpBar([57, 60, 64]), arpBar([50, 53, 57]), arpBar([53, 57, 60]), arpBar([52, 56, 59]), arpBar([57, 60, 64]), arpBar([50, 53, 57]), arpBar([53, 57, 60]), arpBar([52, 56, 59])), w: 'pulse', duty: 0.125, vol: 0.05, pluck: true, gate: 1 },
       { p: J(bassBar(33), bassBar(38), bassBar(41), bassBar(40), bassBar(33), bassBar(38), bassBar(41), bassBar(40)), w: 'triangle', vol: 0.34, gate: 0.55 },
       { drums: true, p: 'k.h.s.h.k.h.s.hh', vol: 0.9 }
+    ] }),
+
+    // (v3.145) RIDIC LOUISE's own tune: a bouncy, cheesy casino earworm in C (C Am F G), four on the floor, then a
+    // verse that steps up (F G Em Am F G C) and a big run back into the hook. AABA, about 40 seconds round.
+    slots: song({ bpm: 150, order: 'AABA',
+      A: { hook: true, ch: [
+        { p: J('G5:2 E5:1 G5:1 C6:2 G5:2 E5:2 G5:2 C6:4', 'A5:2 C6:1 A5:1 E5:2 A5:2 C6:4 B5:2 A5:2', 'F5:2 A5:1 F5:1 C6:2 A5:2 F5:2 A5:2 C6:2 D6:2', 'B5:2 D6:2 G6:4 F6:2 E6:2 D6:4',
+                'E6:2 -:1 E6:1 D6:2 C6:2 G5:2 C6:2 E6:4', 'C6:2 -:1 C6:1 B5:2 A5:2 E5:2 A5:2 C6:4', 'D6:2 F6:2 A6:2 F6:2 D6:2 C6:2 A5:4', 'G5:2 A5:2 B5:2 D6:2 G6:4 -:4'),
+          alt: J('G5:1 G5:1 E5:2 G5:2 C6:2 E6:4 C6:4', 'A5:1 A5:1 E5:2 A5:2 C6:2 E6:4 C6:4', 'F5:2 A5:2 C6:2 F6:2 E6:2 C6:2 A5:4', 'B5:2 D6:2 G6:2 D6:2 B5:4 G5:4',
+                 'C6:2 E6:2 G6:2 E6:2 C6:4 G5:4', 'A5:2 C6:2 E6:2 C6:2 A5:4 E5:4', 'D6:2 F6:2 A6:4 G6:2 F6:2 D6:4', 'G6:2 F6:2 E6:2 D6:2 B5:4 G5:4'),
+          w: 'pulse', duty: 0.25, vol: 0.15, gate: 0.82 },
+        { p: J(arpBar([60, 64, 67]), arpBar([57, 60, 64]), arpBar([53, 57, 60]), arpBar([55, 59, 62]), arpBar([60, 64, 67]), arpBar([57, 60, 64]), arpBar([50, 53, 57]), arpBar([55, 59, 62])), w: 'pulse', duty: 0.125, vol: 0.055, pluck: true, gate: 1 },
+        { p: J(bassBar(36), bassBar(33), bassBar(41), bassBar(43), bassBar(36), bassBar(33), bassBar(38), bassBar(43)), w: 'triangle', vol: 0.33, gate: 0.6 },
+        { drums: true, p: 'k.h.s.hkk.h.s.hh', vol: 0.95 }
+      ] },
+      B: { ch: [
+        { p: J('A5:1 A5:1 -:2 A5:2 G5:2 F5:2 A5:2 C6:4', 'B5:1 B5:1 -:2 B5:2 A5:2 G5:2 B5:2 D6:4', 'G5:2 B5:2 E6:4 D6:2 B5:2 G5:4', 'A5:2 C6:2 E6:2 C6:2 A5:4 -:4',
+                'F6:2 E6:2 D6:2 C6:2 A5:2 C6:2 F6:4', 'G6:2 F6:2 E6:2 D6:2 B5:2 D6:2 G6:4', 'E6:2 G6:2 C7:4 G6:2 E6:2 C6:4', 'G5:1 A5:1 B5:1 C6:1 D6:1 E6:1 F6:1 G6:1 C7:4 -:4'),
+          w: 'pulse', duty: 0.5, vol: 0.13, gate: 0.8 },
+        { p: J(arpBar([53, 57, 60]), arpBar([55, 59, 62]), arpBar([52, 55, 59]), arpBar([57, 60, 64]), arpBar([53, 57, 60]), arpBar([55, 59, 62]), arpBar([60, 64, 67]), arpBar([60, 64, 67])), w: 'pulse', duty: 0.125, vol: 0.055, pluck: true, gate: 1 },
+        { p: J(bassBar(41), bassBar(43), bassBar(40), bassBar(33), bassBar(41), bassBar(43), bassBar(36), '36:2 38:2 40:2 41:2 43:2 45:2 47:2 48:2'), w: 'triangle', vol: 0.33, gate: 0.6 },
+        { drums: true, p: 'k.h.skh.k.h.skhs', vol: 0.95 }
+      ] } }),
+    // (v3.145) the BIG WIN fanfare: up the arpeggio, a held top C, a twiddle, then home to the tune
+    slotbig: build({ bpm: 150, loop: false, ch: [
+      { p: 'G5:2 C6:2 E6:2 G6:4 E6:2 G6:2 C7:8 -:2 A6:1 B6:1 C7:2 D7:2 E7:10', w: 'pulse', duty: 0.25, vol: 0.18, gate: 0.92 },
+      { p: 'E5:2 G5:2 C6:2 E6:4 C6:2 E6:2 G6:8 -:2 F6:1 G6:1 A6:2 B6:2 C7:10', w: 'pulse', duty: 0.5, vol: 0.1, gate: 0.92 },
+      { p: 'C3:8 F2:8 G2:8 C3:16', w: 'triangle', vol: 0.36, gate: 0.9 },
+      { drums: true, p: 'k.s.k.s.kkskkss.k...s...k.k.s.s.ssss', vol: 1 }
     ] }),
 
     // (v3.103) the tent: a slow, soft lullaby on the little radio (no drums, just a music box over a hum)

@@ -2807,3 +2807,18 @@ come out in the dark; the campfire, tent and bar throw warm light that only real
 Moon (and the stars) back behind everything; the night wash a touch lighter to suit. The tent now sits behind the planet
 like the bar (sunk and masked by the planet disc), so Chris walks in front of it. Fixed the error coming back out of the
 tent: the day/night wash and light glows from the previous visit were being reused after the restart.
+
+## v3.145: RIDIC LOUISE BURSTING UDDER MAX CHEESE GRATER EDITION 2000
+- Name sticker: BURSTING UDDER MAX CHEESE GRATER EDITION 2000, 20% bigger.
+- LOUISE THROWS YOU A BONE: a dead spin (no win, no star) with two of a good symbol (shield, chilli, heart, wheel,
+  Bessie) starting a line - 80% of the time she respins reels 3-5. About 1 spin in 10. It's inside SLOT.baseSpin, so the
+  tuner measures lines AND stars from it (tools/slotsim.js now samples the star distribution): RTP unchanged (~90% reels
+  and trail + ~5% udder).
+- Wider cabinet (232 -> 300 art px). The separate BIG CHEESE tower is gone: THE BIG UDDER lives in a window inside the
+  cabinet - Bessie's belly and legs, an udder that swells with each coin (boing; it moos), throbs and goes veiny near the
+  end ("SHE'S GONNA BLOW!"), drips milk into a pail with the pot on it, and bursts in a milk splash when it pays.
+- Louise dances on the beat (150 bpm), arms swapping, hips swinging; goes wild on wins.
+- Every symbol sits on its own bright tile (orange, teal, purple, blue, green, magenta, lime, a rainbow for the wheel).
+- RULES ? button: four pages (how to play, the pays at your bet, the trail and bonuses, the udder).
+- Sound: its own tune ('slots', C Am F G, AABA), a big-win fanfare jingle ('slotbig') for tier wins / jackpot / the
+  udder, bells on wins, a ding on small ones, coin ticks while the win counts up, a moo, a splash.

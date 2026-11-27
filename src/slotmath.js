@@ -42,7 +42,7 @@ const SLOT = (() => {
   // step's bonus game worth its val on average. Each val is exactly what carrying on from that step is worth, so taking
   // is never a mistake: it's banking versus gambling, and the RTP is the same however you play.
   // @@TUNE@@
-  const TUNE = {"mild":{"line":1.29298,"val":[1.468,3.383,3.492,4.986,4.75,6.138,5.658,6.97,6.256,7.504,9.35,11.577],"fx":[0,0,0.14472,0,0.16381,0,0.17319,0,0.1286,0,0,0]},"mature":{"line":1.04405,"val":[2.401,5.993,7.268,10.308,14.218,15.299,18.23,18.564,21.122,21.023,23.364,22.913,25.079,24.297,26.297,29.987],"fx":[0,0,0.15073,0,0,0.13724,0,0.17865,0,0.11837,0,0.16469,0,0.21215,0,0]},"extra":{"line":0.97772,"val":[3.59,10.722,14.542,21.922,32.806,39.752,50.231,64.184,73.541,86.384,94.048,105.24,119.899,128.665,140.949,156.691,177.127],"fx":[0,0,0.61566,0,0,0.14075,0,0,0.13875,0,0.78748,0,0,0.19736,0,0,0]}};
+  const TUNE = {"mild":{"line":1.10838,"val":[1.388,3.168,3.239,4.641,4.404,5.717,5.258,6.507,5.832,7.027,8.751,10.803],"fx":[0,0,0.13439,0,0.15329,0,0.16083,0,0.11986,0,0,0]},"mature":{"line":0.93174,"val":[2.26,5.56,6.655,9.424,12.958,13.837,16.496,16.737,19.101,18.982,21.178,20.76,22.818,22.113,24.039,27.442],"fx":[0,0,0.1379,0,0,0.12563,0,0.16344,0,0.10805,0,0.15075,0,0.19409,0,0]},"extra":{"line":0.87159,"val":[3.372,9.835,13.63,20.5,30.183,36.446,45.591,57.368,65.01,75.404,81.277,90.062,101.508,107.751,116.878,128.639,143.739],"fx":[0,0,0.4999,0,0,0.11382,0,0,0.11282,0,0.63941,0,0,0.1611,0,0,0]}};
   // @@END@@
   // reel strips: the counts, spread out so stars and wilds never bunch (a star at most once in any 3-high window)
   function strips(sk) {
@@ -68,6 +68,20 @@ const SLOT = (() => {
     for (let r = 0; r < 5; r++) { const n = S[r].length, p = Math.floor(rnd() * n); stops.push(p); grid.push([0, 1, 2].map(k => S[r][(p + k) % n])); }
     if (sticky) for (const [r, k] of sticky) grid[r][k] = WILD;     // free spins: Bessies that stay put
     return { stops, grid };
+  }
+  // (v3.145) LOUISE THROWS YOU A BONE: a dead spin (no win, no star) that was CLOSE - two of a good symbol (shield, chilli, heart,
+  // golden wheel or Bessie) lined up from the left on any line - and 80% of the time she gives reels 3-5 another spin.
+  // It's part of the base game, so the simulator tunes the RTP with it in (it stays 95%).
+  const PREMIUM = { plate: 1, power: 1, heart: 1, wheel: 1, bessie: 1 }, BONE_P = 0.8;
+  function closeCall(grid) {
+    return LINES.some(L => { const a = grid[0][L[0]], b = grid[1][L[1]]; return (PREMIUM[a] && (b === a || b === WILD)); });
+  }
+  function baseSpin(sk, rnd) {
+    const first = spin(sk, rnd);
+    if (lineWins(first.grid).length || stars(first.grid) || !closeCall(first.grid) || rnd() >= BONE_P) return first;
+    const S = STRIPS[sk], stops = first.stops.slice(), grid = first.grid.map(c => c.slice());
+    for (let r = 2; r < 5; r++) { const n = S[r].length, p = Math.floor(rnd() * n); stops[r] = p; grid[r] = [0, 1, 2].map(k => S[r][(p + k) % n]); }
+    return { stops, grid, bone: { stops: first.stops, grid: first.grid } };
   }
   // the line wins on a grid: [{ line, sym, n, x (total-bet multiple, before scale) }]
   function lineWins(grid) {
@@ -149,16 +163,16 @@ const SLOT = (() => {
   // one base-game spin plus what it does to the trail. pos: trail position before (-1 = not on it yet).
   // Each star ON THE CENTRE LINE moves you up a lamp; a spin with none may SLIP you back one (the strength's slip chance).
   function play(sk, rnd, pos) {
-    const T = STRENGTHS[sk], { stops, grid } = spin(sk, rnd), wins = lineWins(grid), st = stars(grid), L = TUNE[sk].line, top = T.trail.length - 1;
+    const T = STRENGTHS[sk], { stops, grid, bone } = baseSpin(sk, rnd), wins = lineWins(grid), st = stars(grid), L = TUNE[sk].line, top = T.trail.length - 1;
     wins.forEach(w => { w.x *= L; });
     let x = wins.reduce((a, q) => a + q.x, 0), np = pos, feat = null, slipped = false;
     if (st > 0) np = climb(sk, pos, st);
     else if (pos >= 0 && rnd() < T.slip) { np = pos - 1; slipped = true; }
     if (np === top) { feat = take(sk, top); np = -1; }
     else if (np !== pos && np >= 0 && st > 0 && isBonus(T.trail[np])) feat = bonusAt(sk, np, rnd);
-    return { stops, grid, wins, stars: st, x, pos: np, feat, slipped };
+    return { stops, grid, wins, stars: st, x, pos: np, feat, slipped, bone };
   }
   const valAt = (sk, pos) => pos >= 0 ? (TUNE[sk].val[pos] || 0) : 0;
-  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, bonusAt, take, play, climb, isBonus, valAt };
+  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, baseSpin, closeCall, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, bonusAt, take, play, climb, isBonus, valAt };
 })();
 if (typeof module !== 'undefined') module.exports = SLOT;

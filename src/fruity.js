@@ -13,7 +13,27 @@ const SLOT_BETS = { shop: [5, 10, 25, 50, 100], camp: [3, 5, 15, 30] };   // (v3
 const SLOT_TIERS = [[50, 'CHEESE-TASTROPHIC!', 0xff6ad0], [25, 'MEGA WIN!', 0xffd23f], [10, 'BIG WIN!', 0x7dff8a]];
 
 // ---- the art: nine reel symbols (22 x 22), each lit from the top left with a dark outline, in the game's palette
+// (v3.145) every symbol sits on its own bright tile (like the bosses: loud, saturated, never the same colour twice)
+const FM_TILE = { wedge: [0xd8581a, 0xffb43a], coin: [0x0a6a7a, 0x2ad8c8], slow: [0x4a1aa0, 0xa07af6], plate: [0x123ab0, 0x4a9aff], power: [0x127a32, 0x6ade5a],
+  heart: [0xa0105a, 0xff5ab0], wheel: null, bessie: [0x4a8a12, 0xb8ec4a], star: [0x140c48, 0x7a3ad0] };
+function makeFruityTiles(scene) {
+  if (scene.textures.exists('fm_t_star')) return;
+  const TW = 36, TH = 28;
+  for (const k of Object.keys(FM_TILE)) pixTex(scene, 'fm_t_' + k, TW, TH, put => {
+    const C = FM_TILE[k];
+    for (let y = 0; y < TH; y++) for (let x = 0; x < TW; x++) {
+      const cx = Math.min(x, TW - 1 - x), cy = Math.min(y, TH - 1 - y); if (cx + cy < 3) continue;          // the corners clipped off
+      let col;
+      if (!C) col = FM_RAINBOW[Math.floor(((x + y * 0.8) / 5 + 100)) % FM_RAINBOW.length];                  // the jackpot wheel: a rainbow
+      else { const v = 1 - y / (TH - 1) + (k === 'star' ? -Math.hypot(x - TW / 2, y - TH / 2) / 30 : 0); col = v * 16 > bay(x, y) + 4 ? C[1] : C[0]; }
+      if (y === 1 || (cx + cy === 3 && y < TH / 2)) col = 0xffffff;                                           // a glossy top edge
+      else if (y === TH - 2) col = 0x1a1020;
+      put(x, y, col, y === 1 ? 190 : 255);
+    }
+  });
+}
 function makeFruityTextures(scene) {
+  makeFruityTiles(scene);
   if (scene.textures.exists('fm_wheel')) return;
   const S = 22, c = 10.5;
   const icon = (key, shape) => pixTex(scene, key, S, S, put => {
@@ -234,13 +254,14 @@ class FruityScene extends Phaser.Scene {
   create() {
     makeTextures(this); makeFruityTextures(this); makeLouiseTextures(this);
     this.cameras.main.setBackgroundColor('#0e0810'); this.cameras.main.fadeIn(220, 0, 0, 0);
-    Sound.init(); Sound.music(null);
+    Sound.init(); Sound.music('slots');   // (v3.145) its own tune
     const sv = this.registry.get('slot_' + this.from) || {};
     this.sk = sv.sk || 'mature'; this.betI = sv.betI !== undefined ? sv.betI : 1; this.pos = sv.pos !== undefined ? sv.pos : -1; this.dispPos = this.pos;
     this.carry = 0; this.going = false; this.ph = 'idle'; this.t = 0; this.free = 0; this.lastWin = 0; this.winLines = []; this.coins = []; this.sparks = []; this.flyers = []; this.banner = null;
     this.shownBal = this.bal(); this.press = {}; this.R = [0, 1, 2, 3, 4].map(() => ({ pos: Math.floor(Math.random() * 30), stop: null, v: 0, ant: false })); this.sticky = [];
     this.bg = this.add.graphics().setDepth(0); this.cab = this.add.graphics().setDepth(1);
     this.sym = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_wedge').setDepth(2)));
+    this.tile = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_t_wedge').setDepth(1.95)));
     this.stickyIm = []; for (let i = 0; i < 15; i++) this.stickyIm.push(this.add.image(0, 0, 'fm_bessie').setDepth(2.5).setVisible(false));
     this.payIm = []; this.fg = this.add.graphics().setDepth(3); this.ui = this.add.container(0, 0).setDepth(4);
     this.fx = this.add.graphics().setDepth(6);
@@ -254,7 +275,7 @@ class FruityScene extends Phaser.Scene {
     }
     const padOff = typeof Pad !== 'undefined' ? Pad.on(b => this.act({ a: 'spin', x: 'take', lb: 'down', left: 'down', rb: 'up', right: 'up', y: 'strength', b: 'back', back: 'back' }[b])) : null;
     if (padOff) this.events.once('shutdown', padOff);
-    this.input.on('pointerdown', p => { const hit = [...(this.boxes || []), ...(this.oBoxes || [])].reverse().find(q => q.on() && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) hit.fn(); });
+    this.input.on('pointerdown', p => { if (this.rules) { const q = this.rules.boxes.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (q) q.fn(); return; } const hit = [...(this.boxes || []), ...(this.oBoxes || [])].reverse().find(q => q.on() && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) hit.fn(); });
     this.bcLoad(); this.leverT = 0;
     this.build();
     this.scale.on('resize', this.build, this);
@@ -266,17 +287,18 @@ class FruityScene extends Phaser.Scene {
   // In art pixels (z screen px each). The cabinet is CWa wide and runs off the bottom of the screen; beside it on the
   // right, the pull LEVER and THE BIG CHEESE builder tower. FW = the whole footprint (cabinet + lever + tower).
   geom() {
-    const W = this.scale.width, H = this.scale.height, CHa = 204, CWa = 232, FW = CWa + 28 + 74;
+    // (v3.145) wider: the BURSTING UDDER lives inside the cabinet now, in a window right of the reels
+    const W = this.scale.width, H = this.scale.height, CHa = 204, CWa = 300, FW = CWa + 28;
     const z = Math.max(1, Math.min((H - 2) / CHa, (W - 8) / (FW + 50)));
     const ox = Math.round((W - FW * z) / 2 + 24 * z), oy = Math.round((H - CHa * z) / 2);
     const A = (x, y) => ({ x: ox + x * z, y: oy + y * z });
-    const cw = 40 * z, chh = 30 * z, gap = 3 * z, rw = 5 * cw + 4 * gap, rh = 3 * chh, rx = ox + (CWa / 2) * z - rw / 2, ry = oy + 68 * z;
-    return { W, H, z, zi: z, CWa, CHa, FW, ox, oy, A, cw, chh, rw, rh, rx, ry, gap, LX: CWa + 14, LY: 112, TX: CWa + 30, TW: 70 };
+    const cw = 40 * z, chh = 30 * z, gap = 3 * z, rw = 5 * cw + 4 * gap, rh = 3 * chh, rx = ox + 8 * z, ry = oy + 68 * z;
+    return { W, H, z, zi: z, CWa, CHa, FW, ox, oy, A, cw, chh, rw, rh, rx, ry, gap, LX: CWa + 14, LY: 112, TX: 228, TW: 66 };   // TX/TW: the udder window
   }
   cell(r, k) { const G = this.geom(); return { x: G.rx + r * (G.cw + G.gap) + G.cw / 2, y: G.ry + k * G.chh + G.chh / 2 }; }
   // the deck's buttons: [id, x, w (art px), label, controller hint]
-  deck() { return [['down', 8, 32, 'BET-', 'LB'], ['up', 43, 32, 'BET+', 'RB'], ['strength', 78, 40, 'CHEESE', 'Y'], ['take', 121, 44, 'TAKE', 'X'], ['spin', 168, 56, 'SPIN', 'A']]; }
-  lampGeo() { const n = SLOT.STRENGTHS[this.sk].trail.length, lw = (this.geom().CWa - 16) / n; return { n, lw, x: p => 8 + p * lw, y: 46 }; }
+  deck() { const o = 34; return [['down', o + 8, 32, 'BET-', 'LB'], ['up', o + 43, 32, 'BET+', 'RB'], ['strength', o + 78, 40, 'CHEESE', 'Y'], ['take', o + 121, 44, 'TAKE', 'X'], ['spin', o + 168, 56, 'SPIN', 'A']]; }
+  lampGeo() { const n = SLOT.STRENGTHS[this.sk].trail.length, lw = 212 / n; return { n, lw, x: p => 8 + p * lw, y: 46 }; }
   build() {
     const G = this.geom(), z = G.z, f = (s, c, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.max(6, Math.round(s * z)) + 'px', color: c, stroke: '#1a1020', strokeThickness: Math.max(2, Math.round(z * 1.2)) }, o || {});
     this.ui.removeAll(true); this.boxes = []; this.payIm.forEach(im => im.destroy()); this.payIm = [];
@@ -294,24 +316,28 @@ class FruityScene extends Phaser.Scene {
     this.boxes.push({ x: 8, y: 8, w: ex.width, h: ex.height, on: () => true, fn: () => this.act('back') });
     // THE NAME: a letter each, so they can bounce and flash one by one
     this.nameL = [...'RIDIC LOUISE'].map((ch, i, all) => { const q = G.A(G.CWa / 2 + (i - (all.length - 1) / 2) * 14, 26); const t = this.add.text(q.x, q.y, ch, f(15, '#ffd23f', { stroke: '#2a0a0a', strokeThickness: Math.round(z * 2.4) })).setOrigin(0.5); this.ui.add(t); return t; });
-    { const q = G.A(G.CWa / 2, 40), t = this.add.text(q.x, q.y, 'MAX CHEESE GRATER EDITION', f(3, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03); this.ui.add(t); this.sticker = t; }
+    if (this.sticker) this.sticker.destroy();
+    { const q = G.A(G.CWa / 2, 38), t = this.add.text(q.x, q.y, 'BURSTING UDDER MAX CHEESE GRATER EDITION 2000', f(3.6, '#1a1020', { stroke: '#fff6c0', strokeThickness: Math.max(1, Math.round(z * 0.7)), backgroundColor: '#ffd23f', padding: { x: Math.round(3 * z), y: Math.round(0.6 * z) } })).setOrigin(0.5).setRotation(-0.03).setDepth(4.5); this.sticker = t; }
     // the meters, the LED ticker
     this.metT = ['CREDIT', 'BET', 'WIN'].map((lab, i) => { const p = G.A(10 + i * 72, 165); const L = this.add.text(p.x + 2 * z, p.y, lab, f(2.4, '#c8ccd8', { strokeThickness: 2 })).setOrigin(0, 0.5), V = this.add.text(p.x + 68 * z, p.y, '', f(4.6, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(1, 0.5); this.ui.add([L, V]); return V; });
     this.msgT = this.add.text(G.A(G.CWa / 2, 177).x, G.A(G.CWa / 2, 177).y, this.msg || '', f(3.2, this.msgCol || '#ff5a3a', { stroke: '#1a0404' })).setOrigin(0.5); this.ui.add(this.msgT);
     // trail lamps
     const LG = this.lampGeo();
     this.lampT = SLOT.STRENGTHS[this.sk].trail.map(() => { const t = this.add.text(0, 0, '', f(2.3, '#ffffff', { strokeThickness: 2, align: 'center', lineSpacing: -Math.round(z * 0.6) })).setOrigin(0.5); this.ui.add(t); return t; });
-    // THE BIG CHEESE builder tower texts
+    // (v3.145) THE BURSTING UDDER window texts: a label up top, the pot on the pail, the must-burst count under it
     { const c = G.TX + G.TW / 2;
-      this.bcT = [this.add.text(G.A(c, 20).x, G.A(c, 20).y, 'THE BIG\nCHEESE', f(5, '#ffd23f', { align: 'center', stroke: '#5a1a0a', strokeThickness: Math.round(z * 1.6), lineSpacing: -Math.round(z) })).setOrigin(0.5),
-        this.add.text(G.A(c, 128).x, G.A(c, 128).y, '', f(5, '#ff4a2a', { stroke: '#1a0404' })).setOrigin(0.5),
-        this.add.text(G.A(c, 138).x, G.A(c, 138).y, '', f(2.4, '#ffffff', { strokeThickness: 2, align: 'center' })).setOrigin(0.5, 0)];
+      this.bcT = [this.add.text(G.A(c, 49).x, G.A(c, 49).y, 'THE BIG UDDER', f(2.8, '#ffd0dc', { stroke: '#5a0e2a', strokeThickness: Math.round(z * 1.2) })).setOrigin(0.5),
+        this.add.text(G.A(c, 146).x, G.A(c, 146).y, '', f(4.4, '#ffffff', { stroke: '#1a1020' })).setOrigin(0.5),
+        this.add.text(G.A(c, 164).x, G.A(c, 164).y, '', f(2.3, '#ffd0dc', { strokeThickness: 2, align: 'center' })).setOrigin(0.5, 0)];
       this.ui.add(this.bcT); }
+    // RULES (v3.145)
+    { const rb = this.add.text(G.W - 8, 8, 'RULES  ?', f(3.6, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: '#ffd23f', padding: { x: 6, y: 4 } })).setOrigin(1, 0).setDepth(4); this.ui.add(rb);
+      this.boxes.push({ x: G.W - 8 - rb.width, y: 8, w: rb.width, h: rb.height, on: () => true, fn: () => this.rulesOpen() }); }
     // a strength badge on the topper's corner
     this.strT = this.add.text(G.A(G.CWa - 10, 52 + 3).x, G.A(G.CWa - 10, 52 + 3).y, '', f(2.4, '#ffffff')).setOrigin(1, 0.5).setVisible(false); this.ui.add(this.strT);
     // pixel glows: behind the name, the SPIN button and the jar
     const gl = (x, y, s, col) => { const q = G.A(x, y), im = this.add.image(q.x, q.y, 'pxglow').setBlendMode(Phaser.BlendModes.ADD).setTint(col).setScale(s * z).setDepth(0.95); this.glows.push(im); return im; };
-    this.glowName = gl(G.CWa / 2, 24, 3.6, 0xff4a9a); this.glowSpin = gl(196, 194, 1.4, 0x2aff6a); this.glowJar = gl(G.TX + G.TW / 2, 82, 1.6, 0xffb02a);
+    this.glowName = gl(G.CWa / 2, 24, 3.6, 0xff4a9a); this.glowSpin = gl(230, 194, 1.4, 0x2aff6a); this.glowJar = gl(G.TX + G.TW / 2, 100, 1.6, 0xff8ab0);
     this.neon = [];
     this.refresh();
   }
@@ -329,6 +355,7 @@ class FruityScene extends Phaser.Scene {
   // ---------------------------------------------------------------- the four buttons (and Y / B)
   act(id) {
     if (!id || this.going) return;
+    if (this.rules) { if (id === 'back' || id === 'take') this.rulesClose(); else if (id === 'spin' || id === 'up') this.rulesPage(1); else if (id === 'down') this.rulesPage(-1); return; }
     this.press[id] = 0.15;
     if (this.ph === 'rat' && this.ratCells && !this.ratDone) {          // the rat trap on a controller: left / right choose, A picks
       const n = this.ratCells.length, closed = i => !this.ratCells[i].open;
@@ -349,6 +376,53 @@ class FruityScene extends Phaser.Scene {
       this.say(SLOT.STRENGTHS[this.sk].name + ' - ' + SLOT.STRENGTHS[this.sk].desc.toUpperCase(), '#ffffff'); this.saveTrail(); this.build();
     }
   }
+  // (v3.145) THE RULES: four pages over the machine - how to play, the pays (at your bet), the trail and bonuses, the udder
+  rulesOpen() {
+    if (this.rules || this.ph !== 'idle') return; Sound.sfx('blip');
+    this.rules = { page: 0, boxes: [], c: this.add.container(0, 0).setDepth(20) }; this.rulesDraw();
+  }
+  rulesClose() { if (!this.rules) return; this.rules.c.destroy(); this.rules = null; Sound.sfx('blip'); }
+  rulesPage(d) { const R = this.rules; R.page = Math.max(0, Math.min(3, R.page + d)); Sound.sfx('blip'); this.rulesDraw(); }
+  rulesDraw() {
+    const R = this.rules, W = this.scale.width, H = this.scale.height, c = R.c; c.removeAll(true); R.boxes = [];
+    const pw = Math.min(W - 24, 620), ph = Math.min(H - 20, 360), x0 = (W - pw) / 2, y0 = (H - ph) / 2, s = Math.max(1, Math.min(pw / 620, ph / 360) * 1.6);
+    const f = (sz, col, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.round(sz * s) + 'px', color: col, stroke: '#1a1020', strokeThickness: 3, lineSpacing: Math.round(3 * s) }, o || {});
+    const g = this.add.graphics(); g.fillStyle(0x08040e, 0.82).fillRect(0, 0, W, H);
+    g.fillStyle(0xffd23f, 1).fillRect(x0 - 3, y0 - 3, pw + 6, ph + 6); g.fillStyle(0x1a1020, 1).fillRect(x0 - 1, y0 - 1, pw + 2, ph + 2); g.fillStyle(0x2a1046, 1).fillRect(x0, y0, pw, ph);
+    g.fillStyle(0x3a1a5a, 1).fillRect(x0, y0, pw, 26 * s); c.add(g);
+    const TITLES = ['HOW TO PLAY', 'THE PAYS (AT YOUR BET OF ' + this.bet() + ')', 'THE TRAIL AND THE BONUSES', 'THE BIG UDDER'];
+    c.add(this.add.text(W / 2, y0 + 13 * s, TITLES[R.page], f(8, '#ffd23f')).setOrigin(0.5));
+    const body = (lines, y) => c.add(this.add.text(x0 + 16 * s, y || y0 + 36 * s, lines.join('\n\n'), f(6.4, '#ffffff', { wordWrap: { width: pw - 32 * s } })));
+    if (R.page === 0) body([
+      'PULL THE LEVER (OR PRESS SPIN). 10 LINES PAY LEFT TO RIGHT: 3, 4 OR 5 OF A KIND.',
+      'BESSIE THE COW IS WILD: SHE STANDS IN FOR ANY SYMBOL (SHE ONLY TURNS UP ON REELS 2-4).',
+      'BET- / BET+ CHANGE YOUR STAKE. CHEESE CHANGES THE STRENGTH: MILD = LITTLE WINS OFTEN, MATURE = IN BETWEEN, EXTRA MATURE = LONG DRY SPELLS AND HUGE TOP PRIZES.',
+      'SO CLOSE? IF A SPIN WINS NOTHING BUT TWO GOOD SYMBOLS START A LINE, LOUISE OFTEN THROWS YOU A BONE AND RESPINS REELS 3-5 FOR FREE.']);
+    else if (R.page === 1) {
+      const keys = ['wheel', 'bessie', 'heart', 'power', 'plate', 'slow', 'coin', 'wedge'], cols = 2, cw2 = (pw - 32 * s) / cols, rh2 = (ph - 60 * s) / 4;
+      keys.forEach((k, i) => {
+        const x = x0 + 16 * s + (i % cols) * cw2, y = y0 + 34 * s + Math.floor(i / cols) * rh2, ic = rh2 * 0.8 / 28;
+        c.add(this.add.image(x + 18 * ic, y + rh2 / 2, 'fm_t_' + k).setScale(ic)); c.add(this.add.image(x + 18 * ic, y + rh2 / 2, 'fm_' + k).setScale(ic * 1.1));
+        const pay = n => { const v = SLOT.PAYS[k][n] / 10 * SLOT.TUNE[this.sk].line * this.bet(); return v >= 10 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, ''); };
+        c.add(this.add.text(x + 40 * ic, y + rh2 / 2, '3: ' + pay(0) + '   4: ' + pay(1) + '   5: ' + pay(2), f(6.4, k === 'wheel' || k === 'bessie' ? '#ffd23f' : '#ffffff')).setOrigin(0, 0.5));
+      });
+      c.add(this.add.text(W / 2, y0 + ph - 30 * s, 'PER LINE. BESSIE (WILD) PAYS LIKE THE WHEEL WHEN SHE MAKES A LINE ALL BY HERSELF.', f(4, '#c8b8e8')).setOrigin(0.5));
+    } else if (R.page === 2) body([
+      'A STAR ON THE MIDDLE ROW MOVES YOU UP THE TRAIL (THE LAMPS ABOVE THE REELS). A SPIN WITH NO STAR MIGHT SLIP YOU BACK ONE.',
+      'TAKE BANKS THE LAMP YOU\'RE ON - OR KEEP CLIMBING. LAND ON A BONUS AND IT PLAYS STRAIGHT AWAY:',
+      'FREE SPINS - EVERY BESSIE THAT LANDS STAYS PUT FOR THE REST OF THEM.   RAT TRAP - PICK CHEESES; FIND A RAT AND IT\'S OVER.   COINS - COINS LOCK IN PLACE; EVERY NEW ONE RESETS YOUR 3 RESPINS. FILL THE LOT FOR THE GRAND.',
+      'REACH THE TOP LAMP FOR THE JACKPOT.']);
+    else body([
+      'SOME PAID SPINS SQUIRT A COIN UP INTO BESSIE\'S UDDER, AND IT GETS BIGGER... AND BIGGER... AND STARTS TO DRIP.',
+      'IT ALWAYS BURSTS BY THE COUNT UNDER THE WINDOW, AND THEN THE WHOLE POT IN THE PAIL IS YOURS.',
+      'OVER TIME THE MACHINE PAYS BACK ABOUT 95% OF WHAT GOES IN, WHATEVER STRENGTH YOU PLAY. LOUISE ALWAYS WINS IN THE END!']);
+    // the buttons
+    const btn = (label, x, fn, col) => { const t = this.add.text(x, y0 + ph - 12 * s, label, f(5.4, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: col || '#ffd23f', padding: { x: 8, y: 5 } })).setOrigin(0.5); c.add(t); R.boxes.push({ x: t.x - t.width / 2, y: t.y - t.height / 2, w: t.width, h: t.height, fn }); };
+    if (R.page > 0) btn('< BACK', x0 + 50 * s, () => this.rulesPage(-1));
+    btn('CLOSE', W / 2, () => this.rulesClose(), '#ff8aa8');
+    if (R.page < 3) btn('NEXT >', x0 + pw - 50 * s, () => this.rulesPage(1));
+    c.add(this.add.text(x0 + pw - 8 * s, y0 + 13 * s, (R.page + 1) + '/4', f(5, '#c8b8e8')).setOrigin(1, 0.5));
+  }
   louise(pose, secs, line) { this.louPose = pose; this.louT = secs || 1.2; if (line) this.say('LOUISE: ' + line, '#ff6ad0'); }
   // ---------------------------------------------------------------- spinning
   mega() {
@@ -362,13 +436,15 @@ class FruityScene extends Phaser.Scene {
     if (freeSpin) this.free--; else this.addBal(-bet);
     this.leverT = 0.5; this.coinDrop = freeSpin ? null : this.bcDrop();
     this.lastWin = 0; this.winLines = []; this.res = SLOT.play(this.sk, Math.random, this.pos);
-    this.startReels(this.res.stops); this.ph = 'spin'; this.say(freeSpin ? 'FREE SPIN - ' + this.free + ' LEFT' : 'GOOD LUCK!', '#ff5a3a'); Sound.sfx('clang'); this.refresh();
+    this.boneStage = this.res.bone ? 1 : 0; this.showGrid = this.res.bone ? this.res.bone.grid : null;   // (v3.145) a close call first...
+    this.startReels(this.res.bone ? this.res.bone.stops : this.res.stops); this.ph = 'spin'; this.say(freeSpin ? 'FREE SPIN - ' + this.free + ' LEFT' : 'GOOD LUCK!', '#ff5a3a'); Sound.sfx('clang'); this.refresh();
     if (Math.random() < 0.25) this.louise('wink', 0.9);
   }
-  startReels(stops) {
-    const res = this.res, starsBy = i => res && res.grid ? res.grid.slice(0, i).filter(c => c[1] === SLOT.STAR).length : 0, top = SLOT.STRENGTHS[this.sk].trail.length - 1;
+  startReels(stops, only) {
+    const res = this.showGrid ? { grid: this.showGrid } : this.res, starsBy = i => res && res.grid ? res.grid.slice(0, i).filter(c => c[1] === SLOT.STAR).length : 0, top = SLOT.STRENGTHS[this.sk].trail.length - 1;
     let t = 0.45;
     this.R.forEach((R, i) => {
+      if (only && !only.includes(i)) return;
       const lead = starsBy(i), ant = res && res.grid && i >= 2 && (lead >= 2 || (this.pos >= 0 && this.pos + lead >= top - 1 && lead >= 1));
       t += ant ? 0.9 : 0.2; R.v = 22 + i * 2; R.stop = { at: t, to: stops[i], go: false }; R.ant = ant;
     });
@@ -377,12 +453,20 @@ class FruityScene extends Phaser.Scene {
   reelsMoving() { return this.R.some(R => R.stop); }
   onReelStop(i) {
     Sound.sfx('clunk');
-    const g = this.res && this.res.grid; if (!g) return;
+    const g = this.showGrid || (this.res && this.res.grid); if (!g) return;
     if (g[i][1] === SLOT.STAR) { Sound.sfx('chime'); const c = this.cell(i, 1); this.flyers.push({ x: c.x, y: c.y, t: 0 }); this.burstAt(c.x, c.y, 0xffd23f, 10); }
     if (this.R[i + 1] && this.R[i + 1].ant && this.R[i + 1].stop) { Sound.sfx('reveal'); this.cameras.main.shake(120, 0.003); }
   }
   settle() {
     const r = this.res, bet = this.bet();
+    if (this.boneStage === 1) {                      // (v3.145) ...so close! Louise gives reels 3-5 another spin on her
+      this.boneStage = 2; this.ph = 'bone';
+      this.louise('cheer', 1.6, ['SO CLOSE! HAVE ANOTHER GO ON ME!', 'OOH NEARLY! LET ME NUDGE THAT...', 'GO ON THEN, CHRIS - ONE MORE!'][Math.floor(Math.random() * 3)]);
+      Sound.sfx('reveal'); this.boneFlash = 1.1; for (const i of [2, 3, 4]) { const c = this.cell(i, 1); this.burstAt(c.x, c.y, 0xff6ad0, 10); }
+      this.time.delayedCall(1100, () => { this.showGrid = null; this.startReels(r.stops, [2, 3, 4]); this.ph = 'spin'; Sound.sfx('clang'); this.leverT = 0.5; });
+      return;
+    }
+    this.boneStage = 0; this.showGrid = null;
     if (this.coinDrop) { this.bcFly(this.coinDrop); this.coinDrop = null; }
     this.winLines = r.wins; let win = r.x * bet; this.pos = r.pos;
     if (r.stars > 1) this.louise('cheer', 1, 'TWO STARS!');
@@ -403,8 +487,9 @@ class FruityScene extends Phaser.Scene {
   countWin(amount, x) {
     const tier = SLOT_TIERS.find(q => x >= q[0]);
     this.ph = 'show'; this.count = { v: 0, to: amount, dur: tier ? 1.6 + SLOT_TIERS.length - SLOT_TIERS.indexOf(tier) : Math.min(1.2, 0.3 + x * 0.12), t: 0 };
-    if (tier) { this.louise('cheer', this.count.dur + 0.6, ['THAT\'S RIDIC!', 'OOH, CHRIS!', 'WHAT A SPIN!'][Math.floor(Math.random() * 3)]); this.bigBanner(tier[1], tier[2], this.count.dur); this.cameras.main.shake(400, 0.008); Sound.sfx('power'); this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(tier[0] >= 50 ? 90 : tier[0] >= 25 ? 60 : 36); }
-    else if (x >= 2) { this.fountain(8 + Math.round(x * 2)); this.louise('wink', 1); }
+    if (tier) { this.louise('cheer', this.count.dur + 0.6, ['THAT\'S RIDIC!', 'OOH, CHRIS!', 'WHAT A SPIN!'][Math.floor(Math.random() * 3)]); this.bigBanner(tier[1], tier[2], this.count.dur); this.cameras.main.shake(400, 0.008); Sound.jingle('slotbig', 'slots'); this.time.delayedCall(300, () => Sound.sfx('bells')); this.fountain(tier[0] >= 50 ? 90 : tier[0] >= 25 ? 60 : 36); }
+    else if (x >= 2) { this.fountain(8 + Math.round(x * 2)); this.louise('cheer', 1.4); Sound.sfx('bells'); }
+    else if (x > 0) Sound.sfx('ding');
     this.refresh();
   }
   bigBanner(text, col, dur) {
@@ -414,7 +499,7 @@ class FruityScene extends Phaser.Scene {
   }
   fountain(n, at) { const G = this.geom(); for (let k = 0; k < n; k++) this.coins.push({ x: (at ? at.x : G.ox + G.CWa / 2 * G.z) + (Math.random() - 0.5) * 60, y: at ? at.y : G.oy + 176 * G.z, vx: (Math.random() - 0.5) * 420, vy: -260 - Math.random() * 420, r: Math.random() * 6, d: Math.random() < 0.5 }); }
   burstAt(x, y, col, n) { for (let k = 0; k < n; k++) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; this.sparks.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5 + Math.random() * 0.4, col }); } }
-  jackpot() { this.louise('cheer', 4, 'JACKPOT! THAT IS TOTALLY RIDIC!'); this.bigBanner('JACKPOT!!!', 0xffd23f, 3.5); this.cameras.main.flash(500, 255, 240, 150); this.cameras.main.shake(900, 0.014); this.fountain(140); Sound.sfx('achieve'); this.time.delayedCall(400, () => Sound.sfx('power')); this.time.delayedCall(900, () => Sound.sfx('achieve')); }
+  jackpot() { Sound.jingle('slotbig', 'slots'); this.louise('cheer', 4, 'JACKPOT! THAT IS TOTALLY RIDIC!'); this.bigBanner('JACKPOT!!!', 0xffd23f, 3.5); this.cameras.main.flash(500, 255, 240, 150); this.cameras.main.shake(900, 0.014); this.fountain(140); Sound.sfx('achieve'); this.time.delayedCall(400, () => Sound.sfx('power')); this.time.delayedCall(900, () => Sound.sfx('achieve')); }
   // ---------------------------------------------------------------- TAKE: cash, or a bonus game
   takeStep() {
     const f = SLOT.take(this.sk, this.pos), bet = this.bet(); this.pos = -1; this.dispPos = -1; this.saveTrail();
@@ -516,7 +601,7 @@ class FruityScene extends Phaser.Scene {
     }
     if (this.ph === 'spin' && !this.reelsMoving()) this.settle();
     if (this.ph === 'freespin' && !this.reelsMoving()) this.freeSettle();
-    if (this.count) { const C = this.count; C.t += dt; const u = Math.min(1, C.t / C.dur); C.v = C.to * (1 - Math.pow(1 - u, 2)); if (u >= 1) { this.count = null; if (this.ph === 'show') this.ph = 'idle'; this.refresh(); if (this.free > 0) this.time.delayedCall(400, () => { if (this.ph === 'idle' && this.free > 0) this.spin(); }); } }
+    if (this.count) { const C = this.count; C.t += dt; this.tickT = (this.tickT || 0) - dt; if (this.tickT <= 0 && C.t < C.dur) { this.tickT = 0.07; Sound.sfx('coin'); } const u = Math.min(1, C.t / C.dur); C.v = C.to * (1 - Math.pow(1 - u, 2)); if (u >= 1) { this.count = null; if (this.ph === 'show') this.ph = 'idle'; this.refresh(); if (this.free > 0) this.time.delayedCall(400, () => { if (this.ph === 'idle' && this.free > 0) this.spin(); }); } }
     if (this.bcPending && this.ph === 'idle' && !this.count) this.bcPop();
     // the trail lamp chases up (or down) to where you are, a step at a time
     this.chaseT = (this.chaseT || 0) - dt;
@@ -587,9 +672,11 @@ class FruityScene extends Phaser.Scene {
       this.sym[i].forEach((im, j) => {
         const idx = ((base + j - 1) % nn + nn) % nn, row = base + j - 1 - R.pos, y = ry + (row + 0.5) * chh;
         let key = strips[i][idx];
-        if (!R.stop && this.res && this.res.grid && Math.abs(row - Math.round(row)) < 0.01 && row > -0.5 && row < 2.5) key = this.res.grid[i][Math.round(row)] || key;
+        const shown = this.showGrid || (this.res && this.res.grid); if (!R.stop && shown && Math.abs(row - Math.round(row)) < 0.01 && row > -0.5 && row < 2.5) key = shown[i][Math.round(row)] || key;
         const wob = !R.stop && this.winLines.length && this.winCell(i, Math.round(row)) ? 0.08 + Math.abs(Math.sin(t * 9 + i)) * 0.14 : 0, sy = z * FM_ICON * (blur ? 1.3 : 1 + wob);
         im.setTexture('fm_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z * FM_ICON * (1 + wob), sy).setAlpha(blur ? 0.75 : 1);
+        const ti = this.tile[i][j], ts = z * (blur ? 1.15 : 1), th = 14 * ts, t0 = y - th, t1 = y + th, w0 = Math.max(t0, ry), w1 = Math.min(t1, ry + rh);
+        if (w1 <= w0 || !FM_TILE.hasOwnProperty(key)) ti.setVisible(false); else ti.setVisible(true).setTexture('fm_t_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z, ts).setAlpha(blur ? 0.8 : 1).setCrop(0, (w0 - t0) / ts, 36, (w1 - w0) / ts);
         const hh = 11 * sy, y0 = y - hh, y1 = y + hh, v0 = Math.max(y0, ry), v1 = Math.min(y1, ry + rh);
         if (v1 <= v0) { im.setVisible(false); return; }
         im.setVisible(true).setCrop(0, (v0 - y0) / sy, 22, (v1 - v0) / sy);
@@ -613,6 +700,7 @@ class FruityScene extends Phaser.Scene {
     this.msgT.setAlpha(0.75 + 0.25 * Math.sin(t * 6));
     // ---- effects: coins, sparks, stars flying to your lamp, the banner
     const fx = this.fx; fx.clear();
+    if (this.boneFlash > 0) { this.boneFlash -= dt; for (let i = 2; i < 5; i++) { const x = rx + i * (cw + gap); fx.fillStyle(0xff6ad0, (Math.floor(t * 10) % 2 ? 0.35 : 0.15) * Math.min(1, this.boneFlash * 2)).fillRect(x, ry, cw, rh); } }
     for (const c of this.coins) { c.vy += 760 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.r += dt * 12; const w = (Math.abs(Math.cos(c.r)) * 3.5 + 1) * z; fx.fillStyle(FM_INK, 1).fillRect(c.x - w / 2 - z / 2, c.y - 2.5 * z, w + z, 5 * z); fx.fillStyle(c.d ? 0xffd23f : 0xffe070, 1).fillRect(c.x - w / 2, c.y - 2 * z, w, 4 * z); }
     this.coins = this.coins.filter(c => c.y < H + 20);
     for (const s of this.sparks) { s.life -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.vy += 200 * dt; fx.fillStyle(s.col, Math.max(0, s.life * 2)).fillRect(s.x - z, s.y - z, 2 * z, 2 * z); }
@@ -659,7 +747,7 @@ class FruityScene extends Phaser.Scene {
     this.glowName.setAlpha(strobe ? 0.75 + 0.25 * Math.sin(t * 20) : 0.42 + 0.12 * Math.sin(t * 2)).setTint(strobe ? RB(Math.floor(t * 8)) : 0xff4a9a);
     // -- the trail glass
     const LG = this.lampGeo(), T = SLOT.STRENGTHS[this.sk].trail;
-    r(5, LG.y - 2, CW - 10, 20, FM.chrome[3]); r(6, LG.y - 1, CW - 12, 18, FM_INK);
+    r(5, LG.y - 2, 218, 20, FM.chrome[3]); r(6, LG.y - 1, 216, 18, FM_INK);
     for (let p = 0; p < LG.n; p++) {
       const s2 = T[p], C = FM_LAMP[s2 === 'C' ? 'C' : s2], x = LG.x(p), at = p === this.dispPos, lit = p <= this.dispPos;
       const col = at ? (Math.floor(t * 8) % 2 ? 0xffffff : C[1]) : lit ? C[1] : (strobe && Math.random() < 0.08 ? C[1] : C[0]);
@@ -691,25 +779,46 @@ class FruityScene extends Phaser.Scene {
       this.btnT[id][0].setY(G.oy + (194 + pr) * z); this.btnT[id][1].setY(G.oy + (200 + pr) * z);
     }
     this.glowSpin.setAlpha(live.spin ? 0.35 + 0.3 * Math.abs(Math.sin(t * 3)) : 0.05);
-    // -- THE BIG CHEESE builder tower: a glass dome over a cheese plate that fills with coins; MUST POP by N
-    { const x0 = G.TX, w = G.TW, B = this.bc, frac = Math.min(1, B.n / B.N), cxj = x0 + w / 2, near = frac > 0.75;
-      r(x0 - 2, 6, w + 4, bottom - 6, FM_INK); r(x0, 8, w, bottom - 8, 0x2a1a5a); r(x0, 8, 3, bottom - 8, 0x4a3a8a); r(x0 + w - 3, 8, 3, bottom - 8, 0x1a0e3a);
-      r(x0, 8, w, 22, FM.gold[2]); r(x0, 8, w, 2, FM.gold[4]); r(x0, 28, w, 2, FM.gold[0]);
-      for (let k = 0; k < 10; k++) r(x0 + 3 + k * (w - 6) / 10, 31, 3, 2, (Math.floor(t * (near ? 14 : 4)) + k) % 3 ? 0xffd23f : 0xffffff);
-      // the dome
-      const dy = 40, dh = 74, dw = w - 12;
-      for (let y = 0; y < dh; y++) { const hw = y < dw / 2 ? Math.sqrt(Math.max(0, Math.pow(dw / 2, 2) - Math.pow(dw / 2 - y, 2))) : dw / 2; if (hw < 1) continue; r(cxj - hw - 1, dy + y, 2 * hw + 2, 1, FM.chrome[3]); r(cxj - hw, dy + y, 2 * hw, 1, 0x140a28); }
-      // the coins inside, piling up: rows of gold, the top one wobbling
-      const coinsN = Math.min(B.n, 40), per = 6;
-      for (let k = 0; k < coinsN; k++) { const row = Math.floor(k / per), col2 = k % per, yy = dy + dh - 5 - row * 4.5, xx = cxj - (per - 1) * 4.5 + col2 * 9 + (row % 2 ? 2 : -2), wob = k === coinsN - 1 ? Math.sin(t * 10) : 0;
-        r(xx - 4, yy - 2 + wob, 8, 4, FM_INK); r(xx - 3.5, yy - 1.5 + wob, 7, 3, 0xffd23f); r(xx - 3, yy - 1.5 + wob, 6, 1, 0xfff0a0); }
-      for (let y = 0; y < dh; y += 3) r(cxj - dw / 2 + 4, dy + y + 6, 2, 2, 0xffffff, 0.18 + (y % 9 === 0 ? 0.2 : 0));       // glass glint
-      r(cxj - dw / 2 - 3, dy + dh, dw + 6, 5, FM.gold[2]); r(cxj - dw / 2 - 3, dy + dh, dw + 6, 1, FM.gold[4]);
-      // the pot LED, the must-pop meter
-      r(x0 + 4, 122, w - 8, 12, FM.chrome[1]); r(x0 + 5, 123, w - 10, 10, 0x140404);
-      const segs = B.N, sw = (w - 10) / segs; for (let k = 0; k < segs; k++) r(x0 + 5 + k * sw, 150, Math.max(0.6, sw - 0.6), 6, k < B.n ? (near ? (Math.floor(t * 12) + k) % 2 ? 0xff4a2a : 0xffd23f : 0xffd23f) : 0x3a2a5a);
-      this.glowJar.setAlpha(near ? 0.5 + 0.4 * Math.abs(Math.sin(t * 8)) : 0.18 + frac * 0.3);
-      if (this.ph === 'pop') { const k = Math.floor(t * 20); r(x0, 8, w, bottom - 8, RB(k), 0.25); }
+    // -- (v3.145) THE BURSTING UDDER: a window in the cabinet with Bessie's belly at the top and her udder underneath,
+    // swelling with every coin that flies in, throbbing as it nears bursting, dripping milk into a pail that fills up
+    { const x0 = G.TX, w = G.TW, B = this.bc, frac = Math.min(1, B.n / B.N), cxj = x0 + w / 2, near = frac > 0.75, y0 = 44, y1 = 158;
+      const e = (cx, cy, rx2, ry2, col, a2) => g.fillStyle(col, a2 === undefined ? 1 : a2).fillEllipse(G.ox + cx * z, G.oy + cy * z, rx2 * 2 * z, ry2 * 2 * z);
+      r(x0 - 3, y0 - 2, w + 6, y1 - y0 + 4, FM_INK); r(x0 - 2, y0 - 1, w + 4, y1 - y0 + 2, FM.chrome[3]);
+      // the field behind: a sky and a strip of grass, a chasing ring of pink bulbs on the frame
+      for (let k = 0; k < 6; k++) r(x0, y0 + 9 + k * 12, w, 12, [0x3a7ad0, 0x4a8ade, 0x5a9ae6, 0x6aaaea, 0x7ab8ee, 0x8ac6f0][k]);
+      r(x0, 138, w, y1 - 138, 0x3a8a3a); r(x0, 138, w, 2, 0x6ad06a); r(x0, y0, w, 9, 0x5a0e2a);
+      { const nb = 22; for (let k = 0; k < nb; k++) { const u = k / nb, side = u < 0.5, yy = y0 + 10 + (side ? u * 2 : (u - 0.5) * 2) * (y1 - y0 - 12), xx = side ? x0 - 1.5 : x0 + w + 0.5, on = (Math.floor(t * (near ? 16 : 6)) + k) % 3 === 0;
+        r(xx, yy, 1.5, 2, on ? 0xffffff : 0xff6aa0); } }
+      // Bessie's belly and legs (we only see her underneath: she's standing over the window)
+      const sw = Math.sin(t * 1.4) * 0.8;
+      for (const lx of [x0 + 5, x0 + w - 11]) { r(lx - 1, y0 + 9, 8, 70, FM_INK); r(lx, y0 + 9, 6, 68, 0xf4f0f8); r(lx, y0 + 30, 6, 10, 0x2a2438); r(lx - 1, y0 + 76, 8, 5, 0x3a2a1a); }
+      e(cxj + sw, y0 + 16, w / 2 + 2, 14, FM_INK); e(cxj + sw, y0 + 15, w / 2 + 1, 13, 0xf4f0f8);
+      e(cxj - 14 + sw, y0 + 14, 9, 6, 0x2a2438); e(cxj + 16 + sw, y0 + 19, 7, 5, 0x2a2438); e(cxj + 3 + sw, y0 + 10, 5, 3, 0x2a2438);
+      // the udder: grows from a little pink bag to an enormous one; boings when a coin lands; throbs near the end
+      this.udderBoing = Math.max(0, (this.udderBoing || 0) - dt); this.udderPop = Math.max(0, (this.udderPop || 0) - dt * 0.7);
+      const grow = this.udderPop > 0 ? 0.15 : frac, boing = Math.sin(this.udderBoing * 30) * this.udderBoing * 0.5, throb = near ? 1 + Math.sin(t * 14) * 0.06 : 1;
+      const urx = (8 + grow * 16) * throb * (1 + boing), ury = (6 + grow * 15) * throb * (1 - boing * 0.6), ucy = y0 + 26 + ury * 0.9;
+      e(cxj + sw, ucy, urx + 1, ury + 1, FM_INK);
+      e(cxj + sw, ucy, urx, ury, near ? (Math.floor(t * 8) % 2 ? 0xff8aa8 : 0xf6a0b8) : 0xf2a6b8);
+      e(cxj - urx * 0.35 + sw, ucy - ury * 0.35, urx * 0.4, ury * 0.3, 0xffd0dc);                                     // the shine
+      if (grow > 0.5) for (let k = 0; k < 3; k++) r(cxj - urx * 0.5 + k * urx * 0.45 + sw, ucy + Math.sin(k * 2.1) * ury * 0.3, 1, Math.max(1, ury * 0.25), 0xc8506a, 0.6);   // veins: it's straining
+      const teats = [-0.55, -0.18, 0.18, 0.55].map(f2 => [cxj + f2 * urx + sw, ucy + ury * Math.sqrt(1 - f2 * f2) - 0.5]);
+      const tl = 3 + grow * 4;
+      for (const [tx, ty] of teats) { r(tx - 1.8, ty, 3.6, tl + 1, FM_INK); r(tx - 1.2, ty, 2.4, tl, 0xe08aa0); r(tx - 1.2, ty, 1, tl, 0xffc0d0); }
+      // milk dripping (faster the fuller she is) into the pail, which fills up with the pot
+      this.drips = this.drips || []; this.dripT = (this.dripT || 0) - dt * (0.6 + frac * 6 + (near ? 6 : 0));
+      if (this.dripT <= 0 && B.n > 0) { this.dripT = 1; const tq = teats[Math.floor(Math.random() * 4)]; this.drips.push({ x: tq[0], y: tq[1] + tl, vy: 10 }); }
+      const pailTop = 128 - frac * 6;
+      for (const d of this.drips) { d.vy += 160 * dt; d.y += d.vy * dt; r(d.x - 0.8, d.y - 1.6, 1.6, 2.4, 0xffffff); if (d.y >= pailTop) { d.dead = true; this.sparks.push({ x: G.ox + d.x * z, y: G.oy + pailTop * z, vx: (Math.random() - 0.5) * 40, vy: -30 - Math.random() * 40, life: 0.25, col: 0xffffff }); } }
+      this.drips = this.drips.filter(d => !d.dead);
+      // the pail (with the pot on its side) and the milk in it
+      const px0 = cxj - 16, pw = 32; r(px0 - 1, 127, pw + 2, 28, FM_INK); r(px0, 128, pw, 26, FM.chrome[2]); r(px0, 128, 3, 26, FM.chrome[4]); r(px0 + pw - 3, 128, 3, 26, FM.chrome[0]);
+      r(px0 + 2, 128, pw - 4, 3, 0xffffff); r(px0, 127, pw, 1, FM.chrome[4]);
+      // the must-burst meter, under the window
+      const segs = B.N, sw2 = (w - 4) / segs; for (let k = 0; k < segs; k++) r(x0 + 2 + k * sw2, 159, Math.max(0.6, sw2 - 0.6), 3, k < B.n ? (near ? (Math.floor(t * 12) + k) % 2 ? 0xff4a8a : 0xffd0dc : 0xffd0dc) : 0x3a2a5a);
+      this.glowJar.setAlpha(near ? 0.5 + 0.4 * Math.abs(Math.sin(t * 8)) : 0.12 + frac * 0.3);
+      if (this.ph === 'pop') { const k = Math.floor(t * 20); r(x0, y0, w, y1 - y0, k % 2 ? 0xffffff : 0xffd0dc, 0.35); }
+      this.bcT[0].setText(near ? (Math.floor(t * 4) % 2 ? 'SHE\'S GONNA BLOW!' : 'THE BIG UDDER') : 'THE BIG UDDER').setColor(near ? '#ff6aa0' : '#ffd0dc');
     }
     // -- the LEVER: a chrome mount on the cabinet's side, a long arm and a red ball. It swings down when the reels go
     this.leverT = Math.max(0, (this.leverT || 0) - dt); const lu = this.leverT > 0 ? 1 - this.leverT / 0.5 : 1, pull = lu < 0.35 ? Math.sin(lu / 0.35 * Math.PI / 2) : Math.cos((lu - 0.35) / 0.65 * Math.PI / 2);
@@ -723,10 +832,17 @@ class FruityScene extends Phaser.Scene {
       g.fillStyle(FM_INK, 1).fillCircle(G.ox + bx * z, G.oy + by * z, 8.5 * z); g.fillStyle(idleHint ? 0xff4a4a : 0xd81a2a, 1).fillCircle(G.ox + bx * z, G.oy + by * z, 7.5 * z);
       g.fillStyle(0x8a0a14, 1).fillCircle(G.ox + (bx + 2) * z, G.oy + (by + 2) * z, 4.5 * z); g.fillStyle(0xff8a8a, 1).fillCircle(G.ox + (bx - 2.5) * z, G.oy + (by - 2.5) * z, 2.2 * z); g.fillStyle(0xffffff, 1).fillRect(G.ox + (bx - 3.5) * z, G.oy + (by - 3.5) * z, 1.5 * z, 1.5 * z); }
     // -- Louise, left of the cabinet
+    // (v3.145) she DANCES to the music (150 bpm: a beat every 0.4s), arms swapping on the beat, hips swinging; on a win
+    // she goes wild (cheer and dance frames, double time); a wink still pops in now and then
     { this.louT = Math.max(0, this.louT - dt); if (this.louT <= 0 && this.louPose !== 'idle') this.louPose = 'idle';
       const room = G.ox - 14 * z, sc = Math.min(z * 1.1, room / 46);
       if (sc < 1) this.lou.setVisible(false);
-      else { const bob = this.louPose === 'cheer' ? Math.abs(Math.sin(t * 9)) * 3 * sc : Math.sin(t * 1.8) * 0.6 * sc; this.lou.setVisible(true).setTexture('lou_' + this.louPose).setScale(sc).setPosition(Math.round((G.ox - 10 * z) / 2), Math.round(Math.min(G.H + 4, G.oy + 206 * z) - bob)); } }
+      else {
+        const beat = t * 2.5, wild = this.louPose === 'cheer', ph = (wild ? beat * 2 : beat) % 1, k = Math.floor(wild ? beat * 2 : beat);
+        const tex = this.louPose === 'wink' ? 'lou_wink' : wild ? (k % 3 === 0 ? 'lou_cheer' : 'lou_dance' + (k % 2)) : 'lou_dance' + (k % 2);
+        const bob = Math.abs(Math.sin(ph * Math.PI)) * (wild ? 4 : 1.6) * sc, sway = Math.sin(beat * Math.PI) * (wild ? 0.09 : 0.05);
+        this.lou.setVisible(true).setTexture(tex).setScale(sc * (1 + (wild ? 0.03 * Math.sin(ph * Math.PI) : 0))).setRotation(sway).setPosition(Math.round((G.ox - 10 * z) / 2 + Math.sin(beat * Math.PI) * 2 * sc), Math.round(Math.min(G.H + 4, G.oy + 206 * z) - bob));
+      } }
   }
   // the reel glass over the symbols: scanlines and a glare that sweeps across now and then
   drawGlass(G, t) {
@@ -741,25 +857,25 @@ class FruityScene extends Phaser.Scene {
   // Coins are worth 5.1% of the bet on average, so with the reels and trail at ~90% the machine stays at ~95%.
   bcLoad() { let B = null; try { B = JSON.parse(localStorage.getItem('lc_bigcheese_' + this.from) || 'null'); } catch (e) { /* */ } this.bc = B && B.N ? B : { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; }
   bcSave() { try { localStorage.setItem('lc_bigcheese_' + this.from, JSON.stringify(this.bc)); } catch (e) { /* */ } }
-  bcRefresh() { if (!this.bcT || !this.bc) return; this.bcT[1].setText(String(Math.round(this.bc.pot))); this.bcT[2].setText('MUST POP BY\n' + this.bc.N + ' COINS'); }
+  bcRefresh() { if (!this.bcT || !this.bc) return; this.bcT[1].setText(String(Math.round(this.bc.pot))); this.bcT[2].setText('BURSTS BY ' + this.bc.N + ' SQUIRTS'); }
   bcDrop() {                                           // called as a paid spin settles: maybe a coin lands
     if (Math.random() >= 0.2) return null;
     const vs = [[0.1, 0.35], [0.2, 0.3], [0.3, 0.2], [0.5, 0.1], [1, 0.05]]; let u = Math.random(), v = 0.1; for (const [x, p] of vs) { if ((u -= p) <= 0) { v = x; break; } }
     return { v: v * this.bet(), reel: Math.floor(Math.random() * 5), row: Math.floor(Math.random() * 3) };
   }
   bcFly(c) {
-    const G = this.geom(), from = this.cell(c.reel, c.row), to = G.A(G.TX + G.TW / 2, 96), im = this.add.image(from.x, from.y, 'fm_coin').setDepth(7.6).setScale(G.z * 1.6);
+    const G = this.geom(), from = this.cell(c.reel, c.row), to = G.A(G.TX + G.TW / 2, 92), im = this.add.image(from.x, from.y, 'fm_coin').setDepth(7.6).setScale(G.z * 1.6);
     const tx = this.add.text(from.x, from.y + 12 * G.z, '+' + Math.round(c.v), { fontFamily: PIXEL, fontSize: Math.round(4 * G.z) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 3 }).setOrigin(0.5).setDepth(7.7);
     Sound.sfx('chime'); this.burstAt(from.x, from.y, 0xffd23f, 12);
     this.tweens.add({ targets: im, scale: G.z * 2.2, duration: 200, yoyo: true });
-    this.tweens.add({ targets: [im], x: to.x, y: to.y, delay: 420, duration: 520, ease: 'Cubic.easeIn', onComplete: () => { im.destroy(); this.bc.pot += c.v; this.bc.n++; this.bcSave(); this.bcRefresh(); Sound.sfx('pickup'); this.burstAt(to.x, to.y, 0xffd23f, 16); if (this.bc.n >= this.bc.N) this.bcPending = true; } });
+    this.tweens.add({ targets: [im], x: to.x, y: to.y, delay: 420, duration: 520, ease: 'Cubic.easeIn', onComplete: () => { im.destroy(); this.bc.pot += c.v; this.bc.n++; this.bcSave(); this.bcRefresh(); Sound.sfx('moo'); this.burstAt(to.x, to.y, 0xffffff, 16); this.udderBoing = 0.5; if (this.bc.n >= this.bc.N) this.bcPending = true; } });
     this.tweens.add({ targets: tx, y: tx.y - 20 * G.z, alpha: 0, delay: 300, duration: 900, onComplete: () => tx.destroy() });
   }
   bcPop() {
-    const B = this.bc, amt = B.pot, G = this.geom(), at = G.A(G.TX + G.TW / 2, 80); this.bcPending = false; this.ph = 'pop';
-    this.louise('cheer', 3.5, 'THE BIG CHEESE! THAT IS SO RIDIC!'); this.bigBanner('THE BIG CHEESE!', 0xffd23f, 2.2); Sound.sfx('reveal'); this.cameras.main.flash(400, 255, 230, 120); this.cameras.main.shake(700, 0.01);
+    const B = this.bc, amt = B.pot, G = this.geom(), at = G.A(G.TX + G.TW / 2, 92); this.bcPending = false; this.ph = 'pop'; this.udderPop = 1; Sound.sfx('splash'); for (let k = 0; k < 60; k++) { const a = -Math.PI * Math.random(), sp = 80 + Math.random() * 300; this.sparks.push({ x: at.x, y: at.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.8 + Math.random() * 0.6, col: Math.random() < 0.8 ? 0xffffff : 0xffd0dc }); }
+    this.louise('cheer', 3.5, 'THE UDDER BURST! THAT IS SO RIDIC!'); this.bigBanner('UDDERLY BURSTING!', 0xffd0dc, 2.2); Sound.jingle('slotbig', 'slots'); Sound.sfx('reveal'); this.cameras.main.flash(400, 255, 230, 120); this.cameras.main.shake(700, 0.01);
     this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(70, at); this.fountain(40);
-    this.time.delayedCall(2300, () => { this.bc = { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; this.bcSave(); const w = this.addBal(amt); this.lastWin = w; this.bcRefresh(); this.countWin(amt, amt / this.bet()); this.say('THE BIG CHEESE PAID ' + Math.round(amt) + ' ' + this.unit() + '!', '#ffd23f'); });
+    this.time.delayedCall(2300, () => { this.bc = { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; this.bcSave(); const w = this.addBal(amt); this.lastWin = w; this.bcRefresh(); this.countWin(amt, amt / this.bet()); this.say('THE BIG UDDER PAID ' + Math.round(amt) + ' ' + this.unit() + '!', '#ffd23f'); });
   }
   winCell(rr, row) { return this.winLines.some(w => rr < w.n && SLOT.LINES[w.line][rr] === row); }
 }
@@ -775,9 +891,11 @@ function makeLouiseTextures(scene) {
   const ARMS = {
     idle: [[[13, 30], [9, 41], [15, 47]], [[31, 30], [37, 39], [42, 35]]],
     cheer: [[[13, 30], [7, 18], [10, 5]], [[31, 30], [37, 18], [34, 5]]],
-    wink: [[[13, 30], [9, 41], [15, 47]], [[31, 30], [38, 36], [33, 25]]]
+    wink: [[[13, 30], [9, 41], [15, 47]], [[31, 30], [38, 36], [33, 25]]],
+    dance0: [[[13, 30], [6, 20], [9, 8]], [[31, 30], [37, 38], [29, 43]]],      // (v3.145) she dances: one arm up, one on her hip...
+    dance1: [[[13, 30], [7, 38], [15, 43]], [[31, 30], [38, 20], [35, 8]]]      // ...and swap
   };
-  for (const pose of ['idle', 'cheer', 'wink']) pixTex(scene, 'lou_' + pose, Wd, Ht, put => {
+  for (const pose of ['idle', 'cheer', 'wink', 'dance0', 'dance1']) pixTex(scene, 'lou_' + pose, Wd, Ht, put => {
     const g = []; for (let y = 0; y < Ht; y++) g.push(Array(Wd).fill(null));
     const set = (x, y, c) => { if (x >= 0 && y >= 0 && x < Wd && y < Ht) g[y][x] = c; };
     const sh = (R, v, x, y) => { const f = Math.max(0, Math.min(R.length - 1, v * (R.length - 1))), i = Math.floor(f); return R[Math.min(R.length - 1, i + ((f - i) * 16 > bay(x, y) ? 1 : 0))]; };

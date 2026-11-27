@@ -21,11 +21,12 @@ function tune(SLOT) {
     const T = SLOT.STRENGTHS[sk], Lr = T.trail.length, top = Lr - 1;
     SLOT.TUNE[sk] = { line: 1, val: [], fx: [] };
     // raw line RTP
-    let lx = 0; for (let i = 0; i < N; i++) { const { grid } = SLOT.spin(sk, rnd); lx += SLOT.lineWins(grid).reduce((a, q) => a + q.x, 0); }
-    const lineRaw = lx / N;
-    // stars on the centre line per spin: each reel independently
+    // (v3.145) the base spin includes Louise's bone respin, so lines AND stars are measured from it
+    let lx = 0, bones = 0; const sc = Array(6).fill(0);
+    for (let i = 0; i < N; i++) { const b = SLOT.baseSpin(sk, rnd); if (b.bone) bones++; lx += SLOT.lineWins(b.grid).reduce((a, q) => a + q.x, 0); sc[SLOT.stars(b.grid)]++; }
+    const lineRaw = lx / N, dist = sc.map(v => v / N);
     const pr = SLOT.STRIPS[sk].map(st => st.filter(q => q === SLOT.STAR).length / st.length);
-    let dist = [1]; for (const p of pr) { const nd = Array(dist.length + 1).fill(0); dist.forEach((v, k) => { nd[k] += v * (1 - p); nd[k + 1] += v * p; }); dist = nd; }
+    console.log(sk, 'bone respins ' + (100 * bones / N).toFixed(2) + '% of spins');
     // (v3.111) each bonus game's raw average, and its weight (higher lamps pay a bit more)
     const ev = {}, M = 150000, w = T.trail.map((s, p) => 1 + 0.6 * p / top);
     for (const s of T.trail) if (SLOT.isBonus(s) && ev[s] === undefined) { let a = 0; for (let i = 0; i < M; i++) a += SLOT.bonusRaw(sk, s, rnd).x; ev[s] = a / M; }
