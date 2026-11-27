@@ -2787,3 +2787,6 @@ Camp tent: scale 2.4 (sunk 10px) - 1.7 looked tiny.
 
 ## v3.140
 Camp tent: scale 2.1 (sunk 8px).
+
+## v3.141
+Camp pause menu (runs only) gets TEST: UNLOCK ALL CAMP (everyone home, every feature built, bonus guns so the rack shows) and TEST: +500 CRUMBS.

@@ -6,7 +6,7 @@
 // what makes the planet feel spherical. Arcade physics is NOT used.
 
 const CHEDDAR_K = 0.8;                                                   // (v3.47) every cheddar drop is scaled by this
-const BUILD = 'v3.140';
+const BUILD = 'v3.141';
 const verEl = document.getElementById('ver');
 if (verEl) verEl.textContent = BUILD;
 
@@ -1756,6 +1756,11 @@ class Level1 extends Phaser.Scene {
     if (this.paused) {
       this.pauseMenu = makeMenu(this, { title: 'PAUSED', depth: 40, items: [
         { label: () => 'RESUME', act: d => { if (!d) this.togglePause(); } },
+        // (v3.141) run-mode test buttons, at the camp only
+        ...(this.camp ? [
+          { label: () => 'TEST: UNLOCK ALL CAMP', act: d => { if (d) return; Story.unlockAll(); Sound.sfx('power'); this.togglePause(); this.scene.restart({ camp: true }); } },
+          { label: () => 'TEST: +500 CRUMBS', act: d => { if (d) return; Meta.addCrumbs(500); Sound.sfx('pickup'); this.togglePause(); this.scene.restart({ camp: true }); } }
+        ] : []),
         { label: () => 'CONTROLS', act: d => { if (!d) this.showPauseControls(inputDevice()); } },
         ...optionItems(() => this.applyGfx()),
         { label: () => 'QUIT TO MENU', act: d => { if (!d) { this.togglePause(); this.leaveTo('menu'); } } }

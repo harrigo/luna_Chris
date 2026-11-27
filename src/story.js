@@ -52,6 +52,13 @@ const Story = {
     if (typeof Run !== 'undefined') Run.arrived = id;
     this.save(); return true;
   },
+  // (v3.141) TEST: everyone home, everything built and already announced (plus the bonus guns, so the gun rack shows)
+  unlockAll() {
+    const S = this.st();
+    for (const c of STORY_CAST) { if (S.home[c.id] === undefined) S.home[c.id] = S.runN; for (const f of c.brings) { S.built[f] = true; S.seen = S.seen || {}; S.seen[f] = 1; } }
+    S.building = []; this.save();
+    try { for (const w of WEAPONS) if (w.unlock > 1) localStorage.setItem('lc_gun_' + w.id, '1'); } catch (e) { /* ignore */ }
+  },
   // the shop stop: meeting Fridge-o-tron (true = the first time)
   onShop() { return this.bring('fridge'); },
   // the end of a planet in a run: who's waiting there? (null = nobody new this time)
