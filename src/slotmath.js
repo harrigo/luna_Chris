@@ -21,19 +21,19 @@ const SLOT = (() => {
     mild: {
       name: 'MILD', col: 0xffe070, desc: 'Small wins, often. A short trail that barely slips.',
       counts: { wedge: [7, 7, 7, 7, 7], coin: [6, 6, 6, 6, 6], slow: [5, 5, 5, 5, 5], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 2, 1, 2, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'C', 'JACKPOT'], slip: 0.08, split: [0.57, 0.33], jackK: 6,
+      trail: ['C', 'COLLECT', 'C', 'FREE', 'C', 'CHAIN', 'RAT', 'C', 'MARCH', 'RESPIN', 'C', 'MEGA', 'JACKPOT'], slip: 0.08, split: [0.57, 0.33], jackK: 6,
       free: { spins: 8, mult: 1 }, rat: [1, 1, 2, 2, 3, 3, 4, 5, 8, 12], rats: 2, respin: { start: 6, p: 0.075, vals: [1, 1, 1, 2, 2, 3, 5], grand: 50 }
     },
     mature: {
       name: 'MATURE', col: 0xf0c030, desc: 'Balanced. A longer trail and bigger bonuses.',
       counts: { wedge: [8, 8, 8, 8, 8], coin: [7, 7, 7, 7, 7], slow: [6, 6, 6, 6, 6], plate: [5, 5, 5, 5, 5], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 2, 2, 2, 0], star: [1, 1, 2, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'FREE', 'C', 'RESPIN', 'C', 'RAT', 'C', 'FREE', 'C', 'JACKPOT'], slip: 0.1, split: [0.47, 0.43], jackK: 10,
+      trail: ['C', 'COLLECT', 'C', 'FREE', 'C', 'CHAIN', 'RAT', 'C', 'FREE', 'MARCH', 'C', 'RESPIN', 'C', 'MEGA', 'C', 'JACKPOT'], slip: 0.1, split: [0.47, 0.43], jackK: 10,
       free: { spins: 10, mult: 1 }, rat: [1, 2, 2, 3, 4, 5, 8, 10, 15, 25], rats: 2, respin: { start: 6, p: 0.07, vals: [1, 1, 2, 2, 3, 5, 10], grand: 200 }
     },
     extra: {
       name: 'EXTRA MATURE', col: 0xd87a1a, desc: 'Long dry spells. The trail slips back. Massive top end.',
       counts: { wedge: [9, 9, 9, 9, 9], coin: [8, 8, 8, 8, 8], slow: [7, 7, 7, 7, 7], plate: [6, 6, 6, 6, 6], power: [3, 3, 3, 3, 3], heart: [2, 2, 2, 2, 2], wheel: [1, 1, 1, 1, 1], bessie: [0, 1, 2, 1, 0], star: [1, 1, 1, 1, 1] },
-      trail: ['C', 'C', 'FREE', 'C', 'C', 'RAT', 'C', 'C', 'RESPIN', 'C', 'FREE', 'C', 'C', 'SUPER', 'C', 'C', 'JACKPOT'], slip: 0.15, split: [0.40, 0.50], jackK: 25,
+      trail: ['C', 'COLLECT', 'C', 'FREE', 'C', 'RAT', 'CHAIN', 'C', 'RESPIN', 'C', 'MARCH', 'FREE', 'C', 'MEGA', 'C', 'SUPER', 'JACKPOT'], slip: 0.15, split: [0.40, 0.50], jackK: 25,
       free: { spins: 10, mult: 1 }, super: { spins: 12, mult: 3 }, rat: [1, 2, 3, 5, 8, 10, 15, 25, 50, 100], rats: 3, respin: { start: 5, p: 0.065, vals: [1, 2, 2, 3, 5, 10, 25], grand: 1000 }
     }
   };
@@ -42,7 +42,7 @@ const SLOT = (() => {
   // step's bonus game worth its val on average. Each val is exactly what carrying on from that step is worth, so taking
   // is never a mistake: it's banking versus gambling, and the RTP is the same however you play.
   // @@TUNE@@
-  const TUNE = {"mild":{"line":1.10838,"val":[1.388,3.168,3.239,4.641,4.404,5.717,5.258,6.507,5.832,7.027,8.751,10.803],"fx":[0,0,0.13439,0,0.15329,0,0.16083,0,0.11986,0,0,0]},"mature":{"line":0.93174,"val":[2.26,5.56,6.655,9.424,12.958,13.837,16.496,16.737,19.101,18.982,21.178,20.76,22.818,22.113,24.039,27.442],"fx":[0,0,0.1379,0,0,0.12563,0,0.16344,0,0.10805,0,0.15075,0,0.19409,0,0]},"extra":{"line":0.87159,"val":[3.372,9.835,13.63,20.5,30.183,36.446,45.591,57.368,65.01,75.404,81.277,90.062,101.508,107.751,116.878,128.639,143.739],"fx":[0,0,0.4999,0,0,0.11382,0,0,0.11282,0,0.63941,0,0,0.1611,0,0,0]}};
+  const TUNE = {"mild":{"line":1.10838,"val":[1.381,1.855,3.372,3.745,5.233,5.457,5.238,6.556,6.519,6.013,7.248,6.976,8.439],"fx":[0,0.13884,0,0.10866,0,0.01599,0.12735,0,0.04591,0.09465,0,0.03868,0]},"mature":{"line":0.93646,"val":[2.247,3.356,6.116,7.281,10.067,11.057,11.097,13.363,13.824,13.33,15.349,15.41,17.685,17.681,19.926,23.475],"fx":[0,0.14359,0,0.12217,0,0.01602,0.11119,0,0.14399,0.04645,0,0.09786,0,0.03968,0,0]},"extra":{"line":0.87105,"val":[3.388,6.103,12.011,16.867,24.763,31.242,36.185,44.162,50.25,59.289,66.099,70.581,78.13,83.017,90.943,95.884,104.446],"fx":[0,0.12762,0,0.37681,0,0.08312,0.01448,0,0.08197,0,0.0419,0.47842,0,0.03447,0,0.12257,0]}};
   // @@END@@
   // reel strips: the counts, spread out so stars and wilds never bunch (a star at most once in any 3-high window)
   function strips(sk) {
@@ -134,6 +134,37 @@ const SLOT = (() => {
     const full = cells.every(c => c);
     return { x: cells.reduce((a, c) => a + c, 0) + (full ? P.grand : 0), cells, full, rounds };
   }
+  // (v3.148) THE COLLECT FAMILY - coins with values land on the grid and a COLLECTOR on the right scoops them up.
+  // Unlocked further along the trail, each one better than the last:
+  //   COLLECT  one board of coins, all collected
+  //   CHAIN    collect, then the board respins; every board that lands a coin is collected too, and each link in the
+  //            chain multiplies its board by one more (x1, x2, x3...) until a board lands nothing
+  //   MARCH    the coins MARCH: every step they move one reel right, the ones reaching reel 5 drop into the collector,
+  //            and fresh coins can land on reel 1; it ends when the board's empty
+  //   MEGA     one big board, and the collector's got a multiplier (x2 to x10)
+  // cells: 15 values, index = reel * 3 + row, 0 = empty. Every frame is kept so the game can play it back.
+  function collectGame(sk, kind, rnd) {
+    const V = STRENGTHS[sk].respin.vals, val = () => V[Math.floor(rnd() * V.length)];
+    const board = (p, min) => { const c = Array(15).fill(0); let n = 0; for (let i = 0; i < 15; i++) if (rnd() < p) { c[i] = val(); n++; } while (n < min) { const i = Math.floor(rnd() * 15); if (!c[i]) { c[i] = val(); n++; } } return c; };
+    const sum = c => c.reduce((a, v) => a + v, 0);
+    if (kind === 'COLLECT') { const c = board(0.3, 4); return { kind: 'collect', x: sum(c), frames: [{ cells: c, mult: 1, got: sum(c) }] }; }
+    if (kind === 'MEGA') { const c = board(0.4, 5), m = [2, 2, 3, 3, 4, 5, 10][Math.floor(rnd() * 7)]; return { kind: 'mega', x: sum(c) * m, frames: [{ cells: c, mult: m, got: sum(c) * m }] }; }
+    if (kind === 'CHAIN') {
+      const frames = []; let c = board(0.3, 4), link = 1, x = 0;
+      while (sum(c) > 0 && link <= 10) { frames.push({ cells: c, mult: link, got: sum(c) * link }); x += sum(c) * link; link++; c = board(0.12, 0); }
+      frames.push({ cells: c, mult: link, got: 0 });                 // the board that came up empty
+      return { kind: 'chain', x, frames };
+    }
+    // MARCH
+    let c = board(0.3, 5), x = 0; const frames = [{ cells: c.slice(), got: 0, mult: 1 }];
+    for (let step = 0; step < 30 && sum(c) > 0; step++) {
+      const got = c[12] + c[13] + c[14]; x += got;
+      const n = Array(15).fill(0); for (let r = 3; r >= 0; r--) for (let k = 0; k < 3; k++) n[(r + 1) * 3 + k] = c[r * 3 + k];
+      for (let k = 0; k < 3; k++) if (rnd() < 0.22) n[k] = val();
+      c = n; frames.push({ cells: c.slice(), got, mult: 1 });
+    }
+    return { kind: 'march', x, frames };
+  }
   // the trail: what a step pays (or plays). Returns total-bet multiple before scale.
   // a bonus game, raw (unscaled) - the sim measures these; the game scales them by fx[step]
   function bonusRaw(sk, kind, rnd) {
@@ -141,6 +172,7 @@ const SLOT = (() => {
     if (kind === 'FREE') return Object.assign({ kind: 'free' }, freeSpins(sk, rnd));
     if (kind === 'SUPER') return Object.assign({ kind: 'super' }, freeSpins(sk, rnd, T.super));
     if (kind === 'RAT') return Object.assign({ kind: 'rat' }, ratTrap(sk, rnd));
+    if (kind === 'COLLECT' || kind === 'CHAIN' || kind === 'MARCH' || kind === 'MEGA') return collectGame(sk, kind, rnd);
     return Object.assign({ kind: 'respin' }, respins(sk, rnd));
   }
   // (v3.111) BONUS STEPS PLAY THEMSELVES: climbing the trail, you stop on the first bonus lamp you reach and its game
@@ -173,6 +205,6 @@ const SLOT = (() => {
     return { stops, grid, wins, stars: st, x, pos: np, feat, slipped, bone };
   }
   const valAt = (sk, pos) => pos >= 0 ? (TUNE[sk].val[pos] || 0) : 0;
-  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, baseSpin, closeCall, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, bonusAt, take, play, climb, isBonus, valAt };
+  return { LINES, SYMS, PAYS, STRENGTHS, TUNE, STRIPS, WILD, STAR, spin, baseSpin, closeCall, collectGame, lineWins, stars, freeSpins, ratTrap, respins, bonusRaw, bonusAt, take, play, climb, isBonus, valAt };
 })();
 if (typeof module !== 'undefined') module.exports = SLOT;

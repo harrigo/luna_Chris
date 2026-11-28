@@ -2837,3 +2837,18 @@ It never loses. The pot becomes the STAKE (pot / 29.14, the expected multiplier)
 milking pays the pot on average and the slot's RTP doesn't move. Reaching the tanker: ~3.5% of milkings.
 Reels: Bessie wears a pink WILD flag, the star a gold BONUS flag. Rules say plainly that 3 stars aren't a bonus by
 themselves - they're three steps along the trail.
+
+## v3.148: the rocket route and the COLLECTS
+The trail is now a ROUTE: Chris's rocket flies a line of planets above the reels (a dotted path, lit behind you). Cash
+planets are small; bonus planets are bigger and RINGED, coloured by bonus, labelled underneath; the JACKPOT is the
+cheese moon at the end. The rocket glides planet to planet.
+New bonuses (the COLLECT family) join FREE / RAT / COINS along the route, each better than the last (the tuner already
+weights later bonuses up: w = 1 + 0.6 * step / top):
+  COLLECT  a board of coins over the reels, all flown into THE GRATER (a big cheese grater over the udder window)
+  CHAIN    collect, respin, collect again: link n pays its board x n; ends on a board that lands nothing
+  MARCH    each step the coins slide one reel right, reel 5's drop into the grater, new coins may land on reel 1
+  MEGA     a bigger board and the grater has a multiplier (x2-x10)
+Routes: MILD  C COLLECT C FREE C CHAIN RAT C MARCH RESPIN C MEGA JACKPOT
+        MATURE  C COLLECT C FREE C CHAIN RAT C FREE MARCH C RESPIN C MEGA C JACKPOT
+        EXTRA  C COLLECT C FREE C RAT CHAIN C RESPIN C MARCH FREE C MEGA C SUPER JACKPOT
+Retuned (1M spins each): RTP unchanged.
