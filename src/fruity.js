@@ -13,6 +13,34 @@ const SLOT_BETS = { shop: [5, 10, 25, 50, 100], camp: [3, 5, 15, 30] };   // (v3
 const SLOT_TIERS = [[50, 'CHEESE-TASTROPHIC!', 0xff6ad0], [25, 'MEGA WIN!', 0xffd23f], [10, 'BIG WIN!', 0x7dff8a]];
 
 // ---- the art: nine reel symbols (22 x 22), each lit from the top left with a dark outline, in the game's palette
+// ---- (v3.147) THE MILKING: when the udder's full, you milk her. Five rounds, each a bigger thing to fill; four teats a
+// round, most squirt and show your new multiplier, one (two, later) is DRY - Bessie's had enough, she plods off, and you
+// keep what you've got. It never loses: it can only stop. The udder's pot becomes the STAKE: stake = pot / E[multiplier],
+// so the milking pays the pot on average (the slot's RTP doesn't move) - but anything from x1 to x300 of it.
+const MILK_LV = [
+  { name: 'PAIL',       m: [2, 3, 4, 5],          dry: 1 },
+  { name: 'CHURN',      m: [6, 8, 10, 15],        dry: 1 },
+  { name: 'BATHTUB',    m: [18, 22, 30, 40],      dry: 2 },
+  { name: 'MILK FLOAT', m: [50, 70, 90, 120],     dry: 2 },
+  { name: 'TANKER',     m: [150, 200, 250, 300],  dry: 2 }
+];
+const MILK_EM = (() => {             // the expected final multiplier, starting from a splash (x1) in the pail
+  const E = (i, c) => { if (i >= MILK_LV.length) return c; const L = MILK_LV[i], pd = L.dry / 4; return pd * c + (1 - pd) * L.m.reduce((a, m) => a + E(i + 1, m), 0) / L.m.length; };
+  return E(0, 1);
+})();
+// (v3.147) little WILD / BONUS flags baked in pixels, stuck on the bottom of those symbols on the reels
+const FM_GLYPH = { W: ['101', '101', '101', '111', '101'], I: ['111', '010', '010', '010', '111'], L: ['100', '100', '100', '100', '111'], D: ['110', '101', '101', '101', '110'],
+  B: ['110', '101', '110', '101', '110'], O: ['111', '101', '101', '101', '111'], N: ['101', '111', '111', '111', '101'], U: ['101', '101', '101', '101', '111'], S: ['111', '100', '111', '001', '111'] };
+function makeFruityFlags(scene) {
+  if (scene.textures.exists('fm_lbl_wild')) return;
+  for (const [key, word, bg, fg] of [['wild', 'WILD', 0xff2a8a, 0xffffff], ['bonus', 'BONUS', 0xffd23f, 0x1a1020]]) {
+    const w = word.length * 4 + 3, h = 9;
+    pixTex(scene, 'fm_lbl_' + key, w, h, put => {
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const edge = x === 0 || y === 0 || x === w - 1 || y === h - 1; if ((x === 0 || x === w - 1) && (y === 0 || y === h - 1)) continue; put(x, y, edge ? 0x1a1020 : y === 1 ? 0xffffff : bg, 255); }
+      [...word].forEach((ch, i) => FM_GLYPH[ch].forEach((row, yy) => [...row].forEach((b, xx) => { if (b === '1') put(2 + i * 4 + xx, 2 + yy, fg, 255); })));
+    });
+  }
+}
 // (v3.145) every symbol sits on its own bright tile (like the bosses: loud, saturated, never the same colour twice)
 const FM_TILE = { wedge: [0xd8581a, 0xffb43a], coin: [0x0a6a7a, 0x2ad8c8], slow: [0x4a1aa0, 0xa07af6], plate: [0x123ab0, 0x4a9aff], power: [0x127a32, 0x6ade5a],
   heart: [0xa0105a, 0xff5ab0], wheel: null, bessie: [0x4a8a12, 0xb8ec4a], star: [0x140c48, 0x7a3ad0] };
@@ -33,7 +61,7 @@ function makeFruityTiles(scene) {
   });
 }
 function makeFruityTextures(scene) {
-  makeFruityTiles(scene);
+  makeFruityTiles(scene); makeFruityFlags(scene);
   if (scene.textures.exists('fm_wheel')) return;
   const S = 22, c = 10.5;
   const icon = (key, shape) => pixTex(scene, key, S, S, put => {
@@ -263,6 +291,7 @@ class FruityScene extends Phaser.Scene {
     this.bg = this.add.graphics().setDepth(0); this.cab = this.add.graphics().setDepth(1);
     this.sym = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_wedge').setDepth(2)));
     this.tile = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_t_wedge').setDepth(1.95)));
+    this.flag = this.R.map(() => [0, 1, 2, 3, 4].map(() => this.add.image(0, 0, 'fm_lbl_wild').setDepth(2.05).setVisible(false)));   // (v3.147) WILD / BONUS
     this.stickyIm = []; for (let i = 0; i < 15; i++) this.stickyIm.push(this.add.image(0, 0, 'fm_bessie').setDepth(2.5).setVisible(false));
     this.payIm = []; this.fg = this.add.graphics().setDepth(3); this.ui = this.add.container(0, 0).setDepth(4);
     this.fx = this.add.graphics().setDepth(6);
@@ -276,7 +305,7 @@ class FruityScene extends Phaser.Scene {
     }
     const padOff = typeof Pad !== 'undefined' ? Pad.on(b => this.act({ a: 'spin', x: 'take', lb: 'down', left: 'down', rb: 'up', right: 'up', y: 'strength', b: 'back', back: 'back' }[b])) : null;
     if (padOff) this.events.once('shutdown', padOff);
-    this.input.on('pointerdown', p => { if (this.rules) { const q = this.rules.boxes.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (q) q.fn(); return; } const hit = [...(this.boxes || []), ...(this.oBoxes || [])].reverse().find(q => q.on() && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) hit.fn(); });
+    this.input.on('pointerdown', p => { if (this.mk) { const Gm = this.milkGeo(); let best = -1, bd = 1e9; Gm.teats.forEach((tp, k) => { const d = Math.hypot(p.x - tp.x, (p.y - tp.y - 20 * Gm.S) * 0.6); if (d < bd) { bd = d; best = k; } }); if (bd < 60 * Gm.S) { this.mk.sel = best; this.milkPick(best); } return; } if (this.rules) { const q = this.rules.boxes.find(b => p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h); if (q) q.fn(); return; } const hit = [...(this.boxes || []), ...(this.oBoxes || [])].reverse().find(q => q.on() && p.x >= q.x && p.x <= q.x + q.w && p.y >= q.y && p.y <= q.y + q.h); if (hit) hit.fn(); });
     this.bcLoad(); this.leverT = 0;
     this.build();
     this.scale.on('resize', this.build, this);
@@ -329,7 +358,7 @@ class FruityScene extends Phaser.Scene {
     // (v3.145) THE BURSTING UDDER window texts: a label up top, the pot on the pail, the must-burst count under it
     { const c = G.TX + G.TW / 2;
       this.bcT = [this.add.text(G.A(c, 49).x, G.A(c, 49).y, 'THE BIG UDDER', f(2.8, '#ffd0dc', { stroke: '#5a0e2a', strokeThickness: Math.round(z * 1.2) })).setOrigin(0.5),
-        this.add.text(G.A(c, 146).x, G.A(c, 146).y, '', f(4.4, '#ffffff', { stroke: '#1a1020' })).setOrigin(0.5),
+        this.add.text(G.A(c, 146).x, G.A(c, 146).y, '', f(3.6, '#ffffff', { stroke: '#1a1020' })).setOrigin(0.5),
         this.add.text(G.A(c, 164).x, G.A(c, 164).y, '', f(2.3, '#ffd0dc', { strokeThickness: 2, align: 'center' })).setOrigin(0.5, 0)];
       this.ui.add(this.bcT); }
     // RULES (v3.145)
@@ -359,6 +388,7 @@ class FruityScene extends Phaser.Scene {
     if (!id || this.going) return;
     if (this.rules) { if (id === 'back' || id === 'take') this.rulesClose(); else if (id === 'spin' || id === 'up') this.rulesPage(1); else if (id === 'down') this.rulesPage(-1); return; }
     this.press[id] = 0.15;
+    if (this.mk) { const M = this.mk; if (id === 'up' || id === 'down') { M.sel = (M.sel + (id === 'up' ? 1 : 3)) % 4; Sound.sfx('blip'); } else if (id === 'spin' || id === 'take') this.milkPick(M.sel); return; }
     if (this.ph === 'rat' && this.ratCells && !this.ratDone) {          // the rat trap on a controller: left / right choose, A picks
       const n = this.ratCells.length, closed = i => !this.ratCells[i].open;
       if (id === 'up' || id === 'down') { let k = this.ratSel; for (let j = 0; j < n; j++) { k = (k + (id === 'up' ? 1 : -1) + n) % n; if (closed(k)) break; } this.ratSel = k; this.ratPaint(); Sound.sfx('blip'); return; }
@@ -397,7 +427,7 @@ class FruityScene extends Phaser.Scene {
     const body = (lines, y) => c.add(this.add.text(x0 + 16 * s, y || y0 + 36 * s, lines.join('\n\n'), f(6.4, '#ffffff', { wordWrap: { width: pw - 32 * s } })));
     if (R.page === 0) body([
       'PULL THE LEVER (OR PRESS SPIN). 10 LINES PAY LEFT TO RIGHT: 3, 4 OR 5 OF A KIND.',
-      'BESSIE THE COW IS WILD: SHE STANDS IN FOR ANY SYMBOL (SHE ONLY TURNS UP ON REELS 2-4).',
+      'BESSIE THE COW (MARKED WILD) STANDS IN FOR ANY SYMBOL. SHE ONLY TURNS UP ON REELS 2-4.',
       'BET- / BET+ CHANGE YOUR STAKE. CHEESE CHANGES THE STRENGTH: MILD = LITTLE WINS OFTEN, MATURE = IN BETWEEN, EXTRA MATURE = LONG DRY SPELLS AND HUGE TOP PRIZES.',
       'SO CLOSE? IF A SPIN WINS NOTHING BUT TWO GOOD SYMBOLS START A LINE, LOUISE OFTEN THROWS YOU A BONE AND RESPINS REELS 3-5 FOR FREE.']);
     else if (R.page === 1) {
@@ -410,13 +440,13 @@ class FruityScene extends Phaser.Scene {
       });
       c.add(this.add.text(W / 2, y0 + ph - 30 * s, 'PER LINE. BESSIE (WILD) PAYS LIKE THE WHEEL WHEN SHE MAKES A LINE ALL BY HERSELF.', f(4, '#c8b8e8')).setOrigin(0.5));
     } else if (R.page === 2) body([
-      'A STAR ON THE MIDDLE ROW MOVES YOU UP THE TRAIL (THE LAMPS ABOVE THE REELS). A SPIN WITH NO STAR MIGHT SLIP YOU BACK ONE.',
+      'THE STAR (MARKED BONUS) IS HOW YOU GET TO THE BONUSES: EACH ONE ON THE MIDDLE ROW MOVES YOU ONE LAMP UP THE TRAIL ABOVE THE REELS. THREE OF THEM ISN\'T A BONUS BY ITSELF - IT\'S THREE STEPS. A SPIN WITH NO STAR MIGHT SLIP YOU BACK ONE.',
       'TAKE BANKS THE LAMP YOU\'RE ON - OR KEEP CLIMBING. LAND ON A BONUS AND IT PLAYS STRAIGHT AWAY:',
       'FREE SPINS - EVERY BESSIE THAT LANDS STAYS PUT FOR THE REST OF THEM.   RAT TRAP - PICK CHEESES; FIND A RAT AND IT\'S OVER.   COINS - COINS LOCK IN PLACE; EVERY NEW ONE RESETS YOUR 3 RESPINS. FILL THE LOT FOR THE GRAND.',
       'REACH THE TOP LAMP FOR THE JACKPOT.']);
     else body([
-      'SOME PAID SPINS SQUIRT A COIN UP INTO BESSIE\'S UDDER, AND IT GETS BIGGER... AND BIGGER... AND STARTS TO DRIP.',
-      'IT ALWAYS BURSTS BY THE COUNT UNDER THE WINDOW, AND THEN THE WHOLE POT IN THE PAIL IS YOURS.',
+      'SOME PAID SPINS SQUIRT A COIN INTO BESSIE\'S UDDER. IT SWELLS AND DRIPS, AND THE PAIL SHOWS YOUR MILKING STAKE. SHE\'S ALWAYS READY BY THE COUNT UNDER THE WINDOW.',
+      'THEN YOU MILK HER: 5 ROUNDS - PAIL, CHURN, BATHTUB, MILK FLOAT, TANKER. PICK 1 OF 4 TEATS EACH ROUND. A SQUIRT SETS YOUR MULTIPLIER (UP TO x300 IN THE TANKER). A DRY TEAT AND SHE PLODS OFF - BUT YOU KEEP WHAT YOU\'VE GOT. YOU NEVER LOSE IT.',
       'OVER TIME THE MACHINE PAYS BACK ABOUT 95% OF WHAT GOES IN, WHATEVER STRENGTH YOU PLAY. LOUISE ALWAYS WINS IN THE END!']);
     // the buttons
     const btn = (label, x, fn, col) => { const t = this.add.text(x, y0 + ph - 12 * s, label, f(5.4, '#1a1020', { stroke: '#1a1020', strokeThickness: 0, backgroundColor: col || '#ffd23f', padding: { x: 8, y: 5 } })).setOrigin(0.5); c.add(t); R.boxes.push({ x: t.x - t.width / 2, y: t.y - t.height / 2, w: t.width, h: t.height, fn }); };
@@ -594,6 +624,7 @@ class FruityScene extends Phaser.Scene {
   // ---------------------------------------------------------------- the frame loop
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000); this.t += dt;
+    if (this.mk) this.milkDraw(dt);
     for (const k in this.press) this.press[k] = Math.max(0, this.press[k] - dt);
     if (this.spinT !== undefined) this.spinT += dt;
     for (let i = 0; i < 5; i++) {
@@ -679,6 +710,8 @@ class FruityScene extends Phaser.Scene {
         im.setTexture('fm_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z * FM_ICON * (1 + wob), sy).setAlpha(blur ? 0.75 : 1);
         const ti = this.tile[i][j], ts = z * (blur ? 1.15 : 1), th = 14 * ts, t0 = y - th, t1 = y + th, w0 = Math.max(t0, ry), w1 = Math.min(t1, ry + rh);
         if (w1 <= w0 || !FM_TILE.hasOwnProperty(key)) ti.setVisible(false); else ti.setVisible(true).setTexture('fm_t_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z, ts).setAlpha(blur ? 0.8 : 1).setCrop(0, (w0 - t0) / ts, 36, (w1 - w0) / ts);
+        { const fl = this.flag[i][j], fk = key === SLOT.WILD ? 'wild' : key === SLOT.STAR ? 'bonus' : null, fy = y + 10 * sy, fh = 4.5 * sy;
+          if (!fk || blur || fy - fh < ry || fy + fh > ry + rh) fl.setVisible(false); else fl.setVisible(true).setTexture('fm_lbl_' + fk).setPosition(Math.round(cx), Math.round(fy)).setScale(z * 0.95, sy * 0.95); }
         const hh = 11 * sy, y0 = y - hh, y1 = y + hh, v0 = Math.max(y0, ry), v1 = Math.min(y1, ry + rh);
         if (v1 <= v0) { im.setVisible(false); return; }
         im.setVisible(true).setCrop(0, (v0 - y0) / sy, 22, (v1 - v0) / sy);
@@ -835,7 +868,7 @@ class FruityScene extends Phaser.Scene {
       const segs = B.N, sw2 = (w - 4) / segs; for (let k = 0; k < segs; k++) r(x0 + 2 + k * sw2, 159, Math.max(0.6, sw2 - 0.6), 3, k < B.n ? (near ? (Math.floor(t * 12) + k) % 2 ? 0xff4a8a : 0xffd0dc : 0xffd0dc) : 0x3a2a5a);
       this.glowJar.setAlpha(near ? 0.5 + 0.4 * Math.abs(Math.sin(t * 8)) : 0.12 + frac * 0.3);
       if (this.ph === 'pop') { const k = Math.floor(t * 20); r(x0, y0, w, y1 - y0, k % 2 ? 0xffffff : 0xffd0dc, 0.35); }
-      this.bcT[0].setText(near ? (Math.floor(t * 4) % 2 ? 'SHE\'S GONNA BLOW!' : 'THE BIG UDDER') : 'THE BIG UDDER').setColor(near ? '#ff6aa0' : '#ffd0dc');
+      this.bcT[0].setText(near ? (Math.floor(t * 4) % 2 ? 'NEARLY MILKING TIME!' : 'THE BIG UDDER') : 'THE BIG UDDER').setColor(near ? '#ff6aa0' : '#ffd0dc');
     }
     // -- the LEVER: a chrome mount on the cabinet's side, a long arm and a red ball. It swings down when the reels go
     this.leverT = Math.max(0, (this.leverT || 0) - dt); const lu = this.leverT > 0 ? 1 - this.leverT / 0.5 : 1, pull = lu < 0.35 ? Math.sin(lu / 0.35 * Math.PI / 2) : Math.cos((lu - 0.35) / 0.65 * Math.PI / 2);
@@ -874,7 +907,7 @@ class FruityScene extends Phaser.Scene {
   // Coins are worth 5.1% of the bet on average, so with the reels and trail at ~90% the machine stays at ~95%.
   bcLoad() { let B = null; try { B = JSON.parse(localStorage.getItem('lc_bigcheese_' + this.from) || 'null'); } catch (e) { /* */ } this.bc = B && B.N ? B : { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; }
   bcSave() { try { localStorage.setItem('lc_bigcheese_' + this.from, JSON.stringify(this.bc)); } catch (e) { /* */ } }
-  bcRefresh() { if (!this.bcT || !this.bc) return; this.bcT[1].setText(String(Math.round(this.bc.pot))); this.bcT[2].setText('BURSTS BY ' + this.bc.N + ' SQUIRTS'); }
+  bcRefresh() { if (!this.bcT || !this.bc) return; this.bcT[1].setText('x' + Math.max(1, Math.round(this.bc.pot / MILK_EM * 10) / 10)); this.bcT[2].setText('MILKING BY ' + this.bc.N + ' SQUIRTS'); }
   bcDrop() {                                           // called as a paid spin settles: maybe a coin lands
     if (Math.random() >= 0.2) return null;
     const vs = [[0.1, 0.35], [0.2, 0.3], [0.3, 0.2], [0.5, 0.1], [1, 0.05]]; let u = Math.random(), v = 0.1; for (const [x, p] of vs) { if ((u -= p) <= 0) { v = x; break; } }
@@ -889,10 +922,149 @@ class FruityScene extends Phaser.Scene {
     this.tweens.add({ targets: tx, y: tx.y - 20 * G.z, alpha: 0, delay: 300, duration: 900, onComplete: () => tx.destroy() });
   }
   bcPop() {
-    const B = this.bc, amt = B.pot, G = this.geom(), at = G.A(G.TX + G.TW / 2, 92); this.bcPending = false; this.ph = 'pop'; this.udderPop = 1; Sound.sfx('splash'); for (let k = 0; k < 60; k++) { const a = -Math.PI * Math.random(), sp = 80 + Math.random() * 300; this.sparks.push({ x: at.x, y: at.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.8 + Math.random() * 0.6, col: Math.random() < 0.8 ? 0xffffff : 0xffd0dc }); }
-    this.louise('cheer', 3.5, 'THE UDDER BURST! THAT IS SO RIDIC!'); this.bigBanner('UDDERLY BURSTING!', 0xffd0dc, 2.2); Sound.jingle('slotbig', 'slots'); Sound.sfx('reveal'); this.cameras.main.flash(400, 255, 230, 120); this.cameras.main.shake(700, 0.01);
-    this.time.delayedCall(300, () => Sound.sfx('achieve')); this.fountain(70, at); this.fountain(40);
-    this.time.delayedCall(2300, () => { this.bc = { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; this.bcSave(); const w = this.addBal(amt); this.lastWin = w; this.bcRefresh(); this.countWin(amt, amt / this.bet()); this.say('THE BIG UDDER PAID ' + Math.round(amt) + ' ' + this.unit() + '!', '#ffd23f'); });
+    const B = this.bc, G = this.geom(), at = G.A(G.TX + G.TW / 2, 92); this.bcPending = false; this.ph = 'milk'; this.udderPop = 1;
+    const stake = Math.max(1, B.pot / MILK_EM);
+    this.bc = { pot: 0, n: 0, N: 18 + Math.floor(Math.random() * 13) }; this.bcSave(); this.bcRefresh();
+    Sound.sfx('moo'); this.bigBanner('MILKING TIME!', 0xffd0dc, 1.4); this.cameras.main.flash(300, 255, 240, 250); this.fountain(30, at);
+    this.louise('cheer', 2, 'SHE\'S FULL! GRAB A STOOL, CHRIS!');
+    this.time.delayedCall(1500, () => this.milkStart(stake));
+  }
+  // ---------------------------------------------------------------- (v3.147) THE MILKING
+  milkStart(stake) {
+    const W = this.scale.width, H = this.scale.height;
+    this.mk = { lvl: 0, mult: 1, stake, sel: 1, busy: false, teats: [], sq: [0, 0, 0, 0], off: 0, gone: false, fill: 0.15, msg: 'PICK A TEAT TO SQUEEZE', t: 0, fly: null, drops: [] };
+    this.mkC = this.add.container(0, 0).setDepth(15); this.mkG = this.add.graphics(); this.mkC.add(this.mkG);
+    const f = (sz, col, o) => Object.assign({ fontFamily: PIXEL, fontSize: Math.round(sz) + 'px', color: col, stroke: '#1a1020', strokeThickness: 4 }, o || {});
+    const S = Math.min(W / 420, H / 240); this.mk.S = S;
+    this.mkT = {
+      title: this.add.text(W * 0.4, 6 * S, 'MILK HER FOR ALL SHE\'S WORTH', f(9 * S, '#ffd0dc')).setOrigin(0.5, 0),
+      mult: this.add.text(0, 0, 'x1', f(22 * S, '#ffffff', { strokeThickness: 6 })).setOrigin(0.5),
+      win: this.add.text(0, 0, '', f(7 * S, '#ffd23f')).setOrigin(0.5),
+      msg: this.add.text(W * 0.4, 20 * S, '', f(6 * S, '#ffd23f')).setOrigin(0.5, 0),
+      teat: [0, 1, 2, 3].map(() => this.add.text(0, 0, '', f(9 * S, '#ffffff', { strokeThickness: 5 })).setOrigin(0.5)),
+      lad: MILK_LV.map(() => this.add.text(0, 0, '', f(5.2 * S, '#ffffff', { strokeThickness: 3 })).setOrigin(0, 0.5))
+    };
+    this.mkLou = this.add.image(0, 0, 'lou_dance0');
+    this.mkC.add([this.mkLou, this.mkT.title, this.mkT.mult, this.mkT.win, this.mkT.msg, ...this.mkT.teat, ...this.mkT.lad]);
+    this.mkC.setAlpha(0); this.tweens.add({ targets: this.mkC, alpha: 1, duration: 300 });
+    Sound.music('slots');
+    this.milkRound();
+  }
+  milkRound() {
+    const M = this.mk, L = MILK_LV[M.lvl], vals = L.m.slice().sort(() => Math.random() - 0.5).slice(0, 4 - L.dry), cells = vals.concat(Array(L.dry).fill(0)).sort(() => Math.random() - 0.5);
+    M.teats = cells.map(v => ({ v, open: false })); M.busy = false; M.msg = 'ROUND ' + (M.lvl + 1) + ' OF 5: FILL THE ' + L.name + '!  ' + (4 - L.dry) + ' TEATS SQUIRT, ' + L.dry + ' ' + (L.dry > 1 ? 'ARE' : 'IS') + ' DRY';
+    this.mkT.teat.forEach(t => t.setText(''));
+  }
+  milkGeo() {
+    const W = this.scale.width, H = this.scale.height, S = this.mk.S, cx = W * 0.4 + this.mk.off * W, ux = cx, uy = 74 * S, urx = 58 * S, ury = 36 * S;
+    const teats = [-0.66, -0.22, 0.22, 0.66].map((f2, k) => ({ x: ux + f2 * urx * 1.1, y: uy + ury * (0.7 + 0.3 * (1 - Math.abs(f2))), k }));
+    return { W, H, S, cx, ux, uy, urx, ury, teats, vy: H - 6 * S, lx: W - 104 * S };
+  }
+  milkPick(k) {
+    const M = this.mk; if (!M || M.busy || M.gone) return; const T = M.teats[k]; if (!T || T.open) return;
+    M.busy = true; T.open = true; M.sq[k] = 1; Sound.sfx('squish');
+    const Gm = this.milkGeo(), tp = Gm.teats[k];
+    if (!T.v) {                                                   // DRY: a puff of dust, a fly, a look, and off she plods
+      this.time.delayedCall(250, () => {
+        Sound.sfx('clunk'); this.mkT.teat[k].setText('DRY').setColor('#c8a878').setPosition(tp.x, tp.y + 40 * Gm.S);
+        for (let q = 0; q < 14; q++) M.drops.push({ x: tp.x, y: tp.y + 24 * Gm.S, vx: (Math.random() - 0.5) * 120, vy: -Math.random() * 60, life: 0.7, col: 0xc8a878, r: 3 + Math.random() * 3 });
+        M.fly = { x: tp.x, y: tp.y + 20 * Gm.S, t: 0 };
+        M.teats.forEach((q, i) => { if (!q.open) { const p = Gm.teats[i]; this.mkT.teat[i].setText(q.v ? 'x' + q.v : 'DRY').setColor(q.v ? '#a0a0b8' : '#8a7a60').setAlpha(0.7).setPosition(p.x, p.y + 40 * Gm.S); } });
+        this.louise('wink', 2, 'BESSIE\'S HAD ENOUGH!'); M.msg = 'DRY! BESSIE\'S HAD ENOUGH - YOU KEEP x' + M.mult;
+      });
+      this.time.delayedCall(1500, () => { Sound.sfx('moo'); this.tweens.add({ targets: M, off: 1.4, duration: 2200, ease: 'Sine.easeIn' }); M.gone = true; });
+      this.time.delayedCall(3600, () => this.milkEnd());
+      return;
+    }
+    // a squirt: milk arcs into the vessel, the multiplier jumps
+    this.time.delayedCall(180, () => {
+      Sound.sfx('splash'); M.mult = T.v; M.fill = Math.min(1, 0.25 + Math.random() * 0.5);
+      for (let q = 0; q < 26; q++) M.drops.push({ x: tp.x, y: tp.y + 24 * Gm.S, vx: (Gm.cx - tp.x) * (0.6 + Math.random() * 0.6) + (Math.random() - 0.5) * 40, vy: 40 + Math.random() * 80, life: 1.2, col: 0xffffff, r: 2 + Math.random() * 2.5, milk: true });
+      this.mkT.teat[k].setText('x' + T.v).setColor('#7dff8a').setPosition(tp.x, tp.y + 40 * Gm.S);
+      this.tweens.add({ targets: this.mkT.mult, scale: 1.5, yoyo: true, duration: 140 }); Sound.sfx(M.lvl >= 3 ? 'bells' : 'ding');
+      M.msg = ['LOVELY!', 'GET IN!', 'UDDERLY BRILLIANT!', 'THE CREAM OF THE CROP!', 'MOO-VELLOUS!'][M.lvl] + '  x' + T.v;
+      this.louise('cheer', 1.2);
+    });
+    this.time.delayedCall(1100, () => {
+      M.teats.forEach((q, i) => { if (!q.open) { const p = Gm.teats[i]; this.mkT.teat[i].setText(q.v ? 'x' + q.v : 'DRY').setColor(q.v ? '#a0a0b8' : '#8a7a60').setAlpha(0.7).setPosition(p.x, p.y + 40 * Gm.S); } });
+    });
+    this.time.delayedCall(2200, () => {
+      this.mkT.teat.forEach(t => t.setAlpha(1));
+      if (M.lvl >= MILK_LV.length - 1) { M.msg = 'THE TANKER\'S FULL! x' + M.mult + '!!'; Sound.sfx('honk'); this.time.delayedCall(400, () => Sound.sfx('honk')); this.time.delayedCall(1400, () => this.milkEnd()); return; }
+      M.lvl++; M.fill = 0.12; Sound.sfx('reveal'); this.milkRound();
+    });
+  }
+  milkEnd() {
+    const M = this.mk; if (!M || M.ended) return; M.ended = true;
+    const amt = Math.max(1, Math.round(M.stake * M.mult));
+    this.tweens.add({ targets: this.mkC, alpha: 0, duration: 300, onComplete: () => { this.mkC.destroy(); this.mkC = null; this.mk = null; } });
+    this.addBal(amt); this.lastWin = amt; this.countWin(amt, Math.max(M.mult, amt / this.bet()));
+    if (M.mult >= 50) Sound.jingle('slotbig', 'slots');
+    this.say('THE MILKING PAID ' + amt + '  (x' + M.mult + ')', '#ffd0dc'); this.refresh();
+  }
+  milkDraw(dt) {
+    const M = this.mk; if (!M) return; M.t += dt; const t = M.t, g = this.mkG, Gm = this.milkGeo(), { W, H, S } = Gm; g.clear();
+    // the barn at night-ish: a warm wall, hay on the floor
+    for (let k = 0; k < 8; k++) g.fillStyle([0x3a1a12, 0x42201a, 0x4a2a1e, 0x522e20, 0x5a3424, 0x623a28, 0x6a422c, 0x724a30][k], 1).fillRect(0, k * H / 8, W, H / 8 + 1);
+    for (let x = 0; x < W; x += 26 * S) g.fillStyle(0x2a120a, 0.5).fillRect(x, 0, 2 * S, H * 0.8);
+    g.fillStyle(0xc8a040, 1).fillRect(0, H * 0.8, W, H * 0.2); for (let x = 0; x < W; x += 6 * S) g.fillStyle(0xe8c060, 1).fillRect(x + (x * 7 % 5), H * 0.8 + ((x * 13) % 17) * S * 0.5, 4 * S, 1.5 * S);
+    // BESSIE: legs, belly with patches, the udder (droopy, two lobes), four big teats
+    const sw = Math.sin(t * 1.3) * 3 * S + (M.gone ? Math.sin(t * 9) * 4 * S : 0), cx = Gm.cx + sw;
+    for (const lx of [cx - 150 * S, cx - 120 * S, cx + 112 * S, cx + 142 * S]) { g.fillStyle(0x1a1020, 1).fillRect(lx - 1.5 * S, 10 * S, 21 * S, H * 0.8 - 2 * S); g.fillStyle(0xf4f0f8, 1).fillRect(lx, 10 * S, 18 * S, H * 0.8 - 10 * S); g.fillStyle(0x2a2438, 1).fillRect(lx, 60 * S, 18 * S, 26 * S); g.fillStyle(0x3a2a1a, 1).fillRect(lx - 2 * S, H * 0.8 - 12 * S, 22 * S, 12 * S); }
+    g.fillStyle(0x1a1020, 1).fillEllipse(cx, 16 * S, 360 * S, 96 * S); g.fillStyle(0xf4f0f8, 1).fillEllipse(cx, 14 * S, 354 * S, 90 * S);
+    g.fillStyle(0x2a2438, 1).fillEllipse(cx - 80 * S, 20 * S, 90 * S, 40 * S).fillEllipse(cx + 70 * S, 6 * S, 70 * S, 34 * S).fillEllipse(cx + 140 * S, 30 * S, 40 * S, 22 * S);
+    const jig = Math.sin(t * 3) * 3 * S, { urx, ury, uy } = Gm, lobes = [[0, -ury * 0.25, urx, ury * 0.75], [-urx * 0.45 - jig, ury * 0.18, urx * 0.66, ury * 0.74], [urx * 0.45 + jig, ury * 0.22, urx * 0.66, ury * 0.72]];
+    for (const [dx, dy, rx, ry] of lobes) g.fillStyle(0x1a1020, 1).fillEllipse(cx + dx, uy + dy, rx * 2 + 4 * S, ry * 2 + 4 * S);
+    for (const [dx, dy, rx, ry] of lobes) g.fillStyle(0xf2a6b8, 1).fillEllipse(cx + dx, uy + dy, rx * 2, ry * 2);
+    g.fillStyle(0xd8849a, 1).fillEllipse(cx, uy + ury * 0.55, urx * 0.36, ury * 0.6); g.fillStyle(0xffd0dc, 1).fillEllipse(cx - urx * 0.5 - jig, uy - ury * 0.05, urx * 0.4, ury * 0.4);
+    Gm.teats.forEach((tp, k) => {
+      const T = M.teats[k] || {}, sq = M.sq[k] = Math.max(0, M.sq[k] - dt * 2.5), len = (30 + sq * 14) * S, ang = (tp.k - 1.5) * 0.2 + Math.sin(t * 2.2 + k) * 0.12, x0 = tp.x + sw, y0 = tp.y;
+      const x1 = x0 + Math.sin(ang) * len, y1 = y0 + Math.cos(ang) * len, sel = !M.busy && !T.open && M.sel === k && !M.gone;
+      if (sel) { g.lineStyle(20 * S, 0xffd23f, 0.35 + 0.25 * Math.sin(t * 8)).lineBetween(x0, y0, x1, y1); }
+      g.lineStyle(15 * S, 0x1a1020, 1).lineBetween(x0, y0, x1, y1); g.lineStyle(11 * S * (1 - sq * 0.3), T.open ? (T.v ? 0xf0b0c0 : 0xc89090) : 0xe08aa0, 1).lineBetween(x0, y0, x1, y1);
+      g.lineStyle(3 * S, 0xffc0d0, 0.8).lineBetween(x0 - 3 * S, y0, x1 - 3 * S, y1); g.fillStyle(0xd06a86, 1).fillCircle(x1, y1, 5 * S);
+      if (!T.open && !M.gone && !M.busy) { const tt = this.mkT.teat[k]; tt.setText('?').setColor('#ffffff').setAlpha(0.6 + 0.4 * Math.sin(t * 4 + k)).setPosition(x1, y1 + 14 * S); }
+    });
+    // the vessel for this round, filling with milk
+    const V = MILK_LV[M.lvl].name, vx = W * 0.4, vy = Gm.vy, fill = M.fill = Math.min(1, M.fill + dt * 0.02);
+    this.milkVessel(g, V, vx, vy, S * 0.78, fill, t);
+    // the multiplier + what it's worth
+    this.mkT.mult.setText('x' + M.mult).setPosition(W * 0.4 - 118 * S, H * 0.42); this.mkT.win.setText('WORTH ' + Math.max(1, Math.round(M.stake * M.mult))).setPosition(W * 0.4 - 118 * S, H * 0.42 + 22 * S);
+    // milk and dust in flight, the fly
+    for (const d of M.drops) { d.vy += 300 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt; g.fillStyle(d.col, Math.min(1, d.life * 2)).fillRect(d.x - d.r / 2, d.y - d.r / 2, d.r, d.r); if (d.milk && d.y > vy - 30 * S) d.life = 0; }
+    M.drops = M.drops.filter(d => d.life > 0);
+    if (M.fly) { const F = M.fly; F.t += dt; const fx = F.x + Math.sin(F.t * 7) * 30 * S + F.t * 40 * S, fy = F.y - F.t * 30 * S + Math.cos(F.t * 11) * 10 * S; g.fillStyle(0x1a1020, 1).fillCircle(fx, fy, 3 * S); g.fillStyle(0xffffff, 0.7).fillEllipse(fx - 2 * S, fy - 3 * S, 4 * S, 3 * S).fillEllipse(fx + 2 * S, fy - 3 * S, 4 * S, 3 * S); }
+    // the ladder: five vessels, best at the bottom
+    const lx = Gm.lx, ly = 30 * S, lh = 36 * S;
+    g.fillStyle(0x1a1020, 0.75).fillRect(lx - 6 * S, ly - 22 * S, 108 * S, lh * 5 + 26 * S); this.mkT.lad.forEach((tx, i) => {
+      const L = MILK_LV[i], y = ly + i * lh, cur = i === M.lvl, done = i < M.lvl;
+      if (cur) g.fillStyle(0xffd23f, 0.3 + 0.15 * Math.sin(t * 6)).fillRect(lx - 4 * S, y - 2 * S, 104 * S, lh - 4 * S);
+      tx.setText((done ? 'OK ' : '') + L.name + '\nx' + L.m[0] + '-' + L.m[3]).setPosition(lx + 2 * S, y + lh / 2 - 3 * S).setColor(cur ? '#ffd23f' : done ? '#7dff8a' : '#c8b8e8');
+    });
+    this.mkT.lad[0].scene && 0;
+    this.mkT.msg.setText(M.msg);
+    // Louise, cheering from the left
+    const beat = this.t * 2.5, k2 = Math.floor(beat); this.mkLou.setTexture(this.louPose === 'wink' ? 'lou_wink' : this.louPose === 'cheer' ? (k2 % 2 ? 'lou_cheer' : 'lou_dance0') : 'lou_dance' + (k2 % 2)).setScale(S * 1.1).setPosition(24 * S, H * 0.8 - 52 * S - Math.abs(Math.sin(beat * Math.PI)) * 3 * S).setRotation(Math.sin(beat * Math.PI) * 0.05);
+  }
+  milkVessel(g, V, x, y, S, fill, t) {
+    const K = 0x1a1020, ST = 0xb8c0cc, ST2 = 0x8a92a0, MILK = 0xfcfcff;
+    const box = (x0, y0, w, h, col) => g.fillStyle(col, 1).fillRect(x0, y0, w, h);
+    if (V === 'PAIL') { const w = 46 * S, h = 40 * S; g.fillStyle(K, 1).fillPoints([{ x: x - w / 2 - 3 * S, y: y - h - 2 * S }, { x: x + w / 2 + 3 * S, y: y - h - 2 * S }, { x: x + w / 2 - 6 * S, y: y + 2 * S }, { x: x - w / 2 + 6 * S, y: y + 2 * S }], true);
+      g.fillStyle(ST, 1).fillPoints([{ x: x - w / 2, y: y - h }, { x: x + w / 2, y: y - h }, { x: x + w / 2 - 8 * S, y }, { x: x - w / 2 + 8 * S, y }], true); g.fillStyle(MILK, 1).fillEllipse(x, y - h + 4 * S, (w - 6 * S) * (0.6 + 0.4 * fill), 8 * S);
+      g.lineStyle(3 * S, K, 1).beginPath().arc(x, y - h, w / 2, Math.PI, 0).strokePath(); }
+    else if (V === 'CHURN') { const w = 44 * S, h = 70 * S; box(x - w / 2 - 2 * S, y - h - 2 * S, w + 4 * S, h + 4 * S, K); box(x - w / 2, y - h, w, h, ST); box(x - w / 2, y - h + 18 * S, w, 4 * S, ST2); box(x - w / 2, y - 14 * S, w, 4 * S, ST2);
+      box(x - 14 * S, y - h - 14 * S, 28 * S, 14 * S, K); box(x - 12 * S, y - h - 12 * S, 24 * S, 12 * S, ST); box(x - 6 * S, y - h - 20 * S, 12 * S, 8 * S, ST2); box(x - w / 2 + 4 * S, y - h + 2 * S, 4 * S, h - 4 * S, 0xe8eef8);
+      box(x - w / 2 + 10 * S, y - 6 * S - (h - 30 * S) * fill, 6 * S, 4 * S, MILK); }
+    else if (V === 'BATHTUB') { const w = 120 * S, h = 46 * S; g.fillStyle(K, 1).fillRoundedRect(x - w / 2 - 3 * S, y - h - 3 * S, w + 6 * S, h + 6 * S, 18 * S); g.fillStyle(0xf8f8fc, 1).fillRoundedRect(x - w / 2, y - h, w, h, 16 * S);
+      g.fillStyle(MILK, 1).fillRect(x - w / 2 + 6 * S, y - h + 4 * S, w - 12 * S, 6 * S); g.fillStyle(0xd8dce8, 1).fillRect(x - w / 2 + 6 * S, y - h + 10 * S, w - 12 * S, 2 * S);
+      for (const fx of [x - w / 2 + 14 * S, x + w / 2 - 22 * S]) { box(fx, y, 8 * S, 8 * S, 0xd8b040); } for (let k = 0; k < 4; k++) g.fillStyle(MILK, 0.9).fillCircle(x - 30 * S + k * 20 * S, y - h + 2 * S - Math.abs(Math.sin(t * 2 + k)) * 6 * S * fill, 5 * S); }
+    else if (V === 'MILK FLOAT') { const w = 150 * S, h = 56 * S; box(x - w / 2 - 2 * S, y - h - 2 * S, w + 4 * S, h - 8 * S, K); box(x - w / 2, y - h, w * 0.7, h - 12 * S, 0x2a8a4a); box(x + w * 0.2, y - h + 8 * S, w * 0.3, h - 20 * S, 0xf0f0f0);
+      box(x + w * 0.25, y - h + 12 * S, w * 0.2, 14 * S, 0x8ac8e8); for (let k = 0; k < 6; k++) { box(x - w / 2 + 8 * S + k * 16 * S, y - h + 10 * S, 10 * S, 24 * S, K); box(x - w / 2 + 9 * S + k * 16 * S, y - h + 11 * S, 8 * S, 22 * S, k / 6 < fill + 0.3 ? MILK : 0x6a8aa0); }
+      box(x - w / 2, y - h - 10 * S, w * 0.7, 10 * S, 0xffd23f); for (const wx of [x - w / 2 + 24 * S, x + w / 2 - 24 * S]) { g.fillStyle(K, 1).fillCircle(wx, y - 8 * S, 11 * S); g.fillStyle(0x8a8a9a, 1).fillCircle(wx, y - 8 * S, 5 * S); } }
+    else { const w = 200 * S, h = 60 * S; g.fillStyle(K, 1).fillRoundedRect(x - w / 2 - 3 * S, y - h - 3 * S, w * 0.75 + 6 * S, h - 10 * S, 22 * S); g.fillStyle(0xe8ecf4, 1).fillRoundedRect(x - w / 2, y - h, w * 0.75, h - 16 * S, 20 * S);
+      g.fillStyle(0x8a92a0, 1).fillRect(x - w / 2 + 10 * S, y - h + 18 * S, w * 0.75 - 20 * S, 3 * S); box(x + w * 0.27, y - h + 6 * S, w * 0.23, h - 22 * S, 0x2a6ab0); box(x + w * 0.32, y - h + 10 * S, w * 0.12, 16 * S, 0x8ac8e8);
+      g.fillStyle(MILK, 1).fillRoundedRect(x - w / 2 + 20 * S, y - h + 26 * S, (w * 0.75 - 40 * S) * fill, 6 * S, 3 * S);
+      for (const wx of [x - w / 2 + 26 * S, x - w / 2 + 56 * S, x + w * 0.1, x + w * 0.4]) { g.fillStyle(K, 1).fillCircle(wx, y - 8 * S, 12 * S); g.fillStyle(0x8a8a9a, 1).fillCircle(wx, y - 8 * S, 5 * S); } }
   }
   winCell(rr, row) { return this.winLines.some(w => rr < w.n && SLOT.LINES[w.line][rr] === row); }
 }

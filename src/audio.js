@@ -305,6 +305,7 @@ const Sound = (() => {
     ding:    () => { arp([1047, 1568], 0.06, { type: 'triangle', vol: 0.16 }); },
     bells:   () => { const t = ctx.currentTime; [1047, 1319, 1568, 2093, 1568, 2093, 2637].forEach((f, i) => tone({ type: 'triangle', f, dur: 0.22, vol: 0.13, t: t + i * 0.06 })); noise({ ft: 'highpass', f1: 6000, dur: 0.6, vol: 0.05, t: t + 0.1 }); },
     moo:     () => { const t = ctx.currentTime; tone({ type: 'sawtooth', f: 160, f2: 120, dur: 0.55, vol: 0.09, t, sustain: true }); tone({ type: 'sawtooth', f: 165, f2: 118, dur: 0.55, vol: 0.06, t }); tone({ type: 'sine', f: 520, f2: 880, dur: 0.12, vol: 0.08, t: t + 0.5 }); },
+    honk:    () => { const t = ctx.currentTime; tone({ type: 'square', f: 330, dur: 0.35, vol: 0.12, t, sustain: true }); tone({ type: 'square', f: 415, dur: 0.35, vol: 0.1, t, sustain: true }); },
     splash:  () => { noise({ f1: 2400, f2: 500, dur: 0.6, vol: 0.32, q: 1.2 }); tone({ type: 'sine', f: 300, f2: 60, dur: 0.4, vol: 0.35 }); },
     clunk:   () => { tone({ type: 'triangle', f: 95, f2: 45, dur: 0.28, vol: 0.5 }); noise({ f1: 600, dur: 0.08, vol: 0.3 }); },
     reveal:  () => {

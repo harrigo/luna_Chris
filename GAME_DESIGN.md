@@ -2827,3 +2827,13 @@ tent: the day/night wash and light glows from the previous visit were being reus
 SESSION box on the slot (right of the ticker): your win/loss since you walked up to the machine, green up / red down.
 The udder is a proper droopy one now: a squashed top and two saggy lobes that jiggle, a crease, veins near the end, and
 four teats splayed outward and swinging (longer as she fills); the milk drips from the teat tips.
+
+## v3.147: THE MILKING
+The Big Udder no longer just bursts and pays a lump. When it's full, you MILK HER: a barn scene under Bessie, four big
+teats. Five rounds, each a bigger thing to fill - PAIL x2-5, CHURN x6-15, BATHTUB x18-40, MILK FLOAT x50-120,
+TANKER x150-300. Pick a teat: most squirt (milk arcs into the vessel, your multiplier jumps to the number), one is DRY
+(two from the bathtub on) - a puff of dust, a fly, "BESSIE'S HAD ENOUGH", she plods off and you KEEP your multiplier.
+It never loses. The pot becomes the STAKE (pot / 29.14, the expected multiplier), shown on the pail as "x5.1", so the
+milking pays the pot on average and the slot's RTP doesn't move. Reaching the tanker: ~3.5% of milkings.
+Reels: Bessie wears a pink WILD flag, the star a gold BONUS flag. Rules say plainly that 3 stars aren't a bonus by
+themselves - they're three steps along the trail.
