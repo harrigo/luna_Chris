@@ -2852,3 +2852,13 @@ Routes: MILD  C COLLECT C FREE C CHAIN RAT C MARCH RESPIN C MEGA JACKPOT
         MATURE  C COLLECT C FREE C CHAIN RAT C FREE MARCH C RESPIN C MEGA C JACKPOT
         EXTRA  C COLLECT C FREE C RAT CHAIN C RESPIN C MARCH FREE C MEGA C SUPER JACKPOT
 Retuned (1M spins each): RTP unchanged.
+
+## v3.149: bosses on the reels, fat cheeses in the collects
+- The four top-paying symbols are now boss portraits (cut from the bosses' own sprites at 2x detail, dark outline):
+  shield -> THE MAGMA GOLEM, chilli -> BARON VON BLUE, heart -> THE MANDOLINE, golden wheel -> THE RAT KING.
+  (Internal symbol ids unchanged, so the maths doesn't move.)
+- RULES page 2 lists every symbol by name with what it pays at your bet (3/4/5), plus the star (flies the rocket) and
+  the collect cheese (its range at your bet).
+- The collects pay in CHEESES: fewer on a board (usually 3-4) but a wide spread - values 1..20 coin units, mostly
+  small, now and then a fat 10 or 20. Values scale with your bet. Tiers shout: white, orange (3+), gold glow (10+),
+  rainbow strobe (20). Big ones ring bells as they fly into the grater. Retuned (RTP unchanged).

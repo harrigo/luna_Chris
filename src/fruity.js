@@ -60,8 +60,27 @@ function makeFruityTiles(scene) {
     }
   });
 }
+// (v3.149) THE BOSSES ON THE REELS: the four top-paying symbols are now the game's bosses (portraits cut from their real
+// sprites, at twice the detail of the other symbols): the Magma Golem, Baron von Blue, the Mandoline and the Rat King.
+const FM_BOSS = { plate: ['magmagolem', 18, 0, 114, 104], power: ['baron', 0, 0, 157, 135], heart: ['mandoline', 0, 0, 120, 128], wheel: ['kingboss', 14, 0, 112, 108] };
+const FM_BOSS_NAME = { plate: 'THE MAGMA GOLEM', power: 'BARON VON BLUE', heart: 'THE MANDOLINE', wheel: 'THE RAT KING' };
+function makeBossSyms(scene) {
+  for (const [sym, [src, sx, sy, sw, sh]] of Object.entries(FM_BOSS)) {
+    const key = 'fm_boss_' + sym; if (scene.textures.exists(key) || !scene.textures.exists(src)) continue;
+    const f = scene.textures.get(src).get(), N = 44, c = document.createElement('canvas'); c.width = N; c.height = N; const x = c.getContext('2d');
+    const k = Math.min((N - 4) / sw, (N - 4) / sh), w = sw * k, h = sh * k;
+    x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+    x.drawImage(f.source.image, f.cutX + sx, f.cutY + sy, sw, sh, (N - w) / 2, (N - h) / 2, w, h);
+    // a crisp dark outline round the portrait so it pops off its tile
+    const im = x.getImageData(0, 0, N, N), d = im.data, a = i => d[i * 4 + 3] > 90, out = new Uint8ClampedArray(d);
+    for (let y = 0; y < N; y++) for (let xx = 0; xx < N; xx++) { const i = y * N + xx; if (a(i)) { out[i * 4 + 3] = 255; continue; }
+      if ((xx > 0 && a(i - 1)) || (xx < N - 1 && a(i + 1)) || (y > 0 && a(i - N)) || (y < N - 1 && a(i + N))) { out[i * 4] = 26; out[i * 4 + 1] = 16; out[i * 4 + 2] = 32; out[i * 4 + 3] = 255; } else out[i * 4 + 3] = 0; }
+    im.data.set(out); x.putImageData(im, 0, 0); scene.textures.addCanvas(key, c);
+  }
+}
+const fmSym = k => FM_BOSS[k] ? 'fm_boss_' + k : 'fm_' + k;   // the texture a symbol draws with
 function makeFruityTextures(scene) {
-  makeFruityTiles(scene); makeFruityFlags(scene);
+  makeFruityTiles(scene); makeFruityFlags(scene); makeBossSyms(scene);
   if (scene.textures.exists('fm_wheel')) return;
   const S = 22, c = 10.5;
   const icon = (key, shape) => pixTex(scene, key, S, S, put => {
@@ -432,14 +451,19 @@ class FruityScene extends Phaser.Scene {
       'BET- / BET+ CHANGE YOUR STAKE. CHEESE CHANGES THE STRENGTH: MILD = LITTLE WINS OFTEN, MATURE = IN BETWEEN, EXTRA MATURE = LONG DRY SPELLS AND HUGE TOP PRIZES.',
       'SO CLOSE? IF A SPIN WINS NOTHING BUT TWO GOOD SYMBOLS START A LINE, LOUISE OFTEN THROWS YOU A BONE AND RESPINS REELS 3-5 FOR FREE.']);
     else if (R.page === 1) {
-      const keys = ['wheel', 'bessie', 'heart', 'power', 'plate', 'slow', 'coin', 'wedge'], cols = 2, cw2 = (pw - 32 * s) / cols, rh2 = (ph - 60 * s) / 4;
+      // (v3.149) every symbol, what it is and what it pays at your bet (3 / 4 / 5 on a line); the star and the collect cheese too
+      const T = SLOT.STRENGTHS[this.sk].trail, ci = T.indexOf('COLLECT'), unit = ci >= 0 ? (SLOT.TUNE[this.sk].fx[ci] || 0) * this.bet() : 0;
+      const keys = ['wheel', 'heart', 'power', 'plate', 'bessie', 'slow', 'coin', 'wedge', 'star', 'cheese'], cols = 2, cw2 = (pw - 32 * s) / cols, rh2 = (ph - 52 * s) / 5;
+      const NM = Object.assign({ bessie: 'BESSIE - WILD', slow: 'STOPWATCH', coin: 'COIN', wedge: 'CHEESE', star: 'STAR - BONUS', cheese: 'COLLECT CHEESE' }, FM_BOSS_NAME);
       keys.forEach((k, i) => {
-        const x = x0 + 16 * s + (i % cols) * cw2, y = y0 + 34 * s + Math.floor(i / cols) * rh2, ic = rh2 * 0.8 / 28;
-        c.add(this.add.image(x + 18 * ic, y + rh2 / 2, 'fm_t_' + k).setScale(ic)); c.add(this.add.image(x + 18 * ic, y + rh2 / 2, 'fm_' + k).setScale(ic * 1.1));
+        const x = x0 + 16 * s + (i % cols) * cw2, y = y0 + 30 * s + Math.floor(i / cols) * rh2, ic = rh2 * 0.82 / 28, sym = k === 'cheese' ? 'wedge' : k;
+        c.add(this.add.image(x + 18 * ic, y + rh2 / 2, 'fm_t_' + sym).setScale(ic)); c.add(this.add.image(x + 18 * ic, y + rh2 / 2, fmSym(sym)).setScale(ic * 1.1 / (FM_BOSS[sym] ? 2 : 1)));
         const pay = n => { const v = SLOT.PAYS[k][n] / 10 * SLOT.TUNE[this.sk].line * this.bet(); return v >= 10 ? String(Math.round(v)) : v.toFixed(1).replace(/\.0$/, ''); };
-        c.add(this.add.text(x + 40 * ic, y + rh2 / 2, '3: ' + pay(0) + '   4: ' + pay(1) + '   5: ' + pay(2), f(6.4, k === 'wheel' || k === 'bessie' ? '#ffd23f' : '#ffffff')).setOrigin(0, 0.5));
+        const top = k === 'wheel' || k === 'bessie' ? '#ffd23f' : FM_BOSS[k] ? '#ff9ad0' : '#ffffff';
+        const line = k === 'star' ? 'FLIES THE ROCKET 1 PLANET' : k === 'cheese' ? 'IN THE COLLECTS: ' + Math.max(1, Math.round(unit)) + ' TO ' + Math.max(2, Math.round(unit * 20)) : (k === 'bessie' ? 'SUBS ALL  ' : '') + '3: ' + pay(0) + '  4: ' + pay(1) + '  5: ' + pay(2);
+        c.add(this.add.text(x + 40 * ic, y + rh2 / 2 - 5 * s, NM[k], f(4.4, top)).setOrigin(0, 0.5));
+        c.add(this.add.text(x + 40 * ic, y + rh2 / 2 + 5 * s, line, f(5, '#ffffff')).setOrigin(0, 0.5));
       });
-      c.add(this.add.text(W / 2, y0 + ph - 30 * s, 'PER LINE. BESSIE (WILD) PAYS LIKE THE WHEEL WHEN SHE MAKES A LINE ALL BY HERSELF.', f(4, '#c8b8e8')).setOrigin(0.5));
     } else if (R.page === 2) body([
       'THE STAR (MARKED BONUS) IS HOW YOU GET TO THE BONUSES: EACH ONE ON THE MIDDLE ROW FLIES YOUR ROCKET ONE PLANET ALONG THE ROUTE ABOVE THE REELS. THREE OF THEM ISN\'T A BONUS BY ITSELF - IT\'S THREE STEPS. A SPIN WITH NO STAR MIGHT SLIP YOU BACK ONE.',
       'TAKE BANKS THE PLANET YOU\'RE ON - OR KEEP FLYING. LAND ON A RINGED PLANET AND ITS BONUS PLAYS STRAIGHT AWAY:',
@@ -598,7 +622,7 @@ class FruityScene extends Phaser.Scene {
     this.bigBanner(NAMES[0], NAMES[1], 1.3); Sound.sfx('reveal'); this.cameras.main.flash(250, 120, 255, 160); this.say(NAMES[2], '#' + NAMES[1].toString(16).padStart(6, '0'));
     this.overlay(o => {
       const G = this.geom(); this.colCells = [];
-      for (let i = 0; i < 15; i++) { const c = this.cell(Math.floor(i / 3), i % 3), g = this.add.graphics(), t = this.add.text(c.x, c.y, '', { fontFamily: PIXEL, fontSize: Math.round(4 * G.z) + 'px', color: '#1a1020', stroke: '#fff4c0', strokeThickness: 2 }).setOrigin(0.5); o.add([g, t]); this.colCells.push({ c, G, g, t, v: 0, ox: 0 }); }
+      for (let i = 0; i < 15; i++) { const c = this.cell(Math.floor(i / 3), i % 3), g = this.add.graphics(), im = this.add.image(c.x, c.y, 'fm_wedge').setScale(G.z * 1.2).setVisible(false), t = this.add.text(c.x, c.y, '', { fontFamily: PIXEL, fontSize: Math.round(6 * G.z) + 'px', color: '#ffffff', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5); o.add([g, im, t]); this.colCells.push({ c, G, g, im, t, v: 0, ox: 0 }); }
       // the collector: a cheese grater over the udder window, with what it's holding and its multiplier
       const gx = G.A(G.TX + G.TW / 2, 100); this.colGr = this.add.graphics(); this.colGrT = this.add.text(gx.x, gx.y + 26 * G.z, '0', { fontFamily: PIXEL, fontSize: Math.round(6 * G.z) + 'px', color: '#ffd23f', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
       this.colMT = this.add.text(gx.x, gx.y - 30 * G.z, '', { fontFamily: PIXEL, fontSize: Math.round(7 * G.z) + 'px', color: '#ff4a6a', stroke: '#1a1020', strokeThickness: 4 }).setOrigin(0.5);
@@ -608,10 +632,16 @@ class FruityScene extends Phaser.Scene {
   }
   colDraw() {
     if (!this.colCells) return; const bet = this.bet(), f = this.feat, G = this.geom(), z = G.z;
+    // (v3.149) each prize is a big CHEESE with its value in fat numbers; the bigger the value the louder it shouts:
+    // little ones white, decent ones orange, big ones gold and glowing, the fat 20s strobing rainbow
     this.colCells.forEach(C => { const { c } = C, w = G.cw - 2, h = G.chh - 2, x = c.x + C.ox; C.g.clear();
       C.g.fillStyle(0x0e0a16, 0.9).fillRect(c.x - w / 2, c.y - h / 2, w, h);
-      if (C.v) { C.g.fillStyle(FM_INK, 1).fillCircle(x, c.y, h * 0.46); C.g.fillStyle(0xc8902a, 1).fillCircle(x, c.y, h * 0.42); C.g.fillStyle(0xffd23f, 1).fillCircle(x, c.y, h * 0.36); C.g.fillStyle(0xfff4c0, 0.8).fillCircle(x - h * 0.12, c.y - h * 0.12, h * 0.1);
-        C.t.setPosition(x, c.y).setText(String(Math.max(1, Math.round(C.v * f.k * bet * 10) / 10))); } else C.t.setText(''); });
+      if (C.v) {
+        const tier = C.v >= 20 ? 3 : C.v >= 10 ? 2 : C.v >= 3 ? 1 : 0, glow = [0xfff4c0, 0xffa040, 0xffd23f, FM_RAINBOW[Math.floor(this.t * 12) % FM_RAINBOW.length]][tier];
+        if (tier) { C.g.fillStyle(glow, 0.25 + 0.15 * Math.sin(this.t * 8 + c.x)).fillCircle(x, c.y, h * (0.5 + tier * 0.06)); }
+        C.im.setVisible(true).setPosition(x, c.y - h * 0.08).setScale(G.z * (1.15 + tier * 0.08 + (tier === 3 ? 0.05 * Math.sin(this.t * 10) : 0)));
+        C.t.setPosition(x, c.y + h * 0.22).setText(String(Math.max(1, Math.round(C.v * f.k * bet)))).setColor('#' + [0xffffff, 0xffb060, 0xffe070, glow][tier].toString(16).padStart(6, '0')).setFontSize(Math.round((5.5 + tier) * G.z));
+      } else { C.im.setVisible(false); C.t.setText(''); } });
     // the grater
     const g = this.colGr, at = this.colGrAt; g.clear(); const gw = 34 * z, gh = 40 * z, wob = Math.sin(this.t * 6) * z;
     g.fillStyle(FM_INK, 1).fillRect(at.x - gw / 2 - 2 * z, at.y - gh / 2 - 2 * z + wob, gw + 4 * z, gh + 4 * z); g.fillStyle(0xc8ccd8, 1).fillRect(at.x - gw / 2, at.y - gh / 2 + wob, gw, gh);
@@ -647,7 +677,8 @@ class FruityScene extends Phaser.Scene {
     } } });
   }
   colFly(C, v, mult) {
-    const G = this.geom(), from = { x: C.c.x + C.ox, y: C.c.y }, to = this.colGrAt, im = this.add.image(from.x, from.y, 'fm_coin').setDepth(8).setScale(G.z);
+    const G = this.geom(), from = { x: C.c.x + C.ox, y: C.c.y }, to = this.colGrAt, im = this.add.image(from.x, from.y, 'fm_wedge').setDepth(8).setScale(G.z * 1.2);
+    if (v >= 10) { Sound.sfx('bells'); this.burstAt(from.x, from.y, 0xffd23f, 18); }
     C.v = 0; this.colDraw();
     this.tweens.add({ targets: im, x: to.x, y: to.y, scale: G.z * 0.6, duration: 380, ease: 'Cubic.easeIn', onComplete: () => { im.destroy(); this.colTot += v * mult; this.colDraw(); Sound.sfx('coin'); this.burstAt(to.x, to.y, 0xffd23f, 6); } });
   }
@@ -693,6 +724,7 @@ class FruityScene extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(0.05, delta / 1000); this.t += dt;
     if (this.mk) this.milkDraw(dt);
+    if (this.colCells && this.feat) this.colDraw();
     for (const k in this.press) this.press[k] = Math.max(0, this.press[k] - dt);
     if (this.spinT !== undefined) this.spinT += dt;
     for (let i = 0; i < 5; i++) {
@@ -775,14 +807,15 @@ class FruityScene extends Phaser.Scene {
         let key = strips[i][idx];
         const shown = this.showGrid || (this.res && this.res.grid); if (!R.stop && shown && Math.abs(row - Math.round(row)) < 0.01 && row > -0.5 && row < 2.5) key = shown[i][Math.round(row)] || key;
         const wob = !R.stop && this.winLines.length && this.winCell(i, Math.round(row)) ? 0.08 + Math.abs(Math.sin(t * 9 + i)) * 0.14 : 0, sy = z * FM_ICON * (blur ? 1.3 : 1 + wob);
-        im.setTexture('fm_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z * FM_ICON * (1 + wob), sy).setAlpha(blur ? 0.75 : 1);
+        const q = FM_BOSS[key] ? 2 : 1;   // (v3.149) boss portraits are drawn at twice the detail
+        im.setTexture(fmSym(key)).setPosition(Math.round(cx), Math.round(y)).setScale(z * FM_ICON * (1 + wob) / q, sy / q).setAlpha(blur ? 0.75 : 1);
         const ti = this.tile[i][j], ts = z * (blur ? 1.15 : 1), th = 14 * ts, t0 = y - th, t1 = y + th, w0 = Math.max(t0, ry), w1 = Math.min(t1, ry + rh);
         if (w1 <= w0 || !FM_TILE.hasOwnProperty(key)) ti.setVisible(false); else ti.setVisible(true).setTexture('fm_t_' + key).setPosition(Math.round(cx), Math.round(y)).setScale(z, ts).setAlpha(blur ? 0.8 : 1).setCrop(0, (w0 - t0) / ts, 36, (w1 - w0) / ts);
         { const fl = this.flag[i][j], fk = key === SLOT.WILD ? 'wild' : key === SLOT.STAR ? 'bonus' : null, fy = y + 10 * sy, fh = 4.5 * sy;
           if (!fk || blur || fy - fh < ry || fy + fh > ry + rh) fl.setVisible(false); else fl.setVisible(true).setTexture('fm_lbl_' + fk).setPosition(Math.round(cx), Math.round(fy)).setScale(z * 0.95, sy * 0.95); }
         const hh = 11 * sy, y0 = y - hh, y1 = y + hh, v0 = Math.max(y0, ry), v1 = Math.min(y1, ry + rh);
         if (v1 <= v0) { im.setVisible(false); return; }
-        im.setVisible(true).setCrop(0, (v0 - y0) / sy, 22, (v1 - v0) / sy);
+        im.setVisible(true).setCrop(0, (v0 - y0) / sy * q, 22 * q, (v1 - v0) / sy * q);
       });
     });
     this.stickyIm.forEach((im, k) => { const s = this.sticky[k]; if (!s || !(this.ph === 'free' || this.ph === 'freespin')) { im.setVisible(false); return; } const c = this.cell(s[0], s[1]); im.setVisible(true).setPosition(c.x, c.y).setScale(z * FM_ICON * (1 + Math.sin(t * 6 + k) * 0.06)); });

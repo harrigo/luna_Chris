@@ -42,7 +42,7 @@ const SLOT = (() => {
   // step's bonus game worth its val on average. Each val is exactly what carrying on from that step is worth, so taking
   // is never a mistake: it's banking versus gambling, and the RTP is the same however you play.
   // @@TUNE@@
-  const TUNE = {"mild":{"line":1.10838,"val":[1.381,1.855,3.372,3.745,5.233,5.457,5.238,6.556,6.519,6.013,7.248,6.976,8.439],"fx":[0,0.13884,0,0.10866,0,0.01599,0.12735,0,0.04591,0.09465,0,0.03868,0]},"mature":{"line":0.93646,"val":[2.247,3.356,6.116,7.281,10.067,11.057,11.097,13.363,13.824,13.33,15.349,15.41,17.685,17.681,19.926,23.475],"fx":[0,0.14359,0,0.12217,0,0.01602,0.11119,0,0.14399,0.04645,0,0.09786,0,0.03968,0,0]},"extra":{"line":0.87105,"val":[3.388,6.103,12.011,16.867,24.763,31.242,36.185,44.162,50.25,59.289,66.099,70.581,78.13,83.017,90.943,95.884,104.446],"fx":[0,0.12762,0,0.37681,0,0.08312,0.01448,0,0.08197,0,0.0419,0.47842,0,0.03447,0,0.12257,0]}};
+  const TUNE = {"mild":{"line":1.10838,"val":[1.381,1.855,3.372,3.745,5.233,5.457,5.238,6.556,6.519,6.013,7.248,6.976,8.439],"fx":[0,0.11141,0,0.10876,0,0.06593,0.12734,0,0.05666,0.09446,0,0.03761,0]},"mature":{"line":0.93265,"val":[2.243,3.35,6.103,7.266,10.045,11.032,11.073,13.334,13.794,13.302,15.318,15.38,17.651,17.647,19.888,23.431],"fx":[0,0.18461,0,0.12186,0,0.10567,0.11075,0,0.14362,0.09188,0,0.09774,0,0.06128,0,0]},"extra":{"line":0.87235,"val":[3.371,6.085,11.964,16.801,24.641,31.071,35.979,43.884,49.912,58.851,65.573,69.989,77.439,82.251,90.067,94.924,103.37],"fx":[0,0.32332,0,0.37207,0,0.08246,0.18933,0,0.08108,0,0.16364,0.47241,0,0.10553,0,0.12106,0]}};
   // @@END@@
   // reel strips: the counts, spread out so stars and wilds never bunch (a star at most once in any 3-high window)
   function strips(sk) {
@@ -136,6 +136,7 @@ const SLOT = (() => {
   }
   // (v3.148) THE COLLECT FAMILY - coins with values land on the grid and a COLLECTOR on the right scoops them up.
   // Unlocked further along the trail, each one better than the last:
+  //   (v3.149: few cheeses on a board - usually 3 or 4 - but each one worth a lot more, from a little 1 to a fat 20)
   //   COLLECT  one board of coins, all collected
   //   CHAIN    collect, then the board respins; every board that lands a coin is collected too, and each link in the
   //            chain multiplies its board by one more (x1, x2, x3...) until a board lands nothing
@@ -144,23 +145,24 @@ const SLOT = (() => {
   //   MEGA     one big board, and the collector's got a multiplier (x2 to x10)
   // cells: 15 values, index = reel * 3 + row, 0 = empty. Every frame is kept so the game can play it back.
   function collectGame(sk, kind, rnd) {
-    const V = STRENGTHS[sk].respin.vals, val = () => V[Math.floor(rnd() * V.length)];
+    // (v3.149) cheeses with a wide spread of values: mostly little ones, now and then a big fat 10 or 20 (times the coin unit)
+    const V = [1, 1, 1, 1, 2, 2, 2, 3, 3, 5, 5, 10, 20], val = () => V[Math.floor(rnd() * V.length)];
     const board = (p, min) => { const c = Array(15).fill(0); let n = 0; for (let i = 0; i < 15; i++) if (rnd() < p) { c[i] = val(); n++; } while (n < min) { const i = Math.floor(rnd() * 15); if (!c[i]) { c[i] = val(); n++; } } return c; };
     const sum = c => c.reduce((a, v) => a + v, 0);
-    if (kind === 'COLLECT') { const c = board(0.3, 4); return { kind: 'collect', x: sum(c), frames: [{ cells: c, mult: 1, got: sum(c) }] }; }
-    if (kind === 'MEGA') { const c = board(0.4, 5), m = [2, 2, 3, 3, 4, 5, 10][Math.floor(rnd() * 7)]; return { kind: 'mega', x: sum(c) * m, frames: [{ cells: c, mult: m, got: sum(c) * m }] }; }
+    if (kind === 'COLLECT') { const c = board(0.1, 3); return { kind: 'collect', x: sum(c), frames: [{ cells: c, mult: 1, got: sum(c) }] }; }
+    if (kind === 'MEGA') { const c = board(0.15, 3), m = [2, 2, 3, 3, 4, 5, 10][Math.floor(rnd() * 7)]; return { kind: 'mega', x: sum(c) * m, frames: [{ cells: c, mult: m, got: sum(c) * m }] }; }
     if (kind === 'CHAIN') {
-      const frames = []; let c = board(0.3, 4), link = 1, x = 0;
-      while (sum(c) > 0 && link <= 10) { frames.push({ cells: c, mult: link, got: sum(c) * link }); x += sum(c) * link; link++; c = board(0.12, 0); }
+      const frames = []; let c = board(0.1, 3), link = 1, x = 0;
+      while (sum(c) > 0 && link <= 10) { frames.push({ cells: c, mult: link, got: sum(c) * link }); x += sum(c) * link; link++; c = board(0.04, 0); }
       frames.push({ cells: c, mult: link, got: 0 });                 // the board that came up empty
       return { kind: 'chain', x, frames };
     }
     // MARCH
-    let c = board(0.3, 5), x = 0; const frames = [{ cells: c.slice(), got: 0, mult: 1 }];
+    let c = board(0.1, 3), x = 0; const frames = [{ cells: c.slice(), got: 0, mult: 1 }];
     for (let step = 0; step < 30 && sum(c) > 0; step++) {
       const got = c[12] + c[13] + c[14]; x += got;
       const n = Array(15).fill(0); for (let r = 3; r >= 0; r--) for (let k = 0; k < 3; k++) n[(r + 1) * 3 + k] = c[r * 3 + k];
-      for (let k = 0; k < 3; k++) if (rnd() < 0.22) n[k] = val();
+      for (let k = 0; k < 3; k++) if (rnd() < 0.12) n[k] = val();
       c = n; frames.push({ cells: c.slice(), got, mult: 1 });
     }
     return { kind: 'march', x, frames };
